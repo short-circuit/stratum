@@ -1,5 +1,5 @@
-// Accent color theming utilities.
-// Applies CSS custom properties derived from a hex accent color.
+// Primary + secondary color theming.
+// Generates CSS custom properties for both colors with full shade derivation.
 
 type HSL = { h: number; s: number; l: number };
 
@@ -31,28 +31,30 @@ function hexToHsl(hex: string): HSL {
   return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 
-export function applyAccentTheme(hex: string, dark: boolean) {
+function setShades(prefix: string, hex: string) {
   const { h, s } = hexToHsl(hex);
   const root = document.documentElement;
+  const shades: [number, number][] = [
+    [50, 96], [100, 92], [200, 84], [300, 68],
+    [400, 55], [500, 50], [600, 42], [700, 34],
+    [800, 26], [900, 16],
+  ];
+  for (const [n, l] of shades) {
+    root.style.setProperty(`--${prefix}-${n}`, `hsl(${h}, ${s}%, ${l}%)`);
+  }
+}
 
-  // Light mode shades
-  root.style.setProperty('--accent', hex);
-  root.style.setProperty('--accent-50', `hsl(${h}, ${s}%, 96%)`);
-  root.style.setProperty('--accent-100', `hsl(${h}, ${s}%, 92%)`);
-  root.style.setProperty('--accent-200', `hsl(${h}, ${s}%, 84%)`);
-  root.style.setProperty('--accent-300', `hsl(${h}, ${s}%, 68%)`);
-  root.style.setProperty('--accent-400', `hsl(${h}, ${s}%, 55%)`);
-  root.style.setProperty('--accent-500', `hsl(${h}, ${s}%, 50%)`);
-  root.style.setProperty('--accent-600', `hsl(${h}, ${s}%, 42%)`);
-  root.style.setProperty('--accent-700', `hsl(${h}, ${s}%, 34%)`);
-  root.style.setProperty('--accent-800', `hsl(${h}, ${s}%, 26%)`);
-  root.style.setProperty('--accent-900', `hsl(${h}, ${s}%, 16%)`);
+export function applyTheme(primaryHex: string, secondaryHex: string, dark: boolean) {
+  setShades('primary', primaryHex);
+  setShades('secondary', secondaryHex);
 
-  // Common semantic colors
-  root.style.setProperty('--accent-bg', `var(--accent-${dark ? '900' : '50'})`);
-  root.style.setProperty('--accent-bg-hover', `var(--accent-${dark ? '800' : '100'})`);
-  root.style.setProperty('--accent-text', `var(--accent-${dark ? '300' : '700'})`);
-  root.style.setProperty('--accent-border', `var(--accent-${dark ? '800' : '200'})`);
+  const root = document.documentElement;
+
+  // Semantic aliases for primary
+  root.style.setProperty('--primary-bg', `var(--primary-${dark ? '900' : '50'})`);
+  root.style.setProperty('--primary-bg-hover', `var(--primary-${dark ? '800' : '100'})`);
+  root.style.setProperty('--primary-text', `var(--primary-${dark ? '300' : '600'})`);
+  root.style.setProperty('--primary-border', `var(--primary-${dark ? '800' : '200'})`);
 
   // Dark mode class
   if (dark) {

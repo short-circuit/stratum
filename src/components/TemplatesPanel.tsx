@@ -28,18 +28,18 @@ export default function TemplatesPanel() {
       <h2 className="text-lg font-semibold mb-3">Templates</h2>
 
       <div className="mb-4">
-        <label className="text-xs text-neutral-500 block mb-1">Target page path</label>
+        <label className="text-xs text-[var(--secondary-500)] block mb-1">Target page path</label>
         <input
           type="text"
           value={targetPath}
           onChange={e => setTargetPath(e.target.value)}
           placeholder="pages/my-new-page.md"
-          className="w-full text-sm px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800"
+          className="w-full text-sm px-2 py-1 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)]"
         />
       </div>
 
       <div className="mb-4">
-        <label className="text-xs text-neutral-500 block mb-1">Variables</label>
+        <label className="text-xs text-[var(--secondary-500)] block mb-1">Variables</label>
         {variables.map(([k, v], i) => (
           <div key={i} className="flex gap-1 mb-1">
             <input
@@ -51,7 +51,7 @@ export default function TemplatesPanel() {
                 setVariables(next);
               }}
               placeholder="key"
-              className="flex-1 text-xs px-1.5 py-0.5 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800"
+              className="flex-1 text-xs px-1.5 py-0.5 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)]"
             />
             <input
               type="text"
@@ -62,13 +62,13 @@ export default function TemplatesPanel() {
                 setVariables(next);
               }}
               placeholder="value"
-              className="flex-1 text-xs px-1.5 py-0.5 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800"
+              className="flex-1 text-xs px-1.5 py-0.5 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)]"
             />
           </div>
         ))}
         <button
           onClick={() => setVariables([...variables, ['', '']])}
-          className="text-xs text-[var(--accent-500)] hover:text-[var(--accent-600)]"
+          className="text-xs text-[var(--primary-500)] hover:text-[var(--primary-600)]"
         >
           + Add variable
         </button>
@@ -84,24 +84,24 @@ export default function TemplatesPanel() {
         {templates.map(t => (
           <div
             key={t.name}
-            className="p-3 rounded border border-neutral-200 dark:border-neutral-700 hover:border-[var(--accent-300)]"
+            className="p-3 rounded border border-[var(--secondary-200)] dark:border-[var(--secondary-700)] hover:border-[var(--primary-300)]"
           >
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-medium">{t.name}</h3>
               <button
                 onClick={() => apply(t.name)}
-                className="text-xs px-3 py-1 bg-[var(--accent-500)] text-white rounded hover:bg-[var(--accent-600)]"
+                className="text-xs px-3 py-1 bg-[var(--primary-500)] text-white rounded hover:bg-[var(--primary-600)]"
               >
                 Apply
               </button>
             </div>
             {t.description && (
-              <p className="text-xs text-neutral-500">{t.description}</p>
+              <p className="text-xs text-[var(--secondary-500)]">{t.description}</p>
             )}
           </div>
         ))}
         {templates.length === 0 && (
-          <p className="text-sm text-neutral-400">
+          <p className="text-sm text-[var(--secondary-400)]">
             No templates yet. Save a page as template to get started.
           </p>
         )}

@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
-import { applyAccentTheme } from './lib/theme'
+import { applyTheme } from './lib/theme'
 import * as api from './lib/commands'
 import './global.css'
 
@@ -11,11 +11,14 @@ async function init() {
   try {
     const settings = await api.getSettings();
     if (settings.theme) {
-      applyAccentTheme(settings.theme.accent_color || '#f97316', settings.theme.dark_mode);
+      applyTheme(
+        settings.theme.primary_color || '#f97316',
+        settings.theme.secondary_color || '#6b7280',
+        settings.theme.dark_mode,
+      );
     }
   } catch {
-    // Use defaults
-    applyAccentTheme('#f97316', true);
+    applyTheme('#f97316', '#6b7280', true);
   }
 
   ReactDOM.createRoot(document.getElementById('root')!).render(

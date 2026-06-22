@@ -41,7 +41,7 @@ export default function FlashcardsPanel() {
     return (
       <div className="p-4 max-w-2xl mx-auto">
         <h2 className="text-lg font-semibold mb-3">Flashcards</h2>
-        <p className="text-sm text-neutral-400">
+        <p className="text-sm text-[var(--secondary-400)]">
           No flashcards found. Create blocks with <code>question::</code> and
           <code> answer::</code> properties to generate cards.
         </p>
@@ -53,12 +53,12 @@ export default function FlashcardsPanel() {
     return (
       <div className="p-4 max-w-2xl mx-auto text-center">
         <h2 className="text-lg font-semibold mb-3">Session Complete!</h2>
-        <p className="text-sm text-neutral-400 mb-4">
+        <p className="text-sm text-[var(--secondary-400)] mb-4">
           Reviewed {cards.length} card{cards.length !== 1 ? 's' : ''}.
         </p>
         <button
           onClick={() => { setCurrent(0); setShowBack(false); }}
-          className="px-4 py-2 bg-[var(--accent-500)] text-white rounded text-sm hover:bg-[var(--accent-600)]"
+          className="px-4 py-2 bg-[var(--primary-500)] text-white rounded text-sm hover:bg-[var(--primary-600)]"
         >
           Start Again
         </button>
@@ -71,36 +71,36 @@ export default function FlashcardsPanel() {
   return (
     <div className="p-4 max-w-2xl mx-auto">
       <h2 className="text-lg font-semibold mb-1">Flashcards</h2>
-      <p className="text-xs text-neutral-400 mb-4">
+      <p className="text-xs text-[var(--secondary-400)] mb-4">
         Card {current + 1} of {cards.length}
         {card.next_review && ` · Next: ${card.next_review}`}
       </p>
 
       {/* Card */}
       <div
-        className="min-h-[200px] flex items-center justify-center p-8 rounded-lg border-2 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 cursor-pointer mb-4"
+        className="min-h-[200px] flex items-center justify-center p-8 rounded-lg border-2 border-[var(--secondary-200)] dark:border-[var(--secondary-700)] bg-[var(--secondary-50)] dark:bg-[var(--secondary-800)] cursor-pointer mb-4"
         onClick={() => setShowBack(!showBack)}
       >
         <div className="text-center max-w-lg">
-          <p className="text-sm text-neutral-400 mb-2">
+          <p className="text-sm text-[var(--secondary-400)] mb-2">
             {showBack ? 'Answer' : 'Question'}
           </p>
           <p className="text-lg font-medium">
             {showBack ? card.back : card.front}
           </p>
-          <p className="text-xs text-neutral-400 mt-4">
+          <p className="text-xs text-[var(--secondary-400)] mt-4">
             {showBack ? 'Click to see question' : 'Click to reveal answer'}
           </p>
         </div>
       </div>
 
       {/* Source */}
-      <p className="text-xs text-neutral-400 mb-3 text-center">
+      <p className="text-xs text-[var(--secondary-400)] mb-3 text-center">
         Source: {card.page_path} · Ease: {card.ease_factor.toFixed(1)} · Interval: {card.interval_days}d
       </p>
 
       {message && (
-        <div className="text-center text-sm mb-3 font-medium text-[var(--accent-600)]">
+        <div className="text-center text-sm mb-3 font-medium text-[var(--primary-600)]">
           {message}
         </div>
       )}
@@ -112,7 +112,7 @@ export default function FlashcardsPanel() {
             { label: 'Blackout', q: 0, color: 'bg-red-500 hover:bg-red-600' },
             { label: 'Hard', q: 2, color: 'bg-orange-500 hover:bg-orange-600' },
             { label: 'Good', q: 3, color: 'bg-green-500 hover:bg-green-600' },
-            { label: 'Easy', q: 5, color: 'bg-[var(--accent-500)] hover:bg-[var(--accent-600)]' },
+            { label: 'Easy', q: 5, color: 'bg-[var(--primary-500)] hover:bg-[var(--primary-600)]' },
           ].map(({ label, q, color }) => (
             <button
               key={q}

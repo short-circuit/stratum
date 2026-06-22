@@ -57,11 +57,11 @@ export default function Sidebar() {
     <aside
       className={`${
         collapsed ? 'w-12' : 'w-56'
-      } bg-neutral-50 dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700 flex flex-col shrink-0 transition-[width] duration-200`}
+      } bg-[var(--secondary-50)] dark:bg-[var(--secondary-800)] border-r border-[var(--secondary-200)] dark:border-[var(--secondary-700)] flex flex-col shrink-0 transition-[width] duration-200`}
     >
       {/* Header */}
       <div
-        className={`border-b border-neutral-200 dark:border-neutral-700 flex items-center ${
+        className={`border-b border-[var(--secondary-200)] dark:border-[var(--secondary-700)] flex items-center ${
           collapsed ? 'p-2 justify-center' : 'p-3 justify-between'
         }`}
       >
@@ -69,7 +69,7 @@ export default function Sidebar() {
           <div className="min-w-0">
             <h1 className="text-base font-bold truncate">Stratum</h1>
             {vault && (
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate mt-0.5">
+              <p className="text-xs text-[var(--secondary-500)] dark:text-[var(--secondary-400)] truncate mt-0.5">
                 {vault.block_count}b · {vault.page_count}p
               </p>
             )}
@@ -77,7 +77,7 @@ export default function Sidebar() {
         )}
         <button
           onClick={() => setCollapsed(c => !c)}
-          className="text-xs px-1.5 py-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-500 shrink-0"
+          className="text-xs px-1.5 py-1 rounded hover:bg-[var(--secondary-200)] dark:hover:bg-[var(--secondary-700)] text-[var(--secondary-500)] shrink-0"
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? '▶' : '◀'}
@@ -95,8 +95,8 @@ export default function Sidebar() {
               collapsed ? 'justify-center px-0 py-2' : 'gap-2 px-3 py-1.5'
             } text-xs text-left ${
               activeTab === item.id
-                ? 'bg-[var(--accent-50)] dark:bg-[var(--accent-900)]/20 text-[var(--accent-700)] dark:text-[var(--accent-300)] font-medium'
-                : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                ? 'bg-[var(--primary-50)] dark:bg-[var(--primary-900)]/20 text-[var(--primary-700)] dark:text-[var(--primary-300)] font-medium'
+                : 'text-[var(--secondary-600)] dark:text-[var(--secondary-400)] hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)]'
             }`}
           >
             <span className={`${collapsed ? 'text-base' : 'w-4 text-center'}`}>{item.icon}</span>
@@ -106,46 +106,46 @@ export default function Sidebar() {
 
         {!collapsed && (
           <>
-            <div className="mx-3 my-2 border-t border-neutral-200 dark:border-neutral-700" />
+            <div className="mx-3 my-2 border-t border-[var(--secondary-200)] dark:border-[var(--secondary-700)]" />
 
             {/* Page list */}
             <div className="px-1">
               <div className="flex items-center justify-between px-2 py-1">
-                <span className="text-xs font-semibold text-neutral-500 uppercase">Pages</span>
+                <span className="text-xs font-semibold text-[var(--secondary-500)] uppercase">Pages</span>
                 <button
                   onClick={() => setShowNew(!showNew)}
-                  className="text-xs px-1.5 py-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-500"
+                  className="text-xs px-1.5 py-0.5 rounded hover:bg-[var(--secondary-200)] dark:hover:bg-[var(--secondary-700)] text-[var(--secondary-500)]"
                 >
                   + New
                 </button>
               </div>
 
               {showNew && (
-                <div className="p-2 mx-1 mb-1 bg-neutral-100 dark:bg-neutral-800 rounded">
+                <div className="p-2 mx-1 mb-1 bg-[var(--secondary-100)] dark:bg-[var(--secondary-800)] rounded">
                   <input
                     type="text"
                     placeholder="Path (e.g., pages/my-note.md)"
                     value={newPath}
                     onChange={e => setNewPath(e.target.value)}
-                    className="w-full text-xs p-1 mb-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700"
+                    className="w-full text-xs p-1 mb-1 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-700)]"
                   />
                   <input
                     type="text"
                     placeholder="Title (optional)"
                     value={newTitle}
                     onChange={e => setNewTitle(e.target.value)}
-                    className="w-full text-xs p-1 mb-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700"
+                    className="w-full text-xs p-1 mb-1 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-700)]"
                   />
                   <div className="flex gap-1">
                     <button
                       onClick={handleCreate}
-                      className="text-xs px-2 py-0.5 bg-[var(--accent-500)] text-white rounded hover:bg-[var(--accent-600)]"
+                      className="text-xs px-2 py-0.5 bg-[var(--primary-500)] text-white rounded hover:bg-[var(--primary-600)]"
                     >
                       Create
                     </button>
                     <button
                       onClick={() => setShowNew(false)}
-                      className="text-xs px-2 py-0.5 text-neutral-500 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                      className="text-xs px-2 py-0.5 text-[var(--secondary-500)] rounded hover:bg-[var(--secondary-200)] dark:hover:bg-[var(--secondary-700)]"
                     >
                       Cancel
                     </button>
@@ -157,11 +157,11 @@ export default function Sidebar() {
                 {pages.map(page => (
                   <li
                     key={page.path}
-                    className="group flex items-center px-2 py-1 text-sm rounded cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                    className="group flex items-center px-2 py-1 text-sm rounded cursor-pointer hover:bg-[var(--secondary-200)] dark:hover:bg-[var(--secondary-700)]"
                     onClick={() => navigate(`/page/${encodeURIComponent(page.path)}`)}
                   >
                     <span className="flex-1 truncate">{page.title || page.slug}</span>
-                    <span className="text-xs text-neutral-400 ml-1">{page.block_count}</span>
+                    <span className="text-xs text-[var(--secondary-400)] ml-1">{page.block_count}</span>
                     <button
                       onClick={e => {
                         e.stopPropagation();
@@ -174,7 +174,7 @@ export default function Sidebar() {
                   </li>
                 ))}
                 {pages.length === 0 && (
-                  <p className="px-2 py-4 text-xs text-neutral-400 text-center">No pages yet.</p>
+                  <p className="px-2 py-4 text-xs text-[var(--secondary-400)] text-center">No pages yet.</p>
                 )}
               </ul>
             </div>
@@ -184,28 +184,28 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div
-        className={`border-t border-neutral-200 dark:border-neutral-700 text-xs text-neutral-400 ${
+        className={`border-t border-[var(--secondary-200)] dark:border-[var(--secondary-700)] text-xs text-[var(--secondary-400)] ${
           collapsed ? 'p-1 flex flex-col items-center gap-1' : 'p-2 flex items-center justify-between'
         }`}
       >
         {collapsed ? (
           <>
-            <button onClick={() => loadPages()} title="Refresh" className="hover:text-neutral-600 dark:hover:text-neutral-300 p-0.5">
+            <button onClick={() => loadPages()} title="Refresh" className="hover:text-[var(--secondary-600)] dark:hover:text-[var(--secondary-300)] p-0.5">
               ↻
             </button>
-            <button onClick={handleExport} disabled={exporting} title="Export HTML" className="hover:text-neutral-600 dark:hover:text-neutral-300 disabled:opacity-50 p-0.5">
+            <button onClick={handleExport} disabled={exporting} title="Export HTML" className="hover:text-[var(--secondary-600)] dark:hover:text-[var(--secondary-300)] disabled:opacity-50 p-0.5">
               {exporting ? '…' : '⬆'}
             </button>
           </>
         ) : (
           <>
-            <button onClick={() => loadPages()} className="hover:text-neutral-600 dark:hover:text-neutral-300">
+            <button onClick={() => loadPages()} className="hover:text-[var(--secondary-600)] dark:hover:text-[var(--secondary-300)]">
               Refresh
             </button>
-            <button onClick={handleExport} disabled={exporting} className="hover:text-neutral-600 dark:hover:text-neutral-300 disabled:opacity-50">
+            <button onClick={handleExport} disabled={exporting} className="hover:text-[var(--secondary-600)] dark:hover:text-[var(--secondary-300)] disabled:opacity-50">
               {exporting ? '...' : 'Export'}
             </button>
-            <span className="text-neutral-300 dark:text-neutral-600">v0.2</span>
+            <span className="text-[var(--secondary-300)] dark:text-[var(--secondary-600)]">v0.2</span>
           </>
         )}
       </div>

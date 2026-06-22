@@ -99,7 +99,7 @@ export default function JournalPanel() {
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={prevMonth}
-          className="px-2 py-1 text-sm rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
+          className="px-2 py-1 text-sm rounded hover:bg-[var(--secondary-200)] dark:hover:bg-[var(--secondary-700)]"
         >
           ←
         </button>
@@ -108,7 +108,7 @@ export default function JournalPanel() {
         </h3>
         <button
           onClick={nextMonth}
-          className="px-2 py-1 text-sm rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
+          className="px-2 py-1 text-sm rounded hover:bg-[var(--secondary-200)] dark:hover:bg-[var(--secondary-700)]"
         >
           →
         </button>
@@ -117,7 +117,7 @@ export default function JournalPanel() {
       {/* Day headers */}
       <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
         {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-          <div key={d} className="text-xs text-neutral-400 py-1">{d}</div>
+          <div key={d} className="text-xs text-[var(--secondary-400)] py-1">{d}</div>
         ))}
       </div>
 
@@ -138,9 +138,9 @@ export default function JournalPanel() {
               onClick={() => goToJournal(date)}
               className={`
                 text-xs p-1.5 rounded text-center transition-colors
-                ${isToday ? 'bg-[var(--accent-100)] dark:bg-[var(--accent-900)]/30 text-[var(--accent-700)] dark:text-[var(--accent-300)] font-bold' : ''}
-                ${isSelected && !isToday ? 'bg-neutral-200 dark:bg-neutral-700' : ''}
-                hover:bg-neutral-100 dark:hover:bg-neutral-800
+                ${isToday ? 'bg-[var(--primary-100)] dark:bg-[var(--primary-900)]/30 text-[var(--primary-700)] dark:text-[var(--primary-300)] font-bold' : ''}
+                ${isSelected && !isToday ? 'bg-[var(--secondary-200)] dark:bg-[var(--secondary-700)]' : ''}
+                hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)]
               `}
             >
               {day}
@@ -153,7 +153,7 @@ export default function JournalPanel() {
       <button
         onClick={() => goToJournal(formatDate(today))}
         disabled={creating}
-        className="mt-4 w-full px-3 py-2 bg-[var(--accent-500)] text-white rounded text-sm hover:bg-[var(--accent-600)] disabled:opacity-50"
+        className="mt-4 w-full px-3 py-2 bg-[var(--primary-500)] text-white rounded text-sm hover:bg-[var(--primary-600)] disabled:opacity-50"
       >
         {creating ? 'Creating...' : `Today: ${formatDate(today)}`}
       </button>

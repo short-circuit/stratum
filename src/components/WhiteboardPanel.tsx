@@ -72,11 +72,11 @@ export default function WhiteboardPanel() {
             onChange={e => setNewName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') createBoard(); }}
             placeholder="Whiteboard name"
-            className="flex-1 text-sm px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800"
+            className="flex-1 text-sm px-2 py-1 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)]"
           />
           <button
             onClick={createBoard}
-            className="px-3 py-1 bg-[var(--accent-500)] text-white text-sm rounded hover:bg-[var(--accent-600)]"
+            className="px-3 py-1 bg-[var(--primary-500)] text-white text-sm rounded hover:bg-[var(--primary-600)]"
           >
             Create
           </button>
@@ -88,13 +88,13 @@ export default function WhiteboardPanel() {
             <button
               key={b.name}
               onClick={() => loadBoard(b.name)}
-              className="w-full text-left px-3 py-2 text-sm rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              className="w-full text-left px-3 py-2 text-sm rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)]"
             >
               {b.name}
             </button>
           ))}
           {boards.length === 0 && (
-            <p className="text-sm text-neutral-400">No whiteboards yet.</p>
+            <p className="text-sm text-[var(--secondary-400)]">No whiteboards yet.</p>
           )}
         </div>
       </div>
@@ -104,10 +104,10 @@ export default function WhiteboardPanel() {
   return (
     <div className="h-full flex flex-col">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--secondary-200)] dark:border-[var(--secondary-700)] bg-white dark:bg-[var(--secondary-900)]">
         <button
           onClick={() => { setActiveBoard(null); setLoaded(false); }}
-          className="text-sm px-2 py-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          className="text-sm px-2 py-1 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)]"
         >
           ← Back
         </button>
@@ -115,7 +115,7 @@ export default function WhiteboardPanel() {
         <div className="flex-1" />
         <button
           onClick={saveBoard}
-          className="text-sm px-3 py-1 bg-[var(--accent-500)] text-white rounded hover:bg-[var(--accent-600)]"
+          className="text-sm px-3 py-1 bg-[var(--primary-500)] text-white rounded hover:bg-[var(--primary-600)]"
         >
           Save
         </button>

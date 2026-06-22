@@ -21,7 +21,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="flex h-screen w-screen bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100">
+    <div className="flex h-screen w-screen bg-white dark:bg-[var(--secondary-900)] text-[var(--secondary-900)] dark:text-[var(--secondary-100)]">
       <Sidebar />
       <main className="flex-1 overflow-auto">
         {error && (
