@@ -7,6 +7,10 @@ use std::path::PathBuf;
 pub struct Config {
     /// Path to the vault root (where .md notes live).
     pub vault_path: PathBuf,
+    /// Storage backend configuration.
+    pub storage: StorageConfig,
+    /// Vault layout configuration (page/journal directories).
+    pub layout: VaultLayout,
     /// Sync configuration.
     pub sync: SyncConfig,
     /// UI configuration.
@@ -23,11 +27,56 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             vault_path: PathBuf::from("."),
+            storage: StorageConfig::default(),
+            layout: VaultLayout::default(),
             sync: SyncConfig::default(),
             theme: ThemeConfig::default(),
             ai: AiConfig::default(),
             plugins: Vec::new(),
             watcher: WatcherConfig::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum StorageBackend {
+    #[default]
+    Hybrid,
+    FileOnly,
+    Sqlite,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct StorageConfig {
+    pub backend: StorageBackend,
+    pub auto_save_md: bool,
+    pub md_write_delay_ms: u64,
+}
+
+impl Default for StorageConfig {
+    fn default() -> Self {
+        Self {
+            backend: StorageBackend::default(),
+            auto_save_md: true,
+            md_write_delay_ms: 500,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct VaultLayout {
+    pub pages_dir: String,
+    pub journals_dir: String,
+}
+
+impl Default for VaultLayout {
+    fn default() -> Self {
+        Self {
+            pages_dir: "pages".to_string(),
+            journals_dir: "journals".to_string(),
         }
     }
 }
