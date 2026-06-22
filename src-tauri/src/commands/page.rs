@@ -30,9 +30,9 @@ pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto
             .and_then(|s| s.to_str())
             .unwrap_or("untitled")
             .to_string();
-        let fm = store.get_page(&path).map_err(|e| e.to_string())?;
+        let fm = store.get_page(&path).ok().flatten();
         let title = fm.and_then(|f| f.title);
-        let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
+        let blocks = store.get_blocks_by_page(&path).unwrap_or_default();
 
         pages.push(PageDto {
             path,
@@ -54,21 +54,28 @@ pub async fn open_page(
     let state = state.lock().map_err(|e| e.to_string())?;
     let full_path = state.vault_path.join(&path);
 
-    let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
-    let (frontmatter, _, _) = pkm_markdown::block_parser::parse_document(&content);
+    let slug = std::path::Path::new(&path)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("untitled")
+        .to_string();
 
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
+    // If the file doesn't exist, return an empty page (new page)
+    let (frontmatter, block_count) = if full_path.exists() {
+        let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
+        let (fm, _, _) = pkm_markdown::block_parser::parse_document(&content);
+        let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+        let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
+        (fm, blocks.len())
+    } else {
+        (pkm_core::Frontmatter::default(), 0)
+    };
 
     Ok(PageDto {
         path: path.clone(),
-        slug: std::path::Path::new(&path)
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("untitled")
-            .to_string(),
+        slug,
         title: frontmatter.title,
-        block_count: blocks.len(),
+        block_count,
         modified_at: chrono::Utc::now().to_rfc3339(),
     })
 }

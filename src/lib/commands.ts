@@ -46,6 +46,14 @@ export async function buildMarkdown(
   return invoke('build_markdown', { blocks, title });
 }
 
+export async function saveBlocks(
+  pagePath: string,
+  blocks: BlockDto[],
+  title?: string,
+): Promise<void> {
+  return invoke('save_blocks', { pagePath, blocks, title });
+}
+
 export async function getBlocks(pagePath: string): Promise<BlockListDto> {
   return invoke('get_blocks', { pagePath });
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useStore } from '../stores/appStore';
 import * as api from '../lib/commands';
 
 function formatDate(d: Date): string {
@@ -15,24 +16,46 @@ function journalPath(date: string): string {
 
 export default function JournalPanel() {
   const navigate = useNavigate();
+  const { vault } = useStore();
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState(formatDate(today));
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Ensure today's journal exists
+    if (!vault) return;
     const path = journalPath(formatDate(today));
-    api.createPage(path, formatDate(today)).catch(() => {
-      // Already exists — that's fine
-    });
-  }, []);
+    api.createPage(path, formatDate(today))
+      .then(() => console.log('Created journal:', path))
+      .catch(err => {
+        if (!String(err).includes('already exists')) {
+          setError(`Failed to create journal: ${err}`);
+        }
+      });
+  }, [vault]);
 
-  const goToJournal = (date: string) => {
+  const goToJournal = async (date: string) => {
     setSelectedDate(date);
+    setError(null);
+    if (!vault) {
+      setError('Vault not loaded yet. Please wait...');
+      return;
+    }
+
     const path = journalPath(date);
-    // Ensure page exists, then navigate
-    api.createPage(path, date).catch(() => {});
+    setCreating(true);
+    try {
+      await api.createPage(path, date);
+    } catch (err) {
+      if (!String(err).includes('already exists')) {
+        setError(`Failed to create page: ${err}`);
+        setCreating(false);
+        return;
+      }
+    }
+    setCreating(false);
     navigate(`/page/${encodeURIComponent(path)}`);
   };
 
@@ -64,6 +87,14 @@ export default function JournalPanel() {
 
   return (
     <div className="p-4">
+      {/* Error display */}
+      {error && (
+        <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 text-xs rounded">
+          {error}
+          <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
+        </div>
+      )}
+
       {/* Month navigation */}
       <div className="flex items-center justify-between mb-4">
         <button
@@ -121,9 +152,10 @@ export default function JournalPanel() {
       {/* Today button */}
       <button
         onClick={() => goToJournal(formatDate(today))}
-        className="mt-4 w-full px-3 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+        disabled={creating}
+        className="mt-4 w-full px-3 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 disabled:opacity-50"
       >
-        Today: {formatDate(today)}
+        {creating ? 'Creating...' : `Today: ${formatDate(today)}`}
       </button>
     </div>
   );
