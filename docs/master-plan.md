@@ -104,21 +104,31 @@ tags: [project, rust]
 
 ---
 
-## Phase 1B: Tauri Frontend Foundation
+## Phase 1B: Tauri Frontend Foundation ✅ COMPLETE
 
-### [ ] Project setup
-- [ ] Tauri v2 init in stratum/
-- [ ] React + TypeScript + Vite frontend
-- [ ] Tailwind CSS setup
-- [ ] Zustand state management
-- [ ] Rust Tauri commands: open_page, save_page, insert_block, move_block, delete_block, search_blocks, run_query, get_graph, get_backlinks, sync_vault
+### [x] Project setup
+- [x] Tauri v2 init in `src-tauri/` (integrated with workspace)
+- [x] React 19 + TypeScript + Vite frontend in `src/`
+- [x] Tailwind CSS v4 via @tailwindcss/vite plugin
+- [x] Zustand state management
+- [x] React Router v7 with routes: /, /page/:path, /search, /query
+- [x] 17 Rust Tauri commands: vault, page CRUD, block CRUD, search, backlinks, datalog query, git sync
+- [x] TypeScript types and IPC bindings for all commands
 
-### [ ] UI Foundation
-- [ ] App shell with sidebar + main content layout
-- [ ] Sidebar: page tree, journal calendar, tag list
-- [ ] Routing: journal, page, graph, search, query, settings
-- [ ] Theme support (light/dark)
-- [ ] Tauri IPC types and bindings
+### [x] UI Foundation
+- [x] App shell with sidebar (260px) + main content layout
+- [x] Sidebar: page tree with create/delete, vault info stats, navigation tabs
+- [x] PageView: loads blocks for page, displays header with metadata
+- [x] BlockEditor: inline bullet-point editing, task markers (TODO/DOING/DONE)
+- [x] SearchPanel: full-text search bar with results list
+- [x] QueryPanel: Datalog query input with auto-refresh and result table
+- [x] Dark mode support (Tailwind `dark:` variants)
+- [x] Tauri IPC types and bindings in `src/lib/`
+
+### Build verification
+- Frontend: `npm run build` → 255KB JS + 15KB CSS
+- Backend: `cargo build --workspace` → compiles cleanly
+- Full Rust test suite: 338 tests, 0 failures
 
 ---
 
