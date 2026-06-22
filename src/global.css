@@ -10,3 +10,66 @@ body {
   width: 100vw;
   height: 100vh;
 }
+
+/* ── Form elements ── */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  padding-right: 1.75rem;
+}
+
+.dark select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+}
+
+input[type="color"] {
+  padding: 0;
+  border: none;
+  cursor: pointer;
+}
+
+/* ── BlockNote / Mantine accent overrides ── */
+.bn-container[data-theme="light"] {
+  --bn-colors-primary-50: var(--accent-50);
+  --bn-colors-primary-100: var(--accent-100);
+  --bn-colors-primary-200: var(--accent-200);
+  --bn-colors-primary-500: var(--accent-500);
+  --bn-colors-primary-600: var(--accent-600);
+  --bn-colors-primary-700: var(--accent-700);
+}
+
+.bn-container[data-theme="dark"] {
+  --bn-colors-primary-50: var(--accent-900);
+  --bn-colors-primary-100: var(--accent-800);
+  --bn-colors-primary-200: var(--accent-700);
+  --bn-colors-primary-500: var(--accent-500);
+  --bn-colors-primary-600: var(--accent-400);
+  --bn-colors-primary-700: var(--accent-300);
+}
+
+/* Override Mantine blue accents for BlockNote toolbar/menus */
+.bn-container [data-mantine-color-scheme] {
+  --mantine-primary-color-filled: var(--accent-500);
+  --mantine-primary-color-filled-hover: var(--accent-600);
+  --mantine-primary-color-light: var(--accent-50);
+  --mantine-primary-color-light-hover: var(--accent-100);
+  --mantine-primary-color-light-color: var(--accent-700);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent-300);
+  border-radius: 3px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--accent-700);
+}

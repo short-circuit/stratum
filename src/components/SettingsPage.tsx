@@ -126,8 +126,73 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* AI Section */}
+      {/* Vault Section */}
       <section className="mb-6">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Vault</h3>
+        <div className="mb-3">
+          <label className="text-xs text-gray-500 block mb-1">Vault Path</label>
+          <input
+            type="text"
+            value={settings.vault_path}
+            onChange={e => setSettings({ ...settings, vault_path: e.target.value })}
+            className="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 font-mono"
+          />
+        </div>
+      </section>
+
+      {/* Theme Section */}
+      <section className="mb-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Theme</h3>
+
+        <div className="mb-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={theme.dark_mode}
+              onChange={e => updateTheme({ dark_mode: e.target.checked })}
+              className="rounded"
+            />
+            Dark mode
+          </label>
+        </div>
+
+        <div className="mb-3">
+          <label className="text-xs text-gray-500 block mb-1">Accent color</label>
+          <div className="flex gap-1.5 flex-wrap">
+            {PRESET_COLORS.map(color => (
+              <button
+                key={color}
+                onClick={() => updateTheme({ accent_color: color })}
+                className={`w-7 h-7 rounded-full border-2 transition-transform ${
+                  theme.accent_color === color
+                    ? 'border-gray-800 dark:border-white scale-110'
+                    : 'border-transparent hover:scale-105'
+                }`}
+                style={{ backgroundColor: color }}
+                title={color}
+              />
+            ))}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="color"
+              value={theme.accent_color}
+              onChange={e => updateTheme({ accent_color: e.target.value })}
+              className="w-8 h-8 rounded cursor-pointer border-0 p-0"
+            />
+            <input
+              type="text"
+              value={theme.accent_color}
+              onChange={e => updateTheme({ accent_color: e.target.value })}
+              className="flex-1 text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 font-mono"
+              placeholder="#f97316"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* AI Section */}
+      <section className="mb-6 pt-4 border-t border-gray-200 dark:border-gray-700">
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">AI Configuration</h3>
 
         {/* Provider */}
@@ -249,73 +314,6 @@ export default function SettingsPage() {
               />
             </label>
           )}
-        </div>
-      </section>
-
-      {/* Theme Section */}
-      <section className="mb-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Theme</h3>
-
-        {/* Dark mode */}
-        <div className="mb-3">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={theme.dark_mode}
-              onChange={e => updateTheme({ dark_mode: e.target.checked })}
-              className="rounded"
-            />
-            Dark mode
-          </label>
-        </div>
-
-        {/* Accent color */}
-        <div className="mb-3">
-          <label className="text-xs text-gray-500 block mb-1">Accent color</label>
-          <div className="flex gap-1.5 flex-wrap">
-            {PRESET_COLORS.map(color => (
-              <button
-                key={color}
-                onClick={() => updateTheme({ accent_color: color })}
-                className={`w-7 h-7 rounded-full border-2 transition-transform ${
-                  theme.accent_color === color
-                    ? 'border-gray-800 dark:border-white scale-110'
-                    : 'border-transparent hover:scale-105'
-                }`}
-                style={{ backgroundColor: color }}
-                title={color}
-              />
-            ))}
-          </div>
-          <div className="flex items-center gap-2 mt-2">
-            <input
-              type="color"
-              value={theme.accent_color}
-              onChange={e => updateTheme({ accent_color: e.target.value })}
-              className="w-8 h-8 rounded cursor-pointer border-0 p-0"
-            />
-            <input
-              type="text"
-              value={theme.accent_color}
-              onChange={e => updateTheme({ accent_color: e.target.value })}
-              className="flex-1 text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 font-mono"
-              placeholder="#f97316"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Vault Section */}
-      <section className="mb-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Vault</h3>
-        <div className="mb-3">
-          <label className="text-xs text-gray-500 block mb-1">Vault Path</label>
-          <input
-            type="text"
-            value={settings.vault_path}
-            onChange={e => setSettings({ ...settings, vault_path: e.target.value })}
-            className="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 font-mono"
-          />
         </div>
       </section>
     </div>
