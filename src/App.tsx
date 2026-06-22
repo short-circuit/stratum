@@ -10,6 +10,7 @@ import QueryPanel from './components/QueryPanel';
 import TemplatesPanel from './components/TemplatesPanel';
 import FlashcardsPanel from './components/FlashcardsPanel';
 import WhiteboardPanel from './components/WhiteboardPanel';
+import GraphPanel from './components/GraphPanel';
 import SettingsPage from './components/SettingsPage';
 
 export default function App() {
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="/templates" element={<TemplatesPanel />} />
           <Route path="/flashcards" element={<FlashcardsPanel />} />
           <Route path="/whiteboards" element={<WhiteboardPanel />} />
+          <Route path="/graph" element={<GraphPanel />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>

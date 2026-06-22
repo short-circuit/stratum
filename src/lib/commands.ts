@@ -9,6 +9,9 @@ import type {
   BacklinkItem,
   QueryResultDto,
   SyncStatusDto,
+  GraphDataDto,
+  ComponentDto,
+  OrphanDto,
 } from './types';
 
 export async function getVaultInfo(): Promise<VaultInfo> {
@@ -213,4 +216,22 @@ export async function getSyncStatus(): Promise<SyncStatusDto> {
 
 export async function syncVault(): Promise<SyncStatusDto> {
   return invoke('sync_vault');
+}
+
+// --- Graph ---
+
+export async function getGraphData(): Promise<GraphDataDto> {
+  return invoke('get_graph_data');
+}
+
+export async function getConnectedComponents(): Promise<ComponentDto[]> {
+  return invoke('get_connected_components');
+}
+
+export async function getOrphanedNotes(): Promise<OrphanDto[]> {
+  return invoke('get_orphaned_notes');
+}
+
+export async function rebuildGraph(): Promise<string> {
+  return invoke('rebuild_graph');
 }
