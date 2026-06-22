@@ -1,3 +1,5 @@
+pub mod block_graph;
+pub mod block_search;
 pub mod graph;
 pub mod search;
 pub mod tags;
