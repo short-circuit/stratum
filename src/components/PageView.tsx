@@ -19,7 +19,7 @@ export default function PageView() {
 
   if (!pagePath) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-400">
+      <div className="flex items-center justify-center h-full text-neutral-400">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">Stratum PKM</h2>
           <p className="text-sm">Select a page from the sidebar or create a new one.</p>
@@ -29,17 +29,17 @@ export default function PageView() {
   }
 
   if (!currentPage) {
-    return <div className="p-4 text-gray-400">Loading...</div>;
+    return <div className="p-4 text-neutral-400">Loading...</div>;
   }
 
   return (
     <div className="h-full flex flex-col">
       {/* Page header */}
-      <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+      <div className="px-6 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center gap-3">
         <h1 className="text-lg font-bold">
           {currentPage.title || currentPage.slug}
         </h1>
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-neutral-400">
           {currentPage.path}
         </span>
       </div>

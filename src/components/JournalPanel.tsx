@@ -99,7 +99,7 @@ export default function JournalPanel() {
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={prevMonth}
-          className="px-2 py-1 text-sm rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+          className="px-2 py-1 text-sm rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
         >
           ←
         </button>
@@ -108,7 +108,7 @@ export default function JournalPanel() {
         </h3>
         <button
           onClick={nextMonth}
-          className="px-2 py-1 text-sm rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+          className="px-2 py-1 text-sm rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
         >
           →
         </button>
@@ -117,7 +117,7 @@ export default function JournalPanel() {
       {/* Day headers */}
       <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
         {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-          <div key={d} className="text-xs text-gray-400 py-1">{d}</div>
+          <div key={d} className="text-xs text-neutral-400 py-1">{d}</div>
         ))}
       </div>
 
@@ -139,8 +139,8 @@ export default function JournalPanel() {
               className={`
                 text-xs p-1.5 rounded text-center transition-colors
                 ${isToday ? 'bg-[var(--accent-100)] dark:bg-[var(--accent-900)]/30 text-[var(--accent-700)] dark:text-[var(--accent-300)] font-bold' : ''}
-                ${isSelected && !isToday ? 'bg-gray-200 dark:bg-gray-700' : ''}
-                hover:bg-gray-100 dark:hover:bg-gray-800
+                ${isSelected && !isToday ? 'bg-neutral-200 dark:bg-neutral-700' : ''}
+                hover:bg-neutral-100 dark:hover:bg-neutral-800
               `}
             >
               {day}
