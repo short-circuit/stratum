@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../stores/appStore';
+import * as api from '../lib/commands';
 import { useState } from 'react';
 
 export default function Sidebar() {
@@ -8,8 +9,22 @@ export default function Sidebar() {
   const [showNew, setShowNew] = useState(false);
   const [newPath, setNewPath] = useState('');
   const [newTitle, setNewTitle] = useState('');
-  const [activeTab, setActiveTab] = useState<'journal' | 'pages' | 'search' | 'query'>('journal');
+  const [activeTab, setActiveTab] = useState<'journal' | 'pages' | 'search' | 'query' | 'templates' | 'flashcards' | 'whiteboards'>('journal');
   const { createPage, deletePage } = useStore();
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const dir = '/tmp/stratum-export';
+      const result = await api.exportHtml(dir);
+      alert(`Exported ${result.pages_exported} pages to ${dir}`);
+    } catch (e) {
+      alert(`Export failed: ${e}`);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleCreate = async () => {
     if (!newPath) return;
@@ -77,6 +92,36 @@ export default function Sidebar() {
           }`}
         >
           Query
+        </button>
+        <button
+          onClick={() => navigateTab('templates', '/templates')}
+          className={`px-2 py-1.5 text-center ${
+            activeTab === 'templates'
+              ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 font-medium'
+              : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+        >
+          Tpl
+        </button>
+        <button
+          onClick={() => navigateTab('flashcards', '/flashcards')}
+          className={`px-2 py-1.5 text-center ${
+            activeTab === 'flashcards'
+              ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 font-medium'
+              : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+        >
+          Cards
+        </button>
+        <button
+          onClick={() => navigateTab('whiteboards', '/whiteboards')}
+          className={`px-2 py-1.5 text-center ${
+            activeTab === 'whiteboards'
+              ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 font-medium'
+              : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+        >
+          WB
         </button>
       </nav>
 
@@ -167,7 +212,14 @@ export default function Sidebar() {
         <button onClick={() => loadPages()} className="hover:text-gray-600 dark:hover:text-gray-300">
           Refresh
         </button>
-        <span className="text-gray-300 dark:text-gray-600">v0.1</span>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
+        >
+          {exporting ? '...' : 'Export'}
+        </button>
+        <span className="text-gray-300 dark:text-gray-600">v0.2</span>
       </div>
     </aside>
   );

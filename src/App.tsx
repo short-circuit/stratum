@@ -6,6 +6,9 @@ import PageView from './components/PageView';
 import JournalPanel from './components/JournalPanel';
 import SearchPanel from './components/SearchPanel';
 import QueryPanel from './components/QueryPanel';
+import TemplatesPanel from './components/TemplatesPanel';
+import FlashcardsPanel from './components/FlashcardsPanel';
+import WhiteboardPanel from './components/WhiteboardPanel';
 
 export default function App() {
   const { loadVault, loadPages, error } = useStore();
@@ -30,6 +33,9 @@ export default function App() {
           <Route path="/page/:pagePath" element={<PageView />} />
           <Route path="/search" element={<SearchPanel />} />
           <Route path="/query" element={<QueryPanel />} />
+          <Route path="/templates" element={<TemplatesPanel />} />
+          <Route path="/flashcards" element={<FlashcardsPanel />} />
+          <Route path="/whiteboards" element={<WhiteboardPanel />} />
         </Routes>
       </main>
     </div>

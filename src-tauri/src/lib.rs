@@ -59,6 +59,21 @@ pub fn run() {
             // Sync
             commands::sync::get_sync_status,
             commands::sync::sync_vault,
+            // Templates
+            commands::template::list_templates,
+            commands::template::save_template,
+            commands::template::apply_template,
+            // Export
+            commands::export::export_html,
+            commands::export::export_json,
+            // Flashcards
+            commands::flashcards::generate_flashcards,
+            commands::flashcards::generate_cards_from_page,
+            commands::flashcards::review_card,
+            // Whiteboards
+            commands::whiteboard::list_whiteboards,
+            commands::whiteboard::save_whiteboard,
+            commands::whiteboard::load_whiteboard,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
