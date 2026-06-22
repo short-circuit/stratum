@@ -18,6 +18,31 @@ pub struct SearchResultsDto {
 }
 
 #[tauri::command]
+pub async fn rebuild_search_index(
+    state: tauri::State<'_, AppState>,
+) -> Result<String, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let pages = store.list_pages().map_err(|e| e.to_string())?;
+
+    let index_path = state.vault_path.join(".pkm").join("search");
+    let mut block_index =
+        pkm_index::block_search::BlockIndex::create(&index_path).map_err(|e| e.to_string())?;
+
+    let mut count = 0usize;
+    for page_path in &pages {
+        let blocks = store.get_blocks_by_page(page_path).map_err(|e| e.to_string())?;
+        for block in &blocks {
+            block_index.index_block(block, page_path).ok();
+            count += 1;
+        }
+    }
+
+    block_index.flush().map_err(|e| e.to_string())?;
+    Ok(format!("Indexed {} blocks from {} pages", count, pages.len()))
+}
+
+#[tauri::command]
 pub async fn search_blocks(
     query: String,
     limit: Option<usize>,
