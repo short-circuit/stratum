@@ -94,10 +94,10 @@ export default function OutlinerEditor({ pagePath }: Props) {
 
   return (
     <div className="blocknote-editor-container" style={{ height: '100%' }}>
-      <BlockNoteView
-        editor={editor}
-        theme="light"
-        className="min-h-[400px] h-full"
+        <BlockNoteView
+          editor={editor}
+          theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
+          className="min-h-[400px] h-full"
       />
     </div>
   );

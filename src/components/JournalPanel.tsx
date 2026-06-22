@@ -138,7 +138,7 @@ export default function JournalPanel() {
               onClick={() => goToJournal(date)}
               className={`
                 text-xs p-1.5 rounded text-center transition-colors
-                ${isToday ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold' : ''}
+                ${isToday ? 'bg-[var(--accent-100)] dark:bg-[var(--accent-900)]/30 text-[var(--accent-700)] dark:text-[var(--accent-300)] font-bold' : ''}
                 ${isSelected && !isToday ? 'bg-gray-200 dark:bg-gray-700' : ''}
                 hover:bg-gray-100 dark:hover:bg-gray-800
               `}
@@ -153,7 +153,7 @@ export default function JournalPanel() {
       <button
         onClick={() => goToJournal(formatDate(today))}
         disabled={creating}
-        className="mt-4 w-full px-3 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 disabled:opacity-50"
+        className="mt-4 w-full px-3 py-2 bg-[var(--accent-500)] text-white rounded text-sm hover:bg-[var(--accent-600)] disabled:opacity-50"
       >
         {creating ? 'Creating...' : `Today: ${formatDate(today)}`}
       </button>

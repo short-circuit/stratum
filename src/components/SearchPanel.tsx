@@ -50,7 +50,7 @@ export default function SearchPanel() {
         <button
           onClick={doSearch}
           disabled={searching}
-          className="px-4 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 disabled:opacity-50"
+          className="px-4 py-2 bg-[var(--accent-500)] text-white rounded text-sm hover:bg-[var(--accent-600)] disabled:opacity-50"
         >
           {searching ? '...' : 'Search'}
         </button>
@@ -71,7 +71,7 @@ export default function SearchPanel() {
           <button
             key={i}
             onClick={() => navigate(`/page/${encodeURIComponent(r.page_path)}`)}
-            className="w-full text-left p-3 rounded border border-gray-200 dark:border-gray-700 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors"
+            className="w-full text-left p-3 rounded border border-gray-200 dark:border-gray-700 hover:border-[var(--accent-400)] hover:bg-[var(--accent-50)] dark:hover:bg-[var(--accent-900)]/10 transition-colors"
           >
             <div className="text-xs text-gray-500 mb-1 flex items-center gap-2">
               <span>{r.page_path}</span>

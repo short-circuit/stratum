@@ -68,7 +68,7 @@ export default function TemplatesPanel() {
         ))}
         <button
           onClick={() => setVariables([...variables, ['', '']])}
-          className="text-xs text-blue-500 hover:text-blue-600"
+          className="text-xs text-[var(--accent-500)] hover:text-[var(--accent-600)]"
         >
           + Add variable
         </button>
@@ -84,13 +84,13 @@ export default function TemplatesPanel() {
         {templates.map(t => (
           <div
             key={t.name}
-            className="p-3 rounded border border-gray-200 dark:border-gray-700 hover:border-blue-300"
+            className="p-3 rounded border border-gray-200 dark:border-gray-700 hover:border-[var(--accent-300)]"
           >
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-medium">{t.name}</h3>
               <button
                 onClick={() => apply(t.name)}
-                className="text-xs px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                className="text-xs px-3 py-1 bg-[var(--accent-500)] text-white rounded hover:bg-[var(--accent-600)]"
               >
                 Apply
               </button>

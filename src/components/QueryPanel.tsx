@@ -37,7 +37,7 @@ export default function QueryPanel() {
         <button
           onClick={doQuery}
           disabled={running}
-          className="px-4 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 disabled:opacity-50"
+          className="px-4 py-2 bg-[var(--accent-500)] text-white rounded text-sm hover:bg-[var(--accent-600)] disabled:opacity-50"
         >
           {running ? 'Running...' : 'Run Query'}
         </button>

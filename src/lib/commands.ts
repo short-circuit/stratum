@@ -169,6 +169,7 @@ export async function loadWhiteboard(name: string): Promise<string> {
 
 export async function getSettings(): Promise<{
   vault_path: string;
+  theme: { dark_mode: boolean; accent_color: string; font_size: number };
   ai: {
     provider: string;
     endpoint: string | null;
@@ -184,6 +185,7 @@ export async function getSettings(): Promise<{
 
 export async function saveSettings(settings: {
   vault_path: string;
+  theme: { dark_mode: boolean; accent_color: string; font_size: number };
   ai: {
     provider: string;
     endpoint: string | null;

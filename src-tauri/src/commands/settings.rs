@@ -6,7 +6,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SettingsDto {
     pub vault_path: String,
+    pub theme: ThemeSettingsDto,
     pub ai: AiSettingsDto,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ThemeSettingsDto {
+    pub dark_mode: bool,
+    pub accent_color: String,
+    pub font_size: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -43,6 +51,11 @@ pub async fn get_settings(
 
     Ok(SettingsDto {
         vault_path: config.vault_path.to_string_lossy().to_string(),
+        theme: ThemeSettingsDto {
+            dark_mode: config.theme.dark_mode,
+            accent_color: config.theme.accent_color.clone(),
+            font_size: config.theme.font_size,
+        },
         ai: AiSettingsDto {
             provider: match config.ai.provider {
                 pkm_core::AiProvider::Ollama => "ollama".into(),
@@ -89,6 +102,12 @@ pub async fn save_settings(
 
     let config = pkm_core::Config {
         vault_path: std::path::PathBuf::from(&settings.vault_path),
+        theme: pkm_core::ThemeConfig {
+            dark_mode: settings.theme.dark_mode,
+            accent_color: settings.theme.accent_color.clone(),
+            font_size: settings.theme.font_size,
+            ..pkm_core::ThemeConfig::default()
+        },
         ai: pkm_core::AiConfig {
             provider,
             endpoint: settings.ai.endpoint,

@@ -76,7 +76,7 @@ export default function WhiteboardPanel() {
           />
           <button
             onClick={createBoard}
-            className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+            className="px-3 py-1 bg-[var(--accent-500)] text-white text-sm rounded hover:bg-[var(--accent-600)]"
           >
             Create
           </button>
@@ -115,7 +115,7 @@ export default function WhiteboardPanel() {
         <div className="flex-1" />
         <button
           onClick={saveBoard}
-          className="text-sm px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+          className="text-sm px-3 py-1 bg-[var(--accent-500)] text-white rounded hover:bg-[var(--accent-600)]"
         >
           Save
         </button>
