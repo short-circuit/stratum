@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:dev": "WEBKIT_DISABLE_DMABUF_RENDERER=1 GDK_BACKEND=x11 tauri dev",
+    "tauri:build": "WEBKIT_DISABLE_DMABUF_RENDERER=1 tauri build"
   },
   "dependencies": {
     "@blocknote/core": "^0.51.4",
