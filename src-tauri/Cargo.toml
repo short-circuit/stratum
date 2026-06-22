@@ -17,6 +17,7 @@ tauri = { version = "2", features = [] }
 tauri-plugin-log = "2"
 serde.workspace = true
 serde_json.workspace = true
+serde_yaml.workspace = true
 chrono.workspace = true
 uuid.workspace = true
 log.workspace = true
@@ -28,4 +29,5 @@ pkm-index = { path = "../crates/pkm-index" }
 pkm-query = { path = "../crates/pkm-query" }
 pkm-sync = { path = "../crates/pkm-sync" }
 pkm-watcher = { path = "../crates/pkm-watcher" }
+pulldown-cmark.workspace = true
 dirs.workspace = true

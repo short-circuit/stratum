@@ -99,6 +99,62 @@ export async function setBlockProperty(
   return invoke('set_block_property', { blockId, key, value });
 }
 
+export async function listTemplates(): Promise<{
+  name: string; path: string; content: string; description?: string;
+}[]> {
+  return invoke('list_templates');
+}
+
+export async function saveTemplate(name: string, content: string): Promise<void> {
+  return invoke('save_template', { name, content });
+}
+
+export async function applyTemplate(
+  templateName: string,
+  targetPage: string,
+  variables: [string, string][],
+): Promise<string> {
+  return invoke('apply_template', { templateName, targetPage, variables });
+}
+
+export async function exportHtml(outputDir: string): Promise<{
+  output_dir: string; pages_exported: number; assets_copied: number;
+}> {
+  return invoke('export_html', { outputDir });
+}
+
+export async function exportJson(outputDir: string): Promise<{
+  output_dir: string; pages_exported: number; assets_copied: number;
+}> {
+  return invoke('export_json', { outputDir });
+}
+
+export async function generateFlashcards(): Promise<{
+  id: string; front: string; back: string; page_path: string; ease_factor: number; interval_days: number; repetitions: number; next_review: string;
+}[]> {
+  return invoke('generate_flashcards');
+}
+
+export async function reviewCard(cardId: string, quality: number): Promise<{
+  id: string; front: string; back: string; page_path: string; ease_factor: number; interval_days: number; repetitions: number; next_review: string;
+}> {
+  return invoke('review_card', { cardId, quality });
+}
+
+export async function listWhiteboards(): Promise<{
+  name: string; path: string; content: string;
+}[]> {
+  return invoke('list_whiteboards');
+}
+
+export async function saveWhiteboard(name: string, content: string): Promise<void> {
+  return invoke('save_whiteboard', { name, content });
+}
+
+export async function loadWhiteboard(name: string): Promise<string> {
+  return invoke('load_whiteboard', { name });
+}
+
 export async function runQuery(datalog: string): Promise<QueryResultDto> {
   return invoke('run_query', { datalog });
 }
