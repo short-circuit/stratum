@@ -18,6 +18,15 @@ pub enum PkmError {
     #[error("Note not found: {0}")]
     NoteNotFound(String),
 
+    #[error("Block not found: {0}")]
+    BlockNotFound(String),
+
+    #[error("Page not found: {0}")]
+    PageNotFound(String),
+
+    #[error("Cycle detected: {0}")]
+    CycleDetected(String),
+
     #[error("Index error: {0}")]
     Index(String),
 
