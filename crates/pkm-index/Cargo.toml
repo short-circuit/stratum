@@ -12,8 +12,10 @@ tracing.workspace = true
 tantivy.workspace = true
 regex.workspace = true
 chrono.workspace = true
+uuid.workspace = true
 pkm-core = { path = "../pkm-core" }
 pkm-markdown = { path = "../pkm-markdown" }
+pkm-block = { path = "../pkm-block" }
 
 [dev-dependencies]
 tempfile.workspace = true

@@ -2078,6 +2078,7 @@ name = "pkm-index"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "pkm-block",
  "pkm-core",
  "pkm-markdown",
  "regex",
@@ -2087,6 +2088,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
