@@ -167,6 +167,40 @@ export async function loadWhiteboard(name: string): Promise<string> {
   return invoke('load_whiteboard', { name });
 }
 
+export async function getSettings(): Promise<{
+  vault_path: string;
+  ai: {
+    provider: string;
+    endpoint: string | null;
+    api_key: string | null;
+    model: string;
+    models: { name: string; capabilities: string[] }[];
+    rag_enabled: boolean;
+    rag_chunk_count: number;
+  };
+}> {
+  return invoke('get_settings');
+}
+
+export async function saveSettings(settings: {
+  vault_path: string;
+  ai: {
+    provider: string;
+    endpoint: string | null;
+    api_key: string | null;
+    model: string;
+    models: { name: string; capabilities: string[] }[];
+    rag_enabled: boolean;
+    rag_chunk_count: number;
+  };
+}): Promise<void> {
+  return invoke('save_settings', { settings });
+}
+
+export async function fetchModels(): Promise<string[]> {
+  return invoke('fetch_models');
+}
+
 export async function runQuery(datalog: string): Promise<QueryResultDto> {
   return invoke('run_query', { datalog });
 }

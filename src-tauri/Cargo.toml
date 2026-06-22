@@ -30,4 +30,5 @@ pkm-query = { path = "../crates/pkm-query" }
 pkm-sync = { path = "../crates/pkm-sync" }
 pkm-watcher = { path = "../crates/pkm-watcher" }
 pulldown-cmark.workspace = true
+reqwest.workspace = true
 dirs.workspace = true
