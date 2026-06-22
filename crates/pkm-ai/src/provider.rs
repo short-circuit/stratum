@@ -971,6 +971,8 @@ impl ProviderFactory {
                 AiProvider::OpenAI => "https://api.openai.com/v1".to_string(),
                 AiProvider::Anthropic => "https://api.anthropic.com".to_string(),
                 AiProvider::Custom => "http://localhost:8080/v1".to_string(),
+                AiProvider::Google => "https://generativelanguage.googleapis.com/v1beta".to_string(),
+                AiProvider::Zai => "https://api.z.ai".to_string(),
             });
 
         match config.provider {
@@ -990,6 +992,10 @@ impl ProviderFactory {
                 Ok(Box::new(AnthropicProvider::new(endpoint, api_key)))
             }
             AiProvider::Custom => Ok(Box::new(CustomProvider::new(
+                endpoint,
+                config.api_key.clone(),
+            ))),
+            AiProvider::Google | AiProvider::Zai => Ok(Box::new(CustomProvider::new(
                 endpoint,
                 config.api_key.clone(),
             ))),

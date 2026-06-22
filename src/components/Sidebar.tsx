@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { id: 'templates', label: 'Templates', path: '/templates', icon: '📋' },
   { id: 'flashcards', label: 'Flashcards', path: '/flashcards', icon: '🃏' },
   { id: 'whiteboards', label: 'Whiteboards', path: '/whiteboards', icon: '🎨' },
+  { id: 'settings', label: 'Settings', path: '/settings', icon: '⚙' },
 ] as const;
 
 type TabId = (typeof NAV_ITEMS)[number]['id'];

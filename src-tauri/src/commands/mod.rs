@@ -4,6 +4,7 @@ pub mod flashcards;
 pub mod page;
 pub mod query;
 pub mod search;
+pub mod settings;
 pub mod sync;
 pub mod template;
 pub mod vault;

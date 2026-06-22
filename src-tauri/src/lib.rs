@@ -84,6 +84,10 @@ pub fn run() {
             commands::whiteboard::list_whiteboards,
             commands::whiteboard::save_whiteboard,
             commands::whiteboard::load_whiteboard,
+            // Settings
+            commands::settings::get_settings,
+            commands::settings::save_settings,
+            commands::settings::fetch_models,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

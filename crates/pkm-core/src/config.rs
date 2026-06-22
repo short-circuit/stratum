@@ -152,16 +152,24 @@ pub struct AiConfig {
     pub provider: AiProvider,
     /// API endpoint (for OpenAI-compatible APIs).
     pub endpoint: Option<String>,
-    /// API key (optional for local models).
+    /// API key (stored in config, masked in UI).
     pub api_key: Option<String>,
-    /// Model name.
+    /// Chat model name (backward compat).
     pub model: String,
+    /// Configured models with capabilities.
+    pub models: Vec<AiModelConfig>,
     /// Enable RAG for chat.
     pub rag_enabled: bool,
     /// Max chunks to retrieve for RAG context.
     pub rag_chunk_count: usize,
     /// Embedding model path (for local ONNX/llama.cpp).
     pub embedding_model_path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AiModelConfig {
+    pub name: String,
+    pub capabilities: Vec<String>, // "chat", "embedding", "tts"
 }
 
 impl Default for AiConfig {
@@ -171,6 +179,7 @@ impl Default for AiConfig {
             endpoint: Some("http://localhost:11434".to_string()),
             api_key: None,
             model: "llama3.2".to_string(),
+            models: Vec::new(),
             rag_enabled: true,
             rag_chunk_count: 5,
             embedding_model_path: None,
@@ -183,6 +192,9 @@ pub enum AiProvider {
     Ollama,
     OpenAI,
     Anthropic,
+    Google,
+    #[serde(rename = "z.ai")]
+    Zai,
     Custom,
 }
 
