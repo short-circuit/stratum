@@ -28,18 +28,18 @@ export default function TemplatesPanel() {
       <h2 className="text-lg font-semibold mb-3">Templates</h2>
 
       <div className="mb-4">
-        <label className="text-xs text-gray-500 block mb-1">Target page path</label>
+        <label className="text-xs text-neutral-500 block mb-1">Target page path</label>
         <input
           type="text"
           value={targetPath}
           onChange={e => setTargetPath(e.target.value)}
           placeholder="pages/my-new-page.md"
-          className="w-full text-sm px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+          className="w-full text-sm px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800"
         />
       </div>
 
       <div className="mb-4">
-        <label className="text-xs text-gray-500 block mb-1">Variables</label>
+        <label className="text-xs text-neutral-500 block mb-1">Variables</label>
         {variables.map(([k, v], i) => (
           <div key={i} className="flex gap-1 mb-1">
             <input
@@ -51,7 +51,7 @@ export default function TemplatesPanel() {
                 setVariables(next);
               }}
               placeholder="key"
-              className="flex-1 text-xs px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+              className="flex-1 text-xs px-1.5 py-0.5 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800"
             />
             <input
               type="text"
@@ -62,7 +62,7 @@ export default function TemplatesPanel() {
                 setVariables(next);
               }}
               placeholder="value"
-              className="flex-1 text-xs px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+              className="flex-1 text-xs px-1.5 py-0.5 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800"
             />
           </div>
         ))}
@@ -84,7 +84,7 @@ export default function TemplatesPanel() {
         {templates.map(t => (
           <div
             key={t.name}
-            className="p-3 rounded border border-gray-200 dark:border-gray-700 hover:border-[var(--accent-300)]"
+            className="p-3 rounded border border-neutral-200 dark:border-neutral-700 hover:border-[var(--accent-300)]"
           >
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-medium">{t.name}</h3>
@@ -96,12 +96,12 @@ export default function TemplatesPanel() {
               </button>
             </div>
             {t.description && (
-              <p className="text-xs text-gray-500">{t.description}</p>
+              <p className="text-xs text-neutral-500">{t.description}</p>
             )}
           </div>
         ))}
         {templates.length === 0 && (
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-neutral-400">
             No templates yet. Save a page as template to get started.
           </p>
         )}

@@ -72,7 +72,7 @@ export default function WhiteboardPanel() {
             onChange={e => setNewName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') createBoard(); }}
             placeholder="Whiteboard name"
-            className="flex-1 text-sm px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+            className="flex-1 text-sm px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800"
           />
           <button
             onClick={createBoard}
@@ -88,13 +88,13 @@ export default function WhiteboardPanel() {
             <button
               key={b.name}
               onClick={() => loadBoard(b.name)}
-              className="w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="w-full text-left px-3 py-2 text-sm rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
             >
               {b.name}
             </button>
           ))}
           {boards.length === 0 && (
-            <p className="text-sm text-gray-400">No whiteboards yet.</p>
+            <p className="text-sm text-neutral-400">No whiteboards yet.</p>
           )}
         </div>
       </div>
@@ -104,10 +104,10 @@ export default function WhiteboardPanel() {
   return (
     <div className="h-full flex flex-col">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900">
         <button
           onClick={() => { setActiveBoard(null); setLoaded(false); }}
-          className="text-sm px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="text-sm px-2 py-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
         >
           ← Back
         </button>

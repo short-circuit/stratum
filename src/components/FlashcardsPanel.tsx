@@ -41,7 +41,7 @@ export default function FlashcardsPanel() {
     return (
       <div className="p-4 max-w-2xl mx-auto">
         <h2 className="text-lg font-semibold mb-3">Flashcards</h2>
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-neutral-400">
           No flashcards found. Create blocks with <code>question::</code> and
           <code> answer::</code> properties to generate cards.
         </p>
@@ -53,7 +53,7 @@ export default function FlashcardsPanel() {
     return (
       <div className="p-4 max-w-2xl mx-auto text-center">
         <h2 className="text-lg font-semibold mb-3">Session Complete!</h2>
-        <p className="text-sm text-gray-400 mb-4">
+        <p className="text-sm text-neutral-400 mb-4">
           Reviewed {cards.length} card{cards.length !== 1 ? 's' : ''}.
         </p>
         <button
@@ -71,31 +71,31 @@ export default function FlashcardsPanel() {
   return (
     <div className="p-4 max-w-2xl mx-auto">
       <h2 className="text-lg font-semibold mb-1">Flashcards</h2>
-      <p className="text-xs text-gray-400 mb-4">
+      <p className="text-xs text-neutral-400 mb-4">
         Card {current + 1} of {cards.length}
         {card.next_review && ` · Next: ${card.next_review}`}
       </p>
 
       {/* Card */}
       <div
-        className="min-h-[200px] flex items-center justify-center p-8 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 cursor-pointer mb-4"
+        className="min-h-[200px] flex items-center justify-center p-8 rounded-lg border-2 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 cursor-pointer mb-4"
         onClick={() => setShowBack(!showBack)}
       >
         <div className="text-center max-w-lg">
-          <p className="text-sm text-gray-400 mb-2">
+          <p className="text-sm text-neutral-400 mb-2">
             {showBack ? 'Answer' : 'Question'}
           </p>
           <p className="text-lg font-medium">
             {showBack ? card.back : card.front}
           </p>
-          <p className="text-xs text-gray-400 mt-4">
+          <p className="text-xs text-neutral-400 mt-4">
             {showBack ? 'Click to see question' : 'Click to reveal answer'}
           </p>
         </div>
       </div>
 
       {/* Source */}
-      <p className="text-xs text-gray-400 mb-3 text-center">
+      <p className="text-xs text-neutral-400 mb-3 text-center">
         Source: {card.page_path} · Ease: {card.ease_factor.toFixed(1)} · Interval: {card.interval_days}d
       </p>
 

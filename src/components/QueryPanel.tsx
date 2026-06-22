@@ -29,7 +29,7 @@ export default function QueryPanel() {
       <textarea
         value={datalog}
         onChange={e => setDatalog(e.target.value)}
-        className="w-full h-32 px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-mono"
+        className="w-full h-32 px-3 py-2 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-sm font-mono"
         placeholder="Enter Datalog query..."
       />
 
@@ -43,7 +43,7 @@ export default function QueryPanel() {
         </button>
         <button
           onClick={() => setDatalog('{:query [:find ?b :where [?b :block/marker "TODO"]]}')}
-          className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+          className="px-3 py-2 text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
         >
           Reset
         </button>
@@ -61,7 +61,7 @@ export default function QueryPanel() {
             <thead>
               <tr>
                 {result.columns.map((col, i) => (
-                  <th key={i} className="text-left px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                  <th key={i} className="text-left px-3 py-2 bg-neutral-100 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
                     {col}
                   </th>
                 ))}
@@ -69,7 +69,7 @@ export default function QueryPanel() {
             </thead>
             <tbody>
               {result.rows.map((row, i) => (
-                <tr key={i} className="border-b border-gray-100 dark:border-gray-800">
+                <tr key={i} className="border-b border-neutral-100 dark:border-neutral-800">
                   {row.map((cell, j) => (
                     <td key={j} className="px-3 py-2">{cell}</td>
                   ))}
@@ -81,7 +81,7 @@ export default function QueryPanel() {
       )}
 
       {result && result.rows.length === 0 && (
-        <p className="text-gray-400 text-sm">Query returned no results.</p>
+        <p className="text-neutral-400 text-sm">Query returned no results.</p>
       )}
     </div>
   );
