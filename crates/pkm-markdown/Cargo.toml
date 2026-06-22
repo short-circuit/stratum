@@ -6,6 +6,7 @@ license.workspace = true
 
 [dependencies]
 pkm-core = { path = "../pkm-core" }
+pkm-block = { path = "../pkm-block" }
 pulldown-cmark.workspace = true
 serde.workspace = true
 serde_yaml.workspace = true
@@ -13,6 +14,7 @@ regex.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 chrono.workspace = true
+uuid.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
