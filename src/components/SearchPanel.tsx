@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/commands';
 import type { SearchResultDto } from '../lib/types';
 
 export default function SearchPanel() {
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResultDto[]>([]);
   const [searching, setSearching] = useState(false);
@@ -64,14 +66,20 @@ export default function SearchPanel() {
         {indexMsg && <span className="text-xs text-gray-500">{indexMsg}</span>}
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {results.map((r, i) => (
-          <div key={i} className="p-3 rounded border border-gray-200 dark:border-gray-700">
-            <div className="text-xs text-gray-500 mb-1">
-              {r.page_path} · score: {r.score.toFixed(2)}
+          <button
+            key={i}
+            onClick={() => navigate(`/page/${encodeURIComponent(r.page_path)}`)}
+            className="w-full text-left p-3 rounded border border-gray-200 dark:border-gray-700 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors"
+          >
+            <div className="text-xs text-gray-500 mb-1 flex items-center gap-2">
+              <span>{r.page_path}</span>
+              <span className="text-gray-300">·</span>
+              <span>score: {r.score.toFixed(2)}</span>
             </div>
             <p className="text-sm">{r.snippet}</p>
-          </div>
+          </button>
         ))}
         {results.length === 0 && query && !searching && (
           <p className="text-gray-400 text-sm">No results found.</p>
