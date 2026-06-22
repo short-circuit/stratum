@@ -98,6 +98,15 @@ pub async fn save_blocks(
         store.insert_block(block, &page_path).map_err(|e| e.to_string())?;
     }
 
+    // Index blocks in Tantivy for full-text search
+    let index_path = state.vault_path.join(".pkm").join("search");
+    if let Ok(mut block_index) = pkm_index::block_search::BlockIndex::create(&index_path) {
+        for block in &pkm_blocks {
+            let _ = block_index.index_block(block, &page_path);
+        }
+        let _ = block_index.flush();
+    }
+
     let mut page = pkm_block::Page::new(full_path, &state.vault_path);
     if let Some(t) = title {
         page.frontmatter.title = Some(t);
