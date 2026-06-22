@@ -12,6 +12,7 @@ members = [
     "crates/pkm-cli",
     "crates/pkm-block",
     "crates/pkm-query",
+    "src-tauri",
 ]
 
 [workspace.package]
