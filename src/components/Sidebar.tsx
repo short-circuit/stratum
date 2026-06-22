@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 const NAV_ITEMS = [
   { id: 'journal', label: 'Journal', path: '/journal', icon: '📅' },
-  { id: 'pages', label: 'Pages', path: null as null, icon: '📄' },
+  { id: 'pages', label: 'Pages', path: '/' as const, icon: '📄' },
   { id: 'search', label: 'Search', path: '/search', icon: '🔍' },
   { id: 'query', label: 'Query', path: '/query', icon: '▷' },
   { id: 'templates', label: 'Templates', path: '/templates', icon: '📋' },
@@ -22,7 +22,7 @@ export default function Sidebar() {
   const [showNew, setShowNew] = useState(false);
   const [newPath, setNewPath] = useState('');
   const [newTitle, setNewTitle] = useState('');
-  const [activeTab, setActiveTab] = useState<TabId>('journal');
+  const [activeTab, setActiveTab] = useState<TabId>('pages');
   const { createPage, deletePage } = useStore();
   const [exporting, setExporting] = useState(false);
 
@@ -47,9 +47,9 @@ export default function Sidebar() {
     setNewTitle('');
   };
 
-  const navigateTab = (tab: TabId, path: string | null) => {
+  const navigateTab = (tab: TabId, path: string) => {
     setActiveTab(tab);
-    if (path) navigate(path);
+    navigate(path);
   };
 
   return (

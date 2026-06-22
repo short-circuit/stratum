@@ -4,6 +4,7 @@ import { useStore } from './stores/appStore';
 import Sidebar from './components/Sidebar';
 import PageView from './components/PageView';
 import JournalPanel from './components/JournalPanel';
+import PagesHome from './components/PagesHome';
 import SearchPanel from './components/SearchPanel';
 import QueryPanel from './components/QueryPanel';
 import TemplatesPanel from './components/TemplatesPanel';
@@ -28,7 +29,7 @@ export default function App() {
           </div>
         )}
         <Routes>
-          <Route path="/" element={<JournalPanel />} />
+          <Route path="/" element={<PagesHome />} />
           <Route path="/journal" element={<JournalPanel />} />
           <Route path="/page/:pagePath" element={<PageView />} />
           <Route path="/search" element={<SearchPanel />} />
