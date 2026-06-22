@@ -10,6 +10,7 @@ members = [
     "crates/pkm-plugin",
     "crates/pkm-frontend",
     "crates/pkm-cli",
+    "crates/pkm-block",
 ]
 
 [workspace.package]
@@ -55,6 +56,9 @@ wasmtime = "26"
 
 # Frontend
 flutter_rust_bridge = "2"
+
+# Block storage
+rusqlite = { version = "0.32", features = ["bundled", "serde_json"] }
 
 # Dev
 tempfile = "3"
