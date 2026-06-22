@@ -1,0 +1,21 @@
+[package]
+name = "pkm-frontend"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+pkm-core = { path = "../pkm-core" }
+pkm-markdown = { path = "../pkm-markdown" }
+pkm-index = { path = "../pkm-index" }
+pkm-sync = { path = "../pkm-sync" }
+pkm-watcher = { path = "../pkm-watcher" }
+pkm-ai = { path = "../pkm-ai" }
+pkm-plugin = { path = "../pkm-plugin" }
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+tempfile.workspace = true

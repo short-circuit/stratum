@@ -1,0 +1,23 @@
+[package]
+name = "pkm-ai"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+serde_with.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+reqwest.workspace = true
+async-trait = "0.1"
+futures.workspace = true
+pkm-core = { path = "../pkm-core" }
+pkm-index = { path = "../pkm-index" }
+
+[dev-dependencies]
+tempfile.workspace = true
+mockall.workspace = true
+tokio.workspace = true
+chrono.workspace = true

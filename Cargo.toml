@@ -1,0 +1,67 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/pkm-core",
+    "crates/pkm-markdown",
+    "crates/pkm-index",
+    "crates/pkm-sync",
+    "crates/pkm-watcher",
+    "crates/pkm-ai",
+    "crates/pkm-plugin",
+    "crates/pkm-frontend",
+    "crates/pkm-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+repository = "https://github.com/shortcircuit/stratum"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1"
+thiserror = "2"
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+regex = "1"
+glob = "0.3"
+pulldown-cmark = { version = "0.12", features = ["simd"] }
+toml = "0.8"
+dirs = "5"
+log = "0.4"
+
+# Index
+tantivy = "0.22"
+
+# Sync
+git2 = "0.19"
+
+# Watcher
+notify = { version = "7", features = ["macos_fsevent"] }
+
+# AI
+reqwest = { version = "0.12", features = ["json", "stream"] }
+serde_with = "3"
+
+# Plugin
+wasmtime = "26"
+
+# Frontend
+flutter_rust_bridge = "2"
+
+# Dev
+tempfile = "3"
+rstest = "0.23"
+mockall = "0.13"
+criterion = { version = "0.5", features = ["html_reports"] }
+pretty_assertions = "1"
+test-log = "0.2"
+futures = "0.3"
+rand = "0.8"
