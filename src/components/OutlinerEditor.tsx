@@ -1,14 +1,8 @@
-import { useCallback, useEffect, useRef } from 'react';
-import {
-  useCreateBlockNote,
-  getDefaultReactSlashMenuItems,
-  SuggestionMenuController,
-} from '@blocknote/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCreateBlockNote } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
-import { filterSuggestionItems } from '@blocknote/core';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
-import type { PartialBlock } from '@blocknote/core';
 import type { BlockDto } from '../lib/types';
 import * as api from '../lib/commands';
 
@@ -18,115 +12,38 @@ interface Props {
 
 export default function OutlinerEditor({ pagePath }: Props) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState('init');
+
   const editor = useCreateBlockNote();
+  console.log('[OutlinerEditor] created editor for', pagePath);
 
-  // Load blocks into editor after mount/page change
   useEffect(() => {
-    api.getBlocks(pagePath).then(({ blocks }) => {
-      const bnBlocks = dtoToBlockNote(blocks);
-      if (editor) {
-        editor.replaceBlocks(editor.document, bnBlocks);
-      }
-    }).catch(err => {
-      console.error('Failed to load blocks for', pagePath, err);
-    });
-  }, [pagePath, editor]);
+    setStatus('loading');
+    console.log('[OutlinerEditor] loading blocks for', pagePath);
+    api.getBlocks(pagePath)
+      .then(({ blocks }) => {
+        console.log('[OutlinerEditor] got', blocks.length, 'blocks');
+        try {
+          const bnBlocks = dtoToBlockNote(blocks);
+          // Don't replace if no blocks — keep BlockNote's default paragraph
+          if (bnBlocks.length > 0) {
+            editor.replaceBlocks(editor.document, bnBlocks);
+          }
+          setStatus('ready');
+        } catch (e) {
+          console.error('[OutlinerEditor] replaceBlocks failed:', e);
+          setError(String(e));
+          setStatus('error');
+        }
+      })
+      .catch(err => {
+        console.error('[OutlinerEditor] getBlocks failed:', err);
+        setError(String(err));
+        setStatus('error');
+      });
+  }, [pagePath]);
 
-  // Custom slash menu items
-  const getSlashMenuItems = useCallback(
-    async (query: string) => {
-      const today = new Date().toISOString().split('T')[0];
-
-      const customItems = [
-        {
-          title: 'Task (TODO)',
-          group: 'Stratum',
-          icon: '☐',
-          subtext: 'Create a task item',
-          onItemClick: () => {
-            editor.insertBlocks(
-              [{ type: 'checkListItem' as any, content: '' }],
-              editor.getTextCursorPosition().block,
-              'after',
-            );
-          },
-        },
-        {
-          title: 'Heading 1',
-          group: 'Stratum',
-          icon: 'H1',
-          subtext: 'Large heading',
-          onItemClick: () => {
-            editor.insertBlocks(
-              [{ type: 'heading' as any, content: '', props: { level: 1 } }],
-              editor.getTextCursorPosition().block,
-              'after',
-            );
-          },
-        },
-        {
-          title: 'Heading 2',
-          group: 'Stratum',
-          icon: 'H2',
-          subtext: 'Medium heading',
-          onItemClick: () => {
-            editor.insertBlocks(
-              [{ type: 'heading' as any, content: '', props: { level: 2 } }],
-              editor.getTextCursorPosition().block,
-              'after',
-            );
-          },
-        },
-        {
-          title: 'Code Block',
-          group: 'Stratum',
-          icon: '</>',
-          subtext: 'Insert a code block',
-          onItemClick: () => {
-            editor.insertBlocks(
-              [{ type: 'codeBlock' as any, content: '' }],
-              editor.getTextCursorPosition().block,
-              'after',
-            );
-          },
-        },
-        {
-          title: 'Link Page',
-          group: 'Stratum',
-          icon: '🔗',
-          subtext: 'Insert a link to another page',
-          onItemClick: () => {
-            editor.insertBlocks(
-              [{ type: 'paragraph' as any, content: '[[Page Name]]' }],
-              editor.getTextCursorPosition().block,
-              'after',
-            );
-          },
-        },
-        {
-          title: "Today's Date",
-          group: 'Stratum',
-          icon: '📅',
-          subtext: today,
-          onItemClick: () => {
-            editor.insertBlocks(
-              [{ type: 'paragraph' as any, content: today }],
-              editor.getTextCursorPosition().block,
-              'after',
-            );
-          },
-        },
-      ];
-
-      return filterSuggestionItems(
-        [...customItems, ...getDefaultReactSlashMenuItems(editor)],
-        query,
-      );
-    },
-    [editor],
-  );
-
-  // Persist changes to backend via Rust (proper .id: serialization + SQLite)
   const persistBlocks = useCallback(
     (blockNoteBlocks: any[]) => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -134,15 +51,15 @@ export default function OutlinerEditor({ pagePath }: Props) {
         try {
           const dtos = blockNoteToDto(blockNoteBlocks);
           await api.saveBlocks(pagePath, dtos);
+          console.log('[OutlinerEditor] saved', dtos.length, 'blocks');
         } catch (e) {
-          console.error('Failed to save blocks:', e);
+          console.error('[OutlinerEditor] save failed:', e);
         }
       }, 500);
     },
     [pagePath],
   );
 
-  // Listen for changes
   useEffect(() => {
     if (!editor) return;
     return editor.onChange(() => {
@@ -150,113 +67,100 @@ export default function OutlinerEditor({ pagePath }: Props) {
     });
   }, [editor, persistBlocks]);
 
+  if (status === 'init' || status === 'loading') {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
+        Loading editor for {pagePath}...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 text-red-500 text-sm">
+        Editor error: {error}
+        <button
+          onClick={() => { setError(null); setStatus('init'); }}
+          className="ml-2 underline"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="blocknote-editor-container">
+    <div className="blocknote-editor-container" style={{ height: '100%' }}>
       <BlockNoteView
         editor={editor}
         theme="light"
-        className="min-h-[400px]"
-        slashMenu={false}
-      />
-      <SuggestionMenuController
-        getItems={getSlashMenuItems as any}
-        triggerCharacter="/"
-        suggestionMenuComponent={undefined as any}
-        onItemClick={() => {}}
+        className="min-h-[400px] h-full"
       />
     </div>
   );
 }
 
-function blockNoteToDto(blockNoteBlocks: any[]): BlockDto[] {
-  const result: BlockDto[] = [];
-
-  function walk(blocks: any[], parentId: string | null) {
-    let prevId: string | null = null;
-    for (const block of blocks) {
-      const id = block.id || crypto.randomUUID();
-      const content = extractText(block);
-
-      result.push({
-        id,
-        content,
-        parent_id: parentId,
-        left_id: prevId,
-        properties: [],
-        marker: block.type === 'checkListItem' ? 'TODO' : null,
-        priority: null,
-        collapsed: false,
-        heading_level: block.type === 'heading' ? (block.props as any)?.level ?? null : null,
-      });
-
-      if (block.children && block.children.length > 0) {
-        walk(block.children, id);
-      }
-
-      prevId = id;
-    }
-  }
-
-  walk(blockNoteBlocks, null);
-  return result;
-}
-
-function dtoToBlockNote(dtos: BlockDto[]): PartialBlock[] {
+function dtoToBlockNote(dtos: BlockDto[]): any[] {
   if (dtos.length === 0) return [];
-
-  const rootBlocks: BlockDto[] = [];
-  for (const dto of dtos) {
-    if (!dto.parent_id) {
-      rootBlocks.push(dto);
-    }
-  }
-
+  const rootBlocks = dtos.filter(d => !d.parent_id);
   rootBlocks.sort((a, b) => {
     if (!a.left_id) return -1;
     if (a.left_id === b.id) return 1;
     return 0;
   });
-
-  function convertBlock(dto: BlockDto): PartialBlock {
+  function convert(dto: BlockDto): any {
     const children = dtos.filter(b => b.parent_id === dto.id);
     children.sort((a, b) => {
       if (!a.left_id) return -1;
       if (a.left_id === b.id) return 1;
       return 0;
     });
-
-    let type: string = 'paragraph';
+    let type = 'paragraph';
     const props: Record<string, any> = {};
-
-    if (dto.heading_level) {
-      type = 'heading';
-      props.level = dto.heading_level;
-    } else if (dto.marker) {
-      type = 'checkListItem';
-    }
-
+    if (dto.heading_level) { type = 'heading'; props.level = dto.heading_level; }
+    else if (dto.marker) { type = 'checkListItem'; }
     return {
-      type: type as any,
+      type,
       content: dto.content || '',
       props,
-      children: children.map(convertBlock),
+      children: children.map(convert),
     };
   }
-
-  return rootBlocks.map(convertBlock);
+  return rootBlocks.map(convert);
 }
 
-function extractText(block: any): string {
-  if (!block.content) return '';
-  if (typeof block.content === 'string') return block.content;
-  const contentArr = block.content as any[];
-  if (!contentArr || !Array.isArray(contentArr)) return '';
-  return contentArr
-    .map((item: any) => {
-      if (typeof item === 'string') return item;
-      if (item?.text) return item.text;
-      if (item?.type === 'link') return `[[${item.href || ''}]]`;
-      return '';
-    })
-    .join('');
+function blockNoteToDto(blockNoteBlocks: any[]): BlockDto[] {
+  const result: BlockDto[] = [];
+  function walk(blocks: any[], parentId: string | null) {
+    let prevId: string | null = null;
+    for (const b of blocks) {
+      const id = b.id || crypto.randomUUID();
+      let content = '';
+      if (b.content) {
+        if (typeof b.content === 'string') content = b.content;
+        else if (Array.isArray(b.content)) {
+          content = b.content.map((item: any) => {
+            if (typeof item === 'string') return item;
+            if (item?.text) return item.text;
+            if (item?.type === 'link') return `[[${item.href || ''}]]`;
+            return '';
+          }).join('');
+        }
+      }
+      result.push({
+        id, content,
+        parent_id: parentId,
+        left_id: prevId,
+        properties: [],
+        marker: b.type === 'checkListItem' ? 'TODO' : null,
+        priority: null,
+        collapsed: false,
+        heading_level: b.type === 'heading' ? (b.props as any)?.level ?? null : null,
+      });
+      if (b.children?.length) walk(b.children, id);
+      prevId = id;
+    }
+  }
+  walk(blockNoteBlocks, null);
+  return result;
 }
