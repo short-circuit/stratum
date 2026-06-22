@@ -6,6 +6,8 @@ export default function SearchPanel() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResultDto[]>([]);
   const [searching, setSearching] = useState(false);
+  const [indexing, setIndexing] = useState(false);
+  const [indexMsg, setIndexMsg] = useState('');
 
   const doSearch = async () => {
     if (!query.trim()) return;
@@ -20,9 +22,21 @@ export default function SearchPanel() {
     }
   };
 
+  const doReindex = async () => {
+    setIndexing(true);
+    try {
+      const msg = await api.rebuildSearchIndex();
+      setIndexMsg(msg);
+    } catch (e) {
+      setIndexMsg(`Failed: ${e}`);
+    } finally {
+      setIndexing(false);
+    }
+  };
+
   return (
     <div className="p-4 max-w-3xl mx-auto">
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-2">
         <input
           type="text"
           value={query}
@@ -38,6 +52,16 @@ export default function SearchPanel() {
         >
           {searching ? '...' : 'Search'}
         </button>
+      </div>
+      <div className="flex items-center gap-2 mb-4">
+        <button
+          onClick={doReindex}
+          disabled={indexing}
+          className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
+        >
+          {indexing ? 'Indexing...' : 'Rebuild search index'}
+        </button>
+        {indexMsg && <span className="text-xs text-gray-500">{indexMsg}</span>}
       </div>
 
       <div className="space-y-3">

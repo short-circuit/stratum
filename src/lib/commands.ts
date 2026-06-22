@@ -82,6 +82,10 @@ export async function searchBlocks(
   return invoke('search_blocks', { query, limit });
 }
 
+export async function rebuildSearchIndex(): Promise<string> {
+  return invoke('rebuild_search_index');
+}
+
 export async function getPageBacklinks(pagePath: string): Promise<BacklinkItem[]> {
   return invoke('get_page_backlinks', { pagePath });
 }
