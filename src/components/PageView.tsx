@@ -1,26 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useStore } from '../stores/appStore';
-import type { BlockDto } from '../lib/types';
-import * as api from '../lib/commands';
-import BlockEditor from './BlockEditor';
+import OutlinerEditor from './OutlinerEditor';
 
 export default function PageView() {
   const { pagePath } = useParams<{ pagePath: string }>();
   const { currentPage, openPage } = useStore();
-  const [blocks, setBlocks] = useState<BlockDto[]>([]);
+  const [editorKey, setEditorKey] = useState(0);
 
   useEffect(() => {
     if (pagePath) {
       openPage(decodeURIComponent(pagePath));
+      setEditorKey(k => k + 1); // force remount on page change
     }
   }, [pagePath]);
-
-  useEffect(() => {
-    if (currentPage) {
-      api.getBlocks(currentPage.path).then(({ blocks: b }) => setBlocks(b));
-    }
-  }, [currentPage]);
 
   if (!pagePath) {
     return (
@@ -40,22 +33,18 @@ export default function PageView() {
   return (
     <div className="h-full flex flex-col">
       {/* Page header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <h1 className="text-xl font-bold">
+      <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+        <h1 className="text-lg font-bold">
           {currentPage.title || currentPage.slug}
         </h1>
-        <p className="text-xs text-gray-500 mt-1">
-          {currentPage.path} · {currentPage.block_count} blocks
-        </p>
+        <span className="text-xs text-gray-400">
+          {currentPage.path}
+        </span>
       </div>
 
-      {/* Blocks */}
-      <div className="flex-1 overflow-auto p-4">
-        <BlockEditor
-          pagePath={currentPage.path}
-          blocks={blocks}
-          onBlocksChange={setBlocks}
-        />
+      {/* BlockNote Outliner */}
+      <div className="flex-1 overflow-auto">
+        <OutlinerEditor key={editorKey} pagePath={currentPage.path} />
       </div>
     </div>
   );

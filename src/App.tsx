@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import { useStore } from './stores/appStore';
 import Sidebar from './components/Sidebar';
 import PageView from './components/PageView';
+import JournalPanel from './components/JournalPanel';
 import SearchPanel from './components/SearchPanel';
 import QueryPanel from './components/QueryPanel';
 
@@ -24,7 +25,8 @@ export default function App() {
           </div>
         )}
         <Routes>
-          <Route path="/" element={<PageView />} />
+          <Route path="/" element={<JournalPanel />} />
+          <Route path="/journal" element={<JournalPanel />} />
           <Route path="/page/:pagePath" element={<PageView />} />
           <Route path="/search" element={<SearchPanel />} />
           <Route path="/query" element={<QueryPanel />} />
