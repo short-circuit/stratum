@@ -1,0 +1,342 @@
+use crate::git::GitEngine;
+use pkm_core::PkmError;
+use std::fs;
+
+/// Describes a file that has sync conflicts.
+#[derive(Debug, Clone)]
+pub struct ConflictFile {
+    pub path: String,
+    pub our_diff: String,
+    pub their_diff: String,
+}
+
+/// A single conflict hunk parsed from conflict markers.
+#[derive(Debug, Clone)]
+pub struct ConflictHunk {
+    /// Lines from our side of the conflict.
+    pub ours: String,
+    /// Lines from their side of the conflict.
+    pub theirs: String,
+}
+
+/// Detect files that have unresolved merge conflicts in a repository.
+///
+/// This function inspects the index for conflict entries and returns the
+/// per-file conflict diffs.
+pub fn detect_conflicts(repo: &GitEngine) -> Result<Vec<ConflictFile>, PkmError> {
+    let git_repo = repo.repository();
+    let index = git_repo
+        .index()
+        .map_err(|e| PkmError::Git(format!("open index for conflict detection: {e}")))?;
+
+    if !index.has_conflicts() {
+        return Ok(Vec::new());
+    }
+
+    let mut conflicts = Vec::new();
+    if let Ok(conflict_iter) = index.conflicts() {
+        for entry_res in conflict_iter {
+            if let Ok(entry) = entry_res {
+                let path = entry
+                    .our
+                    .as_ref()
+                    .or_else(|| entry.their.as_ref())
+                    .map(|e| {
+                        std::str::from_utf8(&e.path)
+                            .unwrap_or("<non-utf8>")
+                            .to_string()
+                    })
+                    .unwrap_or_default();
+
+                if path.is_empty() {
+                    continue;
+                }
+
+                let our_diff = repo
+                    .diff(&path)
+                    .unwrap_or_else(|_| format!("(unable to compute diff for {path})"));
+
+                // For "their" diff we approximate by showing the conflicted file content.
+                let workdir_path = git_repo.workdir().map(|w| w.join(&path));
+                let their_diff = match workdir_path {
+                    Some(p) => fs::read_to_string(p).unwrap_or_default(),
+                    None => String::new(),
+                };
+
+                conflicts.push(ConflictFile {
+                    path,
+                    our_diff,
+                    their_diff,
+                });
+            }
+        }
+    }
+
+    Ok(conflicts)
+}
+
+/// Write conflict markers into a file so that a user can manually resolve.
+///
+/// This replaces the contents of the file at `path` with a three-way
+/// conflict-marker format.
+pub fn resolve_with_markers(
+    path: &str,
+    _base: &str,
+    ours: &str,
+    theirs: &str,
+) -> Result<(), PkmError> {
+    let content = format!(
+        "<<<<<<< ours\n{ours}\n=======\n{theirs}\n>>>>>>> theirs\n"
+    );
+    fs::write(path, &content).map_err(PkmError::Io)?;
+    Ok(())
+}
+
+/// Parse conflict markers from a string and return the hunks.
+///
+/// Recognises the standard `<<<<<<<`, `=======`, `>>>>>>>` markers.
+pub fn parse_conflict_markers(content: &str) -> Vec<ConflictHunk> {
+    let mut hunks = Vec::new();
+    let mut in_conflict = false;
+    let mut ours_lines = Vec::new();
+    let mut theirs_lines = Vec::new();
+    let mut in_ours = false;
+    let mut in_theirs = false;
+
+    for line in content.lines() {
+        if line.starts_with("<<<<<<<") {
+            in_conflict = true;
+            in_ours = true;
+            in_theirs = false;
+            ours_lines.clear();
+            theirs_lines.clear();
+            continue;
+        }
+        if line.starts_with("=======") && in_conflict {
+            in_ours = false;
+            in_theirs = true;
+            continue;
+        }
+        if line.starts_with(">>>>>>>") && in_conflict {
+            in_conflict = false;
+            in_ours = false;
+            in_theirs = false;
+            hunks.push(ConflictHunk {
+                ours: ours_lines.join("\n"),
+                theirs: theirs_lines.join("\n"),
+            });
+            ours_lines.clear();
+            theirs_lines.clear();
+            continue;
+        }
+        if in_ours {
+            ours_lines.push(line);
+        } else if in_theirs {
+            theirs_lines.push(line);
+        }
+    }
+
+    hunks
+}
+
+/// Create a structured sync conflict report file (Markdown).
+///
+/// Writes a `.sync-conflict.md` file that shows the original content alongside
+/// both conflicting versions for easy manual resolution.
+pub fn create_sync_conflict_file(
+    path: &str,
+    original: &str,
+    ours: &str,
+    theirs: &str,
+) -> Result<(), PkmError> {
+    let conflict_path = format!("{path}.sync-conflict.md");
+    let content = format!(
+        "# Sync Conflict: {path}\n\n\
+         This file has a sync conflict that needs manual resolution.\n\n\
+         ## Original\n\n```\n{original}\n```\n\n\
+         ## Our Version (local)\n\n```\n{ours}\n```\n\n\
+         ## Their Version (remote)\n\n```\n{theirs}\n```\n\n\
+         ---\n*Generated by Stratum PKM Sync Engine*\n"
+    );
+    fs::write(&conflict_path, &content).map_err(PkmError::Io)?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::path::Path;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_parse_simple_conflict() {
+        let content = r#"some text
+<<<<<<< ours
+my change
+=======
+their change
+>>>>>>> theirs
+more text"#;
+
+        let hunks = parse_conflict_markers(content);
+        assert_eq!(hunks.len(), 1);
+        assert_eq!(hunks[0].ours, "my change");
+        assert_eq!(hunks[0].theirs, "their change");
+    }
+
+    #[test]
+    fn test_parse_multiple_conflicts() {
+        let content = r#"<<<<<<< ours
+first ours
+=======
+first theirs
+>>>>>>> theirs
+ok
+<<<<<<< ours
+second ours
+=======
+second theirs
+>>>>>>> theirs"#;
+
+        let hunks = parse_conflict_markers(content);
+        assert_eq!(hunks.len(), 2);
+        assert_eq!(hunks[0].ours, "first ours");
+        assert_eq!(hunks[1].theirs, "second theirs");
+    }
+
+    #[test]
+    fn test_parse_no_conflict() {
+        let content = "just some normal text\nno markers here\n";
+        let hunks = parse_conflict_markers(content);
+        assert!(hunks.is_empty());
+    }
+
+    #[test]
+    fn test_resolve_with_markers_writes_file() {
+        let td = TempDir::new().unwrap();
+        let path = td.path().join("conflict.md");
+        let path_str = path.to_str().unwrap();
+
+        resolve_with_markers(path_str, "base\n", "our line\n", "their line\n").unwrap();
+
+        let content = fs::read_to_string(path).unwrap();
+        assert!(content.contains("<<<<<<< ours"));
+        assert!(content.contains("======="));
+        assert!(content.contains(">>>>>>> theirs"));
+        assert!(content.contains("our line"));
+        assert!(content.contains("their line"));
+    }
+
+    #[test]
+    fn test_create_sync_conflict_file_writes_markdown() {
+        let td = TempDir::new().unwrap();
+        let notes_dir = td.path().join("notes");
+        fs::create_dir_all(&notes_dir).unwrap();
+        let path = notes_dir.join("meeting.md");
+        let path_str = path.to_str().unwrap();
+
+        create_sync_conflict_file(path_str, "original notes", "my edits", "their edits").unwrap();
+
+        let conflict_path = format!("{path_str}.sync-conflict.md");
+        let content = fs::read_to_string(&conflict_path).unwrap();
+        assert!(content.contains("# Sync Conflict:"));
+        assert!(content.contains("my edits"));
+        assert!(content.contains("their edits"));
+        assert!(content.contains("original notes"));
+    }
+
+    #[test]
+    fn test_detect_conflicts_no_conflicts() {
+        let td = TempDir::new().unwrap();
+        let engine = crate::git::GitEngine::init(td.path()).unwrap();
+
+        // Write a file and commit
+        fs::write(td.path().join("clean.md"), "clean").unwrap();
+        engine.add(&["clean.md"]).unwrap();
+        engine.commit("clean", "tester").unwrap();
+
+        let conflicts = detect_conflicts(&engine).unwrap();
+        assert!(conflicts.is_empty());
+    }
+
+    #[test]
+    fn test_detect_conflicts_with_real_conflict() {
+        // Simulate a conflict by creating a repo, two branches with divergent content,
+        // then attempting a merge that creates a conflict in the index.
+        let td = TempDir::new().unwrap();
+        let engine = crate::git::GitEngine::init(td.path()).unwrap();
+
+        // Create initial file on main
+        fs::write(td.path().join("shared.md"), "line1\nline2\n").unwrap();
+        engine.add(&["shared.md"]).unwrap();
+        engine.commit("initial", "tester").unwrap();
+
+        let repo = engine.repository();
+
+        // Create a branch 'feature' and modify the file there
+        let main_commit = repo.head().unwrap().peel_to_commit().unwrap();
+        let _feature_branch = repo.branch("feature", &main_commit, false).unwrap();
+
+        // Switch back to main/master (capture before switching to feature)
+        let default_branch = repo.head().unwrap().name().unwrap_or("refs/heads/main").to_string();
+        repo.set_head("refs/heads/feature").unwrap();
+        repo.checkout_head(Some(git2::build::CheckoutBuilder::new().force()))
+            .unwrap();
+
+        // Modify on feature
+        fs::write(td.path().join("shared.md"), "line1\nfeature change\n").unwrap();
+        let mut index = repo.index().unwrap();
+        index.add_path(Path::new("shared.md")).unwrap();
+        index.write_tree().unwrap();
+        let tree_oid = index.write_tree().unwrap();
+        let tree = repo.find_tree(tree_oid).unwrap();
+        let sig = git2::Signature::now("tester", "test@pkm.local").unwrap();
+        repo.commit(
+            Some("HEAD"),
+            &sig,
+            &sig,
+            "feature change",
+            &tree,
+            &[&main_commit],
+        )
+        .unwrap();
+
+        // Switch back to main/master
+        repo.set_head(&default_branch).unwrap();
+        repo.checkout_head(Some(git2::build::CheckoutBuilder::new().force()))
+            .unwrap();
+
+        // Modify on main differently
+        fs::write(td.path().join("shared.md"), "line1\nmain change\n").unwrap();
+        let mut index = repo.index().unwrap();
+        index.add_path(Path::new("shared.md")).unwrap();
+        index.write_tree().unwrap();
+        let tree_oid = index.write_tree().unwrap();
+        let tree = repo.find_tree(tree_oid).unwrap();
+        let sig = git2::Signature::now("tester", "test@pkm.local").unwrap();
+        let main_parent = repo.head().unwrap().peel_to_commit().unwrap();
+        repo.commit(
+            Some("HEAD"),
+            &sig,
+            &sig,
+            "main change",
+            &tree,
+            &[&main_parent],
+        )
+        .unwrap();
+
+        // Try to merge feature into main — this should produce a conflict
+        let feature_ref = repo.find_branch("feature", git2::BranchType::Local)
+            .unwrap();
+        let feature_commit = feature_ref.into_reference().peel_to_commit().unwrap();
+        let annotated = repo.find_annotated_commit(feature_commit.id()).unwrap();
+        let _ = repo.merge(&[&annotated], None, None);
+
+        // Now detect conflicts
+        let conflicts = detect_conflicts(&engine).unwrap();
+        // Should have at least one conflict detected
+        assert!(!conflicts.is_empty(), "expected at least one conflict");
+        assert_eq!(conflicts[0].path, "shared.md");
+    }
+}

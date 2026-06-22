@@ -1,0 +1,19 @@
+[package]
+name = "pkm-markdown"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+pkm-core = { path = "../pkm-core" }
+pulldown-cmark.workspace = true
+serde.workspace = true
+serde_yaml.workspace = true
+regex.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+pretty_assertions.workspace = true

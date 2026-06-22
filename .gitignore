@@ -1,0 +1,59 @@
+# === Rust ===
+target/
+**/*.rs.bk
+*.pdb
+.cargo/
+
+# === Flutter / Dart ===
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+*.iml
+*.ipr
+*.iws
+.idea/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+app.*.symbols
+app.*.map.json
+/android/app/debug
+/android/app/profile
+/android/app/release
+/coverage/
+
+# === Tauri / Web ===
+node_modules/
+dist/
+dist-ssr/
+*.local
+.env
+.env.*
+!.env.example
+
+# === OS / Editor ===
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+*~
+\#*\#
+.#*
+.vscode/
+.history/
+.atom/
+
+# === Misc ===
+*.log
+*.tmp
+*.temp
+.cache/
+*.pyc
+__pycache__/
