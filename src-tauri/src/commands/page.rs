@@ -151,6 +151,14 @@ pub async fn create_page(
     state: tauri::State<'_, AppState>,
 ) -> Result<PageDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
+
+    // Ensure path has .md extension
+    let path = if path.ends_with(".md") {
+        path
+    } else {
+        format!("{}.md", path)
+    };
+
     let full_path = state.vault_path.join(&path);
 
     if full_path.exists() {
@@ -222,7 +230,9 @@ fn find_md_files(dir: &Path, vault_root: &Path) -> std::io::Result<Vec<String>> 
         }
         if path.is_dir() {
             result.extend(find_md_files(&path, vault_root)?);
-        } else if path.extension().and_then(|e| e.to_str()) == Some("md") {
+        } else if path.extension().and_then(|e| e.to_str()) == Some("md")
+            || path.extension().is_none()
+        {
             let rel = path
                 .strip_prefix(vault_root)
                 .unwrap_or(&path)
