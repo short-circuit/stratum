@@ -2094,6 +2094,7 @@ name = "pkm-markdown"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "pkm-block",
  "pkm-core",
  "pretty_assertions",
  "pulldown-cmark",
@@ -2103,6 +2104,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
