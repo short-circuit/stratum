@@ -29,6 +29,10 @@ Thumbs.db
 .history/
 .atom/
 
+# === Nix ===
+result/
+.direnv/
+
 # === Misc ===
 *.log
 *.tmp
