@@ -2,6 +2,7 @@
 
 use crate::commands::vault::AppState;
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PageDto {
@@ -21,10 +22,23 @@ pub struct PageListDto {
 pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    let paths = store.list_pages().map_err(|e| e.to_string())?;
+    let db_paths = store.list_pages().map_err(|e| e.to_string())?;
+
+    // Also find .md files on disk that aren't in SQLite yet (first-run / migration)
+    let mut all_paths: Vec<String> = db_paths;
+    if let Ok(md_files) = find_md_files(&state.vault_path, &state.vault_path) {
+        for rel in md_files {
+            if !all_paths.contains(&rel) {
+                let full = state.vault_path.join(&rel);
+                let page = pkm_block::Page::new(full, &state.vault_path);
+                let _ = store.upsert_page(&page);
+                all_paths.push(rel);
+            }
+        }
+    }
 
     let mut pages = Vec::new();
-    for path in paths {
+    for path in all_paths {
         let slug = std::path::Path::new(&path)
             .file_stem()
             .and_then(|s| s.to_str())
@@ -149,6 +163,12 @@ pub async fn create_page(
     }
     std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
 
+    // Also upsert in SQLite so the page appears in list_pages
+    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let mut page = pkm_block::Page::new(full_path, &state.vault_path);
+    page.frontmatter.title = title.clone();
+    store.upsert_page(&page).map_err(|e| e.to_string())?;
+
     Ok(PageDto {
         path: path.clone(),
         slug: std::path::Path::new(&path)
@@ -178,4 +198,32 @@ pub async fn delete_page(
     store.delete_page(&path).map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+/// Walk a directory recursively, returning vault-relative paths of .md files.
+fn find_md_files(dir: &Path, vault_root: &Path) -> std::io::Result<Vec<String>> {
+    let mut result = Vec::new();
+    if !dir.exists() {
+        return Ok(result);
+    }
+    for entry in std::fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.file_name().and_then(|n| n.to_str()) == Some(".pkm")
+            || path.file_name().and_then(|n| n.to_str()) == Some("templates")
+        {
+            continue;
+        }
+        if path.is_dir() {
+            result.extend(find_md_files(&path, vault_root)?);
+        } else if path.extension().and_then(|e| e.to_str()) == Some("md") {
+            let rel = path
+                .strip_prefix(vault_root)
+                .unwrap_or(&path)
+                .to_string_lossy()
+                .to_string();
+            result.push(rel);
+        }
+    }
+    Ok(result)
 }
