@@ -8,7 +8,6 @@ members = [
     "crates/pkm-watcher",
     "crates/pkm-ai",
     "crates/pkm-plugin",
-    "crates/pkm-frontend",
     "crates/pkm-cli",
     "crates/pkm-block",
     "crates/pkm-query",

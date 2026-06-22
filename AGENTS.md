@@ -8,8 +8,6 @@ Notes are stored as plain Markdown files on disk — zero vendor lock-in.
 
 ```
 ┌──────────────────────────────────────────────────┐
-│                   Flutter UI                      │
-│  ┌─────────┐ ┌──────────┐ ┌──────────────────┐  │
 │  │  Editor  │ │  Graph   │ │  Search / Chat   │  │
 │  └────┬────┘ └────┬─────┘ └────────┬─────────┘  │
 │       │           │                │             │
