@@ -44,6 +44,7 @@ pub fn run() {
             // Blocks
             commands::block::get_blocks,
             commands::block::build_markdown,
+            commands::block::save_blocks,
             commands::block::update_block,
             commands::block::delete_block,
             commands::block::insert_block,
