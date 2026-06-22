@@ -11,6 +11,7 @@ members = [
     "crates/pkm-frontend",
     "crates/pkm-cli",
     "crates/pkm-block",
+    "crates/pkm-query",
 ]
 
 [workspace.package]
