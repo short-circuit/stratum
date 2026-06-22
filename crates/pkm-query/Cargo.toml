@@ -1,0 +1,17 @@
+[package]
+name = "pkm-query"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+rusqlite.workspace = true
+pkm-block = { path = "../pkm-block" }
+
+[dev-dependencies]
+tempfile.workspace = true
