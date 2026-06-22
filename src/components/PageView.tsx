@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useStore } from '../stores/appStore';
 import OutlinerEditor from './OutlinerEditor';
 import BacklinksPanel from './BacklinksPanel';
+import PropertiesPanel from './PropertiesPanel';
 
 export default function PageView() {
   const { pagePath } = useParams<{ pagePath: string }>();
@@ -50,6 +51,9 @@ export default function PageView() {
 
       {/* Backlinks dock */}
       <BacklinksPanel pagePath={currentPage.path} />
+
+      {/* Properties panel */}
+      <PropertiesPanel pagePath={currentPage.path} />
     </div>
   );
 }
