@@ -38,6 +38,13 @@ export async function deletePage(path: string): Promise<void> {
   return invoke('delete_page', { path });
 }
 
+export async function buildMarkdown(
+  blocks: BlockDto[],
+  title?: string,
+): Promise<string> {
+  return invoke('build_markdown', { blocks, title });
+}
+
 export async function getBlocks(pagePath: string): Promise<BlockListDto> {
   return invoke('get_blocks', { pagePath });
 }

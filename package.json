@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@blocknote/core": "^0.51.4",
+    "@blocknote/mantine": "^0.51.4",
+    "@blocknote/react": "^0.51.4",
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-log": "^2.8.0",
     "react": "^19.2.6",

@@ -23,6 +23,38 @@ pub struct BlockListDto {
 }
 
 #[tauri::command]
+pub async fn build_markdown(
+    blocks: Vec<BlockDto>,
+    title: Option<String>,
+) -> Result<String, String> {
+    let pkm_blocks: Vec<pkm_block::Block> = blocks
+        .into_iter()
+        .map(|dto| {
+            let id = Uuid::parse_str(&dto.id).unwrap_or_else(|_| Uuid::new_v4());
+            let mut b = pkm_block::Block::new(id, dto.content);
+            b.parent_id = dto.parent_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
+            b.left_id = dto.left_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
+            b.properties = dto.properties.into_iter().collect();
+            b.marker = dto.marker.as_ref().and_then(|m| pkm_block::TaskMarker::from_str(m));
+            b.priority = dto.priority.as_ref().and_then(|p| pkm_block::Priority::from_str(p));
+            b.meta.collapsed = dto.collapsed;
+            b.meta.heading_level = dto.heading_level;
+            b
+        })
+        .collect();
+
+    let body = pkm_markdown::block_parser::serialize_blocks(&pkm_blocks);
+
+    let full = if let Some(t) = title {
+        format!("---\ntitle: {}\n---\n\n{}", t, body)
+    } else {
+        body
+    };
+
+    Ok(full)
+}
+
+#[tauri::command]
 pub async fn get_blocks(
     page_path: String,
     state: tauri::State<'_, AppState>,

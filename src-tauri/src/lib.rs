@@ -43,6 +43,7 @@ pub fn run() {
             commands::page::delete_page,
             // Blocks
             commands::block::get_blocks,
+            commands::block::build_markdown,
             commands::block::update_block,
             commands::block::delete_block,
             commands::block::insert_block,
