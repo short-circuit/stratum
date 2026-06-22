@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as api from '../lib/commands';
+import { applyAccentTheme } from '../lib/theme';
 
 const PROVIDERS = [
   { value: 'ollama', label: 'Ollama (Local)' },
@@ -10,6 +11,17 @@ const PROVIDERS = [
   { value: 'custom', label: 'Custom (OpenAI-compatible)' },
 ];
 
+const PRESET_COLORS = [
+  '#f97316', // orange
+  '#ef4444', // red
+  '#3b82f6', // blue
+  '#8b5cf6', // violet
+  '#10b981', // emerald
+  '#f59e0b', // amber
+  '#ec4899', // pink
+  '#06b6d4', // cyan
+];
+
 export default function SettingsPage() {
   const [settings, setSettings] = useState<any>(null);
   const [saving, setSaving] = useState(false);
@@ -18,7 +30,13 @@ export default function SettingsPage() {
   const [availableModels, setAvailableModels] = useState<string[]>([]);
 
   useEffect(() => {
-    api.getSettings().then(setSettings).catch(err => setMsg(`Load failed: ${err}`));
+    api.getSettings().then(s => {
+      setSettings(s);
+      // Apply theme from saved settings
+      if (s.theme) {
+        applyAccentTheme(s.theme.accent_color || '#f97316', s.theme.dark_mode);
+      }
+    }).catch(err => setMsg(`Load failed: ${err}`));
   }, []);
 
   if (!settings) {
@@ -26,9 +44,17 @@ export default function SettingsPage() {
   }
 
   const ai = settings.ai;
+  const theme = settings.theme || { dark_mode: true, accent_color: '#f97316', font_size: 16 };
 
   const updateAi = (patch: any) => {
     setSettings({ ...settings, ai: { ...ai, ...patch } });
+  };
+
+  const updateTheme = (patch: any) => {
+    const newTheme = { ...theme, ...patch };
+    setSettings({ ...settings, theme: newTheme });
+    // Apply immediately for live preview
+    applyAccentTheme(newTheme.accent_color, newTheme.dark_mode);
   };
 
   const handleSave = async () => {
@@ -84,7 +110,7 @@ export default function SettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-4 py-1.5 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 disabled:opacity-50"
+          className="px-4 py-1.5 bg-[var(--accent-500)] text-white text-sm rounded hover:bg-[var(--accent-600)] disabled:opacity-50"
         >
           {saving ? 'Saving...' : 'Save'}
         </button>
@@ -184,7 +210,7 @@ export default function SettingsPage() {
                           onClick={() => toggleModelCapability(m, cap)}
                           className={`text-xs px-1.5 py-0.5 rounded ${
                             caps.includes(cap)
-                              ? 'bg-blue-500 text-white'
+                              ? 'bg-[var(--accent-500)] text-white'
                               : 'bg-gray-100 dark:bg-gray-700 text-gray-500'
                           }`}
                         >
@@ -223,6 +249,59 @@ export default function SettingsPage() {
               />
             </label>
           )}
+        </div>
+      </section>
+
+      {/* Theme Section */}
+      <section className="mb-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Theme</h3>
+
+        {/* Dark mode */}
+        <div className="mb-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={theme.dark_mode}
+              onChange={e => updateTheme({ dark_mode: e.target.checked })}
+              className="rounded"
+            />
+            Dark mode
+          </label>
+        </div>
+
+        {/* Accent color */}
+        <div className="mb-3">
+          <label className="text-xs text-gray-500 block mb-1">Accent color</label>
+          <div className="flex gap-1.5 flex-wrap">
+            {PRESET_COLORS.map(color => (
+              <button
+                key={color}
+                onClick={() => updateTheme({ accent_color: color })}
+                className={`w-7 h-7 rounded-full border-2 transition-transform ${
+                  theme.accent_color === color
+                    ? 'border-gray-800 dark:border-white scale-110'
+                    : 'border-transparent hover:scale-105'
+                }`}
+                style={{ backgroundColor: color }}
+                title={color}
+              />
+            ))}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="color"
+              value={theme.accent_color}
+              onChange={e => updateTheme({ accent_color: e.target.value })}
+              className="w-8 h-8 rounded cursor-pointer border-0 p-0"
+            />
+            <input
+              type="text"
+              value={theme.accent_color}
+              onChange={e => updateTheme({ accent_color: e.target.value })}
+              className="flex-1 text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 font-mono"
+              placeholder="#f97316"
+            />
+          </div>
         </div>
       </section>
 

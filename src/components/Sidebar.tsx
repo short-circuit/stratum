@@ -95,7 +95,7 @@ export default function Sidebar() {
               collapsed ? 'justify-center px-0 py-2' : 'gap-2 px-3 py-1.5'
             } text-xs text-left ${
               activeTab === item.id
-                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium'
+                ? 'bg-[var(--accent-50)] dark:bg-[var(--accent-900)]/20 text-[var(--accent-700)] dark:text-[var(--accent-300)] font-medium'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-750'
             }`}
           >
@@ -139,7 +139,7 @@ export default function Sidebar() {
                   <div className="flex gap-1">
                     <button
                       onClick={handleCreate}
-                      className="text-xs px-2 py-0.5 bg-blue-500 text-white rounded hover:bg-blue-600"
+                      className="text-xs px-2 py-0.5 bg-[var(--accent-500)] text-white rounded hover:bg-[var(--accent-600)]"
                     >
                       Create
                     </button>

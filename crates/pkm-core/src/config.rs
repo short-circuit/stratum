@@ -131,6 +131,8 @@ pub struct ThemeConfig {
     pub font_family: String,
     pub show_line_numbers: bool,
     pub sidebar_width: u32,
+    /// Accent color as hex (e.g. "#f97316" for orange).
+    pub accent_color: String,
 }
 
 impl Default for ThemeConfig {
@@ -141,6 +143,7 @@ impl Default for ThemeConfig {
             font_family: "Inter, sans-serif".to_string(),
             show_line_numbers: false,
             sidebar_width: 280,
+            accent_color: "#f97316".to_string(), // orange-500
         }
     }
 }

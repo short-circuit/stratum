@@ -58,7 +58,7 @@ export default function FlashcardsPanel() {
         </p>
         <button
           onClick={() => { setCurrent(0); setShowBack(false); }}
-          className="px-4 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+          className="px-4 py-2 bg-[var(--accent-500)] text-white rounded text-sm hover:bg-[var(--accent-600)]"
         >
           Start Again
         </button>
@@ -100,7 +100,7 @@ export default function FlashcardsPanel() {
       </p>
 
       {message && (
-        <div className="text-center text-sm mb-3 font-medium text-blue-600">
+        <div className="text-center text-sm mb-3 font-medium text-[var(--accent-600)]">
           {message}
         </div>
       )}
@@ -112,7 +112,7 @@ export default function FlashcardsPanel() {
             { label: 'Blackout', q: 0, color: 'bg-red-500 hover:bg-red-600' },
             { label: 'Hard', q: 2, color: 'bg-orange-500 hover:bg-orange-600' },
             { label: 'Good', q: 3, color: 'bg-green-500 hover:bg-green-600' },
-            { label: 'Easy', q: 5, color: 'bg-blue-500 hover:bg-blue-600' },
+            { label: 'Easy', q: 5, color: 'bg-[var(--accent-500)] hover:bg-[var(--accent-600)]' },
           ].map(({ label, q, color }) => (
             <button
               key={q}
