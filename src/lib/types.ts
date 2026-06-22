@@ -65,3 +65,38 @@ export interface SyncStatusDto {
   behind: number;
   conflicts: string[];
 }
+
+// --- Graph types ---
+
+export interface GraphNodeDto {
+  id: string;
+  title: string;
+  path: string;
+  tags: string[];
+  degree: number;
+}
+
+export interface GraphEdgeDto {
+  source: string;
+  target: string;
+  label: string | null;
+}
+
+export interface GraphDataDto {
+  nodes: GraphNodeDto[];
+  edges: GraphEdgeDto[];
+  node_count: number;
+  edge_count: number;
+  vault_path: string;
+}
+
+export interface ComponentDto {
+  nodes: GraphNodeDto[];
+  size: number;
+}
+
+export interface OrphanDto {
+  slug: string;
+  title: string;
+  path: string;
+}

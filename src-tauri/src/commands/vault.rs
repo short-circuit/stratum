@@ -1,5 +1,6 @@
 //! Vault management commands.
 
+use pkm_index::indexer::IndexEngine;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -8,15 +9,33 @@ use std::sync::Mutex;
 pub struct VaultState {
     pub vault_path: PathBuf,
     pub db_path: PathBuf,
+    pub index_engine: Option<IndexEngine>,
 }
 
 impl VaultState {
     pub fn new(vault_path: PathBuf) -> Self {
         let db_path = vault_path.join(".pkm").join("blocks.db");
+        let index_engine = IndexEngine::new(&vault_path).ok();
+        if index_engine.is_some() {
+            eprintln!("[stratum] IndexEngine initialized at {:?}", vault_path);
+        }
         Self {
             vault_path,
             db_path,
+            index_engine,
         }
+    }
+
+    pub fn ensure_index(&mut self) -> Result<&mut IndexEngine, String> {
+        if self.index_engine.is_none() {
+            self.index_engine = Some(
+                IndexEngine::new(&self.vault_path)
+                    .map_err(|e| format!("Failed to create IndexEngine: {}", e))?,
+            );
+        }
+        self.index_engine
+            .as_mut()
+            .ok_or_else(|| "IndexEngine not available".to_string())
     }
 }
 

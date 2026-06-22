@@ -166,6 +166,15 @@ tags: [project, rust]
 - [ ] Saved queries
 - [ ] Query templates
 
+### [x] Graph Engine
+- [x] `pkm-index` graph engine (nodes, edges, backlinks, connected components, orphans)
+- [x] `IndexEngine::rebuild_all()` scans vault `.md` files for `[[wiki-links]]`
+- [x] 4 new Tauri commands: `get_graph_data`, `get_connected_components`, `get_orphaned_notes`, `rebuild_graph`
+- [x] `GraphPanel` component with `react-force-graph-2d` (d3-force)
+- [x] Features: node sizing by degree, tag coloring, hover highlights, search filter, component/orphan views, click to navigate
+- [x] Graph tab in sidebar with 🔗 icon
+- [x] Route: `/graph`
+
 ---
 
 ## Phase 3: Polish & Advanced
@@ -204,7 +213,8 @@ Week 5-6:   Tauri project setup, Rust commands, types
 Week 6-8:   React frontend foundation (sidebar, routing, state)
 Week 8-10:  BlockNote outliner editor integration
 Week 10-12: Journal, properties, backlinks, autocomplete
-Week 12-14: Search, graph (D3), query view, settings
+Week 12-14: Graph (D3), query view, settings ✅ Graph done
+Week 14-16: Task management, testing, bug fixes
 Week 14-16: Task management, testing, bug fixes
 Week 16-20: Whiteboards, flashcards, templates, polish
 ```

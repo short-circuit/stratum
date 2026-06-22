@@ -2,83 +2,144 @@
 
 ## Overview
 
-Stratum is a two-tier application:
+Stratum is a Tauri v2 desktop application with a Rust backend and React + TypeScript frontend.
 
 ```
 ┌──────────────────────────────────────────┐
-│              Flutter UI                   │
-│  (Dart, runs on desktop + mobile)        │
+│        Tauri Desktop Shell                │
+│  ┌────────────────────────────────────┐  │
+│  │   React + TypeScript Frontend      │  │
+│  │   (Vite, Tailwind, Zustand)        │  │
+│  ├────────────────────────────────────┤  │
+│  │   Tauri IPC (invoke())             │  │
+│  ├────────────────────────────────────┤  │
+│  │   Rust Backend (src-tauri)         │  │
+│  │   ┌──────────────────────────┐     │  │
+│  │   │  Commands (28 handlers)   │     │  │
+│  │   │  vault | page | block |   │     │  │
+│  │   │  graph | search | query | │     │  │
+│  │   │  sync | template | export │     │  │
+│  │   │  flashcards | whiteboard  │     │  │
+│  │   │  settings                 │     │  │
+│  │   └──────────┬───────────────┘     │  │
+│  │              │                      │  │
+│  │   ┌──────────┴───────────────┐     │  │
+│  │   │  Rust Crates (core logic) │     │  │
+│  │   │  pkm-core  pkm-block     │     │  │
+│  │   │  pkm-markdown pkm-index  │     │  │
+│  │   │  pkm-query pkm-sync      │     │  │
+│  │   │  pkm-watcher pkm-ai      │     │  │
+│  │   │  pkm-plugin              │     │  │
+│  │   └──────────────────────────┘     │  │
+│  └────────────────────────────────────┘  │
 ├──────────────────────────────────────────┤
-│      RustBackend (abstract interface)    │
-│      MockBackend (in-memory for dev)     │
-│      flutter_rust_bridge (FFI, prod)     │
-├──────────────────────────────────────────┤
-│             Rust Core                    │
-│  (crates/* — all data processing)       │
-├──────────────────────────────────────────┤
-│           Data Layer                     │
-│  (.md files + .pkm/ cache)             │
+│           Data Layer                      │
+│  .md files + .pkm/ (SQLite + Tantivy)    │
 └──────────────────────────────────────────┘
 ```
 
-## State Management (Flutter)
+## State Management
 
-The Flutter app uses `provider` (ChangeNotifier) pattern with four providers:
+The React frontend uses **Zustand** (single store in `src/stores/appStore.ts`):
 
-- **VaultProvider** — manages notes (CRUD), graph, tags, stats. Routes all operations through `RustBackend`.
-- **SearchProvider** — manages search queries, result list, mode selection (fulltext/graph/regex).
-- **SyncProvider** — git sync lifecycle: load status, trigger sync, track conflicts.
-- **SettingsProvider** — wraps `AppConfig`, persists to `SharedPreferences`, exposes theme and user settings.
+```typescript
+interface AppState {
+  vault: VaultInfo | null;       // Vault metadata
+  pages: PageDto[];              // Page list for sidebar
+  currentPage: PageDto | null;   // Currently opened page
+  loading: boolean;
+  error: string | null;
 
-All providers use `MockBackend` during development, which stores notes in memory with sample data. In production, swap to the real Rust backend via `flutter_rust_bridge` FFI (see `crates/pkm-frontend`).
+  loadVault(): Promise<void>;
+  loadPages(): Promise<void>;
+  openPage(path: string): Promise<void>;
+  createPage(path: string, title?: string): Promise<void>;
+  deletePage(path: string): Promise<void>;
+}
+```
 
-## Rust Crate Dependency Graph
+All data operations go through `src/lib/commands.ts` → `invoke()` → Rust commands.
+Components are stateless where possible, reading from Zustand.
+
+## Backend State
+
+The Rust backend uses an `AppState = Mutex<VaultState>` managed by Tauri:
+
+```rust
+pub struct VaultState {
+    pub vault_path: PathBuf,
+    pub db_path: PathBuf,                  // .pkm/blocks.db
+    pub index_engine: Option<IndexEngine>,  // Lazy-initialized
+}
+```
+
+`IndexEngine` (`pkm-index/src/indexer.rs`) orchestrates:
+- **Graph** — note-level nodes/edges from `[[wiki-links]]`
+- **TantivyIndex** — full-text search index
+- **TagAggregator** — hierarchical tag cloud
+
+## Crate Dependency Graph
 
 ```
-pkm-frontend
-  ├── pkm-core (foundation types)
-  ├── pkm-markdown (depends on pkm-core)
-  ├── pkm-index (depends on pkm-core, pkm-markdown)
-  ├── pkm-sync (depends on pkm-core, pkm-markdown)
-  ├── pkm-watcher (depends on pkm-core, pkm-markdown, pkm-index)
-  ├── pkm-ai (depends on pkm-core, pkm-index)
-  └── pkm-plugin (depends on pkm-core)
+src-tauri
+  ├── pkm-core        (foundation types)
+  ├── pkm-block       (depends on pkm-core)
+  ├── pkm-markdown    (depends on pkm-core)
+  ├── pkm-index       (depends on pkm-core, pkm-markdown, pkm-block)
+  ├── pkm-query       (depends on pkm-core, pkm-block)
+  ├── pkm-sync        (depends on pkm-core, pkm-markdown)
+  └── pkm-watcher     (depends on pkm-core, pkm-markdown, pkm-index)
 ```
 
 ## Data Flow
 
-### Opening a Note (Desktop App)
+### Opening a Page
 
-1. User clicks note in sidebar
-2. `VaultProvider.openNote(path)` calls `RustBackend.openNote(path)`
-3. `MockBackend` returns the in-memory `Note` object
-4. `VaultProvider` sets `_currentNote` and notifies listeners
-5. `EditorScreen` rebuilds, shows note title, body, tags
-6. Switch to Preview mode — `MarkdownRenderer` renders via `flutter_markdown`
+1. User clicks page in sidebar
+2. `useStore().openPage(path)` calls `api.openPage(path)`
+3. `invoke('open_page', { path })` → Rust `commands::page::open_page`
+4. Rust reads `.md` file, parses blocks via `pkm-markdown`, returns `PageDto`
+5. Zustand sets `currentPage`, `PageView` renders blocks in `BlockEditor`
 
-### Saving a Note
+### Saving Blocks
 
-1. User types in editor → `VaultProvider.updateCurrentBody()` updates the note in memory on each keystroke
-2. User clicks Save → `VaultProvider.saveCurrentNote()` → `RustBackend.saveNote()`
-3. `MockBackend` updates the in-memory storage
-4. In production, Rust would write `.md` to disk, rebuild index, and optionally git-commit
+1. User types in `BlockEditor` → local state updates
+2. On save, `api.saveBlocks(pagePath, blocks)` → `invoke('save_blocks', ...)`
+3. Rust serializes blocks to `.md` via `pkm-markdown`, writes to disk
+4. Optionally triggers git auto-commit via `pkm-sync`
 
 ### Graph Rendering
 
-1. `GraphScreen` init → `VaultProvider.loadGraph()` → `MockBackend.getGraph()`
-2. Backend returns `GraphLayout` (nodes + edges) built from note backlinks
-3. `_GraphPainter` renders nodes/edges with force-directed layout animation
-4. Graph auto-refreshes when notes change
+1. User navigates to `/graph` → `GraphPanel` mounts
+2. `loadData()` calls `api.getGraphData()`, `api.getConnectedComponents()`, `api.getOrphanedNotes()`
+3. Rust `IndexEngine::rebuild_all()` scans all `.md` files in vault
+4. `Graph` builds nodes/edges from `[[wiki-links]]`
+5. Tauri commands return `GraphDataDto` (nodes + edges), `ComponentDto[]`, `OrphanDto[]`
+6. `GraphPanel` renders force-directed layout with `react-force-graph-2d`
+7. Click a node → navigate to that page
 
-### Sync Cycle
+### Full-Text Search
 
-1. User presses "Sync" / timer triggers
-2. `SyncProvider.sync()` → `RustBackend.syncVault()`
-3. In production: `git stash` → `git pull --rebase` → handle conflicts → `git stash pop` → `git push`
-4. `SyncProvider` updates status (up_to_date / error / conflicts)
+1. User types in `SearchPanel` → `api.searchBlocks(query)`
+2. `invoke('search_blocks', { query })` → Rust `commands::search::search_blocks`
+3. Rust queries Tantivy `BlockIndex` (or `TantivyIndex` for page-level)
+4. Returns `SearchResultsDto` with snippets and scores
+
+### Datalog Query
+
+1. User enters Datalog in `QueryPanel` → `api.runQuery(datalog)`
+2. `invoke('run_query', { datalog })` → Rust `commands::query::run_query`
+3. `pkm-query` parses Datalog, compiles to SQL, executes against `blocks.db`
+4. Returns `QueryResultDto` with columns and rows
+
+### Git Sync
+
+1. User clicks Sync or timer triggers
+2. `api.syncVault()` → `invoke('sync_vault')` → Rust `commands::sync::sync_vault`
+3. `pkm-sync` executes git operations via `git2`
 
 ### Settings Persistence
 
-1. `SettingsProvider.loadSettings()` reads from `SharedPreferences` at app start
-2. User changes setting → `SettingsProvider` updates `AppConfig` and persists to `SharedPreferences`
-3. Watchers react to settings changes (e.g., theme mode, vault path)
+1. Settings stored in `.pkm/config.toml`
+2. `get_settings` / `save_settings` commands read/write TOML
+3. Theme changes apply immediately via CSS custom properties

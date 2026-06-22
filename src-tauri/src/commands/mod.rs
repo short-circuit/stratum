@@ -1,6 +1,7 @@
 pub mod block;
 pub mod export;
 pub mod flashcards;
+pub mod graph;
 pub mod page;
 pub mod query;
 pub mod search;

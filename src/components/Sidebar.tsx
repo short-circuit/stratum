@@ -6,6 +6,7 @@ import { useState } from 'react';
 const NAV_ITEMS = [
   { id: 'journal', label: 'Journal', path: '/journal', icon: '📅' },
   { id: 'pages', label: 'Pages', path: '/' as const, icon: '📄' },
+  { id: 'graph', label: 'Graph', path: '/graph', icon: '🔗' },
   { id: 'search', label: 'Search', path: '/search', icon: '🔍' },
   { id: 'query', label: 'Query', path: '/query', icon: '▷' },
   { id: 'templates', label: 'Templates', path: '/templates', icon: '📋' },

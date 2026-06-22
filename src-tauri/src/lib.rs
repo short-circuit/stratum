@@ -64,6 +64,11 @@ pub fn run() {
             commands::search::get_backlinks,
             commands::search::get_page_backlinks,
             commands::search::autocomplete,
+            // Graph
+            commands::graph::get_graph_data,
+            commands::graph::get_connected_components,
+            commands::graph::get_orphaned_notes,
+            commands::graph::rebuild_graph,
             // Query
             commands::query::run_query,
             // Sync
