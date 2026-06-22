@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useCreateBlockNote } from '@blocknote/react';
+import {
+  useCreateBlockNote,
+  getDefaultReactSlashMenuItems,
+  SuggestionMenuController,
+} from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
+import { filterSuggestionItems } from '@blocknote/core';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
 import type { PartialBlock } from '@blocknote/core';
@@ -14,15 +19,12 @@ interface Props {
 export default function OutlinerEditor({ pagePath }: Props) {
   const [loading, setLoading] = useState(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Load initial blocks from backend
   const [initialBlocks, setInitialBlocks] = useState<PartialBlock[]>([]);
 
   useEffect(() => {
     setLoading(true);
     api.getBlocks(pagePath).then(({ blocks }) => {
-      const bnBlocks = dtoToBlockNote(blocks);
-      setInitialBlocks(bnBlocks);
+      setInitialBlocks(dtoToBlockNote(blocks));
       setLoading(false);
     });
   }, [pagePath]);
@@ -30,6 +32,100 @@ export default function OutlinerEditor({ pagePath }: Props) {
   const editor = useCreateBlockNote({
     initialContent: initialBlocks,
   });
+
+  // Custom slash menu items
+  const getSlashMenuItems = useCallback(
+    async (query: string) => {
+      const today = new Date().toISOString().split('T')[0];
+
+      const customItems = [
+        {
+          title: 'Task (TODO)',
+          group: 'Stratum',
+          icon: '☐',
+          subtext: 'Create a task item',
+          onItemClick: () => {
+            editor.insertBlocks(
+              [{ type: 'checkListItem' as any, content: '' }],
+              editor.getTextCursorPosition().block,
+              'after',
+            );
+          },
+        },
+        {
+          title: 'Heading 1',
+          group: 'Stratum',
+          icon: 'H1',
+          subtext: 'Large heading',
+          onItemClick: () => {
+            editor.insertBlocks(
+              [{ type: 'heading' as any, content: '', props: { level: 1 } }],
+              editor.getTextCursorPosition().block,
+              'after',
+            );
+          },
+        },
+        {
+          title: 'Heading 2',
+          group: 'Stratum',
+          icon: 'H2',
+          subtext: 'Medium heading',
+          onItemClick: () => {
+            editor.insertBlocks(
+              [{ type: 'heading' as any, content: '', props: { level: 2 } }],
+              editor.getTextCursorPosition().block,
+              'after',
+            );
+          },
+        },
+        {
+          title: 'Code Block',
+          group: 'Stratum',
+          icon: '</>',
+          subtext: 'Insert a code block',
+          onItemClick: () => {
+            editor.insertBlocks(
+              [{ type: 'codeBlock' as any, content: '' }],
+              editor.getTextCursorPosition().block,
+              'after',
+            );
+          },
+        },
+        {
+          title: 'Link Page',
+          group: 'Stratum',
+          icon: '🔗',
+          subtext: 'Insert a link to another page',
+          onItemClick: () => {
+            editor.insertBlocks(
+              [{ type: 'paragraph' as any, content: '[[Page Name]]' }],
+              editor.getTextCursorPosition().block,
+              'after',
+            );
+          },
+        },
+        {
+          title: "Today's Date",
+          group: 'Stratum',
+          icon: '📅',
+          subtext: today,
+          onItemClick: () => {
+            editor.insertBlocks(
+              [{ type: 'paragraph' as any, content: today }],
+              editor.getTextCursorPosition().block,
+              'after',
+            );
+          },
+        },
+      ];
+
+      return filterSuggestionItems(
+        [...customItems, ...getDefaultReactSlashMenuItems(editor)],
+        query,
+      );
+    },
+    [editor],
+  );
 
   // Persist changes to backend (debounced)
   const persistBlocks = useCallback(
@@ -51,8 +147,7 @@ export default function OutlinerEditor({ pagePath }: Props) {
   useEffect(() => {
     if (!editor) return;
     return editor.onChange(() => {
-      const currentBlocks = editor.document;
-      persistBlocks(currentBlocks);
+      persistBlocks(editor.document);
     });
   }, [editor, persistBlocks]);
 
@@ -66,6 +161,13 @@ export default function OutlinerEditor({ pagePath }: Props) {
         editor={editor}
         theme="light"
         className="min-h-[400px]"
+        slashMenu={false}
+      />
+      <SuggestionMenuController
+        getItems={getSlashMenuItems as any}
+        triggerCharacter="/"
+        suggestionMenuComponent={undefined as any}
+        onItemClick={() => {}}
       />
     </div>
   );
@@ -73,18 +175,14 @@ export default function OutlinerEditor({ pagePath }: Props) {
 
 // Convert our BlockDto array to BlockNote PartialBlock array
 function dtoToBlockNote(dtos: BlockDto[]): PartialBlock[] {
-  // Build parent/child relationships from parent_id/left_id
-  const blockMap = new Map<string, BlockDto>();
   const rootBlocks: BlockDto[] = [];
 
   for (const dto of dtos) {
-    blockMap.set(dto.id, dto);
     if (!dto.parent_id) {
       rootBlocks.push(dto);
     }
   }
 
-  // Sort roots by left_id chain
   rootBlocks.sort((a, b) => {
     if (!a.left_id) return -1;
     if (a.left_id === b.id) return 1;
@@ -99,9 +197,8 @@ function dtoToBlockNote(dtos: BlockDto[]): PartialBlock[] {
       return 0;
     });
 
-    // Determine block type based on marker
     let type: string = 'paragraph';
-    let props: Record<string, any> = {};
+    const props: Record<string, any> = {};
 
     if (dto.heading_level) {
       type = 'heading';
@@ -110,20 +207,17 @@ function dtoToBlockNote(dtos: BlockDto[]): PartialBlock[] {
       type = 'checkListItem';
     }
 
-    const partial: PartialBlock = {
+    return {
       type: type as any,
       content: dto.content,
       props,
       children: children.map(convertBlock),
     };
-
-    return partial;
   }
 
   return rootBlocks.map(convertBlock);
 }
 
-// Extract plain text from BlockNote block content
 function extractText(block: any): string {
   if (!block.content) return '';
   if (typeof block.content === 'string') return block.content;
@@ -135,7 +229,7 @@ function extractText(block: any): string {
     .map((item: any) => {
       if (typeof item === 'string') return item;
       if (item?.text) return item.text;
-      if (item?.type === 'link') return item.href || '';
+      if (item?.type === 'link') return `[[${item.href || ''}]]`;
       return '';
     })
     .join('');
