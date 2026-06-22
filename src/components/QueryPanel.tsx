@@ -29,7 +29,7 @@ export default function QueryPanel() {
       <textarea
         value={datalog}
         onChange={e => setDatalog(e.target.value)}
-        className="w-full h-32 px-3 py-2 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-sm font-mono"
+        className="w-full h-32 px-3 py-2 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)] text-sm font-mono"
         placeholder="Enter Datalog query..."
       />
 
@@ -37,13 +37,13 @@ export default function QueryPanel() {
         <button
           onClick={doQuery}
           disabled={running}
-          className="px-4 py-2 bg-[var(--accent-500)] text-white rounded text-sm hover:bg-[var(--accent-600)] disabled:opacity-50"
+          className="px-4 py-2 bg-[var(--primary-500)] text-white rounded text-sm hover:bg-[var(--primary-600)] disabled:opacity-50"
         >
           {running ? 'Running...' : 'Run Query'}
         </button>
         <button
           onClick={() => setDatalog('{:query [:find ?b :where [?b :block/marker "TODO"]]}')}
-          className="px-3 py-2 text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+          className="px-3 py-2 text-sm text-[var(--secondary-500)] hover:text-[var(--secondary-700)] dark:hover:text-[var(--secondary-300)]"
         >
           Reset
         </button>
@@ -61,7 +61,7 @@ export default function QueryPanel() {
             <thead>
               <tr>
                 {result.columns.map((col, i) => (
-                  <th key={i} className="text-left px-3 py-2 bg-neutral-100 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
+                  <th key={i} className="text-left px-3 py-2 bg-[var(--secondary-100)] dark:bg-[var(--secondary-800)] border-b border-[var(--secondary-200)] dark:border-[var(--secondary-700)]">
                     {col}
                   </th>
                 ))}
@@ -69,7 +69,7 @@ export default function QueryPanel() {
             </thead>
             <tbody>
               {result.rows.map((row, i) => (
-                <tr key={i} className="border-b border-neutral-100 dark:border-neutral-800">
+                <tr key={i} className="border-b border-[var(--secondary-100)] dark:border-[var(--secondary-800)]">
                   {row.map((cell, j) => (
                     <td key={j} className="px-3 py-2">{cell}</td>
                   ))}
@@ -81,7 +81,7 @@ export default function QueryPanel() {
       )}
 
       {result && result.rows.length === 0 && (
-        <p className="text-neutral-400 text-sm">Query returned no results.</p>
+        <p className="text-[var(--secondary-400)] text-sm">Query returned no results.</p>
       )}
     </div>
   );

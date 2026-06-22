@@ -13,7 +13,8 @@ pub struct SettingsDto {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ThemeSettingsDto {
     pub dark_mode: bool,
-    pub accent_color: String,
+    pub primary_color: String,
+    pub secondary_color: String,
     pub font_size: u32,
 }
 
@@ -53,7 +54,8 @@ pub async fn get_settings(
         vault_path: config.vault_path.to_string_lossy().to_string(),
         theme: ThemeSettingsDto {
             dark_mode: config.theme.dark_mode,
-            accent_color: config.theme.accent_color.clone(),
+            primary_color: config.theme.primary_color.clone(),
+            secondary_color: config.theme.secondary_color.clone(),
             font_size: config.theme.font_size,
         },
         ai: AiSettingsDto {
@@ -104,7 +106,8 @@ pub async fn save_settings(
         vault_path: std::path::PathBuf::from(&settings.vault_path),
         theme: pkm_core::ThemeConfig {
             dark_mode: settings.theme.dark_mode,
-            accent_color: settings.theme.accent_color.clone(),
+            primary_color: settings.theme.primary_color.clone(),
+            secondary_color: settings.theme.secondary_color.clone(),
             font_size: settings.theme.font_size,
             ..pkm_core::ThemeConfig::default()
         },

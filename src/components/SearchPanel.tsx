@@ -45,12 +45,12 @@ export default function SearchPanel() {
           onChange={e => setQuery(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') doSearch(); }}
           placeholder="Search blocks..."
-          className="flex-1 px-3 py-2 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-sm"
+          className="flex-1 px-3 py-2 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)] text-sm"
         />
         <button
           onClick={doSearch}
           disabled={searching}
-          className="px-4 py-2 bg-[var(--accent-500)] text-white rounded text-sm hover:bg-[var(--accent-600)] disabled:opacity-50"
+          className="px-4 py-2 bg-[var(--primary-500)] text-white rounded text-sm hover:bg-[var(--primary-600)] disabled:opacity-50"
         >
           {searching ? '...' : 'Search'}
         </button>
@@ -59,11 +59,11 @@ export default function SearchPanel() {
         <button
           onClick={doReindex}
           disabled={indexing}
-          className="text-xs text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 disabled:opacity-50"
+          className="text-xs text-[var(--secondary-400)] hover:text-[var(--secondary-600)] dark:hover:text-[var(--secondary-300)] disabled:opacity-50"
         >
           {indexing ? 'Indexing...' : 'Rebuild search index'}
         </button>
-        {indexMsg && <span className="text-xs text-neutral-500">{indexMsg}</span>}
+        {indexMsg && <span className="text-xs text-[var(--secondary-500)]">{indexMsg}</span>}
       </div>
 
       <div className="space-y-2">
@@ -71,18 +71,18 @@ export default function SearchPanel() {
           <button
             key={i}
             onClick={() => navigate(`/page/${encodeURIComponent(r.page_path)}`)}
-            className="w-full text-left p-3 rounded border border-neutral-200 dark:border-neutral-700 hover:border-[var(--accent-400)] hover:bg-[var(--accent-50)] dark:hover:bg-[var(--accent-900)]/10 transition-colors"
+            className="w-full text-left p-3 rounded border border-[var(--secondary-200)] dark:border-[var(--secondary-700)] hover:border-[var(--primary-400)] hover:bg-[var(--primary-50)] dark:hover:bg-[var(--primary-900)]/10 transition-colors"
           >
-            <div className="text-xs text-neutral-500 mb-1 flex items-center gap-2">
+            <div className="text-xs text-[var(--secondary-500)] mb-1 flex items-center gap-2">
               <span>{r.page_path}</span>
-              <span className="text-neutral-300">·</span>
+              <span className="text-[var(--secondary-300)]">·</span>
               <span>score: {r.score.toFixed(2)}</span>
             </div>
             <p className="text-sm">{r.snippet}</p>
           </button>
         ))}
         {results.length === 0 && query && !searching && (
-          <p className="text-neutral-400 text-sm">No results found.</p>
+          <p className="text-[var(--secondary-400)] text-sm">No results found.</p>
         )}
       </div>
     </div>

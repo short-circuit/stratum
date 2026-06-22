@@ -69,10 +69,10 @@ export default function OutlinerEditor({ pagePath }: Props) {
 
   if (status === 'init' || status === 'loading') {
     return (
-      <div className="flex items-center justify-center h-64 text-neutral-400 text-sm">
+      <div className="flex items-center justify-center h-64 text-[var(--secondary-400)] text-sm">
         <div className="text-center">
           <div className="animate-pulse mb-2">Loading editor...</div>
-          <div className="text-xs text-neutral-500">{pagePath}</div>
+          <div className="text-xs text-[var(--secondary-500)]">{pagePath}</div>
         </div>
       </div>
     );

@@ -32,30 +32,30 @@ input[type="color"] {
 
 /* ── BlockNote / Mantine accent overrides ── */
 .bn-container[data-theme="light"] {
-  --bn-colors-primary-50: var(--accent-50);
-  --bn-colors-primary-100: var(--accent-100);
-  --bn-colors-primary-200: var(--accent-200);
-  --bn-colors-primary-500: var(--accent-500);
-  --bn-colors-primary-600: var(--accent-600);
-  --bn-colors-primary-700: var(--accent-700);
+  --bn-colors-primary-50: var(--primary-50);
+  --bn-colors-primary-100: var(--primary-100);
+  --bn-colors-primary-200: var(--primary-200);
+  --bn-colors-primary-500: var(--primary-500);
+  --bn-colors-primary-600: var(--primary-600);
+  --bn-colors-primary-700: var(--primary-700);
 }
 
 .bn-container[data-theme="dark"] {
-  --bn-colors-primary-50: var(--accent-900);
-  --bn-colors-primary-100: var(--accent-800);
-  --bn-colors-primary-200: var(--accent-700);
-  --bn-colors-primary-500: var(--accent-500);
-  --bn-colors-primary-600: var(--accent-400);
-  --bn-colors-primary-700: var(--accent-300);
+  --bn-colors-primary-50: var(--primary-900);
+  --bn-colors-primary-100: var(--primary-800);
+  --bn-colors-primary-200: var(--primary-700);
+  --bn-colors-primary-500: var(--primary-500);
+  --bn-colors-primary-600: var(--primary-400);
+  --bn-colors-primary-700: var(--primary-300);
 }
 
 /* Override Mantine blue accents for BlockNote toolbar/menus */
 .bn-container [data-mantine-color-scheme] {
-  --mantine-primary-color-filled: var(--accent-500);
-  --mantine-primary-color-filled-hover: var(--accent-600);
-  --mantine-primary-color-light: var(--accent-50);
-  --mantine-primary-color-light-hover: var(--accent-100);
-  --mantine-primary-color-light-color: var(--accent-700);
+  --mantine-primary-color-filled: var(--primary-500);
+  --mantine-primary-color-filled-hover: var(--primary-600);
+  --mantine-primary-color-light: var(--primary-50);
+  --mantine-primary-color-light-hover: var(--primary-100);
+  --mantine-primary-color-light-color: var(--primary-700);
 }
 
 /* ── Scrollbar ── */
@@ -67,9 +67,9 @@ input[type="color"] {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--accent-300);
+  background: var(--primary-300);
   border-radius: 3px;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: var(--accent-700);
+  background: var(--primary-700);
 }
