@@ -51,6 +51,13 @@ export interface QueryResultDto {
   rows: string[][];
 }
 
+export interface BacklinkItem {
+  source_id: string;
+  source_page: string;
+  context: string;
+  is_linked: boolean;
+}
+
 export interface SyncStatusDto {
   status: string;
   branch: string | null;

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useStore } from '../stores/appStore';
 import OutlinerEditor from './OutlinerEditor';
+import BacklinksPanel from './BacklinksPanel';
 
 export default function PageView() {
   const { pagePath } = useParams<{ pagePath: string }>();
@@ -11,7 +12,7 @@ export default function PageView() {
   useEffect(() => {
     if (pagePath) {
       openPage(decodeURIComponent(pagePath));
-      setEditorKey(k => k + 1); // force remount on page change
+      setEditorKey(k => k + 1);
     }
   }, [pagePath]);
 
@@ -42,10 +43,13 @@ export default function PageView() {
         </span>
       </div>
 
-      {/* BlockNote Outliner */}
+      {/* Editor + Backlinks */}
       <div className="flex-1 overflow-auto">
         <OutlinerEditor key={editorKey} pagePath={currentPage.path} />
       </div>
+
+      {/* Backlinks dock */}
+      <BacklinksPanel pagePath={currentPage.path} />
     </div>
   );
 }
