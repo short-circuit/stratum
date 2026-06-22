@@ -22,23 +22,10 @@ pub struct PageListDto {
 pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    let db_paths = store.list_pages().map_err(|e| e.to_string())?;
-
-    // Also find .md files on disk that aren't in SQLite yet (first-run / migration)
-    let mut all_paths: Vec<String> = db_paths;
-    if let Ok(md_files) = find_md_files(&state.vault_path, &state.vault_path) {
-        for rel in md_files {
-            if !all_paths.contains(&rel) {
-                let full = state.vault_path.join(&rel);
-                let page = pkm_block::Page::new(full, &state.vault_path);
-                let _ = store.upsert_page(&page);
-                all_paths.push(rel);
-            }
-        }
-    }
+    let paths = store.list_pages().map_err(|e| e.to_string())?;
 
     let mut pages = Vec::new();
-    for path in all_paths {
+    for path in paths {
         let slug = std::path::Path::new(&path)
             .file_stem()
             .and_then(|s| s.to_str())
@@ -58,6 +45,25 @@ pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto
     }
 
     Ok(PageListDto { pages })
+}
+
+/// Scan the vault filesystem for .md files and upsert any missing ones into SQLite.
+/// Called once at app startup to import pre-existing pages.
+pub fn sync_filesystem_to_db(vault_path: &Path, db_path: &Path) -> Result<usize, String> {
+    let store = pkm_block::BlockStore::open(db_path).map_err(|e| e.to_string())?;
+    let db_paths = store.list_pages().map_err(|e| e.to_string())?;
+    let md_files = find_md_files(vault_path, vault_path).map_err(|e| e.to_string())?;
+
+    let mut count = 0;
+    for rel in md_files {
+        if !db_paths.contains(&rel) {
+            let full = vault_path.join(&rel);
+            let page = pkm_block::Page::new(full, vault_path);
+            store.upsert_page(&page).map_err(|e| e.to_string())?;
+            count += 1;
+        }
+    }
+    Ok(count)
 }
 
 #[tauri::command]

@@ -19,6 +19,14 @@ pub fn run() {
     let _ = std::fs::create_dir_all(&vault_path);
     let _ = std::fs::create_dir_all(vault_path.join(".pkm"));
 
+    // One-time migration: sync filesystem .md files into SQLite
+    let db_path = vault_path.join(".pkm").join("blocks.db");
+    match commands::page::sync_filesystem_to_db(&vault_path, &db_path) {
+        Ok(n) if n > 0 => eprintln!("[stratum] Synced {} existing pages from filesystem", n),
+        Err(e) => eprintln!("[stratum] Filesystem sync skipped: {}", e),
+        _ => {}
+    }
+
     tauri::Builder::default()
         .manage(Mutex::new(VaultState::new(vault_path)) as AppState)
         .setup(|app| {
