@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 const NAV_ITEMS = [
   { id: 'journal', label: 'Journal', path: '/journal', icon: '📅' },
-  { id: 'pages', label: 'Pages', path: '/', icon: '📄' },
+  { id: 'pages', label: 'Pages', path: null as null, icon: '📄' },
   { id: 'search', label: 'Search', path: '/search', icon: '🔍' },
   { id: 'query', label: 'Query', path: '/query', icon: '▷' },
   { id: 'templates', label: 'Templates', path: '/templates', icon: '📋' },
@@ -47,9 +47,9 @@ export default function Sidebar() {
     setNewTitle('');
   };
 
-  const navigateTab = (tab: TabId, path: string) => {
+  const navigateTab = (tab: TabId, path: string | null) => {
     setActiveTab(tab);
-    navigate(path);
+    if (path) navigate(path);
   };
 
   return (
