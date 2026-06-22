@@ -39,6 +39,7 @@ export default function SettingsPage() {
           s.theme.primary_color || '#f97316',
           s.theme.secondary_color || '#6b7280',
           s.theme.dark_mode,
+          s.theme.font_size,
         );
       }
     }).catch(err => setMsg(`Load failed: ${err}`));
@@ -57,7 +58,7 @@ export default function SettingsPage() {
   const updateTheme = (patch: any) => {
     const newTheme = { ...theme, ...patch };
     setSettings({ ...settings, theme: newTheme });
-    applyTheme(newTheme.primary_color, newTheme.secondary_color, newTheme.dark_mode);
+    applyTheme(newTheme.primary_color, newTheme.secondary_color, newTheme.dark_mode, newTheme.font_size);
   };
 
   const handleSave = async () => {
@@ -195,6 +196,28 @@ export default function SettingsPage() {
               <div className="flex items-center gap-2">
                 <input type="color" value={theme.secondary_color} onChange={e => updateTheme({ secondary_color: e.target.value })} className="w-8 h-8 rounded cursor-pointer border-0 p-0" />
                 <input type="text" value={theme.secondary_color} onChange={e => updateTheme({ secondary_color: e.target.value })} className="flex-1 max-w-[180px] text-xs px-2 py-1 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)] font-mono" placeholder="#6b7280" />
+              </div>
+            </div>
+
+            {/* Font size */}
+            <div className="mb-3">
+              <label className="text-xs font-medium text-[var(--secondary-600)] dark:text-[var(--secondary-400)] block mb-1">
+                Font Size: {theme.font_size || 16}px
+              </label>
+              <input
+                type="range"
+                min={12}
+                max={28}
+                step={1}
+                value={theme.font_size || 16}
+                onChange={e => updateTheme({ font_size: parseInt(e.target.value) })}
+                className="w-full max-w-md accent-[var(--primary-500)]"
+              />
+              <div className="flex justify-between text-xs text-[var(--secondary-400)] mt-0.5 max-w-md">
+                <span>12px</span>
+                <span>16px</span>
+                <span>20px</span>
+                <span>28px</span>
               </div>
             </div>
           </section>

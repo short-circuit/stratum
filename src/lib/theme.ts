@@ -44,7 +44,7 @@ function setShades(prefix: string, hex: string) {
   }
 }
 
-export function applyTheme(primaryHex: string, secondaryHex: string, dark: boolean) {
+export function applyTheme(primaryHex: string, secondaryHex: string, dark: boolean, fontSize?: number) {
   setShades('primary', primaryHex);
   setShades('secondary', secondaryHex);
 
@@ -55,6 +55,10 @@ export function applyTheme(primaryHex: string, secondaryHex: string, dark: boole
   root.style.setProperty('--primary-bg-hover', `var(--primary-${dark ? '800' : '100'})`);
   root.style.setProperty('--primary-text', `var(--primary-${dark ? '300' : '600'})`);
   root.style.setProperty('--primary-border', `var(--primary-${dark ? '800' : '200'})`);
+
+  // Set root font-size for rem-based utilities.
+  const finalSize = (fontSize && fontSize > 0) ? fontSize : 16;
+  root.style.fontSize = `${finalSize}px`;
 
   // Dark mode class
   if (dark) {

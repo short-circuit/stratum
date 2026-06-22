@@ -15,6 +15,7 @@ async function init() {
         settings.theme.primary_color || '#f97316',
         settings.theme.secondary_color || '#6b7280',
         settings.theme.dark_mode,
+        settings.theme.font_size,
       );
     }
   } catch {
