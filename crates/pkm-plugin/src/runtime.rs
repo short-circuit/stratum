@@ -471,7 +471,7 @@ mod tests {
         PluginState::new(
             PluginManifest {
                 name: name.to_string(),
-                version: "0.1.0".to_string(),
+                version: "0.2.0".to_string(),
                 author: "test".to_string(),
                 description: "test plugin".to_string(),
                 permissions: PermissionSet::new(),
