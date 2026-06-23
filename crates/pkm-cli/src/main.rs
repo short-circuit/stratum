@@ -4,7 +4,7 @@ use std::path::Path;
 
 /// Stratum — a privacy-first, offline-capable PKM system.
 #[derive(Parser)]
-#[command(name = "stratum", version = "0.1.0", about = "Personal Knowledge Management")]
+#[command(name = "stratum", version = "0.2.0", about = "Personal Knowledge Management")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
