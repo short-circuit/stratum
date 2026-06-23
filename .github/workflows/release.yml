@@ -66,11 +66,14 @@ jobs:
       - name: Build Tauri app
         run: |
           if [ "${{ runner.os }}" = "Linux" ]; then
-            npx tauri build --bundles deb
+            npx tauri build --bundles deb 2>&1 | tee /tmp/tauri-build.log
+            exit ${PIPESTATUS[0]}
           elif [ "${{ runner.os }}" = "macOS" ]; then
-            APPLE_SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:--}" npx tauri build --bundles dmg
+            APPLE_SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:--}" npx tauri build --bundles dmg 2>&1 | tee /tmp/tauri-build.log
+            exit ${PIPESTATUS[0]}
           elif [ "${{ runner.os }}" = "Windows" ]; then
-            npx tauri build --bundles nsis
+            npx tauri build --bundles nsis 2>&1 | tee /tmp/tauri-build.log
+            exit ${PIPESTATUS[0]}
           fi
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
@@ -85,6 +88,14 @@ jobs:
           name: ${{ matrix.artifact_name }}
           path: target/release/bundle/**
           if-no-files-found: error
+
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-log
+          path: /tmp/tauri-build.log
+          if-no-files-found: warn
 
   android:
     runs-on: ubuntu-latest
@@ -149,7 +160,7 @@ jobs:
           fi
 
       - name: Build Android app
-        run: npx tauri android build --apk
+        run: npx tauri android build --apk 2>&1 | tee /tmp/tauri-build.log; exit ${PIPESTATUS[0]}
         env:
           ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -163,6 +174,14 @@ jobs:
           path: |
             src-tauri/gen/android/**/*.apk
             src-tauri/gen/android/**/*.aab
+          if-no-files-found: warn
+
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-log
+          path: /tmp/tauri-build.log
           if-no-files-found: warn
 
   ios:
@@ -206,15 +225,23 @@ jobs:
       - name: Build iOS app
         run: |
           if [ -n "${{ secrets.APPLE_TEAM_ID }}" ]; then
-            npx tauri ios build
+            npx tauri ios build 2>&1 | tee /tmp/tauri-build.log; exit ${PIPESTATUS[0]}
           else
-            npx tauri ios build --target simulator
+            npx tauri ios build --target simulator 2>&1 | tee /tmp/tauri-build.log; exit ${PIPESTATUS[0]}
           fi
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-log
+          path: /tmp/tauri-build.log
+          if-no-files-found: warn
 
       - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
