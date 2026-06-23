@@ -256,8 +256,9 @@ jobs:
       - name: Add iOS linker flags & build
         shell: bash
         run: |
-          printf '%s\n' 'OTHER_LDFLAGS = $(inherited) -lz -liconv' > "${{ runner.temp }}/link-flags.xcconfig"
-          export XCODE_XCCONFIG_FILE="${{ runner.temp }}/link-flags.xcconfig"
+          XCCONFIG_PATH="${{ github.workspace }}/src-tauri/gen/apple/link-flags.xcconfig"
+          printf 'OTHER_LDFLAGS = $(inherited) -lz -liconv\n' > "$XCCONFIG_PATH"
+          export XCODE_XCCONFIG_FILE="$XCCONFIG_PATH"
 
           if [ -n "${{ secrets.APPLE_TEAM_ID }}" ]; then
             npx tauri ios build 2>&1 | tee "${{ runner.temp }}/tauri-build.log"; exit ${PIPESTATUS[0]}
