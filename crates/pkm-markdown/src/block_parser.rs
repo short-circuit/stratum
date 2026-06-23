@@ -175,12 +175,12 @@ pub(crate) fn build_block_tree(raw_blocks: &[RawBlock]) -> Vec<Block> {
 
         // Set marker
         if let Some(ref m) = raw.marker {
-            block.marker = TaskMarker::from_str(m);
+            block.marker = TaskMarker::parse(m);
         }
 
         // Set priority
         if let Some(ref p) = raw.priority {
-            block.priority = Priority::from_str(p);
+            block.priority = Priority::parse(p);
         }
 
         // Set properties

@@ -139,7 +139,7 @@ pub async fn review_card(
     }
 
     // Update ease factor
-    ease = ease + (0.1 - (5 - quality) as f64 * (0.08 + (5 - quality) as f64 * 0.02));
+    ease += 0.1 - (5 - quality) as f64 * (0.08 + (5 - quality) as f64 * 0.02);
     if ease < 1.3 {
         ease = 1.3;
     }

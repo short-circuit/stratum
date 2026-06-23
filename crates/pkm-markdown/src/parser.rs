@@ -17,10 +17,10 @@ pub struct ParsedDocument {
 
 /// Parse a markdown file from disk into a `Note`.
 pub fn parse_file(path: &Path, vault_root: &Path) -> PkmResult<Note> {
-    let raw = std::fs::read_to_string(path).map_err(|e| PkmError::Io(e))?;
-    let metadata = std::fs::metadata(path).map_err(|e| PkmError::Io(e))?;
+    let raw = std::fs::read_to_string(path).map_err(PkmError::Io)?;
+    let metadata = std::fs::metadata(path).map_err(PkmError::Io)?;
     let modified_at: DateTime<Utc> =
-        metadata.modified().map_err(|e| PkmError::Io(e))?.into();
+        metadata.modified().map_err(PkmError::Io)?.into();
     let parsed = parse_raw(&raw);
 
     Ok(Note::new(
@@ -86,7 +86,7 @@ pub fn parse_frontmatter(raw: &str) -> (Frontmatter, String) {
     let trimmed = raw.trim_start();
 
     if trimmed.starts_with("---") {
-        let after_opener = &trimmed[3..];
+        let after_opener = trimmed.strip_prefix("---").unwrap();
 
         if let Some(end) = find_closing_delimiter(after_opener) {
             let yaml_str = &after_opener[..end];
@@ -156,11 +156,8 @@ pub fn find_code_block_ranges(body: &str) -> Vec<std::ops::Range<usize>> {
                     in_code_block = false;
                 }
             }
-            Event::Code(_code) => {
-                // Inline code — add its range
-                if range.start < range.end {
-                    ranges.push(range.start..range.end);
-                }
+            Event::Code(_code) if range.start < range.end => {
+                ranges.push(range.start..range.end);
             }
             _ => {}
         }

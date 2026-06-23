@@ -533,6 +533,6 @@ mod tests {
         assert_eq!(tree.get(id).unwrap().properties.get("type").unwrap(), "meeting");
 
         remove_property(&mut tree, id, "type").unwrap();
-        assert!(tree.get(id).unwrap().properties.get("type").is_none());
+        assert!(!tree.get(id).unwrap().properties.contains_key("type"));
     }
 }

@@ -168,8 +168,8 @@ impl BlockStore {
                     let id = Uuid::parse_str(&id).unwrap_or_else(|_| Uuid::nil());
                     let properties: BTreeMap<String, String> =
                         serde_json::from_str(&properties_str).unwrap_or_default();
-                    let marker = marker.and_then(|m| TaskMarker::from_str(&m));
-                    let priority = priority.and_then(|p| Priority::from_str(&p));
+                    let marker = marker.and_then(|m| TaskMarker::parse(&m));
+                    let priority = priority.and_then(|p| Priority::parse(&p));
 
                     Ok(Block {
                         id,
