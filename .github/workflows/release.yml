@@ -7,6 +7,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  WEBKIT_DISABLE_DMABUF_RENDERER: 1
+  WEBKIT_DISABLE_COMPOSITING_MODE: 1
 
 jobs:
   desktop:
@@ -50,7 +52,6 @@ jobs:
             libgtk-3-dev \
             libsoup-3.0-dev \
             libjavascriptcoregtk-4.1-dev \
-            libayatana-appindicator3-dev \
             librsvg2-dev \
             libssl-dev \
             pkg-config
@@ -63,6 +64,9 @@ jobs:
 
       - name: Build Tauri app
         run: npx tauri build
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Upload bundles
         uses: actions/upload-artifact@v4
@@ -140,7 +144,6 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
@@ -153,6 +156,8 @@ jobs:
 
   ios:
     runs-on: macos-latest
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
     steps:
       - uses: actions/checkout@v4
@@ -188,11 +193,15 @@ jobs:
           fi
 
       - name: Build iOS app
-        run: npx tauri ios build
+        run: |
+          if [ -n "${{ secrets.APPLE_TEAM_ID }}" ]; then
+            npx tauri ios build
+          else
+            npx tauri ios build --target simulator
+          fi
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
 
@@ -201,8 +210,8 @@ jobs:
         with:
           name: ios
           path: |
-            src-tauri/gen/ios/**/*.ipa
             src-tauri/gen/ios/**/*.app
+            src-tauri/gen/ios/**/*.ipa
           if-no-files-found: warn
 
   release:
@@ -217,9 +226,6 @@ jobs:
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
-
-      - name: Display structure
-        run: find . -type f | head -50
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
