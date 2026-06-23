@@ -70,11 +70,15 @@ pub async fn load_whiteboard(
     state: tauri::State<'_, AppState>,
 ) -> Result<String, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let path = state.vault_path.join("whiteboards").join(format!("{}.tldr", name));
+    let path = state
+        .vault_path
+        .join("whiteboards")
+        .join(format!("{}.tldr", name));
     if !path.exists() {
         return Ok(serde_json::json!({
             "document": { "store": {} }
-        }).to_string());
+        })
+        .to_string());
     }
     std::fs::read_to_string(&path).map_err(|e| e.to_string())
 }

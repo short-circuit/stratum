@@ -38,10 +38,7 @@ impl TagAggregator {
 
     /// Get notes that have a specific tag.
     pub fn filter_by_tag(&self, tag_name: &str) -> Vec<String> {
-        self.notes_by_tag
-            .get(tag_name)
-            .cloned()
-            .unwrap_or_default()
+        self.notes_by_tag.get(tag_name).cloned().unwrap_or_default()
     }
 
     /// Get the tag cloud: list of (tag, count) sorted by count descending.

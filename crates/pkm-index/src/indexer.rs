@@ -1,4 +1,6 @@
-use pkm_core::{Backlink, Note, PkmError, PkmResult, ProgressCallback, SearchMode, SearchResult, VaultMeta};
+use pkm_core::{
+    Backlink, Note, PkmError, PkmResult, ProgressCallback, SearchMode, SearchResult, VaultMeta,
+};
 use std::path::{Path, PathBuf};
 
 use crate::graph::Graph;
@@ -24,8 +26,7 @@ impl IndexEngine {
         let index_path = pkm_dir.join("search.idx");
 
         // Ensure .pkm directory exists
-        std::fs::create_dir_all(&pkm_dir)
-            .map_err(PkmError::Io)?;
+        std::fs::create_dir_all(&pkm_dir).map_err(PkmError::Io)?;
 
         let search_index = TantivyIndex::create_index(&index_path)?;
 
@@ -55,7 +56,8 @@ impl IndexEngine {
             if self.graph.get_node(&target_slug).is_some()
                 || self.graph.get_node(&link.target).is_some()
             {
-                self.graph.add_edge(&note.slug, &link.target, link.display_text.clone());
+                self.graph
+                    .add_edge(&note.slug, &link.target, link.display_text.clone());
             }
         }
 
@@ -212,9 +214,7 @@ mod tests {
         engine.index_note(&note).unwrap();
         assert_eq!(engine.meta.note_count, 1);
 
-        let results = engine
-            .search("Rust", SearchMode::FullText)
-            .unwrap();
+        let results = engine.search("Rust", SearchMode::FullText).unwrap();
         assert!(!results.is_empty());
         assert_eq!(results[0].title, "Test Note");
     }
@@ -242,8 +242,16 @@ mod tests {
 
         let mut note = make_note("tagged-note", "Tagged Note", "Content", vec![]);
         note.tags = vec![
-            Tag { name: "rust".to_string(), source: TagSource::Frontmatter, line: 0 },
-            Tag { name: "programming".to_string(), source: TagSource::Inline, line: 1 },
+            Tag {
+                name: "rust".to_string(),
+                source: TagSource::Frontmatter,
+                line: 0,
+            },
+            Tag {
+                name: "programming".to_string(),
+                source: TagSource::Inline,
+                line: 1,
+            },
         ];
 
         engine.index_note(&note).unwrap();
@@ -259,11 +267,13 @@ mod tests {
         std::fs::write(
             vault_dir.path().join("alpha.md"),
             "---\ntitle: Alpha\ntags: [letter]\n---\nFirst letter [[Beta]].",
-        ).unwrap();
+        )
+        .unwrap();
         std::fs::write(
             vault_dir.path().join("beta.md"),
             "---\ntitle: Beta\ntags: [letter]\n---\nSecond letter.",
-        ).unwrap();
+        )
+        .unwrap();
 
         let mut engine = IndexEngine::new(vault_dir.path()).unwrap();
         let notes = engine.rebuild_all(None).unwrap();
@@ -298,7 +308,12 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let mut engine = IndexEngine::new(dir.path()).unwrap();
 
-        let connected = make_note("connected", "Connected", "Links to [[other]].", vec!["other"]);
+        let connected = make_note(
+            "connected",
+            "Connected",
+            "Links to [[other]].",
+            vec!["other"],
+        );
         let other = make_note("other", "Other", "I am linked.", vec![]);
         let orphan = make_note("orphan", "Orphan", "All alone.", vec![]);
 

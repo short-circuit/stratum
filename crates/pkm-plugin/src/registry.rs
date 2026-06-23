@@ -5,9 +5,9 @@ use pkm_core::config::PluginConfig;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 
-use crate::permissions::PermissionSet;
 #[cfg(test)]
 use crate::permissions::Permission;
+use crate::permissions::PermissionSet;
 
 /// Metadata describing a plugin's identity and capabilities.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -196,10 +196,7 @@ impl PluginRegistry {
 
     /// List only enabled plugins.
     pub fn list_enabled(&self) -> Vec<&PluginState> {
-        self.plugins
-            .values()
-            .filter(|s| s.enabled)
-            .collect()
+        self.plugins.values().filter(|s| s.enabled).collect()
     }
 
     /// Unload (remove) a plugin from the registry.
@@ -347,9 +344,7 @@ mod tests {
         write_dummy_wasm(&dir, "test");
 
         let mut registry = PluginRegistry::new();
-        registry
-            .load_plugin(&dir.path().join("test.wasm"))
-            .unwrap();
+        registry.load_plugin(&dir.path().join("test.wasm")).unwrap();
 
         assert!(registry.get("test").unwrap().enabled);
 

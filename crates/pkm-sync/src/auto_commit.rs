@@ -1,6 +1,6 @@
 use crate::git::{CommitInfo, GitEngine};
-use std::time::{Duration, Instant};
 use pkm_core::PkmError;
+use std::time::{Duration, Instant};
 use tracing::info;
 
 /// Tracks pending file changes and batches them into periodic commits.

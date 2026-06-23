@@ -115,9 +115,7 @@ impl PluginRuntime {
             .func_wrap(
                 "pkm",
                 "log",
-                |mut caller: wasmtime::Caller<'_, RuntimeContext>,
-                 ptr: i32,
-                 len: i32| {
+                |mut caller: wasmtime::Caller<'_, RuntimeContext>, ptr: i32, len: i32| {
                     let memory = match caller.get_export("memory") {
                         Some(Extern::Memory(m)) => m,
                         _ => {
@@ -246,12 +244,7 @@ impl PluginRuntime {
     /// 2. The function receives two `i32` arguments: a pointer and length
     ///    into the plugin's linear memory containing the JSON payload.
     /// 3. Returns the JSON string produced by the plugin.
-    pub fn run_plugin(
-        &self,
-        plugin: &PluginState,
-        hook: &str,
-        payload: &str,
-    ) -> PkmResult<String> {
+    pub fn run_plugin(&self, plugin: &PluginState, hook: &str, payload: &str) -> PkmResult<String> {
         if !plugin.enabled {
             return Err(PkmError::Plugin(format!(
                 "Plugin '{}' is disabled",
@@ -282,15 +275,12 @@ impl PluginRuntime {
         let mut store = Store::new(&self.engine, context);
 
         // Instantiate
-        let instance = self
-            .linker
-            .instantiate(&mut store, &module)
-            .map_err(|e| {
-                PkmError::Plugin(format!(
-                    "Failed to instantiate plugin '{}': {e}",
-                    plugin.manifest.name
-                ))
-            })?;
+        let instance = self.linker.instantiate(&mut store, &module).map_err(|e| {
+            PkmError::Plugin(format!(
+                "Failed to instantiate plugin '{}': {e}",
+                plugin.manifest.name
+            ))
+        })?;
 
         // Get the hook function
         let func: TypedFunc<(i32, i32), i32> = instance
@@ -306,20 +296,16 @@ impl PluginRuntime {
         let payload_bytes = payload.as_bytes();
         let payload_len = payload_bytes.len() as i32;
 
-        let memory = instance
-            .get_memory(&mut store, "memory")
-            .ok_or_else(|| {
-                PkmError::Plugin(format!(
-                    "Plugin '{}' does not export memory",
-                    plugin.manifest.name
-                ))
-            })?;
+        let memory = instance.get_memory(&mut store, "memory").ok_or_else(|| {
+            PkmError::Plugin(format!(
+                "Plugin '{}' does not export memory",
+                plugin.manifest.name
+            ))
+        })?;
 
-        memory
-            .write(&mut store, 0, payload_bytes)
-            .map_err(|e| {
-                PkmError::Plugin(format!("Failed to write payload into plugin memory: {e}"))
-            })?;
+        memory.write(&mut store, 0, payload_bytes).map_err(|e| {
+            PkmError::Plugin(format!("Failed to write payload into plugin memory: {e}"))
+        })?;
 
         // Call the hook function
         let result_len = func.call(&mut store, (0, payload_len)).map_err(|e| {
@@ -396,9 +382,7 @@ fn memory_read(
         .checked_add(count)
         .ok_or_else(|| anyhow::anyhow!("Integer overflow in memory read"))?;
     if end > mem_size {
-        bail!(
-            "Read out of bounds: {start}..{end} > memory size {mem_size}"
-        );
+        bail!("Read out of bounds: {start}..{end} > memory size {mem_size}");
     }
 
     let mut buf = vec![0u8; count];
@@ -424,9 +408,7 @@ fn memory_write(
         .checked_add(data.len())
         .ok_or_else(|| anyhow::anyhow!("Integer overflow in memory write"))?;
     if end > mem_size {
-        bail!(
-            "Write out of bounds: {start}..{end} > memory size {mem_size}"
-        );
+        bail!("Write out of bounds: {start}..{end} > memory size {mem_size}");
     }
 
     memory
@@ -496,7 +478,10 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         let msg = err.to_string();
-        assert!(msg.contains("compile"), "Error should mention compile: {msg}");
+        assert!(
+            msg.contains("compile"),
+            "Error should mention compile: {msg}"
+        );
     }
 
     #[test]
@@ -516,8 +501,7 @@ mod tests {
     #[test]
     fn test_compile_invalid_wrong_magic() {
         let runtime = PluginRuntime::new().unwrap();
-        let result =
-            runtime.compile(&[0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x00, 0x00]);
+        let result = runtime.compile(&[0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x00, 0x00]);
         assert!(result.is_err());
     }
 
@@ -592,14 +576,8 @@ mod tests {
     #[test]
     fn test_host_function_import_names() {
         assert_eq!(HostFunction::Log.import_name(), ("pkm", "log"));
-        assert_eq!(
-            HostFunction::NoteRead.import_name(),
-            ("pkm", "note_read")
-        );
-        assert_eq!(
-            HostFunction::NoteWrite.import_name(),
-            ("pkm", "note_write")
-        );
+        assert_eq!(HostFunction::NoteRead.import_name(), ("pkm", "note_read"));
+        assert_eq!(HostFunction::NoteWrite.import_name(), ("pkm", "note_write"));
         assert_eq!(
             HostFunction::HttpRequest.import_name(),
             ("pkm", "http_request")
@@ -634,7 +612,10 @@ mod tests {
             output: String::new(),
         };
         let mut temp_store = Store::new(runtime.engine(), context);
-        let instance = runtime.linker.instantiate(&mut temp_store, &module).unwrap();
+        let instance = runtime
+            .linker
+            .instantiate(&mut temp_store, &module)
+            .unwrap();
         let memory = instance.get_memory(&mut temp_store, "memory").unwrap();
         let mem_size = memory.data_size(&temp_store);
         assert_eq!(mem_size, 65536); // 1 page

@@ -19,8 +19,7 @@ pub struct ParsedDocument {
 pub fn parse_file(path: &Path, vault_root: &Path) -> PkmResult<Note> {
     let raw = std::fs::read_to_string(path).map_err(PkmError::Io)?;
     let metadata = std::fs::metadata(path).map_err(PkmError::Io)?;
-    let modified_at: DateTime<Utc> =
-        metadata.modified().map_err(PkmError::Io)?.into();
+    let modified_at: DateTime<Utc> = metadata.modified().map_err(PkmError::Io)?.into();
     let parsed = parse_raw(&raw);
 
     Ok(Note::new(

@@ -227,7 +227,11 @@ fn serialize_ordered_blocks(blocks: &[Block], depth: usize) -> String {
 
     for block in blocks {
         let indent = "  ".repeat(depth);
-        output.push_str(&format!("{}- {}\n", indent, block.content.replace('\n', &format!("\n{}  ", indent))));
+        output.push_str(&format!(
+            "{}- {}\n",
+            indent,
+            block.content.replace('\n', &format!("\n{}  ", indent))
+        ));
 
         // Write properties
         if let Some(ref marker) = block.marker {

@@ -6,9 +6,18 @@ use std::collections::{HashMap, HashSet};
 /// A directed edge from one block to another or to a page.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlockEdge {
-    BlockRef { source: BlockId, target: BlockId },
-    PageRef { source: BlockId, target_page: String },
-    Embed { source: BlockId, target: BlockOrPage },
+    BlockRef {
+        source: BlockId,
+        target: BlockId,
+    },
+    PageRef {
+        source: BlockId,
+        target_page: String,
+    },
+    Embed {
+        source: BlockId,
+        target: BlockOrPage,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -37,7 +46,8 @@ impl BlockGraph {
 
     /// Register a block with metadata.
     pub fn register_block(&mut self, id: BlockId, page_path: &str, content: &str) {
-        self.block_info.insert(id, (page_path.to_string(), content.to_string()));
+        self.block_info
+            .insert(id, (page_path.to_string(), content.to_string()));
     }
 
     /// Remove a block from the graph.
@@ -84,7 +94,10 @@ impl BlockGraph {
                 self.incoming_block.entry(*bid).or_default().push(source);
             }
             BlockOrPage::Page(name) => {
-                self.incoming_page.entry(name.clone()).or_default().push(source);
+                self.incoming_page
+                    .entry(name.clone())
+                    .or_default()
+                    .push(source);
             }
         }
         self.outgoing.entry(source).or_default().push(edge);
@@ -98,11 +111,13 @@ impl BlockGraph {
                 sources
                     .iter()
                     .filter_map(|src_id| {
-                        self.block_info.get(src_id).map(|(page, content)| BlockBacklink {
-                            source_id: *src_id,
-                            source_page: page.clone(),
-                            context: content.clone(),
-                        })
+                        self.block_info
+                            .get(src_id)
+                            .map(|(page, content)| BlockBacklink {
+                                source_id: *src_id,
+                                source_page: page.clone(),
+                                context: content.clone(),
+                            })
                     })
                     .collect()
             })
@@ -117,11 +132,13 @@ impl BlockGraph {
                 sources
                     .iter()
                     .filter_map(|src_id| {
-                        self.block_info.get(src_id).map(|(page, content)| BlockBacklink {
-                            source_id: *src_id,
-                            source_page: page.clone(),
-                            context: content.clone(),
-                        })
+                        self.block_info
+                            .get(src_id)
+                            .map(|(page, content)| BlockBacklink {
+                                source_id: *src_id,
+                                source_page: page.clone(),
+                                context: content.clone(),
+                            })
                     })
                     .collect()
             })

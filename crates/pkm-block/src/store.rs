@@ -201,9 +201,9 @@ impl BlockStore {
     }
 
     pub fn get_blocks_by_page(&self, page_path: &str) -> StoreResult<Vec<Block>> {
-        let mut stmt = self.conn.prepare(
-            "SELECT id FROM blocks WHERE page_path = ?1 ORDER BY rowid",
-        )?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id FROM blocks WHERE page_path = ?1 ORDER BY rowid")?;
         let ids: Vec<String> = stmt
             .query_map(params![page_path], |row| row.get(0))?
             .filter_map(|r| r.ok())
@@ -263,9 +263,10 @@ impl BlockStore {
     }
 
     pub fn delete_blocks_by_page(&self, page_path: &str) -> StoreResult<usize> {
-        let count = self
-            .conn
-            .execute("DELETE FROM blocks WHERE page_path = ?1", params![page_path])?;
+        let count = self.conn.execute(
+            "DELETE FROM blocks WHERE page_path = ?1",
+            params![page_path],
+        )?;
         Ok(count)
     }
 
@@ -355,9 +356,9 @@ impl BlockStore {
 
     pub fn get_backlinks_for_block(&self, target: BlockId) -> StoreResult<Vec<String>> {
         let target_str = target.to_string();
-        let mut stmt = self.conn.prepare(
-            "SELECT source_block FROM links WHERE target_block = ?1",
-        )?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT source_block FROM links WHERE target_block = ?1")?;
         let sources: Vec<String> = stmt
             .query_map(params![target_str], |row| row.get(0))?
             .filter_map(|r| r.ok())
@@ -366,9 +367,9 @@ impl BlockStore {
     }
 
     pub fn get_backlinks_for_page(&self, target_page: &str) -> StoreResult<Vec<String>> {
-        let mut stmt = self.conn.prepare(
-            "SELECT source_block FROM links WHERE LOWER(target_page) = LOWER(?1)",
-        )?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT source_block FROM links WHERE LOWER(target_page) = LOWER(?1)")?;
         let sources: Vec<String> = stmt
             .query_map(params![target_page], |row| row.get(0))?
             .filter_map(|r| r.ok())
@@ -388,9 +389,9 @@ impl BlockStore {
     // --- Query helpers ---
 
     pub fn find_blocks_by_marker(&self, marker: &str) -> StoreResult<Vec<Block>> {
-        let mut stmt = self.conn.prepare(
-            "SELECT id FROM blocks WHERE LOWER(marker) = LOWER(?1)",
-        )?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id FROM blocks WHERE LOWER(marker) = LOWER(?1)")?;
         let ids: Vec<String> = stmt
             .query_map(params![marker], |row| row.get(0))?
             .filter_map(|r| r.ok())
@@ -408,20 +409,16 @@ impl BlockStore {
     }
 
     pub fn block_count(&self) -> StoreResult<usize> {
-        let count: i64 = self.conn.query_row(
-            "SELECT COUNT(*) FROM blocks",
-            [],
-            |row| row.get(0),
-        )?;
+        let count: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM blocks", [], |row| row.get(0))?;
         Ok(count as usize)
     }
 
     pub fn page_count(&self) -> StoreResult<usize> {
-        let count: i64 = self.conn.query_row(
-            "SELECT COUNT(*) FROM pages",
-            [],
-            |row| row.get(0),
-        )?;
+        let count: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM pages", [], |row| row.get(0))?;
         Ok(count as usize)
     }
 }
@@ -502,9 +499,15 @@ mod tests {
         let b = Uuid::new_v4();
         let c = Uuid::new_v4();
 
-        store.insert_block(&Block::new(a, "A".into()), "p/a.md").unwrap();
-        store.insert_block(&Block::new(b, "B".into()), "p/a.md").unwrap();
-        store.insert_block(&Block::new(c, "C".into()), "p/b.md").unwrap();
+        store
+            .insert_block(&Block::new(a, "A".into()), "p/a.md")
+            .unwrap();
+        store
+            .insert_block(&Block::new(b, "B".into()), "p/a.md")
+            .unwrap();
+        store
+            .insert_block(&Block::new(c, "C".into()), "p/b.md")
+            .unwrap();
 
         let page_a = store.get_blocks_by_page("p/a.md").unwrap();
         assert_eq!(page_a.len(), 2);
@@ -530,11 +533,19 @@ mod tests {
         let source = Uuid::new_v4();
         let target = Uuid::new_v4();
 
-        store.insert_block(&Block::new(source, "Source".into()), "pages/src.md").unwrap();
-        store.insert_block(&Block::new(target, "Target".into()), "pages/tgt.md").unwrap();
+        store
+            .insert_block(&Block::new(source, "Source".into()), "pages/src.md")
+            .unwrap();
+        store
+            .insert_block(&Block::new(target, "Target".into()), "pages/tgt.md")
+            .unwrap();
 
-        store.insert_link(source, "block_ref", None, Some(target)).unwrap();
-        store.insert_link(source, "page_ref", Some("Target Page"), None).unwrap();
+        store
+            .insert_link(source, "block_ref", None, Some(target))
+            .unwrap();
+        store
+            .insert_link(source, "page_ref", Some("Target Page"), None)
+            .unwrap();
 
         let block_backlinks = store.get_backlinks_for_block(target).unwrap();
         assert_eq!(block_backlinks.len(), 1);
@@ -574,8 +585,12 @@ mod tests {
         let a = Uuid::new_v4();
         let b = Uuid::new_v4();
 
-        store.insert_block(&Block::new(a, "A".into()), "pages/to_delete.md").unwrap();
-        store.insert_block(&Block::new(b, "B".into()), "pages/keep.md").unwrap();
+        store
+            .insert_block(&Block::new(a, "A".into()), "pages/to_delete.md")
+            .unwrap();
+        store
+            .insert_block(&Block::new(b, "B".into()), "pages/keep.md")
+            .unwrap();
 
         let deleted = store.delete_blocks_by_page("pages/to_delete.md").unwrap();
         assert_eq!(deleted, 1);

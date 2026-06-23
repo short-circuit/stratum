@@ -15,9 +15,7 @@ pub struct TemplateDto {
 }
 
 #[tauri::command]
-pub async fn list_templates(
-    state: tauri::State<'_, AppState>,
-) -> Result<Vec<TemplateDto>, String> {
+pub async fn list_templates(state: tauri::State<'_, AppState>) -> Result<Vec<TemplateDto>, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let templates_dir = state.vault_path.join("templates");
     if !templates_dir.exists() {
@@ -88,7 +86,10 @@ pub async fn apply_template(
     state: tauri::State<'_, AppState>,
 ) -> Result<String, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let template_path = state.vault_path.join("templates").join(format!("{}.md", template_name));
+    let template_path = state
+        .vault_path
+        .join("templates")
+        .join(format!("{}.md", template_name));
 
     if !template_path.exists() {
         return Err(format!("Template not found: {}", template_name));

@@ -240,8 +240,8 @@ impl Config {
     /// Save config to a TOML file.
     pub fn save(&self, path: impl Into<PathBuf>) -> Result<(), ConfigError> {
         let path: PathBuf = path.into();
-        let content = toml::to_string_pretty(self)
-            .map_err(|e| ConfigError::Parse(e.to_string()))?;
+        let content =
+            toml::to_string_pretty(self).map_err(|e| ConfigError::Parse(e.to_string()))?;
         std::fs::write(&path, &content)
             .map_err(|e| ConfigError::Io(format!("Failed to write {}: {}", path.display(), e)))?;
         Ok(())

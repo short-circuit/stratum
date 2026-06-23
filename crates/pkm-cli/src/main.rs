@@ -4,7 +4,11 @@ use std::path::Path;
 
 /// Stratum — a privacy-first, offline-capable PKM system.
 #[derive(Parser)]
-#[command(name = "stratum", version = "0.2.0", about = "Personal Knowledge Management")]
+#[command(
+    name = "stratum",
+    version = "0.2.0",
+    about = "Personal Knowledge Management"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -82,7 +86,9 @@ enum SyncAction {
 
 fn main() -> PkmResult<()> {
     let cli = Cli::parse();
-    let vault_path = cli.vault.unwrap_or_else(|| std::env::current_dir().unwrap().display().to_string());
+    let vault_path = cli
+        .vault
+        .unwrap_or_else(|| std::env::current_dir().unwrap().display().to_string());
     let vault = Path::new(&vault_path);
 
     match &cli.command {
@@ -111,7 +117,8 @@ fn cmd_init(vault: &Path) -> PkmResult<()> {
         vault_path: vault.to_path_buf(),
         ..Default::default()
     };
-    config.save(config.config_file_path())
+    config
+        .save(config.config_file_path())
         .map_err(|e| pkm_core::PkmError::Config(e.to_string()))?;
 
     // Create a welcome note
@@ -133,12 +140,19 @@ fn cmd_init(vault: &Path) -> PkmResult<()> {
 fn cmd_list(vault: &Path, tag: Option<&str>) -> PkmResult<()> {
     let notes = collect_md_files(vault)?;
     let filtered: Vec<_> = if let Some(t) = tag {
-        notes.into_iter().filter(|p| {
-            if let Ok(content) = std::fs::read_to_string(p) {
-                content.contains(&format!("#{}", t)) || content.contains(&format!("- {}", t))
-            } else { false }
-        }).collect()
-    } else { notes };
+        notes
+            .into_iter()
+            .filter(|p| {
+                if let Ok(content) = std::fs::read_to_string(p) {
+                    content.contains(&format!("#{}", t)) || content.contains(&format!("- {}", t))
+                } else {
+                    false
+                }
+            })
+            .collect()
+    } else {
+        notes
+    };
 
     if filtered.is_empty() {
         println!("No notes found.");
@@ -150,8 +164,20 @@ fn cmd_list(vault: &Path, tag: Option<&str>) -> PkmResult<()> {
         let rel = path.strip_prefix(vault).unwrap_or(path);
         let content = std::fs::read_to_string(path).unwrap_or_default();
         let parsed = pkm_markdown::parser::parse_raw(&content);
-        let title = parsed.frontmatter.title.as_deref().unwrap_or(rel.file_stem().and_then(|s| s.to_str()).unwrap_or("untitled"));
-        println!("  {:60} {}", rel.display(), if title.len() > 30 { format!("{}…", &title[..30]) } else { title.to_string() });
+        let title = parsed.frontmatter.title.as_deref().unwrap_or(
+            rel.file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("untitled"),
+        );
+        println!(
+            "  {:60} {}",
+            rel.display(),
+            if title.len() > 30 {
+                format!("{}…", &title[..30])
+            } else {
+                title.to_string()
+            }
+        );
     }
     Ok(())
 }
@@ -174,7 +200,15 @@ fn cmd_show(vault: &Path, path: &str) -> PkmResult<()> {
         println!("║  Tags: {}", parsed.frontmatter.tags.join(", "));
     }
     if !parsed.links.is_empty() {
-        println!("║  Links: {}", parsed.links.iter().map(|l| l.target.as_str()).collect::<Vec<_>>().join(", "));
+        println!(
+            "║  Links: {}",
+            parsed
+                .links
+                .iter()
+                .map(|l| l.target.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
     }
     println!("╚══════════════════════════════════════╝");
     println!("\n{}", parsed.body);
@@ -188,9 +222,17 @@ fn cmd_create(vault: &Path, path: &str, title: Option<&str>) -> PkmResult<()> {
         return Ok(());
     }
 
-    let default_title = title.unwrap_or(path.trim_end_matches(".md").split('/').next_back().unwrap_or("untitled"));
+    let default_title = title.unwrap_or(
+        path.trim_end_matches(".md")
+            .split('/')
+            .next_back()
+            .unwrap_or("untitled"),
+    );
     let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
-    let content = format!("---\ntitle: {}\ncreated: {}\ntags: []\n---\n\n# {}\n\n", default_title, today, default_title);
+    let content = format!(
+        "---\ntitle: {}\ncreated: {}\ntags: []\n---\n\n# {}\n\n",
+        default_title, today, default_title
+    );
 
     if let Some(parent) = full_path.parent() {
         std::fs::create_dir_all(parent)?;
@@ -208,10 +250,15 @@ fn cmd_search(vault: &Path, query: &str) -> PkmResult<()> {
     for path in notes {
         let content = std::fs::read_to_string(&path).unwrap_or_default();
         if content.to_lowercase().contains(&q) {
-            let rel = path.strip_prefix(vault).unwrap_or(&path).display().to_string();
+            let rel = path
+                .strip_prefix(vault)
+                .unwrap_or(&path)
+                .display()
+                .to_string();
             let parsed = pkm_markdown::parser::parse_raw(&content);
             let title = parsed.frontmatter.title.unwrap_or_default();
-            let snippet = content.lines()
+            let snippet = content
+                .lines()
                 .find(|l| l.to_lowercase().contains(&q))
                 .unwrap_or("")
                 .to_string();
@@ -226,7 +273,15 @@ fn cmd_search(vault: &Path, query: &str) -> PkmResult<()> {
 
     println!("{} results for '{}':\n", results.len(), query);
     for (rel, title, snippet) in &results {
-        println!("  {} — {}", rel, if title.len() > 40 { format!("{}…", &title[..40]) } else { title.clone() });
+        println!(
+            "  {} — {}",
+            rel,
+            if title.len() > 40 {
+                format!("{}…", &title[..40])
+            } else {
+                title.clone()
+            }
+        );
         println!("    {}", snippet);
         println!();
     }
@@ -240,11 +295,15 @@ fn cmd_stats(vault: &Path) -> PkmResult<()> {
     let mut tags = std::collections::HashSet::new();
 
     for path in &notes {
-        if let Ok(meta) = path.metadata() { total_bytes += meta.len(); }
+        if let Ok(meta) = path.metadata() {
+            total_bytes += meta.len();
+        }
         if let Ok(content) = std::fs::read_to_string(path) {
             let parsed = pkm_markdown::parser::parse_raw(&content);
             total_links += parsed.links.len();
-            for t in parsed.tags { tags.insert(t.name); }
+            for t in parsed.tags {
+                tags.insert(t.name);
+            }
         }
     }
 
@@ -263,7 +322,11 @@ fn cmd_graph(vault: &Path) -> PkmResult<()> {
     let mut nodes = std::collections::HashSet::new();
 
     for path in &notes {
-        let rel = path.strip_prefix(vault).unwrap_or(path).display().to_string();
+        let rel = path
+            .strip_prefix(vault)
+            .unwrap_or(path)
+            .display()
+            .to_string();
         nodes.insert(rel.clone());
         if let Ok(content) = std::fs::read_to_string(path) {
             let parsed = pkm_markdown::parser::parse_raw(&content);
@@ -281,7 +344,10 @@ fn cmd_graph(vault: &Path) -> PkmResult<()> {
     println!("Graph: {} nodes, {} edges", nodes.len(), edges.len());
 
     // Orphaned notes (no links in or out)
-    let connected: std::collections::HashSet<String> = edges.iter().flat_map(|(s, t)| vec![s.clone(), t.clone()]).collect();
+    let connected: std::collections::HashSet<String> = edges
+        .iter()
+        .flat_map(|(s, t)| vec![s.clone(), t.clone()])
+        .collect();
     let orphaned: Vec<_> = nodes.iter().filter(|n| !connected.contains(*n)).collect();
     if !orphaned.is_empty() {
         println!("\nOrphaned notes (no connections):");
@@ -295,7 +361,9 @@ fn cmd_graph(vault: &Path) -> PkmResult<()> {
         for (src, dst) in edges.iter().take(20) {
             println!("  {}  →  {}", src, dst);
         }
-        if edges.len() > 20 { println!("  … and {} more", edges.len() - 20); }
+        if edges.len() > 20 {
+            println!("  … and {} more", edges.len() - 20);
+        }
     }
     Ok(())
 }
@@ -372,7 +440,11 @@ fn cmd_sync(vault: &Path, action: &SyncAction) -> PkmResult<()> {
 
 fn get_branch_name(engine: &pkm_sync::git::GitEngine) -> String {
     // Simple branch detection
-    engine.status().ok().map(|_| "main".to_string()).unwrap_or_default()
+    engine
+        .status()
+        .ok()
+        .map(|_| "main".to_string())
+        .unwrap_or_default()
 }
 
 fn cmd_export(vault: &Path, format: &str) -> PkmResult<()> {
@@ -383,7 +455,11 @@ fn cmd_export(vault: &Path, format: &str) -> PkmResult<()> {
             for path in &notes {
                 if let Ok(content) = std::fs::read_to_string(path) {
                     let parsed = pkm_markdown::parser::parse_raw(&content);
-                    let rel = path.strip_prefix(vault).unwrap_or(path).display().to_string();
+                    let rel = path
+                        .strip_prefix(vault)
+                        .unwrap_or(path)
+                        .display()
+                        .to_string();
                     exports.push(serde_json::json!({
                         "path": rel,
                         "title": parsed.frontmatter.title,
@@ -405,7 +481,11 @@ fn cmd_export(vault: &Path, format: &str) -> PkmResult<()> {
                 if let Ok(content) = std::fs::read_to_string(path) {
                     let parsed = pkm_markdown::parser::parse_raw(&content);
                     let title = parsed.frontmatter.title.as_deref().unwrap_or("untitled");
-                    body.push_str(&format!("<h1>{}</h1>\n<pre>{}</pre>\n<hr>\n", title, escape_html(&parsed.body)));
+                    body.push_str(&format!(
+                        "<h1>{}</h1>\n<pre>{}</pre>\n<hr>\n",
+                        title,
+                        escape_html(&parsed.body)
+                    ));
                 }
             }
             let html = format!(
@@ -457,13 +537,21 @@ fn collect_md_files(dir: &Path) -> std::io::Result<Vec<std::path::PathBuf>> {
     Ok(files)
 }
 
-fn collect_md_recursive(dir: &Path, files: &mut Vec<std::path::PathBuf>, depth: usize) -> std::io::Result<()> {
-    if depth > 8 { return Ok(()); }
+fn collect_md_recursive(
+    dir: &Path,
+    files: &mut Vec<std::path::PathBuf>,
+    depth: usize,
+) -> std::io::Result<()> {
+    if depth > 8 {
+        return Ok(());
+    }
     for entry in std::fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
         if path.is_dir() {
-            if path.file_name().and_then(|s| s.to_str()) == Some(".pkm") { continue; }
+            if path.file_name().and_then(|s| s.to_str()) == Some(".pkm") {
+                continue;
+            }
             collect_md_recursive(&path, files, depth + 1)?;
         } else if path.extension().and_then(|s| s.to_str()) == Some("md") {
             files.push(path);
@@ -484,5 +572,7 @@ fn format_size(bytes: u64) -> String {
 }
 
 fn escape_html(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }

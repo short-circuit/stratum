@@ -84,10 +84,7 @@ impl Note {
         tags: Vec<Tag>,
         modified_at: DateTime<Utc>,
     ) -> Self {
-        let rel_path = path
-            .strip_prefix(vault_root)
-            .unwrap_or(&path)
-            .to_path_buf();
+        let rel_path = path.strip_prefix(vault_root).unwrap_or(&path).to_path_buf();
         let slug = Self::path_to_slug(&path);
 
         let size_bytes = raw.len() as u64;

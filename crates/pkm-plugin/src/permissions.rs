@@ -320,10 +320,7 @@ mod tests {
 
     #[test]
     fn test_permission_set_from_slice() {
-        let set = PermissionSet::from_permissions(&[
-            Permission::FileRead,
-            Permission::FileWrite,
-        ]);
+        let set = PermissionSet::from_permissions(&[Permission::FileRead, Permission::FileWrite]);
         assert!(set.check(&Permission::FileRead));
         assert!(set.check(&Permission::FileWrite));
         assert!(!set.check(&Permission::Network));

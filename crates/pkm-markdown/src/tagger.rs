@@ -45,7 +45,11 @@ pub fn extract_tags(raw: &str, frontmatter: &Frontmatter) -> Vec<Tag> {
         // Skip if the # is at position 0 but matched by lookahead
         // The match starts with the whitespace/start before #
         let hash_pos = full_match.start()
-            + if full_match.as_str().starts_with('#') { 0 } else { 1 };
+            + if full_match.as_str().starts_with('#') {
+                0
+            } else {
+                1
+            };
 
         // Skip if the tag is inside a code block
         if is_in_code_block(hash_pos, &code_ranges) {
@@ -137,12 +141,12 @@ mod tests {
         let raw = "Body text with #quantum and #physics tags.";
         let fm = Frontmatter::default();
         let tags = extract_tags(raw, &fm);
-        assert!(
-            tags.iter().any(|t| t.name == "quantum" && t.source == TagSource::Inline)
-        );
-        assert!(
-            tags.iter().any(|t| t.name == "physics" && t.source == TagSource::Inline)
-        );
+        assert!(tags
+            .iter()
+            .any(|t| t.name == "quantum" && t.source == TagSource::Inline));
+        assert!(tags
+            .iter()
+            .any(|t| t.name == "physics" && t.source == TagSource::Inline));
     }
 
     #[test]

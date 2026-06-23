@@ -78,22 +78,12 @@ impl GitEngine {
             .find_tree(tree_oid)
             .map_err(|e| PkmError::Git(format!("find tree: {e}")))?;
 
-        let parent_commit: Option<git2::Commit> = self
-            .repo
-            .head()
-            .ok()
-            .and_then(|h| h.peel_to_commit().ok());
+        let parent_commit: Option<git2::Commit> =
+            self.repo.head().ok().and_then(|h| h.peel_to_commit().ok());
 
         let oid = if let Some(ref parent) = parent_commit {
             self.repo
-                .commit(
-                    Some("HEAD"),
-                    &sig,
-                    &sig,
-                    message,
-                    &tree,
-                    &[parent],
-                )
+                .commit(Some("HEAD"), &sig, &sig, message, &tree, &[parent])
                 .map_err(|e| PkmError::Git(format!("commit: {e}")))?
         } else {
             self.repo
@@ -152,11 +142,8 @@ impl GitEngine {
         let fetch_oid: Oid = fetch_commit.id();
 
         // Check if we already have the remote tip — nothing to pull.
-        let local_commit: Option<git2::Commit> = self
-            .repo
-            .head()
-            .ok()
-            .and_then(|h| h.peel_to_commit().ok());
+        let local_commit: Option<git2::Commit> =
+            self.repo.head().ok().and_then(|h| h.peel_to_commit().ok());
 
         if let Some(ref local) = local_commit {
             if local.id() == fetch_oid {
@@ -205,11 +192,8 @@ impl GitEngine {
                 }
 
                 // If no merge commit was created (fast-forward), update HEAD.
-                let head_commit: Option<git2::Commit> = self
-                    .repo
-                    .head()
-                    .ok()
-                    .and_then(|h| h.peel_to_commit().ok());
+                let head_commit: Option<git2::Commit> =
+                    self.repo.head().ok().and_then(|h| h.peel_to_commit().ok());
                 let already_at_fetch = head_commit.as_ref().map(|c| c.id()) == Some(fetch_oid);
 
                 if !already_at_fetch {
@@ -248,10 +232,7 @@ impl GitEngine {
 
         let mut out = Vec::with_capacity(statuses.len());
         for entry in statuses.iter() {
-            let path = entry
-                .path()
-                .map(|p| p.to_string())
-                .unwrap_or_default();
+            let path = entry.path().map(|p| p.to_string()).unwrap_or_default();
             out.push((path, entry.status()));
         }
         Ok(out)
@@ -305,21 +286,24 @@ impl GitEngine {
             .map_err(|e| PkmError::Git(format!("diff: {e}")))?;
 
         let mut output = String::new();
-        diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line: git2::DiffLine| {
-            let line_str: &str = std::str::from_utf8(line.content()).unwrap_or("<binary>");
-            let prefix: char = match line.origin() {
-                '+' => '+',
-                '-' => '-',
-                ' ' => ' ',
-                _ => ' ',
-            };
-            output.push(prefix);
-            output.push_str(line_str);
-            if !line_str.ends_with('\n') {
-                output.push('\n');
-            }
-            true
-        })
+        diff.print(
+            git2::DiffFormat::Patch,
+            |_delta, _hunk, line: git2::DiffLine| {
+                let line_str: &str = std::str::from_utf8(line.content()).unwrap_or("<binary>");
+                let prefix: char = match line.origin() {
+                    '+' => '+',
+                    '-' => '-',
+                    ' ' => ' ',
+                    _ => ' ',
+                };
+                output.push(prefix);
+                output.push_str(line_str);
+                if !line_str.ends_with('\n') {
+                    output.push('\n');
+                }
+                true
+            },
+        )
         .map_err(|e| PkmError::Git(format!("diff print: {e}")))?;
 
         Ok(output)
@@ -445,8 +429,7 @@ mod tests {
 
         // Clone to a temp dir
         let td_clone = TempDir::new().unwrap();
-        let cloned =
-            GitEngine::clone(td_orig.path().to_str().unwrap(), td_clone.path()).unwrap();
+        let cloned = GitEngine::clone(td_orig.path().to_str().unwrap(), td_clone.path()).unwrap();
         let log = cloned.log(10).unwrap();
         assert_eq!(log.len(), 1);
         assert_eq!(log[0].message, "first");

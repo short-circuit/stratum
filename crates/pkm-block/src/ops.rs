@@ -84,11 +84,7 @@ pub fn delete_block(tree: &mut BlockTree, block_id: BlockId) -> Result<Vec<Block
     let left_id = block.left_id;
 
     // Collect all descendants to delete
-    let subtree_ids: Vec<BlockId> = tree
-        .subtree(block_id)
-        .iter()
-        .map(|b| b.id)
-        .collect();
+    let subtree_ids: Vec<BlockId> = tree.subtree(block_id).iter().map(|b| b.id).collect();
 
     // Fix the left_id chain: the block after this one should now point to this one's left
     let next_id = find_block_with_left_id(tree, Some(block_id));
@@ -133,7 +129,8 @@ pub fn move_block(
             return Err(OpError::WouldCreateCycle);
         }
     }
-    if block_id == new_left_id.unwrap_or_default() || block_id == new_parent_id.unwrap_or_default() {
+    if block_id == new_left_id.unwrap_or_default() || block_id == new_parent_id.unwrap_or_default()
+    {
         // Moving to self as parent
         if new_parent_id == Some(block_id) {
             return Err(OpError::WouldCreateCycle);
@@ -203,7 +200,11 @@ pub fn outdent_block(tree: &mut BlockTree, block_id: BlockId) -> Result<(), OpEr
 }
 
 /// Split a block at the cursor position, creating a new sibling below.
-pub fn split_block(tree: &mut BlockTree, block_id: BlockId, split_pos: usize) -> Result<BlockId, OpError> {
+pub fn split_block(
+    tree: &mut BlockTree,
+    block_id: BlockId,
+    split_pos: usize,
+) -> Result<BlockId, OpError> {
     let block = tree.get(block_id).ok_or(OpError::BlockNotFound(block_id))?;
     let original = block.content.clone();
     let parent = block.parent_id;
@@ -262,7 +263,9 @@ pub fn merge_with_previous(tree: &mut BlockTree, block_id: BlockId) -> Result<()
 
 /// Cycle a block's task marker through TODO → DOING → DONE → (clear).
 pub fn toggle_task(tree: &mut BlockTree, block_id: BlockId) -> Result<Option<TaskMarker>, OpError> {
-    let block = tree.get_mut(block_id).ok_or(OpError::BlockNotFound(block_id))?;
+    let block = tree
+        .get_mut(block_id)
+        .ok_or(OpError::BlockNotFound(block_id))?;
     let new_marker = match block.marker {
         None => Some(TaskMarker::Todo),
         Some(TaskMarker::Todo) => Some(TaskMarker::Doing),
@@ -277,23 +280,38 @@ pub fn toggle_task(tree: &mut BlockTree, block_id: BlockId) -> Result<Option<Tas
 
 /// Toggle collapse state of a block (if it has children).
 pub fn toggle_collapsed(tree: &mut BlockTree, block_id: BlockId) -> Result<bool, OpError> {
-    let block = tree.get_mut(block_id).ok_or(OpError::BlockNotFound(block_id))?;
+    let block = tree
+        .get_mut(block_id)
+        .ok_or(OpError::BlockNotFound(block_id))?;
     block.meta.collapsed = !block.meta.collapsed;
     block.modified_at = Utc::now();
     Ok(block.meta.collapsed)
 }
 
 /// Update block content.
-pub fn update_content(tree: &mut BlockTree, block_id: BlockId, content: String) -> Result<(), OpError> {
-    let block = tree.get_mut(block_id).ok_or(OpError::BlockNotFound(block_id))?;
+pub fn update_content(
+    tree: &mut BlockTree,
+    block_id: BlockId,
+    content: String,
+) -> Result<(), OpError> {
+    let block = tree
+        .get_mut(block_id)
+        .ok_or(OpError::BlockNotFound(block_id))?;
     block.content = content;
     block.modified_at = Utc::now();
     Ok(())
 }
 
 /// Set a property on a block.
-pub fn set_property(tree: &mut BlockTree, block_id: BlockId, key: &str, value: &str) -> Result<(), OpError> {
-    let block = tree.get_mut(block_id).ok_or(OpError::BlockNotFound(block_id))?;
+pub fn set_property(
+    tree: &mut BlockTree,
+    block_id: BlockId,
+    key: &str,
+    value: &str,
+) -> Result<(), OpError> {
+    let block = tree
+        .get_mut(block_id)
+        .ok_or(OpError::BlockNotFound(block_id))?;
     block.properties.insert(key.to_string(), value.to_string());
     block.modified_at = Utc::now();
     Ok(())
@@ -301,7 +319,9 @@ pub fn set_property(tree: &mut BlockTree, block_id: BlockId, key: &str, value: &
 
 /// Remove a property from a block.
 pub fn remove_property(tree: &mut BlockTree, block_id: BlockId, key: &str) -> Result<(), OpError> {
-    let block = tree.get_mut(block_id).ok_or(OpError::BlockNotFound(block_id))?;
+    let block = tree
+        .get_mut(block_id)
+        .ok_or(OpError::BlockNotFound(block_id))?;
     block.properties.remove(key);
     block.modified_at = Utc::now();
     Ok(())
@@ -530,7 +550,10 @@ mod tests {
         let id = create_block(&mut tree, None, None, "Block".into()).unwrap();
 
         set_property(&mut tree, id, "type", "meeting").unwrap();
-        assert_eq!(tree.get(id).unwrap().properties.get("type").unwrap(), "meeting");
+        assert_eq!(
+            tree.get(id).unwrap().properties.get("type").unwrap(),
+            "meeting"
+        );
 
         remove_property(&mut tree, id, "type").unwrap();
         assert!(!tree.get(id).unwrap().properties.contains_key("type"));
