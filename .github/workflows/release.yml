@@ -81,9 +81,9 @@ jobs:
           if [ "${{ runner.os }}" = "Linux" ]; then
             APPIMAGE_EXTRACT_AND_RUN=1 npx tauri build --bundles appimage 2>&1 | tee "$TMP/tauri-build.log"
           elif [ "${{ runner.os }}" = "macOS" ]; then
-            APPLE_SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:--}" npx tauri build --bundles macos 2>&1 | tee "$TMP/tauri-build.log"
+            APPLE_SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:--}" npx tauri build --bundles app 2>&1 | tee "$TMP/tauri-build.log"
           elif [ "${{ runner.os }}" = "Windows" ]; then
-            RUSTFLAGS="" npx tauri build 2>&1 | tee "$TMP/tauri-build.log"
+            RUSTFLAGS="" npx tauri build --no-bundle 2>&1 | tee "$TMP/tauri-build.log"
           fi
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
@@ -99,7 +99,7 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: |
-            target/release/bundle/**
+            target/release/bundle/**/*
             target/release/stratum-tauri*
           if-no-files-found: warn
 
