@@ -68,19 +68,22 @@ jobs:
           if [ "${{ runner.os }}" = "Linux" ]; then
             npx tauri build --bundles deb
           elif [ "${{ runner.os }}" = "macOS" ]; then
-            APPLE_SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:--}" npx tauri build
-          else
-            npx tauri build
+            APPLE_SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:--}" npx tauri build --bundles dmg
+          elif [ "${{ runner.os }}" = "Windows" ]; then
+            npx tauri build --bundles nsis
           fi
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
+      - name: Show build output
+        run: find target/release/bundle -type f 2>/dev/null || echo "no bundle files found"
+
       - name: Upload bundles
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: src-tauri/target/release/bundle/**
+          path: target/release/bundle/**
           if-no-files-found: error
 
   android:
