@@ -76,15 +76,13 @@ jobs:
       - name: Build Tauri app
         shell: bash
         run: |
+          set -o pipefail
           if [ "${{ runner.os }}" = "Linux" ]; then
             npx tauri build --bundles deb 2>&1 | tee ${{ runner.temp }}/tauri-build.log
-            exit ${PIPESTATUS[0]}
           elif [ "${{ runner.os }}" = "macOS" ]; then
             APPLE_SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:--}" npx tauri build --bundles dmg 2>&1 | tee ${{ runner.temp }}/tauri-build.log
-            exit ${PIPESTATUS[0]}
           elif [ "${{ runner.os }}" = "Windows" ]; then
-            npx tauri build --bundles nsis 2>&1 | tee ${{ runner.temp }}/tauri-build.log
-            exit ${PIPESTATUS[0]}
+            RUSTFLAGS="" npx tauri build --bundles nsis 2>&1 | tee ${{ runner.temp }}/tauri-build.log
           fi
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
@@ -250,20 +248,12 @@ jobs:
             npx tauri ios init
           fi
 
-      - name: Add iOS linker flags
-        run: |
-          PBX="${{ github.workspace }}/src-tauri/gen/apple/stratum-tauri.xcodeproj/project.pbxproj"
-          if [ -f "$PBX" ]; then
-            # Add -lz and -liconv to OTHER_LDFLAGS in the Xcode project
-            sed -i '' 's/OTHER_LDFLAGS = (/OTHER_LDFLAGS = (-lz -liconv /' "$PBX"
-            echo "Patched Xcode project linker flags"
-          else
-            echo "Xcode project not found at $PBX"
-          fi
-
       - name: Build iOS app
         shell: bash
         run: |
+          # Set Xcode linker flags for system libraries needed by libgit2
+          export OTHER_LDFLAGS='$(inherited) -lz -liconv'
+
           if [ -n "${{ secrets.APPLE_TEAM_ID }}" ]; then
             npx tauri ios build 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
           else
@@ -274,6 +264,7 @@ jobs:
           APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          OTHER_LDFLAGS: $(inherited) -lz -liconv
 
       - name: Upload build log
         if: failure()
