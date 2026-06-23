@@ -43,7 +43,8 @@ log = "0.4"
 tantivy = "0.22"
 
 # Sync
-git2 = "0.19"
+git2 = { version = "0.19", features = ["vendored"] }
+openssl-sys = { version = "0.9", features = ["vendored"] }
 
 # Watcher
 notify = { version = "7", features = ["macos_fsevent"] }
