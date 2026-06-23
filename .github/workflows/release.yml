@@ -66,6 +66,8 @@ jobs:
         run: |
           if [ "${{ runner.os }}" = "Linux" ]; then
             npx tauri build --bundles deb
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            APPLE_SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:--}" npx tauri build
           else
             npx tauri build
           fi
