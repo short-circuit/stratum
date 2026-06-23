@@ -69,7 +69,7 @@ pub fn extract_tags(raw: &str, frontmatter: &Frontmatter) -> Vec<Tag> {
 fn extract_body(raw: &str) -> &str {
     let trimmed = raw.trim_start();
     if trimmed.starts_with("---") {
-        if let Some(end) = trimmed[3..].find("\n---") {
+        if let Some(end) = trimmed.strip_prefix("---").unwrap().find("\n---") {
             let body_start = 3 + end + 3;
             return trimmed[body_start..].trim_start();
         }
@@ -97,11 +97,8 @@ fn find_code_block_ranges(text: &str) -> Vec<std::ops::Range<usize>> {
                     in_code_block = false;
                 }
             }
-            Event::Code(_) => {
-                // Inline code span
-                if range.start < range.end {
-                    ranges.push(range.start..range.end);
-                }
+            Event::Code(_) if range.start < range.end => {
+                ranges.push(range.start..range.end);
             }
             _ => {}
         }

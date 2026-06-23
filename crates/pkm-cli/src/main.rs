@@ -188,7 +188,7 @@ fn cmd_create(vault: &Path, path: &str, title: Option<&str>) -> PkmResult<()> {
         return Ok(());
     }
 
-    let default_title = title.unwrap_or(path.trim_end_matches(".md").split('/').last().unwrap_or("untitled"));
+    let default_title = title.unwrap_or(path.trim_end_matches(".md").split('/').next_back().unwrap_or("untitled"));
     let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
     let content = format!("---\ntitle: {}\ncreated: {}\ntags: []\n---\n\n# {}\n\n", default_title, today, default_title);
 
@@ -319,7 +319,7 @@ fn cmd_tags(vault: &Path) -> PkmResult<()> {
     }
 
     let mut sorted: Vec<_> = counts.into_iter().collect();
-    sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    sorted.sort_by_key(|a| std::cmp::Reverse(a.1));
 
     println!("Tag Cloud ({} tags):\n", sorted.len());
     let max_count = sorted.first().map(|(_, c)| *c).unwrap_or(1) as f64;
@@ -372,7 +372,7 @@ fn cmd_sync(vault: &Path, action: &SyncAction) -> PkmResult<()> {
 
 fn get_branch_name(engine: &pkm_sync::git::GitEngine) -> String {
     // Simple branch detection
-    engine.status().ok().and_then(|_| Some("main".to_string())).unwrap_or_default()
+    engine.status().ok().map(|_| "main".to_string()).unwrap_or_default()
 }
 
 fn cmd_export(vault: &Path, format: &str) -> PkmResult<()> {
@@ -398,7 +398,7 @@ fn cmd_export(vault: &Path, format: &str) -> PkmResult<()> {
             std::fs::write(&out_path, &json)?;
             println!("✓ Exported {} notes to {}", notes.len(), out_path.display());
         }
-        "html" | _ => {
+        _ => {
             // Generate a simple HTML page with all notes
             let mut body = String::new();
             for path in &notes {

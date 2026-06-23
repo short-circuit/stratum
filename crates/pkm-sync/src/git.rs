@@ -189,12 +189,10 @@ impl GitEngine {
                     // Collect conflict paths
                     if let Ok(idx) = self.repo.index() {
                         if let Ok(conflict_iter) = idx.conflicts() {
-                            for entry_res in conflict_iter {
-                                if let Ok(entry) = entry_res {
-                                    if let Some(ours) = entry.our {
-                                        if let Ok(path_str) = std::str::from_utf8(&ours.path) {
-                                            conflicts.push(path_str.to_string());
-                                        }
+                            for entry in conflict_iter.flatten() {
+                                if let Some(ours) = entry.our {
+                                    if let Ok(path_str) = std::str::from_utf8(&ours.path) {
+                                        conflicts.push(path_str.to_string());
                                     }
                                 }
                             }

@@ -288,7 +288,7 @@ mod tests {
         /// Structure:
         ///   - Magic number: 0x00 0x61 0x73 0x6D
         ///   - Version: 0x01 0x00 0x00 0x00
-        /// (8 bytes total — the shortest valid WASM binary)
+        ///   - (8 bytes total — the shortest valid WASM binary)
         pub const MINIMAL_WASM_MODULE: &[u8] = &[0x00, 0x61, 0x73, 0x6D, 0x01, 0x00, 0x00, 0x00];
     }
 

@@ -72,6 +72,7 @@ pub enum TagSource {
 }
 
 impl Note {
+    #[allow(clippy::too_many_arguments)]
     /// Create a new note with the given parameters.
     pub fn new(
         path: PathBuf,

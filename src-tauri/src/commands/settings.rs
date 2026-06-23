@@ -45,9 +45,10 @@ pub async fn get_settings(
     let config = if config_path.exists() {
         pkm_core::Config::load(&config_path).map_err(|e| e.to_string())?
     } else {
-        let mut c = pkm_core::Config::default();
-        c.vault_path = state.vault_path.clone();
-        c
+        pkm_core::Config {
+            vault_path: state.vault_path.clone(),
+            ..Default::default()
+        }
     };
 
     Ok(SettingsDto {

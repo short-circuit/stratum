@@ -110,7 +110,7 @@ fn collect_md_files_recursive(dir: &Path, files: &mut Vec<PathBuf>) -> PkmResult
     })?;
 
     for entry in read_dir {
-        let entry = entry.map_err(|e| PkmError::Io(e))?;
+        let entry = entry.map_err(PkmError::Io)?;
         let path = entry.path();
 
         if path.is_dir() {

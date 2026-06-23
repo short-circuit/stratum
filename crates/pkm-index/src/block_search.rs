@@ -47,7 +47,7 @@ impl BlockIndex {
                 .map_err(|e| PkmError::Index(format!("Failed to open block index: {}", e)))?
         } else {
             info!("Creating new block index at {:?}", dir);
-            std::fs::create_dir_all(&dir).map_err(|e| PkmError::Io(e))?;
+            std::fs::create_dir_all(&dir).map_err(PkmError::Io)?;
             Index::create_in_dir(&dir, (*schema).clone())
                 .map_err(|e| PkmError::Index(format!("Failed to create block index: {}", e)))?
         };

@@ -96,7 +96,7 @@ pub async fn export_html(
     }
 
     Ok(ExportResult {
-        output_dir: output_dir,
+        output_dir,
         pages_exported: exported,
         assets_copied,
     })

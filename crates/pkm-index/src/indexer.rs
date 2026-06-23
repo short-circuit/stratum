@@ -25,7 +25,7 @@ impl IndexEngine {
 
         // Ensure .pkm directory exists
         std::fs::create_dir_all(&pkm_dir)
-            .map_err(|e| PkmError::Io(e))?;
+            .map_err(PkmError::Io)?;
 
         let search_index = TantivyIndex::create_index(&index_path)?;
 
@@ -60,7 +60,7 @@ impl IndexEngine {
         }
 
         // Update tag aggregator
-        self.tags.aggregate(&[note.clone()]);
+        self.tags.aggregate(std::slice::from_ref(note));
 
         // Update meta
         self.meta.note_count = self.graph.node_count();

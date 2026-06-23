@@ -1,7 +1,5 @@
 use crate::error::PkmResult;
 
-/// Common types used across the project.
-
 /// A vault-relative file path.
 pub type VaultPath = String;
 

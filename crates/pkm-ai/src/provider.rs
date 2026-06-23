@@ -545,16 +545,16 @@ impl LlmProvider for OpenAIProvider {
         let stream = response.bytes_stream().map(|chunk_result| {
             chunk_result
                 .map_err(|e| PkmError::Ai(format!("OpenAI stream read error: {e}")))
-                .and_then(|bytes| {
+                .map(|bytes| {
                     let text = String::from_utf8_lossy(&bytes);
                     // SSE format: "data: {...}\n\n"
                     if let Some(data) = text.strip_prefix("data: ") {
                         let data = data.trim();
                         if data == "[DONE]" {
-                            return Ok(ChatDelta {
+                            return ChatDelta {
                                 content: String::new(),
                                 done: true,
-                            });
+                            };
                         }
                         #[derive(Deserialize)]
                         struct OpenAIStreamChunk {
@@ -579,21 +579,21 @@ impl LlmProvider for OpenAIProvider {
                                 .first()
                                 .and_then(|c| c.delta.content.clone())
                                 .unwrap_or_default();
-                            Ok(ChatDelta {
+                            ChatDelta {
                                 content,
                                 done: false,
-                            })
+                            }
                         } else {
-                            Ok(ChatDelta {
+                            ChatDelta {
                                 content: String::new(),
                                 done: false,
-                            })
+                            }
                         }
                     } else {
-                        Ok(ChatDelta {
+                        ChatDelta {
                             content: String::new(),
                             done: false,
-                        })
+                        }
                     }
                 })
         });
@@ -783,7 +783,7 @@ impl LlmProvider for AnthropicProvider {
         let stream = response.bytes_stream().map(|chunk_result| {
             chunk_result
                 .map_err(|e| PkmError::Ai(format!("Anthropic stream read error: {e}")))
-                .and_then(|bytes| {
+                .map(|bytes| {
                     let text = String::from_utf8_lossy(&bytes);
                     // SSE format: "data: {...}\n\n"
                     if let Some(data) = text.strip_prefix("data: ") {
@@ -808,21 +808,21 @@ impl LlmProvider for AnthropicProvider {
                                 .delta
                                 .and_then(|d| d.text)
                                 .unwrap_or_default();
-                            Ok(ChatDelta {
+                            ChatDelta {
                                 content,
                                 done: is_done,
-                            })
+                            }
                         } else {
-                            Ok(ChatDelta {
+                            ChatDelta {
                                 content: String::new(),
                                 done: false,
-                            })
+                            }
                         }
                     } else {
-                        Ok(ChatDelta {
+                        ChatDelta {
                             content: String::new(),
                             done: false,
-                        })
+                        }
                     }
                 })
         });

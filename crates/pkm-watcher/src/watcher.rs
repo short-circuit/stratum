@@ -179,7 +179,7 @@ fn process_events_loop(
     let mut pending: Vec<FileChangeEvent> = Vec::new();
 
     // Helper: flush buffered events through the callback.
-    let flush = |pending: &mut Vec<FileChangeEvent>, cb: &Box<dyn Fn(FileChangeEvent) + Send + 'static>| {
+    let flush = |pending: &mut Vec<FileChangeEvent>, cb: &(dyn Fn(FileChangeEvent) + Send + 'static)| {
         if pending.is_empty() {
             return;
         }
