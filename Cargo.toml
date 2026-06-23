@@ -43,7 +43,7 @@ log = "0.4"
 tantivy = "0.22"
 
 # Sync
-git2 = { version = "0.19", features = ["vendored"] }
+git2 = { version = "0.19", features = ["vendored-openssl"] }
 openssl-sys = { version = "0.9", features = ["vendored"] }
 
 # Watcher
