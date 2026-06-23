@@ -256,15 +256,13 @@ jobs:
       - name: Add iOS linker flags & build
         shell: bash
         run: |
-          cat > ${{ runner.temp }}/link-flags.xcconfig << 'XCEOF'
-OTHER_LDFLAGS = $(inherited) -lz -liconv
-XCEOF
-          export XCODE_XCCONFIG_FILE=${{ runner.temp }}/link-flags.xcconfig
+          printf '%s\n' 'OTHER_LDFLAGS = $(inherited) -lz -liconv' > "${{ runner.temp }}/link-flags.xcconfig"
+          export XCODE_XCCONFIG_FILE="${{ runner.temp }}/link-flags.xcconfig"
 
           if [ -n "${{ secrets.APPLE_TEAM_ID }}" ]; then
-            npx tauri ios build 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
+            npx tauri ios build 2>&1 | tee "${{ runner.temp }}/tauri-build.log"; exit ${PIPESTATUS[0]}
           else
-            npx tauri ios build --target aarch64-sim 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
+            npx tauri ios build --target aarch64-sim 2>&1 | tee "${{ runner.temp }}/tauri-build.log"; exit ${PIPESTATUS[0]}
           fi
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
