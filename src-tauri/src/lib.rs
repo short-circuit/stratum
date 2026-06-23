@@ -8,11 +8,7 @@ use std::sync::Mutex;
 pub fn run() {
     let default_vault = dirs::home_dir()
         .map(|h| h.join("StratumVault"))
-        .or_else(|| {
-            std::env::current_dir()
-                .ok()
-                .map(|d| d.join("vault"))
-        });
+        .or_else(|| std::env::current_dir().ok().map(|d| d.join("vault")));
 
     let vault_path = default_vault.unwrap_or_else(|| PathBuf::from("vault"));
     // Ensure vault directory exists

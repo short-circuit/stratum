@@ -40,10 +40,8 @@ impl QueryEngine {
     }
 
     pub fn execute(&self, datalog: &str) -> Result<Vec<QueryRow>, QueryError> {
-        let query = parse_query(datalog)
-            .map_err(|e| QueryError::Parse(e.to_string()))?;
-        let compiled = compile(&query)
-            .map_err(|e| QueryError::Compile(e.to_string()))?;
+        let query = parse_query(datalog).map_err(|e| QueryError::Parse(e.to_string()))?;
+        let compiled = compile(&query).map_err(|e| QueryError::Compile(e.to_string()))?;
         self.execute_compiled(&compiled)
     }
 
@@ -57,10 +55,9 @@ impl QueryEngine {
             .split(',')
             .count();
 
-        let mut stmt = self
-            .conn
-            .prepare(&compiled.sql)
-            .map_err(|e| QueryError::Execute(format!("Prepare failed: {} — SQL: {}", e, compiled.sql)))?;
+        let mut stmt = self.conn.prepare(&compiled.sql).map_err(|e| {
+            QueryError::Execute(format!("Prepare failed: {} — SQL: {}", e, compiled.sql))
+        })?;
 
         let params: Vec<&dyn rusqlite::types::ToSql> = compiled
             .params

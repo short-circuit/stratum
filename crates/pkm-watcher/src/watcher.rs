@@ -6,8 +6,8 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, SystemTime};
 
 use crossbeam_channel::{Receiver, RecvTimeoutError};
-use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use notify::event::ModifyKind;
+use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use tracing::{debug, info};
 
 use pkm_core::FileEvent;
@@ -89,10 +89,7 @@ impl FileWatcher {
     /// does not exist.
     pub fn start(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         // Take ownership of the callback (replaced with a no-op placeholder).
-        let on_event = self
-            .on_event
-            .take()
-            .unwrap_or_else(|| Box::new(|_| {}));
+        let on_event = self.on_event.take().unwrap_or_else(|| Box::new(|_| {}));
 
         let vault_path = self.vault_path.clone();
         let vault_path_clone = vault_path.clone();
@@ -103,15 +100,14 @@ impl FileWatcher {
         let (event_tx, event_rx) = crossbeam_channel::unbounded();
 
         let handler_tx = event_tx.clone();
-        let mut watcher: RecommendedWatcher =
-            Watcher::new(
-                move |res: Result<Event, notify::Error>| {
-                    if let Ok(event) = res {
-                        let _ = handler_tx.send(event);
-                    }
-                },
-                Config::default(),
-            )?;
+        let mut watcher: RecommendedWatcher = Watcher::new(
+            move |res: Result<Event, notify::Error>| {
+                if let Ok(event) = res {
+                    let _ = handler_tx.send(event);
+                }
+            },
+            Config::default(),
+        )?;
 
         watcher.watch(&vault_path, RecursiveMode::Recursive)?;
 
@@ -179,7 +175,8 @@ fn process_events_loop(
     let mut pending: Vec<FileChangeEvent> = Vec::new();
 
     // Helper: flush buffered events through the callback.
-    let flush = |pending: &mut Vec<FileChangeEvent>, cb: &(dyn Fn(FileChangeEvent) + Send + 'static)| {
+    let flush = |pending: &mut Vec<FileChangeEvent>,
+                 cb: &(dyn Fn(FileChangeEvent) + Send + 'static)| {
         if pending.is_empty() {
             return;
         }
@@ -323,10 +320,7 @@ mod tests {
     }
 
     /// Create a watcher that writes into the shared vector.
-    fn make_watcher(
-        vault_path: PathBuf,
-        events: Arc<Mutex<Vec<FileChangeEvent>>>,
-    ) -> FileWatcher {
+    fn make_watcher(vault_path: PathBuf, events: Arc<Mutex<Vec<FileChangeEvent>>>) -> FileWatcher {
         FileWatcher::new(
             vault_path,
             200, // short debounce for tests
@@ -358,7 +352,10 @@ mod tests {
         fs::rename(old, new).unwrap();
     }
 
-    fn wait_for_events(events: &Arc<Mutex<Vec<FileChangeEvent>>>, min: usize) -> Vec<FileChangeEvent> {
+    fn wait_for_events(
+        events: &Arc<Mutex<Vec<FileChangeEvent>>>,
+        min: usize,
+    ) -> Vec<FileChangeEvent> {
         let deadline = Duration::from_secs(5);
         let poll = Duration::from_millis(50);
         let start = std::time::Instant::now();
@@ -460,7 +457,10 @@ mod tests {
 
         // The delete event might be paired with a prior create event from
         // the initial `touch_md` — check that at least one Delete exists.
-        let deletes: Vec<_> = received.iter().filter(|e| e.kind == FileEvent::Deleted).collect();
+        let deletes: Vec<_> = received
+            .iter()
+            .filter(|e| e.kind == FileEvent::Deleted)
+            .collect();
         assert!(
             !deletes.is_empty(),
             "expected at least one Deleted event, got {:?}",
@@ -489,9 +489,18 @@ mod tests {
         // Rename may produce events for both old path (Remove) and new path
         // (Create) on some platforms, or a single Rename event.  Accept
         // either.
-        let renames: Vec<_> = received.iter().filter(|e| e.kind == FileEvent::Renamed).collect();
-        let removes: Vec<_> = received.iter().filter(|e| e.kind == FileEvent::Deleted).collect();
-        let creates: Vec<_> = received.iter().filter(|e| e.kind == FileEvent::Created).collect();
+        let renames: Vec<_> = received
+            .iter()
+            .filter(|e| e.kind == FileEvent::Renamed)
+            .collect();
+        let removes: Vec<_> = received
+            .iter()
+            .filter(|e| e.kind == FileEvent::Deleted)
+            .collect();
+        let creates: Vec<_> = received
+            .iter()
+            .filter(|e| e.kind == FileEvent::Created)
+            .collect();
 
         let has_rename = !renames.is_empty();
         let has_remove_and_create = !removes.is_empty() && !creates.is_empty();

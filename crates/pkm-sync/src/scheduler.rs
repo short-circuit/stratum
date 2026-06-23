@@ -187,9 +187,7 @@ impl SyncScheduler {
         let mut pulled = false;
 
         // Stage 1: Pull
-        let pull_result = self
-            .git
-            .pull(&self.config.remote, &self.config.branch);
+        let pull_result = self.git.pull(&self.config.remote, &self.config.branch);
 
         match pull_result {
             Ok(pr) => {
@@ -217,7 +215,10 @@ impl SyncScheduler {
             Err(e) => {
                 // If pull fails because there's no remote yet, it's not an error.
                 let err_str: String = e.to_string();
-                if err_str.contains("not found") || err_str.contains("No remote") || err_str.contains("does not exist") {
+                if err_str.contains("not found")
+                    || err_str.contains("No remote")
+                    || err_str.contains("does not exist")
+                {
                     info!("no remote configured, skipping pull");
                 } else {
                     error!("pull failed: {e}");
@@ -238,9 +239,7 @@ impl SyncScheduler {
         }
 
         // Stage 2: Push
-        let push_result = self
-            .git
-            .push(&self.config.remote, &self.config.branch);
+        let push_result = self.git.push(&self.config.remote, &self.config.branch);
 
         match push_result {
             Ok(()) => {
@@ -249,7 +248,10 @@ impl SyncScheduler {
             }
             Err(e) => {
                 let err_str: String = e.to_string();
-                if err_str.contains("not found") || err_str.contains("No remote") || err_str.contains("does not exist") {
+                if err_str.contains("not found")
+                    || err_str.contains("No remote")
+                    || err_str.contains("does not exist")
+                {
                     info!("no remote configured, skipping push");
                 } else {
                     error!("push failed: {e}");

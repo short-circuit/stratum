@@ -71,8 +71,14 @@ impl BlockIndex {
 
     pub fn index_block(&mut self, block: &Block, page_path: &str) -> PkmResult<()> {
         let id_str = block.id.to_string();
-        let marker_str = block.marker.map(|m| m.as_str().to_string()).unwrap_or_default();
-        let priority_str = block.priority.map(|p| p.as_str().to_string()).unwrap_or_default();
+        let marker_str = block
+            .marker
+            .map(|m| m.as_str().to_string())
+            .unwrap_or_default();
+        let priority_str = block
+            .priority
+            .map(|p| p.as_str().to_string())
+            .unwrap_or_default();
         let properties_str = block
             .properties
             .iter()
@@ -126,11 +132,7 @@ impl BlockIndex {
         Ok(())
     }
 
-    pub fn search(
-        &self,
-        query_str: &str,
-        limit: usize,
-    ) -> PkmResult<Vec<BlockSearchResult>> {
+    pub fn search(&self, query_str: &str, limit: usize) -> PkmResult<Vec<BlockSearchResult>> {
         let reader = self
             .index
             .reader_builder()
@@ -143,8 +145,7 @@ impl BlockIndex {
         let content_field = self.field("content");
         let props_field = self.field("properties");
 
-        let query_parser =
-            QueryParser::for_index(&self.index, vec![content_field, props_field]);
+        let query_parser = QueryParser::for_index(&self.index, vec![content_field, props_field]);
 
         let query = query_parser
             .parse_query(query_str)
@@ -282,8 +283,7 @@ mod tests {
         let mut idx = BlockIndex::create(tmp.path()).unwrap();
 
         let id = Uuid::new_v4();
-        let block = Block::new(id, "Do the dishes".into())
-            .with_marker(pkm_block::TaskMarker::Todo);
+        let block = Block::new(id, "Do the dishes".into()).with_marker(pkm_block::TaskMarker::Todo);
         idx.index_block(&block, "journals/2026-01-01.md").unwrap();
         idx.flush().unwrap();
 

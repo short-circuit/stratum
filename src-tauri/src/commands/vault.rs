@@ -63,10 +63,7 @@ pub async fn get_vault_info(state: tauri::State<'_, AppState>) -> Result<VaultIn
 }
 
 #[tauri::command]
-pub async fn set_vault_path(
-    path: String,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn set_vault_path(path: String, state: tauri::State<'_, AppState>) -> Result<(), String> {
     let vault_path = PathBuf::from(&path);
     if !vault_path.exists() {
         return Err(format!("Vault path does not exist: {}", path));

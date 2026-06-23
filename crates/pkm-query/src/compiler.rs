@@ -65,7 +65,8 @@ pub fn compile(query: &Query) -> Result<CompiledQuery, CompileError> {
             if let Some((prev_alias, _)) = var_map.get(&pattern.entity) {
                 if *prev_alias != alias {
                     // Cross-table reference: join via foreign key
-                    if (*prev_alias == "b" && alias == "p") || (*prev_alias == "p" && alias == "b") {
+                    if (*prev_alias == "b" && alias == "p") || (*prev_alias == "p" && alias == "b")
+                    {
                         conditions.push("b.page_path = p.path".to_string());
                     }
                 }
@@ -152,7 +153,11 @@ mod tests {
         let q = parse_query(r#"{:query [:find ?b :where [?b :block/marker "TODO"]]}"#).unwrap();
         let c = compile(&q).unwrap();
         assert!(c.sql.contains("SELECT"), "SQL: {}", c.sql);
-        assert!(c.params.contains(&"TODO".to_string()), "params: {:?}", c.params);
+        assert!(
+            c.params.contains(&"TODO".to_string()),
+            "params: {:?}",
+            c.params
+        );
     }
 
     #[test]

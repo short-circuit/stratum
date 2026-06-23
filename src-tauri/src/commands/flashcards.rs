@@ -35,7 +35,9 @@ pub async fn generate_flashcards(
 
     let mut cards = Vec::new();
     for page_path in &pages {
-        let blocks = store.get_blocks_by_page(page_path).map_err(|e| e.to_string())?;
+        let blocks = store
+            .get_blocks_by_page(page_path)
+            .map_err(|e| e.to_string())?;
         for block in &blocks {
             let question = block.properties.get("question");
             let answer = block.properties.get("answer");
@@ -55,7 +57,11 @@ pub async fn generate_flashcards(
                     .get("reps")
                     .and_then(|v| v.parse::<u32>().ok())
                     .unwrap_or(0);
-                let next_review = block.properties.get("next_review").cloned().unwrap_or_default();
+                let next_review = block
+                    .properties
+                    .get("next_review")
+                    .cloned()
+                    .unwrap_or_default();
 
                 cards.push(FlashcardDto {
                     id: block.id.to_string(),
@@ -149,15 +155,23 @@ pub async fn review_card(
     let next_str = next.format("%Y-%m-%d").to_string();
 
     block.properties.insert("ease".into(), ease.to_string());
-    block.properties.insert("interval".into(), interval.to_string());
+    block
+        .properties
+        .insert("interval".into(), interval.to_string());
     block.properties.insert("reps".into(), reps.to_string());
-    block.properties.insert("next_review".into(), next_str.clone());
+    block
+        .properties
+        .insert("next_review".into(), next_str.clone());
 
     store.insert_block(&block, "").map_err(|e| e.to_string())?;
 
     Ok(FlashcardDto {
         id: block.id.to_string(),
-        front: block.properties.get("question").cloned().unwrap_or_default(),
+        front: block
+            .properties
+            .get("question")
+            .cloned()
+            .unwrap_or_default(),
         back: block.properties.get("answer").cloned().unwrap_or_default(),
         page_path: String::new(),
         ease_factor: ease,
@@ -186,7 +200,8 @@ fn parse_cards_from_markdown(content: &str, page_path: &str) -> Vec<FlashcardDto
             let mut back_parts = Vec::new();
             while i < lines.len() {
                 let next = lines[i].trim();
-                if next.starts_with("A:") || next.starts_with("**A:**") || next.starts_with("- A:") {
+                if next.starts_with("A:") || next.starts_with("**A:**") || next.starts_with("- A:")
+                {
                     let answer = next
                         .trim_start_matches("- ")
                         .trim_start_matches("**A:** ")
