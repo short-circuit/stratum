@@ -65,7 +65,13 @@ jobs:
 
       - name: Install Perl (Windows)
         if: runner.os == 'Windows'
-        run: choco install strawberryperl --no-progress -y
+        run: |
+          choco install strawberryperl --no-progress -y 2>$null
+          # Find Strawberry Perl and set it as the active Perl
+          $perl = Get-Command perl.exe -ErrorAction SilentlyContinue | Select -ExpandProperty Source
+          if (-not $perl) { $perl = "C:\Strawberry\perl\bin\perl.exe" }
+          echo "PERL=$perl" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "OPENSSL_SRC_PERL=$perl" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Build Tauri app
         shell: bash
@@ -138,12 +144,23 @@ jobs:
 
       - name: Install NDK
         run: |
-          sdkmanager --install "ndk;27.0.12077973" "cmake;3.22.1"
+          sdkmanager --install "ndk;27.0.12077973" "cmake;3.22.1" 2>/dev/null || true
           NDK_PATH="$ANDROID_HOME/ndk/27.0.12077973"
+          [ ! -d "$NDK_PATH" ] && NDK_PATH="$ANDROID_HOME/ndk/29.0.14206865"
+          TOOLCHAIN="$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64"
           echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
-          echo "CC_aarch64_linux_android=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang" >> $GITHUB_ENV
-          echo "AR_aarch64_linux_android=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" >> $GITHUB_ENV
-          echo "RANLIB_aarch64_linux_android=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib" >> $GITHUB_ENV
+          echo "CC_aarch64_linux_android=$TOOLCHAIN/bin/aarch64-linux-android21-clang" >> $GITHUB_ENV
+          echo "AR_aarch64_linux_android=$TOOLCHAIN/bin/llvm-ar" >> $GITHUB_ENV
+          echo "RANLIB_aarch64_linux_android=$TOOLCHAIN/bin/llvm-ranlib" >> $GITHUB_ENV
+          echo "CC_armv7_linux_androideabi=$TOOLCHAIN/bin/armv7a-linux-androideabi21-clang" >> $GITHUB_ENV
+          echo "AR_armv7_linux_androideabi=$TOOLCHAIN/bin/llvm-ar" >> $GITHUB_ENV
+          echo "RANLIB_armv7_linux_androideabi=$TOOLCHAIN/bin/llvm-ranlib" >> $GITHUB_ENV
+          echo "CC_x86_64_linux_android=$TOOLCHAIN/bin/x86_64-linux-android21-clang" >> $GITHUB_ENV
+          echo "AR_x86_64_linux_android=$TOOLCHAIN/bin/llvm-ar" >> $GITHUB_ENV
+          echo "RANLIB_x86_64_linux_android=$TOOLCHAIN/bin/llvm-ranlib" >> $GITHUB_ENV
+          echo "CC_i686_linux_android=$TOOLCHAIN/bin/i686-linux-android21-clang" >> $GITHUB_ENV
+          echo "AR_i686_linux_android=$TOOLCHAIN/bin/llvm-ar" >> $GITHUB_ENV
+          echo "RANLIB_i686_linux_android=$TOOLCHAIN/bin/llvm-ranlib" >> $GITHUB_ENV
 
       - name: Install Linux dependencies
         run: |
@@ -233,13 +250,24 @@ jobs:
             npx tauri ios init
           fi
 
+      - name: Add iOS linker flags
+        run: |
+          PBX="${{ github.workspace }}/src-tauri/gen/apple/stratum-tauri.xcodeproj/project.pbxproj"
+          if [ -f "$PBX" ]; then
+            # Add -lz and -liconv to OTHER_LDFLAGS in the Xcode project
+            sed -i '' 's/OTHER_LDFLAGS = (/OTHER_LDFLAGS = (-lz -liconv /' "$PBX"
+            echo "Patched Xcode project linker flags"
+          else
+            echo "Xcode project not found at $PBX"
+          fi
+
       - name: Build iOS app
         shell: bash
         run: |
           if [ -n "${{ secrets.APPLE_TEAM_ID }}" ]; then
-            RUSTFLAGS="-C link-args=-lz -liconv" npx tauri ios build 2>&1 | tee /tmp/tauri-build.log; exit ${PIPESTATUS[0]}
+            npx tauri ios build 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
           else
-            RUSTFLAGS="-C link-args=-lz -liconv" npx tauri ios build --target aarch64-sim 2>&1 | tee /tmp/tauri-build.log; exit ${PIPESTATUS[0]}
+            npx tauri ios build --target aarch64-sim 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
           fi
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
