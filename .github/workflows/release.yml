@@ -63,7 +63,12 @@ jobs:
         run: npm run build
 
       - name: Build Tauri app
-        run: npx tauri build
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            npx tauri build --bundles deb
+          else
+            npx tauri build
+          fi
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
