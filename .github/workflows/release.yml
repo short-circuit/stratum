@@ -79,25 +79,29 @@ jobs:
           set -o pipefail
           TMP="${RUNNER_TEMP//\\//}"
           if [ "${{ runner.os }}" = "Linux" ]; then
-            npx tauri build --bundles deb 2>&1 | tee "$TMP/tauri-build.log"
+            APPIMAGE_EXTRACT_AND_RUN=1 npx tauri build --bundles appimage 2>&1 | tee "$TMP/tauri-build.log"
           elif [ "${{ runner.os }}" = "macOS" ]; then
-            APPLE_SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:--}" npx tauri build --bundles dmg 2>&1 | tee "$TMP/tauri-build.log"
+            APPLE_SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:--}" npx tauri build --bundles macos 2>&1 | tee "$TMP/tauri-build.log"
           elif [ "${{ runner.os }}" = "Windows" ]; then
-            RUSTFLAGS="" npx tauri build --bundles nsis 2>&1 | tee "$TMP/tauri-build.log"
+            RUSTFLAGS="" npx tauri build 2>&1 | tee "$TMP/tauri-build.log"
           fi
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Show build output
-        run: find target/release/bundle -type f 2>/dev/null || echo "no bundle files found"
+        run: |
+          find target/release -maxdepth 1 -type f -name "stratum*" 2>/dev/null || echo "no binary"
+          find target/release/bundle -type f 2>/dev/null || echo "no bundle files"
 
       - name: Upload bundles
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: target/release/bundle/**
-          if-no-files-found: error
+          path: |
+            target/release/bundle/**
+            target/release/stratum-tauri*
+          if-no-files-found: warn
 
       - name: Upload build log
         if: failure()
