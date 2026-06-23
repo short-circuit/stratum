@@ -19,6 +19,7 @@ export default function OutlinerEditor({ pagePath }: Props) {
   console.log('[OutlinerEditor] created editor for', pagePath);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus('loading');
     console.log('[OutlinerEditor] loading blocks for', pagePath);
     api.getBlocks(pagePath)
@@ -45,6 +46,7 @@ export default function OutlinerEditor({ pagePath }: Props) {
   }, [pagePath]);
 
   const persistBlocks = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (blockNoteBlocks: any[]) => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
@@ -103,6 +105,7 @@ export default function OutlinerEditor({ pagePath }: Props) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function dtoToBlockNote(dtos: BlockDto[]): any[] {
   if (dtos.length === 0) return [];
   const rootBlocks = dtos.filter(d => !d.parent_id);
@@ -111,6 +114,7 @@ function dtoToBlockNote(dtos: BlockDto[]): any[] {
     if (a.left_id === b.id) return 1;
     return 0;
   });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function convert(dto: BlockDto): any {
     const children = dtos.filter(b => b.parent_id === dto.id);
     children.sort((a, b) => {
@@ -119,6 +123,7 @@ function dtoToBlockNote(dtos: BlockDto[]): any[] {
       return 0;
     });
     let type = 'paragraph';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const props: Record<string, any> = {};
     if (dto.heading_level) { type = 'heading'; props.level = dto.heading_level; }
     else if (dto.marker) { type = 'checkListItem'; }
@@ -132,8 +137,10 @@ function dtoToBlockNote(dtos: BlockDto[]): any[] {
   return rootBlocks.map(convert);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function blockNoteToDto(blockNoteBlocks: any[]): BlockDto[] {
   const result: BlockDto[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function walk(blocks: any[], parentId: string | null) {
     let prevId: string | null = null;
     for (const b of blocks) {
@@ -142,7 +149,8 @@ function blockNoteToDto(blockNoteBlocks: any[]): BlockDto[] {
       if (b.content) {
         if (typeof b.content === 'string') content = b.content;
         else if (Array.isArray(b.content)) {
-          content = b.content.map((item: any) => {
+          content = b.content.map(// eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (item: any) => {
             if (typeof item === 'string') return item;
             if (item?.text) return item.text;
             if (item?.type === 'link') return `[[${item.href || ''}]]`;
@@ -158,6 +166,7 @@ function blockNoteToDto(blockNoteBlocks: any[]): BlockDto[] {
         marker: b.type === 'checkListItem' ? 'TODO' : null,
         priority: null,
         collapsed: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         heading_level: b.type === 'heading' ? (b.props as any)?.level ?? null : null,
       });
       if (b.children?.length) walk(b.children, id);

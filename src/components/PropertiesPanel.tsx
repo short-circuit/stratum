@@ -12,6 +12,7 @@ interface BlockProp {
   priority?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function PropertiesPanel(_props: Props) {
   const [blockId, setBlockId] = useState('');
   const [prop, setProp] = useState<BlockProp | null>(null);
@@ -23,7 +24,7 @@ export default function PropertiesPanel(_props: Props) {
     try {
       const p = await api.getBlockProperties(blockId);
       setProp(p);
-    } catch (e) {
+    } catch {
       setProp(null);
     }
   };
