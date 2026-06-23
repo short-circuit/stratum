@@ -83,9 +83,7 @@ pub fn resolve_with_markers(
     ours: &str,
     theirs: &str,
 ) -> Result<(), PkmError> {
-    let content = format!(
-        "<<<<<<< ours\n{ours}\n=======\n{theirs}\n>>>>>>> theirs\n"
-    );
+    let content = format!("<<<<<<< ours\n{ours}\n=======\n{theirs}\n>>>>>>> theirs\n");
     fs::write(path, &content).map_err(PkmError::Io)?;
     Ok(())
 }
@@ -277,7 +275,12 @@ second theirs
         let _feature_branch = repo.branch("feature", &main_commit, false).unwrap();
 
         // Switch back to main/master (capture before switching to feature)
-        let default_branch = repo.head().unwrap().name().unwrap_or("refs/heads/main").to_string();
+        let default_branch = repo
+            .head()
+            .unwrap()
+            .name()
+            .unwrap_or("refs/heads/main")
+            .to_string();
         repo.set_head("refs/heads/feature").unwrap();
         repo.checkout_head(Some(git2::build::CheckoutBuilder::new().force()))
             .unwrap();
@@ -325,7 +328,8 @@ second theirs
         .unwrap();
 
         // Try to merge feature into main — this should produce a conflict
-        let feature_ref = repo.find_branch("feature", git2::BranchType::Local)
+        let feature_ref = repo
+            .find_branch("feature", git2::BranchType::Local)
             .unwrap();
         let feature_commit = feature_ref.into_reference().peel_to_commit().unwrap();
         let annotated = repo.find_annotated_commit(feature_commit.id()).unwrap();

@@ -19,7 +19,11 @@ pub fn rebuild_all(
     let md_files = collect_md_files(vault_path)?;
     let total = md_files.len();
 
-    tracing::info!("Rebuilding index from {} .md files in {:?}", total, vault_path);
+    tracing::info!(
+        "Rebuilding index from {} .md files in {:?}",
+        total,
+        vault_path
+    );
 
     if total == 0 {
         if let Some(cb) = &progress {
@@ -68,7 +72,8 @@ pub fn rebuild_all(
         for link in &note.links {
             let target_slug = link.target.replace(' ', "-").to_lowercase();
             // Check if target exists in graph and use its actual slug
-            let target_slug_owned = graph.get_node(&target_slug)
+            let target_slug_owned = graph
+                .get_node(&target_slug)
                 .or_else(|| graph.get_node(&link.target))
                 .map(|n| n.slug.clone());
             if let Some(ref target_slug_resolved) = target_slug_owned {
@@ -106,7 +111,10 @@ fn collect_md_files(dir: &Path) -> PkmResult<Vec<PathBuf>> {
 
 fn collect_md_files_recursive(dir: &Path, files: &mut Vec<PathBuf>) -> PkmResult<()> {
     let read_dir = std::fs::read_dir(dir).map_err(|e| {
-        PkmError::Io(std::io::Error::new(e.kind(), format!("{}: {}", dir.display(), e)))
+        PkmError::Io(std::io::Error::new(
+            e.kind(),
+            format!("{}: {}", dir.display(), e),
+        ))
     })?;
 
     for entry in read_dir {
@@ -145,17 +153,20 @@ mod tests {
         std::fs::write(
             dir.join("note-a.md"),
             "---\ntitle: Note A\ntags: [tag1]\n---\nThis is note A linking to [[Note B]].",
-        ).unwrap();
+        )
+        .unwrap();
 
         std::fs::write(
             dir.join("note-b.md"),
             "---\ntitle: Note B\ntags: [tag2]\n---\nThis is note B linking to [[Note C]].",
-        ).unwrap();
+        )
+        .unwrap();
 
         std::fs::write(
             dir.join("subdir/note-c.md"),
             "---\ntitle: Note C\ntags: [tag1, tag3]\n---\nThis is note C.",
-        ).unwrap();
+        )
+        .unwrap();
 
         // Create a non-md file that should be ignored
         std::fs::write(dir.join("readme.txt"), "Not a markdown file.").unwrap();
@@ -193,13 +204,7 @@ mod tests {
         let mut graph = Graph::new();
         let mut tags = TagAggregator::new();
 
-        let result = rebuild_all(
-            dir.path(),
-            &mut search_index,
-            &mut graph,
-            &mut tags,
-            None,
-        );
+        let result = rebuild_all(dir.path(), &mut search_index, &mut graph, &mut tags, None);
 
         assert!(result.is_ok());
         let notes = result.unwrap();
@@ -220,8 +225,13 @@ mod tests {
         assert_eq!(tags.unique_tag_count(), 3); // tag1, tag2, tag3
 
         // Search should work
-        let search_results = search_index.search("Note A", pkm_core::SearchMode::FullText).unwrap();
-        assert!(!search_results.is_empty(), "Expected search results for 'Note A'");
+        let search_results = search_index
+            .search("Note A", pkm_core::SearchMode::FullText)
+            .unwrap();
+        assert!(
+            !search_results.is_empty(),
+            "Expected search results for 'Note A'"
+        );
     }
 
     #[test]
@@ -233,13 +243,7 @@ mod tests {
         let mut graph = Graph::new();
         let mut tags = TagAggregator::new();
 
-        let result = rebuild_all(
-            dir.path(),
-            &mut search_index,
-            &mut graph,
-            &mut tags,
-            None,
-        );
+        let result = rebuild_all(dir.path(), &mut search_index, &mut graph, &mut tags, None);
 
         assert!(result.is_ok());
         let notes = result.unwrap();

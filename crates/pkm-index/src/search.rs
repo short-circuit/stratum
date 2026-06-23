@@ -1,10 +1,10 @@
 use pkm_core::{PkmError, PkmResult, SearchMode, SearchResult};
+use std::path::Path;
+use std::sync::Arc;
 use tantivy::collector::TopDocs;
 use tantivy::query::{QueryParser, RegexQuery};
 use tantivy::schema::*;
 use tantivy::{doc, Index, IndexWriter, ReloadPolicy, TantivyDocument};
-use std::path::Path;
-use std::sync::Arc;
 use tracing::info;
 
 /// Wrapper around a Tantivy search index.
@@ -124,10 +124,8 @@ impl TantivyIndex {
                 let body_field = self.field("body");
                 let tags_field = self.field("tags");
 
-                let query_parser = QueryParser::for_index(
-                    &self.index,
-                    vec![title_field, body_field, tags_field],
-                );
+                let query_parser =
+                    QueryParser::for_index(&self.index, vec![title_field, body_field, tags_field]);
 
                 let tantivy_query = query_parser
                     .parse_query(query)
@@ -179,9 +177,8 @@ impl TantivyIndex {
                 let _title_field = self.field("title");
 
                 let regex_pattern = format!("(?i){}", regex::escape(query));
-                let regex_query =
-                    RegexQuery::from_pattern(&regex_pattern, body_field)
-                        .map_err(|e| PkmError::Search(format!("Regex error: {}", e)))?;
+                let regex_query = RegexQuery::from_pattern(&regex_pattern, body_field)
+                    .map_err(|e| PkmError::Search(format!("Regex error: {}", e)))?;
 
                 let top_docs = searcher
                     .search(&regex_query, &TopDocs::with_limit(50))
@@ -357,7 +354,10 @@ mod tests {
 
         // Need a small delay for index to be searchable
         let results = index.search("quantum", SearchMode::FullText).unwrap();
-        assert!(!results.is_empty(), "Expected at least one result for 'quantum'");
+        assert!(
+            !results.is_empty(),
+            "Expected at least one result for 'quantum'"
+        );
         assert_eq!(results[0].title, "Quantum Computing");
     }
 
@@ -374,8 +374,13 @@ mod tests {
         );
         index.index_note(&note).unwrap();
 
-        let results = index.search("nonexistent_term_xyz", SearchMode::FullText).unwrap();
-        assert!(results.is_empty(), "Expected no results for nonexistent term");
+        let results = index
+            .search("nonexistent_term_xyz", SearchMode::FullText)
+            .unwrap();
+        assert!(
+            results.is_empty(),
+            "Expected no results for nonexistent term"
+        );
     }
 
     #[test]

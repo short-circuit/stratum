@@ -36,9 +36,7 @@ pub struct AiModelDto {
 }
 
 #[tauri::command]
-pub async fn get_settings(
-    state: tauri::State<'_, AppState>,
-) -> Result<SettingsDto, String> {
+pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let config_path = state.vault_path.join(".pkm").join("config.toml");
 
@@ -139,9 +137,7 @@ pub async fn save_settings(
 
 /// Fetch available models from the provider's API.
 #[tauri::command]
-pub async fn fetch_models(
-    state: tauri::State<'_, AppState>,
-) -> Result<Vec<String>, String> {
+pub async fn fetch_models(state: tauri::State<'_, AppState>) -> Result<Vec<String>, String> {
     // Extract config data before async operation (MutexGuard is not Send)
     let (endpoint, api_key) = {
         let state = state.lock().map_err(|e| e.to_string())?;
@@ -154,7 +150,10 @@ pub async fn fetch_models(
         };
 
         (
-            config.ai.endpoint.unwrap_or_else(|| "http://localhost:11434".into()),
+            config
+                .ai
+                .endpoint
+                .unwrap_or_else(|| "http://localhost:11434".into()),
             config.ai.api_key.clone(),
         )
     };
@@ -162,7 +161,9 @@ pub async fn fetch_models(
     let models_url = format!("{}/v1/models", endpoint.trim_end_matches('/'));
 
     let client = reqwest::Client::new();
-    let mut request = client.get(&models_url).header("Content-Type", "application/json");
+    let mut request = client
+        .get(&models_url)
+        .header("Content-Type", "application/json");
 
     if let Some(ref key) = api_key {
         request = request.header("Authorization", format!("Bearer {}", key));

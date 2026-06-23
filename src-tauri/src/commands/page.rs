@@ -67,10 +67,7 @@ pub fn sync_filesystem_to_db(vault_path: &Path, db_path: &Path) -> Result<usize,
 }
 
 #[tauri::command]
-pub async fn open_page(
-    path: String,
-    state: tauri::State<'_, AppState>,
-) -> Result<PageDto, String> {
+pub async fn open_page(path: String, state: tauri::State<'_, AppState>) -> Result<PageDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let full_path = state.vault_path.join(&path);
 
@@ -122,11 +119,15 @@ pub async fn save_page(
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
 
     // Delete existing blocks for this page
-    store.delete_blocks_by_page(&path).map_err(|e| e.to_string())?;
+    store
+        .delete_blocks_by_page(&path)
+        .map_err(|e| e.to_string())?;
 
     // Insert blocks
     for block in &blocks {
-        store.insert_block(block, &path).map_err(|e| e.to_string())?;
+        store
+            .insert_block(block, &path)
+            .map_err(|e| e.to_string())?;
     }
 
     // Upsert page metadata
@@ -197,10 +198,7 @@ pub async fn create_page(
 }
 
 #[tauri::command]
-pub async fn delete_page(
-    path: String,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn delete_page(path: String, state: tauri::State<'_, AppState>) -> Result<(), String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let full_path = state.vault_path.join(&path);
 

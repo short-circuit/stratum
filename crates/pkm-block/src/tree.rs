@@ -98,9 +98,7 @@ impl BlockTree {
 
     /// Get the next sibling (block to the right).
     pub fn next_sibling(&self, block_id: BlockId) -> Option<&Block> {
-        self.blocks
-            .values()
-            .find(|b| b.left_id == Some(block_id))
+        self.blocks.values().find(|b| b.left_id == Some(block_id))
     }
 
     /// Get the previous sibling (block to the left).
@@ -206,10 +204,7 @@ impl BlockTree {
         }
 
         // Find the head (block with no left_id for this parent)
-        let mut head = children
-            .iter()
-            .find(|b| b.left_id.is_none())
-            .copied();
+        let mut head = children.iter().find(|b| b.left_id.is_none()).copied();
 
         let mut result = Vec::new();
         let mut seen = HashSet::new();
@@ -263,10 +258,7 @@ impl BlockTree {
                 if seen.insert(id) {
                     ordered.push(id);
                 }
-                head = roots
-                    .iter()
-                    .find(|b| b.left_id == Some(id))
-                    .map(|b| b.id);
+                head = roots.iter().find(|b| b.left_id == Some(id)).map(|b| b.id);
             }
             for root in &roots {
                 if !seen.contains(&root.id) {
@@ -291,10 +283,7 @@ impl BlockTree {
                         .filter(|b| b.parent_id == Some(id))
                         .collect::<Vec<_>>();
                     if !children.is_empty() {
-                        let mut head = children
-                            .iter()
-                            .find(|b| b.left_id.is_none())
-                            .map(|b| b.id);
+                        let mut head = children.iter().find(|b| b.left_id.is_none()).map(|b| b.id);
                         let mut ordered_children = Vec::new();
                         let mut child_seen = HashSet::new();
                         while let Some(cid) = head {
@@ -327,7 +316,12 @@ mod tests {
     use super::*;
     use crate::block::Block;
 
-    fn make_block(id: BlockId, content: &str, parent: Option<BlockId>, left: Option<BlockId>) -> Block {
+    fn make_block(
+        id: BlockId,
+        content: &str,
+        parent: Option<BlockId>,
+        left: Option<BlockId>,
+    ) -> Block {
         let mut b = Block::new(id, content.to_string());
         b.parent_id = parent;
         b.left_id = left;
@@ -469,7 +463,8 @@ mod tests {
 
         let block_a = Block::new(a, "TODO item".into()).with_marker(crate::block::TaskMarker::Todo);
         let block_b = Block::new(b, "Done item".into()).with_marker(crate::block::TaskMarker::Done);
-        let block_c = Block::new(c, "Another TODO".into()).with_marker(crate::block::TaskMarker::Todo);
+        let block_c =
+            Block::new(c, "Another TODO".into()).with_marker(crate::block::TaskMarker::Todo);
 
         tree.insert(block_a);
         tree.insert(block_b);

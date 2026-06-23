@@ -27,7 +27,11 @@ pub async fn get_sync_status(
                 .collect();
 
             Ok(SyncStatusDto {
-                status: if conflicts.is_empty() { "ok".into() } else { "conflicts".into() },
+                status: if conflicts.is_empty() {
+                    "ok".into()
+                } else {
+                    "conflicts".into()
+                },
                 branch: Some("main".into()), // Simplified
                 ahead: 0,
                 behind: 0,
@@ -74,7 +78,11 @@ pub async fn sync_vault(
         .collect();
 
     Ok(SyncStatusDto {
-        status: if conflicts.is_empty() { "ok".into() } else { "conflicts".into() },
+        status: if conflicts.is_empty() {
+            "ok".into()
+        } else {
+            "conflicts".into()
+        },
         branch: Some("main".into()),
         ahead: 0,
         behind: 0,

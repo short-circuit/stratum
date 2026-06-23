@@ -106,21 +106,15 @@ impl Graph {
 
     /// Get outgoing links from a source slug.
     pub fn get_outgoing_links(&self, source_slug: &str) -> Vec<Edge> {
-        self.outgoing
-            .get(source_slug)
-            .cloned()
-            .unwrap_or_default()
+        self.outgoing.get(source_slug).cloned().unwrap_or_default()
     }
 
     /// Find text that matches a note title but isn't linked (unlinked mentions).
     /// Checks body text against all known note titles/slugs.
     pub fn find_unlinked_mentions(&self, note: &Note) -> Vec<String> {
         let body = note.body.to_lowercase();
-        let existing_targets: HashSet<String> = note
-            .links
-            .iter()
-            .map(|l| l.target.to_lowercase())
-            .collect();
+        let existing_targets: HashSet<String> =
+            note.links.iter().map(|l| l.target.to_lowercase()).collect();
 
         let mut mentions = Vec::new();
 
@@ -399,7 +393,8 @@ mod tests {
                 ..Default::default()
             },
             "This text mentions Note B but doesn't link it.".to_string(),
-            "---\ntitle: Mentioner\n---\nThis text mentions Note B but doesn't link it.".to_string(),
+            "---\ntitle: Mentioner\n---\nThis text mentions Note B but doesn't link it."
+                .to_string(),
             vec![],
             vec![],
             chrono::Utc::now(),

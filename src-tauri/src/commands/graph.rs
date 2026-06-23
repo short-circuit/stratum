@@ -123,8 +123,7 @@ pub async fn get_connected_components(
         let mut nodes = Vec::new();
         for slug in &group {
             if let Some(node) = graph.get_node(slug) {
-                let degree =
-                    graph.get_outgoing_links(slug).len() + graph.get_backlinks(slug).len();
+                let degree = graph.get_outgoing_links(slug).len() + graph.get_backlinks(slug).len();
                 nodes.push(GraphNodeDto {
                     id: node.slug.clone(),
                     title: node.title.clone(),

@@ -165,10 +165,7 @@ impl RemoteEmbedding {
 #[async_trait]
 impl Embedding for RemoteEmbedding {
     async fn embed(&self, texts: &[String]) -> PkmResult<Vec<Vec<f32>>> {
-        let url = format!(
-            "{}/embeddings",
-            self.endpoint.trim_end_matches('/')
-        );
+        let url = format!("{}/embeddings", self.endpoint.trim_end_matches('/'));
 
         #[derive(Serialize)]
         struct RemoteEmbeddingRequest<'a> {

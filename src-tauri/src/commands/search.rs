@@ -18,9 +18,7 @@ pub struct SearchResultsDto {
 }
 
 #[tauri::command]
-pub async fn rebuild_search_index(
-    state: tauri::State<'_, AppState>,
-) -> Result<String, String> {
+pub async fn rebuild_search_index(state: tauri::State<'_, AppState>) -> Result<String, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     let pages = store.list_pages().map_err(|e| e.to_string())?;
@@ -31,7 +29,9 @@ pub async fn rebuild_search_index(
 
     let mut count = 0usize;
     for page_path in &pages {
-        let blocks = store.get_blocks_by_page(page_path).map_err(|e| e.to_string())?;
+        let blocks = store
+            .get_blocks_by_page(page_path)
+            .map_err(|e| e.to_string())?;
         for block in &blocks {
             block_index.index_block(block, page_path).ok();
             count += 1;
@@ -39,7 +39,11 @@ pub async fn rebuild_search_index(
     }
 
     block_index.flush().map_err(|e| e.to_string())?;
-    Ok(format!("Indexed {} blocks from {} pages", count, pages.len()))
+    Ok(format!(
+        "Indexed {} blocks from {} pages",
+        count,
+        pages.len()
+    ))
 }
 
 #[tauri::command]
@@ -88,7 +92,9 @@ pub async fn get_page_backlinks(
 ) -> Result<Vec<BacklinkDto>, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    let page_backlinks = store.get_backlinks_for_page(&page_path).map_err(|e| e.to_string())?;
+    let page_backlinks = store
+        .get_backlinks_for_page(&page_path)
+        .map_err(|e| e.to_string())?;
 
     let mut results = Vec::new();
     for src_str in &page_backlinks {
@@ -113,11 +119,12 @@ pub async fn get_page_backlinks(
     let lower_name = page_name.to_lowercase();
 
     let all_pages = store.list_pages().map_err(|e| e.to_string())?;
-    let linked_ids: std::collections::HashSet<String> =
-        page_backlinks.iter().cloned().collect();
+    let linked_ids: std::collections::HashSet<String> = page_backlinks.iter().cloned().collect();
 
     for other_page in all_pages {
-        let blocks = store.get_blocks_by_page(&other_page).map_err(|e| e.to_string())?;
+        let blocks = store
+            .get_blocks_by_page(&other_page)
+            .map_err(|e| e.to_string())?;
         for block in blocks {
             if block.content.to_lowercase().contains(&lower_name)
                 && !linked_ids.contains(&block.id.to_string())
@@ -147,7 +154,9 @@ pub async fn get_backlinks(
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     let id = uuid::Uuid::parse_str(&block_id).map_err(|e| e.to_string())?;
-    let source_ids = store.get_backlinks_for_block(id).map_err(|e| e.to_string())?;
+    let source_ids = store
+        .get_backlinks_for_block(id)
+        .map_err(|e| e.to_string())?;
 
     let mut results = Vec::new();
     for src_str in source_ids {

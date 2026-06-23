@@ -35,8 +35,14 @@ pub async fn build_markdown(
             b.parent_id = dto.parent_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
             b.left_id = dto.left_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
             b.properties = dto.properties.into_iter().collect();
-            b.marker = dto.marker.as_ref().and_then(|m| pkm_block::TaskMarker::parse(m));
-            b.priority = dto.priority.as_ref().and_then(|p| pkm_block::Priority::parse(p));
+            b.marker = dto
+                .marker
+                .as_ref()
+                .and_then(|m| pkm_block::TaskMarker::parse(m));
+            b.priority = dto
+                .priority
+                .as_ref()
+                .and_then(|p| pkm_block::Priority::parse(p));
             b.meta.collapsed = dto.collapsed;
             b.meta.heading_level = dto.heading_level;
             b
@@ -71,8 +77,14 @@ pub async fn save_blocks(
             b.parent_id = dto.parent_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
             b.left_id = dto.left_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
             b.properties = dto.properties.into_iter().collect();
-            b.marker = dto.marker.as_ref().and_then(|m| pkm_block::TaskMarker::parse(m));
-            b.priority = dto.priority.as_ref().and_then(|p| pkm_block::Priority::parse(p));
+            b.marker = dto
+                .marker
+                .as_ref()
+                .and_then(|m| pkm_block::TaskMarker::parse(m));
+            b.priority = dto
+                .priority
+                .as_ref()
+                .and_then(|p| pkm_block::Priority::parse(p));
             b.meta.collapsed = dto.collapsed;
             b.meta.heading_level = dto.heading_level;
             b
@@ -93,9 +105,13 @@ pub async fn save_blocks(
     std::fs::write(&full_path, &markdown).map_err(|e| e.to_string())?;
 
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    store.delete_blocks_by_page(&page_path).map_err(|e| e.to_string())?;
+    store
+        .delete_blocks_by_page(&page_path)
+        .map_err(|e| e.to_string())?;
     for block in &pkm_blocks {
-        store.insert_block(block, &page_path).map_err(|e| e.to_string())?;
+        store
+            .insert_block(block, &page_path)
+            .map_err(|e| e.to_string())?;
     }
 
     // Index blocks in Tantivy for full-text search
@@ -123,7 +139,9 @@ pub async fn get_blocks(
 ) -> Result<BlockListDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    let blocks = store.get_blocks_by_page(&page_path).map_err(|e| e.to_string())?;
+    let blocks = store
+        .get_blocks_by_page(&page_path)
+        .map_err(|e| e.to_string())?;
 
     let dtos: Vec<BlockDto> = blocks
         .into_iter()
@@ -153,10 +171,16 @@ pub async fn update_block(
     let id = Uuid::parse_str(&block.id).map_err(|e| e.to_string())?;
 
     let mut b = pkm_block::Block::new(id, block.content);
-    b.parent_id = block.parent_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
+    b.parent_id = block
+        .parent_id
+        .as_ref()
+        .and_then(|s| Uuid::parse_str(s).ok());
     b.left_id = block.left_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
     b.properties = block.properties.into_iter().collect();
-    b.marker = block.marker.as_ref().and_then(|m| pkm_block::TaskMarker::parse(m));
+    b.marker = block
+        .marker
+        .as_ref()
+        .and_then(|m| pkm_block::TaskMarker::parse(m));
     b.priority = block
         .priority
         .as_ref()
@@ -165,7 +189,9 @@ pub async fn update_block(
     b.meta.heading_level = block.heading_level;
 
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    store.insert_block(&b, &page_path).map_err(|e| e.to_string())?;
+    store
+        .insert_block(&b, &page_path)
+        .map_err(|e| e.to_string())?;
 
     Ok(())
 }
@@ -198,7 +224,9 @@ pub async fn insert_block(
     block.left_id = after_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
 
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    store.insert_block(&block, &page_path).map_err(|e| e.to_string())?;
+    store
+        .insert_block(&block, &page_path)
+        .map_err(|e| e.to_string())?;
 
     Ok(BlockDto {
         id: id.to_string(),

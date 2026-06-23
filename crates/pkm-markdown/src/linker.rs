@@ -193,8 +193,18 @@ mod tests {
     #[test]
     fn test_resolve_links() {
         let mut links = vec![
-            Link { target: "Note-A".to_string(), display_text: None, resolved: false, line: 1 },
-            Link { target: "Note-B".to_string(), display_text: None, resolved: false, line: 2 },
+            Link {
+                target: "Note-A".to_string(),
+                display_text: None,
+                resolved: false,
+                line: 1,
+            },
+            Link {
+                target: "Note-B".to_string(),
+                display_text: None,
+                resolved: false,
+                line: 2,
+            },
         ];
         let mut known = std::collections::HashSet::new();
         known.insert("note-a".to_string());

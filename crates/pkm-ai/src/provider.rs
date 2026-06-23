@@ -313,38 +313,37 @@ impl LlmProvider for OllamaProvider {
             .await
             .map_err(|e| PkmError::Ai(format!("Ollama stream request failed: {e}")))?;
 
-        let stream = response.bytes_stream().map(|chunk_result| match chunk_result {
-            Ok(bytes) => {
-                // Ollama sends one JSON object per line when streaming
-                let text = String::from_utf8_lossy(&bytes);
-                #[derive(Deserialize)]
-                struct OllamaStreamChunk {
-                    message: Option<OllamaStreamMessage>,
-            _done: bool,
-                }
-                #[derive(Deserialize)]
-                struct OllamaStreamMessage {
-                    content: String,
-                }
+        let stream = response
+            .bytes_stream()
+            .map(|chunk_result| match chunk_result {
+                Ok(bytes) => {
+                    // Ollama sends one JSON object per line when streaming
+                    let text = String::from_utf8_lossy(&bytes);
+                    #[derive(Deserialize)]
+                    struct OllamaStreamChunk {
+                        message: Option<OllamaStreamMessage>,
+                        _done: bool,
+                    }
+                    #[derive(Deserialize)]
+                    struct OllamaStreamMessage {
+                        content: String,
+                    }
 
-                if let Ok(chunk) = serde_json::from_str::<OllamaStreamChunk>(&text) {
-                    let content = chunk
-                        .message
-                        .map(|m| m.content)
-                        .unwrap_or_default();
-                    Ok(ChatDelta {
-                        content,
-                        done: chunk._done,
-                    })
-                } else {
-                    Ok(ChatDelta {
-                        content: String::new(),
-                        done: false,
-                    })
+                    if let Ok(chunk) = serde_json::from_str::<OllamaStreamChunk>(&text) {
+                        let content = chunk.message.map(|m| m.content).unwrap_or_default();
+                        Ok(ChatDelta {
+                            content,
+                            done: chunk._done,
+                        })
+                    } else {
+                        Ok(ChatDelta {
+                            content: String::new(),
+                            done: false,
+                        })
+                    }
                 }
-            }
-            Err(e) => Err(PkmError::Ai(format!("Ollama stream read error: {e}"))),
-        });
+                Err(e) => Err(PkmError::Ai(format!("Ollama stream read error: {e}"))),
+            });
 
         Ok(Box::pin(stream))
     }
@@ -375,10 +374,7 @@ impl OpenAIProvider {
 #[async_trait]
 impl LlmProvider for OpenAIProvider {
     async fn chat(&self, messages: &[ChatMessage], config: &ChatConfig) -> PkmResult<ChatResponse> {
-        let url = format!(
-            "{}/chat/completions",
-            self.endpoint.trim_end_matches('/')
-        );
+        let url = format!("{}/chat/completions", self.endpoint.trim_end_matches('/'));
 
         #[derive(Serialize)]
         struct OpenAIMessage<'a> {
@@ -483,10 +479,7 @@ impl LlmProvider for OpenAIProvider {
         messages: &[ChatMessage],
         config: &ChatConfig,
     ) -> PkmResult<BoxStream<'static, PkmResult<ChatDelta>>> {
-        let url = format!(
-            "{}/chat/completions",
-            self.endpoint.trim_end_matches('/')
-        );
+        let url = format!("{}/chat/completions", self.endpoint.trim_end_matches('/'));
 
         #[derive(Serialize)]
         struct OpenAIMessage<'a> {
@@ -571,9 +564,7 @@ impl LlmProvider for OpenAIProvider {
                             content: Option<String>,
                         }
 
-                        if let Ok(chunk) =
-                            serde_json::from_str::<OpenAIStreamChunk>(data)
-                        {
+                        if let Ok(chunk) = serde_json::from_str::<OpenAIStreamChunk>(data) {
                             let content = chunk
                                 .choices
                                 .first()
@@ -799,15 +790,9 @@ impl LlmProvider for AnthropicProvider {
                             text: Option<String>,
                         }
 
-                        if let Ok(chunk) =
-                            serde_json::from_str::<AnthropicStreamChunk>(data)
-                        {
-                            let is_done =
-                                chunk.chunk_type == "message_stop";
-                            let content = chunk
-                                .delta
-                                .and_then(|d| d.text)
-                                .unwrap_or_default();
+                        if let Ok(chunk) = serde_json::from_str::<AnthropicStreamChunk>(data) {
+                            let is_done = chunk.chunk_type == "message_stop";
+                            let content = chunk.delta.and_then(|d| d.text).unwrap_or_default();
                             ChatDelta {
                                 content,
                                 done: is_done,
@@ -926,10 +911,7 @@ impl LlmProvider for CustomProvider {
 
         let content = body
             .content
-            .or_else(|| {
-                body.message
-                    .and_then(|m| m.content)
-            })
+            .or_else(|| body.message.and_then(|m| m.content))
             .or_else(|| {
                 body.choices
                     .and_then(|c| c.into_iter().next())
@@ -971,7 +953,9 @@ impl ProviderFactory {
                 AiProvider::OpenAI => "https://api.openai.com/v1".to_string(),
                 AiProvider::Anthropic => "https://api.anthropic.com".to_string(),
                 AiProvider::Custom => "http://localhost:8080/v1".to_string(),
-                AiProvider::Google => "https://generativelanguage.googleapis.com/v1beta".to_string(),
+                AiProvider::Google => {
+                    "https://generativelanguage.googleapis.com/v1beta".to_string()
+                }
                 AiProvider::Zai => "https://api.z.ai".to_string(),
             });
 
@@ -1032,10 +1016,7 @@ mod tests {
     async fn test_mock_provider() {
         let mut mock = MockLlmProviderMock::new();
         mock.expect_chat()
-            .with(
-                mockall::predicate::always(),
-                mockall::predicate::always(),
-            )
+            .with(mockall::predicate::always(), mockall::predicate::always())
             .returning(|_, _| {
                 Ok(ChatResponse {
                     content: "Hello from mock!".to_string(),

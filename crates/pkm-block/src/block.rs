@@ -43,7 +43,10 @@ impl TaskMarker {
     }
 
     pub fn is_open(&self) -> bool {
-        matches!(self, Self::Todo | Self::Doing | Self::Now | Self::Later | Self::Waiting)
+        matches!(
+            self,
+            Self::Todo | Self::Doing | Self::Now | Self::Later | Self::Waiting
+        )
     }
 
     pub fn is_closed(&self) -> bool {
@@ -238,7 +241,10 @@ mod tests {
         assert_eq!(block.parent_id, Some(parent));
         assert_eq!(block.marker, Some(TaskMarker::Todo));
         assert_eq!(block.priority, Some(Priority::A));
-        assert_eq!(block.properties.get("deadline").map(|s| s.as_str()), Some("2026-07-01"));
+        assert_eq!(
+            block.properties.get("deadline").map(|s| s.as_str()),
+            Some("2026-07-01")
+        );
         assert!(block.is_task());
     }
 

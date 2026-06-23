@@ -41,10 +41,7 @@ pub struct PageFrontmatter {
 
 impl Page {
     pub fn new(path: PathBuf, vault_root: &std::path::Path) -> Self {
-        let rel_path = path
-            .strip_prefix(vault_root)
-            .unwrap_or(&path)
-            .to_path_buf();
+        let rel_path = path.strip_prefix(vault_root).unwrap_or(&path).to_path_buf();
         let slug = path
             .file_stem()
             .and_then(|s| s.to_str())

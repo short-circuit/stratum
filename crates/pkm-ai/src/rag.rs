@@ -99,13 +99,15 @@ impl RagEngine {
         tracing::debug!("RAG retrieve: \"{query}\" (top_k={top_k})");
 
         // Use full-text search from the index engine
-        let results = self
-            .index
-            .search(query, pkm_core::SearchMode::FullText)?;
+        let results = self.index.search(query, pkm_core::SearchMode::FullText)?;
 
         // Sort by score descending and take top_k
         let mut sorted = results;
-        sorted.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        sorted.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         sorted.truncate(top_k);
 
         // If available, use embeddings to re-rank results by semantic similarity
@@ -365,10 +367,7 @@ mod tests {
         let mut provider = MockRagLlmProviderMock::new();
         provider
             .expect_chat()
-            .with(
-                mockall::predicate::always(),
-                mockall::predicate::always(),
-            )
+            .with(mockall::predicate::always(), mockall::predicate::always())
             .returning(|_, _| {
                 Ok(ChatResponse {
                     content: "I can't answer without context.".to_string(),
@@ -393,15 +392,11 @@ mod tests {
         let mut provider = MockRagLlmProviderMock::new();
         provider
             .expect_chat()
-            .with(
-                mockall::predicate::always(),
-                mockall::predicate::always(),
-            )
+            .with(mockall::predicate::always(), mockall::predicate::always())
             .returning(|_, _| {
                 Ok(ChatResponse {
-                    content:
-                        "Based on [Source 1], Rust is a systems programming language."
-                            .to_string(),
+                    content: "Based on [Source 1], Rust is a systems programming language."
+                        .to_string(),
                     usage: TokenUsage {
                         prompt_tokens: 50,
                         completion_tokens: 15,
@@ -425,25 +420,20 @@ mod tests {
     #[tokio::test]
     async fn test_query_with_mocks() {
         let mut embedding = MockEmbeddingMock::new();
-        embedding
-            .expect_embed()
-            .returning(|texts| {
-                // Return normalized unit vectors
-                let dim = 4;
-                Ok(texts
-                    .iter()
-                    .map(|_| vec![0.5f32; dim]) // same vector = high similarity
-                    .collect())
-            });
+        embedding.expect_embed().returning(|texts| {
+            // Return normalized unit vectors
+            let dim = 4;
+            Ok(texts
+                .iter()
+                .map(|_| vec![0.5f32; dim]) // same vector = high similarity
+                .collect())
+        });
         embedding.expect_dimensions().return_const(4usize);
 
         let mut provider = MockRagLlmProviderMock::new();
         provider
             .expect_chat()
-            .with(
-                mockall::predicate::always(),
-                mockall::predicate::always(),
-            )
+            .with(mockall::predicate::always(), mockall::predicate::always())
             .returning(|_, _| {
                 Ok(ChatResponse {
                     content: "Rust is a systems programming language focused on safety."
@@ -493,10 +483,7 @@ mod tests {
         let mut provider = MockRagLlmProviderMock::new();
         provider
             .expect_chat()
-            .with(
-                mockall::predicate::always(),
-                mockall::predicate::always(),
-            )
+            .with(mockall::predicate::always(), mockall::predicate::always())
             .returning(|_, _| {
                 Ok(ChatResponse {
                     content:
