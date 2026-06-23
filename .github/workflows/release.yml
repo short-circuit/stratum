@@ -77,12 +77,13 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
+          TMP="${RUNNER_TEMP//\\//}"
           if [ "${{ runner.os }}" = "Linux" ]; then
-            npx tauri build --bundles deb 2>&1 | tee ${{ runner.temp }}/tauri-build.log
+            npx tauri build --bundles deb 2>&1 | tee "$TMP/tauri-build.log"
           elif [ "${{ runner.os }}" = "macOS" ]; then
-            APPLE_SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:--}" npx tauri build --bundles dmg 2>&1 | tee ${{ runner.temp }}/tauri-build.log
+            APPLE_SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:--}" npx tauri build --bundles dmg 2>&1 | tee "$TMP/tauri-build.log"
           elif [ "${{ runner.os }}" = "Windows" ]; then
-            RUSTFLAGS="" npx tauri build --bundles nsis 2>&1 | tee ${{ runner.temp }}/tauri-build.log
+            RUSTFLAGS="" npx tauri build --bundles nsis 2>&1 | tee "$TMP/tauri-build.log"
           fi
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
@@ -248,11 +249,13 @@ jobs:
             npx tauri ios init
           fi
 
-      - name: Build iOS app
+      - name: Add iOS linker flags & build
         shell: bash
         run: |
-          # Set Xcode linker flags for system libraries needed by libgit2
-          export OTHER_LDFLAGS='$(inherited) -lz -liconv'
+          cat > ${{ runner.temp }}/link-flags.xcconfig << 'XCEOF'
+OTHER_LDFLAGS = $(inherited) -lz -liconv
+XCEOF
+          export XCODE_XCCONFIG_FILE=${{ runner.temp }}/link-flags.xcconfig
 
           if [ -n "${{ secrets.APPLE_TEAM_ID }}" ]; then
             npx tauri ios build 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
@@ -264,7 +267,6 @@ jobs:
           APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          OTHER_LDFLAGS: $(inherited) -lz -liconv
 
       - name: Upload build log
         if: failure()
