@@ -59,7 +59,7 @@ pub struct RawManifest {
 }
 
 fn default_version() -> String {
-    "0.1.0".to_string()
+    "0.2.0".to_string()
 }
 fn default_entry_point() -> String {
     "plugin.wasm".to_string()
@@ -122,7 +122,7 @@ impl PluginRegistry {
                 // Build a minimal manifest from the PluginConfig
                 PluginManifest {
                     name: cfg.name.clone(),
-                    version: "0.1.0".to_string(),
+                    version: "0.2.0".to_string(),
                     author: String::new(),
                     description: String::new(),
                     permissions: PermissionSet::from_config_strings(&cfg.permissions),
@@ -296,7 +296,7 @@ mod tests {
     fn test_create_manifest() {
         let manifest = PluginManifest {
             name: "test-plugin".to_string(),
-            version: "0.1.0".to_string(),
+            version: "0.2.0".to_string(),
             author: "Alice".to_string(),
             description: "A test".to_string(),
             permissions: PermissionSet::from_permissions(&[Permission::FileRead]),
@@ -438,7 +438,7 @@ mod tests {
     fn test_plugin_state_new() {
         let manifest = PluginManifest {
             name: "state-test".to_string(),
-            version: "0.1.0".to_string(),
+            version: "0.2.0".to_string(),
             author: String::new(),
             description: String::new(),
             permissions: PermissionSet::new(),
