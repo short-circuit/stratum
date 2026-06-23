@@ -35,8 +35,8 @@ pub async fn build_markdown(
             b.parent_id = dto.parent_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
             b.left_id = dto.left_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
             b.properties = dto.properties.into_iter().collect();
-            b.marker = dto.marker.as_ref().and_then(|m| pkm_block::TaskMarker::from_str(m));
-            b.priority = dto.priority.as_ref().and_then(|p| pkm_block::Priority::from_str(p));
+            b.marker = dto.marker.as_ref().and_then(|m| pkm_block::TaskMarker::parse(m));
+            b.priority = dto.priority.as_ref().and_then(|p| pkm_block::Priority::parse(p));
             b.meta.collapsed = dto.collapsed;
             b.meta.heading_level = dto.heading_level;
             b
@@ -71,8 +71,8 @@ pub async fn save_blocks(
             b.parent_id = dto.parent_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
             b.left_id = dto.left_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
             b.properties = dto.properties.into_iter().collect();
-            b.marker = dto.marker.as_ref().and_then(|m| pkm_block::TaskMarker::from_str(m));
-            b.priority = dto.priority.as_ref().and_then(|p| pkm_block::Priority::from_str(p));
+            b.marker = dto.marker.as_ref().and_then(|m| pkm_block::TaskMarker::parse(m));
+            b.priority = dto.priority.as_ref().and_then(|p| pkm_block::Priority::parse(p));
             b.meta.collapsed = dto.collapsed;
             b.meta.heading_level = dto.heading_level;
             b
@@ -156,11 +156,11 @@ pub async fn update_block(
     b.parent_id = block.parent_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
     b.left_id = block.left_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
     b.properties = block.properties.into_iter().collect();
-    b.marker = block.marker.as_ref().and_then(|m| pkm_block::TaskMarker::from_str(m));
+    b.marker = block.marker.as_ref().and_then(|m| pkm_block::TaskMarker::parse(m));
     b.priority = block
         .priority
         .as_ref()
-        .and_then(|p| pkm_block::Priority::from_str(p));
+        .and_then(|p| pkm_block::Priority::parse(p));
     b.meta.collapsed = block.collapsed;
     b.meta.heading_level = block.heading_level;
 

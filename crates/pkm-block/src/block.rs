@@ -17,7 +17,7 @@ pub enum TaskMarker {
 }
 
 impl TaskMarker {
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s.to_uppercase().as_str() {
             "TODO" => Some(Self::Todo),
             "DOING" => Some(Self::Doing),
@@ -59,7 +59,7 @@ pub enum Priority {
 }
 
 impl Priority {
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s.to_uppercase().as_str() {
             "A" => Some(Self::A),
             "B" => Some(Self::B),
@@ -189,12 +189,12 @@ mod tests {
 
     #[test]
     fn test_task_marker_from_str() {
-        assert_eq!(TaskMarker::from_str("TODO"), Some(TaskMarker::Todo));
-        assert_eq!(TaskMarker::from_str("done"), Some(TaskMarker::Done));
-        assert_eq!(TaskMarker::from_str("LATER"), Some(TaskMarker::Later));
-        assert_eq!(TaskMarker::from_str("cancelled"), Some(TaskMarker::Cancelled));
-        assert_eq!(TaskMarker::from_str("canceled"), Some(TaskMarker::Cancelled));
-        assert_eq!(TaskMarker::from_str("UNKNOWN"), None);
+        assert_eq!(TaskMarker::parse("TODO"), Some(TaskMarker::Todo));
+        assert_eq!(TaskMarker::parse("done"), Some(TaskMarker::Done));
+        assert_eq!(TaskMarker::parse("LATER"), Some(TaskMarker::Later));
+        assert_eq!(TaskMarker::parse("cancelled"), Some(TaskMarker::Cancelled));
+        assert_eq!(TaskMarker::parse("canceled"), Some(TaskMarker::Cancelled));
+        assert_eq!(TaskMarker::parse("UNKNOWN"), None);
     }
 
     #[test]
@@ -209,9 +209,9 @@ mod tests {
 
     #[test]
     fn test_priority_from_str() {
-        assert_eq!(Priority::from_str("A"), Some(Priority::A));
-        assert_eq!(Priority::from_str("b"), Some(Priority::B));
-        assert_eq!(Priority::from_str("D"), None);
+        assert_eq!(Priority::parse("A"), Some(Priority::A));
+        assert_eq!(Priority::parse("b"), Some(Priority::B));
+        assert_eq!(Priority::parse("D"), None);
     }
 
     #[test]
@@ -260,7 +260,7 @@ mod tests {
             TaskMarker::Waiting,
             TaskMarker::Cancelled,
         ] {
-            assert_eq!(TaskMarker::from_str(marker.as_str()), Some(*marker));
+            assert_eq!(TaskMarker::parse(marker.as_str()), Some(*marker));
         }
     }
 

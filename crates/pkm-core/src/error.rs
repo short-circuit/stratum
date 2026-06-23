@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn test_all_variants_display() {
         let variants: Vec<PkmError> = vec![
-            PkmError::Io(std::io::Error::new(std::io::ErrorKind::Other, "io")),
+            PkmError::Io(std::io::Error::other("io")),
             PkmError::Config("config".into()),
             PkmError::MarkdownParse("md".into()),
             PkmError::Frontmatter("fm".into()),

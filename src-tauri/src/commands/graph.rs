@@ -139,7 +139,7 @@ pub async fn get_connected_components(
     }
 
     // Sort largest components first
-    components.sort_by(|a, b| b.size.cmp(&a.size));
+    components.sort_by_key(|c| std::cmp::Reverse(c.size));
 
     Ok(components)
 }

@@ -33,7 +33,7 @@ impl TantivyIndex {
                 .map_err(|e| PkmError::Index(format!("Failed to open index: {}", e)))?
         } else {
             info!("Creating new Tantivy index at {:?}", path);
-            std::fs::create_dir_all(path).map_err(|e| PkmError::Io(e))?;
+            std::fs::create_dir_all(path).map_err(PkmError::Io)?;
             Index::create_in_dir(path, (*schema).clone())
                 .map_err(|e| PkmError::Index(format!("Failed to create index: {}", e)))?
         };

@@ -26,7 +26,7 @@ impl Permission {
     /// - `"git"` → `Git`
     /// - `"exec"` → `Exec`
     /// - `"all"` → `All`
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s.trim() {
             "file:read" => Some(Self::FileRead),
             "file:write" => Some(Self::FileWrite),
@@ -92,7 +92,7 @@ impl PermissionSet {
     pub fn from_config_strings(strings: &[String]) -> Self {
         let mut set = Self::new();
         for s in strings {
-            if let Some(p) = Permission::from_str(s) {
+            if let Some(p) = Permission::parse(s) {
                 set.grant(p);
             }
         }
@@ -218,14 +218,14 @@ mod tests {
 
     #[test]
     fn test_parse_permission_strings() {
-        assert_eq!(Permission::from_str("file:read"), Some(Permission::FileRead));
-        assert_eq!(Permission::from_str("file:write"), Some(Permission::FileWrite));
-        assert_eq!(Permission::from_str("network"), Some(Permission::Network));
-        assert_eq!(Permission::from_str("git"), Some(Permission::Git));
-        assert_eq!(Permission::from_str("exec"), Some(Permission::Exec));
-        assert_eq!(Permission::from_str("all"), Some(Permission::All));
-        assert_eq!(Permission::from_str("unknown"), None);
-        assert_eq!(Permission::from_str(""), None);
+        assert_eq!(Permission::parse("file:read"), Some(Permission::FileRead));
+        assert_eq!(Permission::parse("file:write"), Some(Permission::FileWrite));
+        assert_eq!(Permission::parse("network"), Some(Permission::Network));
+        assert_eq!(Permission::parse("git"), Some(Permission::Git));
+        assert_eq!(Permission::parse("exec"), Some(Permission::Exec));
+        assert_eq!(Permission::parse("all"), Some(Permission::All));
+        assert_eq!(Permission::parse("unknown"), None);
+        assert_eq!(Permission::parse(""), None);
     }
 
     #[test]

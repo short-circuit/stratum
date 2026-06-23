@@ -35,40 +35,38 @@ pub fn detect_conflicts(repo: &GitEngine) -> Result<Vec<ConflictFile>, PkmError>
 
     let mut conflicts = Vec::new();
     if let Ok(conflict_iter) = index.conflicts() {
-        for entry_res in conflict_iter {
-            if let Ok(entry) = entry_res {
-                let path = entry
-                    .our
-                    .as_ref()
-                    .or_else(|| entry.their.as_ref())
-                    .map(|e| {
-                        std::str::from_utf8(&e.path)
-                            .unwrap_or("<non-utf8>")
-                            .to_string()
-                    })
-                    .unwrap_or_default();
+        for entry in conflict_iter.flatten() {
+            let path = entry
+                .our
+                .as_ref()
+                .or(entry.their.as_ref())
+                .map(|e| {
+                    std::str::from_utf8(&e.path)
+                        .unwrap_or("<non-utf8>")
+                        .to_string()
+                })
+                .unwrap_or_default();
 
-                if path.is_empty() {
-                    continue;
-                }
-
-                let our_diff = repo
-                    .diff(&path)
-                    .unwrap_or_else(|_| format!("(unable to compute diff for {path})"));
-
-                // For "their" diff we approximate by showing the conflicted file content.
-                let workdir_path = git_repo.workdir().map(|w| w.join(&path));
-                let their_diff = match workdir_path {
-                    Some(p) => fs::read_to_string(p).unwrap_or_default(),
-                    None => String::new(),
-                };
-
-                conflicts.push(ConflictFile {
-                    path,
-                    our_diff,
-                    their_diff,
-                });
+            if path.is_empty() {
+                continue;
             }
+
+            let our_diff = repo
+                .diff(&path)
+                .unwrap_or_else(|_| format!("(unable to compute diff for {path})"));
+
+            // For "their" diff we approximate by showing the conflicted file content.
+            let workdir_path = git_repo.workdir().map(|w| w.join(&path));
+            let their_diff = match workdir_path {
+                Some(p) => fs::read_to_string(p).unwrap_or_default(),
+                None => String::new(),
+            };
+
+            conflicts.push(ConflictFile {
+                path,
+                our_diff,
+                their_diff,
+            });
         }
     }
 
