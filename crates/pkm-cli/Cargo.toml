@@ -23,4 +23,4 @@ pkm-sync = { path = "../pkm-sync" }
 pkm-watcher = { path = "../pkm-watcher" }
 pkm-ai = { path = "../pkm-ai" }
 pkm-plugin = { path = "../pkm-plugin" }
-git2 = "0.19"
+git2.workspace = true
