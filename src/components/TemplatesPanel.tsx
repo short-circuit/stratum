@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import * as api from '../lib/commands';
 
 export default function TemplatesPanel() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [templates, setTemplates] = useState<any[]>([]);
   const [targetPath, setTargetPath] = useState('');
   const [variables, setVariables] = useState<[string, string][]>([['', '']]);

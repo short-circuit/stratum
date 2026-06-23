@@ -13,6 +13,7 @@ export default function BacklinksPanel({ pagePath }: Props) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     api.getPageBacklinks(pagePath).then(items => {
       setBacklinks(items);

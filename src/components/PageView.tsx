@@ -13,6 +13,7 @@ export default function PageView() {
   useEffect(() => {
     if (pagePath) {
       openPage(decodeURIComponent(pagePath));
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setEditorKey(k => k + 1);
     }
   }, [pagePath]);
