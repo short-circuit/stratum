@@ -18,6 +18,7 @@ pub struct FlashcardDto {
     pub next_review: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ReviewResult {
     pub quality: u8, // 0-5 SM-2 quality rating
