@@ -133,7 +133,8 @@ jobs:
 
       - name: Install NDK
         run: |
-          sdkmanager --install "ndk;26.1.10909125" "cmake;3.22.1"
+          sdkmanager --install "ndk;27.0.12077973" "cmake;3.22.1"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
 
       - name: Install Linux dependencies
         run: |
