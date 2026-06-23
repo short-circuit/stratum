@@ -1,5 +1,8 @@
 # Stratum
 
+[![CI](https://github.com/short-circuit/stratum/actions/workflows/ci.yml/badge.svg)](https://github.com/short-circuit/stratum/actions/workflows/ci.yml)
+[![Release](https://github.com/short-circuit/stratum/actions/workflows/release.yml/badge.svg)](https://github.com/short-circuit/stratum/actions/workflows/release.yml)
+
 A privacy-first, offline-capable personal knowledge management (PKM) system with
 native Git sync, bi-directional linking, graph visualization, and AI-augmented
 search/chat. Notes are stored as plain Markdown files on disk — zero vendor lock-in.
