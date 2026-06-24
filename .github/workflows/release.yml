@@ -65,9 +65,9 @@ jobs:
 
       - name: Install Perl (Windows)
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
           choco install strawberryperl --no-progress -y 2>$null
-          # Find Strawberry Perl and set it as the active Perl
           $perl = Get-Command perl.exe -ErrorAction SilentlyContinue | Select -ExpandProperty Source
           if (-not $perl) { $perl = "C:\Strawberry\perl\bin\perl.exe" }
           echo "PERL=$perl" | Out-File -FilePath $env:GITHUB_ENV -Append
@@ -217,8 +217,6 @@ jobs:
 
   ios:
     runs-on: macos-latest
-    env:
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
     steps:
       - uses: actions/checkout@v4
@@ -253,31 +251,25 @@ jobs:
             npx tauri ios init
           fi
 
-      - name: Add iOS linker flags & build
+      - name: Patch Xcode project for system libraries
+        run: |
+          PBX="${{ github.workspace }}/src-tauri/gen/apple/stratum-tauri.xcodeproj/project.pbxproj"
+          if [ ! -f "$PBX" ]; then
+            echo "Xcode project not found at $PBX" >&2
+            exit 1
+          fi
+          sed -i '' 's/\$(inherited)/-lz -liconv &/g' "$PBX"
+          echo "Patched Xcode project OTHER_LDFLAGS"
+
+      - name: Build iOS app
         shell: bash
         run: |
-          XCCONFIG_PATH="${{ github.workspace }}/src-tauri/gen/apple/link-flags.xcconfig"
-          printf 'OTHER_LDFLAGS = $(inherited) -lz -liconv\n' > "$XCCONFIG_PATH"
-          export XCODE_XCCONFIG_FILE="$XCCONFIG_PATH"
-
-          if [ -n "${{ secrets.APPLE_TEAM_ID }}" ]; then
-            npx tauri ios build 2>&1 | tee "${{ runner.temp }}/tauri-build.log"; exit ${PIPESTATUS[0]}
-          else
-            npx tauri ios build --target aarch64-sim 2>&1 | tee "${{ runner.temp }}/tauri-build.log"; exit ${PIPESTATUS[0]}
-          fi
+          npx tauri ios build --target aarch64-sim --ci 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-
-      - name: Upload build log
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-log
-          path: ${{ runner.temp }}/tauri-build.log
-          if-no-files-found: warn
 
       - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
@@ -286,6 +278,14 @@ jobs:
           path: |
             src-tauri/gen/ios/**/*.app
             src-tauri/gen/ios/**/*.ipa
+          if-no-files-found: warn
+
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-log
+          path: ${{ runner.temp }}/tauri-build.log
           if-no-files-found: warn
 
   release:
