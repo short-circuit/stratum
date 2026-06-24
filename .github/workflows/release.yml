@@ -287,14 +287,12 @@ jobs:
             npx tauri ios init
           fi
 
-      - name: Build iOS app
+      - name: Patch Xcode project & build
         shell: bash
         run: |
-          echo 'OTHER_LDFLAGS = $(inherited) -lz -liconv' > "$XCCONFIG_PATH"
+          python3 -c "import re,sys;c=open(sys.argv[1]).read();c=re.sub(r'(OTHER_LDFLAGS\s*=\s*\")',r'\1-lz -liconv ',c);open(sys.argv[1],'w').write(c);print('Patched')" "${{ github.workspace }}/src-tauri/gen/apple/stratum-tauri.xcodeproj/project.pbxproj"
           npx tauri ios build --target aarch64-sim --ci 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
         env:
-          XCCONFIG_PATH: ${{ github.workspace }}/src-tauri/gen/apple/link-flags.xcconfig
-          XCODE_XCCONFIG_FILE: ${{ github.workspace }}/src-tauri/gen/apple/link-flags.xcconfig
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
