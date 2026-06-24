@@ -251,21 +251,14 @@ jobs:
             npx tauri ios init
           fi
 
-      - name: Patch Xcode project for system libraries
-        run: |
-          PBX="${{ github.workspace }}/src-tauri/gen/apple/stratum-tauri.xcodeproj/project.pbxproj"
-          if [ ! -f "$PBX" ]; then
-            echo "Xcode project not found at $PBX" >&2
-            exit 1
-          fi
-          sed -i '' 's/\$(inherited)/-lz -liconv &/g' "$PBX"
-          echo "Patched Xcode project OTHER_LDFLAGS"
-
       - name: Build iOS app
         shell: bash
         run: |
+          echo 'OTHER_LDFLAGS = $(inherited) -lz -liconv' > "$XCCONFIG_PATH"
           npx tauri ios build --target aarch64-sim --ci 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
         env:
+          XCCONFIG_PATH: ${{ github.workspace }}/src-tauri/gen/apple/link-flags.xcconfig
+          XCODE_XCCONFIG_FILE: ${{ github.workspace }}/src-tauri/gen/apple/link-flags.xcconfig
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
