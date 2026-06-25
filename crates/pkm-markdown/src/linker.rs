@@ -11,26 +11,24 @@ use pkm_core::Link;
 /// Handles escaped pipes `\|` inside the link content (not treated as separator).
 pub fn extract_links(text: &str) -> Vec<Link> {
     let mut links = Vec::new();
-    let chars: Vec<char> = text.chars().collect();
-    let len = chars.len();
+    let pairs: Vec<(usize, char)> = text.char_indices().collect();
+    let len = pairs.len();
     let mut i = 0;
 
     while i < len {
-        if i + 1 < len && chars[i] == '[' && chars[i + 1] == '[' {
-            let link_start = i;
+        if i + 1 < len && pairs[i].1 == '[' && pairs[i + 1].1 == '[' {
+            let link_start_byte = pairs[i].0;
             i += 2;
             let mut depth: i32 = 2;
 
-            // Track content start (inside [[ ... ]])
             let content_start = i;
 
             while i < len {
-                if i + 1 < len && chars[i] == ']' && chars[i + 1] == ']' {
+                if i + 1 < len && pairs[i].1 == ']' && pairs[i + 1].1 == ']' {
                     depth -= 2;
                     if depth == 0 {
-                        // Found matching ]]
-                        let inner: String = chars[content_start..i].iter().collect();
-                        let line = text[..link_start].matches('\n').count() + 1;
+                        let inner: String = pairs[content_start..i].iter().map(|(_, c)| c).collect();
+                        let line = text[..link_start_byte].matches('\n').count() + 1;
 
                         if let Some(parsed) = parse_link_inner(&inner) {
                             links.push(Link {
@@ -41,11 +39,11 @@ pub fn extract_links(text: &str) -> Vec<Link> {
                             });
                         }
 
-                        i += 2; // skip ]]
+                        i += 2;
                         break;
                     }
                     i += 2;
-                } else if i + 1 < len && chars[i] == '[' && chars[i + 1] == '[' {
+                } else if i + 1 < len && pairs[i].1 == '[' && pairs[i + 1].1 == '[' {
                     depth += 2;
                     i += 2;
                 } else {
