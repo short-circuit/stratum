@@ -47,8 +47,36 @@ pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto
     Ok(PageListDto { pages })
 }
 
-/// Scan the vault filesystem for .md files and upsert any missing ones into SQLite.
+/// Read a single .md file from disk, parse it, and sync its page metadata + blocks
+/// into SQLite. Returns true if the page was synced, false if the file couldn't be read.
+fn sync_page_from_disk(store: &pkm_block::BlockStore, rel: &str, vault_path: &Path) -> Result<bool, String> {
+    let full = vault_path.join(rel);
+    let content = std::fs::read_to_string(&full).map_err(|e| e.to_string())?;
+    let (fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
+
+    let mut page = pkm_block::Page::new(full, vault_path);
+    page.frontmatter = pkm_block::PageFrontmatter {
+        title: fm.title,
+        created: fm.created,
+        modified: fm.modified,
+        tags: fm.tags,
+        aliases: fm.aliases,
+        ..Default::default()
+    };
+    store.upsert_page(&page).map_err(|e| e.to_string())?;
+
+    store.delete_blocks_by_page(rel).map_err(|e| e.to_string())?;
+    for block in &blocks {
+        store.insert_block(block, rel).map_err(|e| e.to_string())?;
+    }
+
+    Ok(true)
+}
+
+/// Scan the vault filesystem for .md files and upsert any missing or empty ones into SQLite.
 /// Called once at app startup to import pre-existing pages.
+/// Pages already in SQLite with zero blocks are also re-synced from disk to recover from
+/// partial imports (e.g. the initial bug where blocks weren't parsed).
 pub fn sync_filesystem_to_db(vault_path: &Path, db_path: &Path) -> Result<usize, String> {
     let store = pkm_block::BlockStore::open(db_path).map_err(|e| e.to_string())?;
     let db_paths = store.list_pages().map_err(|e| e.to_string())?;
@@ -56,13 +84,38 @@ pub fn sync_filesystem_to_db(vault_path: &Path, db_path: &Path) -> Result<usize,
 
     let mut count = 0;
     for rel in md_files {
-        if !db_paths.contains(&rel) {
-            let full = vault_path.join(&rel);
-            let page = pkm_block::Page::new(full, vault_path);
-            store.upsert_page(&page).map_err(|e| e.to_string())?;
+        let needs_sync = if db_paths.iter().any(|p| p == &rel) {
+            let blocks = store.get_blocks_by_page(&rel).unwrap_or_default();
+            blocks.is_empty()
+        } else {
+            true
+        };
+
+        if needs_sync {
+            if sync_page_from_disk(&store, &rel, vault_path)? {
+                count += 1;
+            }
+        }
+    }
+    Ok(count)
+}
+
+/// Re-sync every .md file from disk into SQLite. Useful after importing a new dataset
+/// or recovering from a corrupted/inconsistent blocks.db.
+#[tauri::command]
+pub async fn reindex_vault(state: tauri::State<'_, AppState>) -> Result<usize, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let md_files = find_md_files(&state.vault_path, &state.vault_path).map_err(|e| e.to_string())?;
+
+    let mut count = 0;
+    for rel in &md_files {
+        if sync_page_from_disk(&store, rel, &state.vault_path)? {
             count += 1;
         }
     }
+
+    eprintln!("[stratum] Reindexed {} pages from filesystem", count);
     Ok(count)
 }
 
