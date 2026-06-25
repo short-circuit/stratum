@@ -91,10 +91,8 @@ pub fn sync_filesystem_to_db(vault_path: &Path, db_path: &Path) -> Result<usize,
             true
         };
 
-        if needs_sync {
-            if sync_page_from_disk(&store, &rel, vault_path)? {
-                count += 1;
-            }
+        if needs_sync && sync_page_from_disk(&store, &rel, vault_path)? {
+            count += 1;
         }
     }
     Ok(count)

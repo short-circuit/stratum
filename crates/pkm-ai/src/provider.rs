@@ -960,15 +960,15 @@ impl LlmProvider for CustomProvider {
                     .and_then(|c| c.into_iter().next())
                     .and_then(|c| c.message.content)
             })
-            .or_else(|| body.response)
-            .or_else(|| body.generated_text)
-            .or_else(|| body.output)
+            .or(body.response)
+            .or(body.generated_text)
+            .or(body.output)
             .or_else(|| {
                 body.results
                     .and_then(|r| r.into_iter().next())
                     .and_then(|r| r.text)
             })
-            .or_else(|| body.text)
+            .or(body.text)
             .unwrap_or_default();
 
         Ok(ChatResponse {

@@ -392,7 +392,7 @@ pub async fn suggest_connections(
         }
     }
 
-    suggestions.sort_by(|a, b| b.score.cmp(&a.score));
+    suggestions.sort_by_key(|b| std::cmp::Reverse(b.score));
     suggestions.truncate(10);
 
     eprintln!("[suggest] found {} connections", suggestions.len());
