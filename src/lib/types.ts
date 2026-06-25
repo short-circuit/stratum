@@ -101,6 +101,18 @@ export interface OrphanDto {
   path: string;
 }
 
+// --- Graph settings ---
+
+export interface GraphSettings {
+  show_connected: boolean;
+  show_orphaned: boolean;
+  show_tags: boolean;
+  charge_strength: number;
+  link_distance: number;
+  alpha_decay: number;
+  velocity_decay: number;
+}
+
 // --- Connection suggestions ---
 
 export interface ConnectionSuggestion {

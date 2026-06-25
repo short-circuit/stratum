@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/commands';
-import type { GraphNodeDto, GraphEdgeDto, GraphDataDto, ComponentDto, OrphanDto } from '../lib/types';
+import type { GraphSettings, GraphNodeDto, GraphEdgeDto, GraphDataDto, ComponentDto, OrphanDto } from '../lib/types';
 
 interface GraphNode extends GraphNodeDto {
   x?: number;
@@ -18,8 +18,21 @@ function tagColor(tags: string[]): string {
 const NODE_R = 5;
 const HIGHLIGHT_R = 8;
 
+const DEFAULT_SETTINGS: GraphSettings = {
+  show_connected: true,
+  show_orphaned: true,
+  show_tags: true,
+  charge_strength: -8,
+  link_distance: 40,
+  alpha_decay: 0.08,
+  velocity_decay: 0.3,
+};
+
 export default function GraphPanel() {
   const navigate = useNavigate();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const graphRef = useRef<any>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>();
   const [graphData, setGraphData] = useState<GraphDataDto | null>(null);
   const [components, setComponents] = useState<ComponentDto[]>([]);
   const [orphans, setOrphans] = useState<OrphanDto[]>([]);
@@ -31,6 +44,40 @@ export default function GraphPanel() {
   const [search, setSearch] = useState('');
   const [width, setWidth] = useState(800);
   const [height, setHeight] = useState(600);
+  const [velocityDecay, setVelocityDecay] = useState(0.3);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [graphSettings, setGraphSettings] = useState<GraphSettings>(DEFAULT_SETTINGS);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'unsaved'>('saved');
+
+  // Load graph settings from config
+  useEffect(() => {
+    api.getSettings().then(s => {
+      if (s.graph) {
+        setGraphSettings(s.graph);
+        setVelocityDecay(s.graph.velocity_decay);
+      }
+    }).catch(() => {});
+  }, []);
+
+  // Save graph settings whenever they change (debounced)
+  const initialized = useRef(false);
+  useEffect(() => {
+    if (!initialized.current) { initialized.current = true; return; }
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    saveTimer.current = setTimeout(() => {
+      setSaveStatus('unsaved');
+      api.saveGraphSettings(graphSettings).then(() => setSaveStatus('saved')).catch(() => {});
+    }, 600);
+  }, [graphSettings]);
+
+  const updateSetting = useCallback(<K extends keyof GraphSettings>(key: K, value: GraphSettings[K]) => {
+    setGraphSettings(prev => {
+      const next = { ...prev, [key]: value };
+      if (key === 'velocity_decay') setVelocityDecay(value as number);
+      return next;
+    });
+  }, []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -68,18 +115,32 @@ export default function GraphPanel() {
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
+  // Configure d3 forces when settings or graph data changes
+  useEffect(() => {
+    if (!graphRef.current || !graphData) return;
+    const g = graphRef.current;
+    try {
+      const charge = g.d3Force('charge');
+      if (charge) charge.strength(graphSettings.charge_strength);
+      const link = g.d3Force('link');
+      if (link) link.distance(graphSettings.link_distance);
+    } catch (e) {
+      console.warn('[GraphPanel] force config:', e);
+    }
+  }, [graphData, graphSettings.charge_strength, graphSettings.link_distance]);
+
+  // Build the filtered node/edge list
   const { nodes, edges } = useMemo(() => {
     if (!graphData) return { nodes: [] as GraphNode[], edges: [] as GraphEdgeDto[] };
 
+    // View mode filter
     if (viewMode === 'component' && components.length > 0) {
       const idx = Math.min(selectedComponent, components.length - 1);
       const comp = components[idx];
       const idSet = new Set(comp.nodes.map((n) => n.id));
       return {
         nodes: comp.nodes as GraphNode[],
-        edges: graphData.edges.filter(
-          (e) => idSet.has(e.source) && idSet.has(e.target),
-        ),
+        edges: graphData.edges.filter((e) => idSet.has(e.source) && idSet.has(e.target)),
       };
     }
 
@@ -91,31 +152,41 @@ export default function GraphPanel() {
       };
     }
 
+    // Visibility filters
+    let filteredNodes = graphData.nodes;
+    if (!graphSettings.show_connected && !graphSettings.show_orphaned) {
+      filteredNodes = [];
+    } else if (!graphSettings.show_connected && graphSettings.show_orphaned) {
+      const orphanIds = new Set(orphans.map((o) => o.slug));
+      filteredNodes = graphData.nodes.filter((n) => orphanIds.has(n.id));
+    } else if (graphSettings.show_connected && !graphSettings.show_orphaned) {
+      const orphanIds = new Set(orphans.map((o) => o.slug));
+      filteredNodes = graphData.nodes.filter((n) => !orphanIds.has(n.id));
+    }
+
+    // Text search filter
     if (search) {
       const q = search.toLowerCase();
-      const matched = new Set(
-        graphData.nodes
-          .filter(
-            (n) =>
-              n.title.toLowerCase().includes(q) ||
-              n.id.toLowerCase().includes(q) ||
-              n.tags.some((t) => t.toLowerCase().includes(q)),
-          )
-          .map((n) => n.id),
+      filteredNodes = filteredNodes.filter(
+        (n) =>
+          n.title.toLowerCase().includes(q) ||
+          n.id.toLowerCase().includes(q) ||
+          n.tags.some((t) => t.toLowerCase().includes(q)),
       );
+      const matched = new Set(filteredNodes.map((n) => n.id));
       return {
-        nodes: graphData.nodes.filter((n) => matched.has(n.id)) as GraphNode[],
-        edges: graphData.edges.filter(
-          (e) => matched.has(e.source) || matched.has(e.target),
-        ),
+        nodes: filteredNodes as GraphNode[],
+        edges: graphData.edges.filter((e) => matched.has(e.source) || matched.has(e.target)),
       };
     }
 
     return {
-      nodes: graphData.nodes as GraphNode[],
+      nodes: filteredNodes as GraphNode[],
       edges: graphData.edges,
     };
-  }, [graphData, viewMode, selectedComponent, components, orphans, search]);
+  }, [graphData, viewMode, selectedComponent, components, orphans, search, graphSettings.show_connected, graphSettings.show_orphaned]);
+
+  const graphDataProp = useMemo(() => ({ nodes, links: edges }), [nodes, edges]);
 
   const handleNodeClick = useCallback(
     (node: GraphNode) => {
@@ -123,6 +194,30 @@ export default function GraphPanel() {
     },
     [navigate],
   );
+
+  const handleNodeDragStart = useCallback(() => {
+    setVelocityDecay(0.85);
+    const g = graphRef.current;
+    if (g) {
+      try {
+        const charge = g.d3Force('charge');
+        // Near-zero charge during drag: the internal d3ReheatSimulation
+        // (alpha=1) has negligible repulsion so orphaned nodes stay put.
+        if (charge) charge.strength(-0.01);
+      } catch { /* d3Force getter may throw */ }
+    }
+  }, []);
+
+  const handleNodeDragEnd = useCallback(() => {
+    setVelocityDecay(graphSettings.velocity_decay);
+    const g = graphRef.current;
+    if (g) {
+      try {
+        const charge = g.d3Force('charge');
+        if (charge) charge.strength(graphSettings.charge_strength);
+      } catch { /* d3Force getter may throw */ }
+    }
+  }, [graphSettings.velocity_decay, graphSettings.charge_strength]);
 
   const handleNodeHover = useCallback(
     (node: GraphNode | null) => {
@@ -158,10 +253,13 @@ export default function GraphPanel() {
         ctx.font = '10px sans-serif';
         ctx.fillStyle = '#e5e7eb';
         ctx.textAlign = 'center';
-        ctx.fillText(node.title, node.x || 0, (node.y || 0) - HIGHLIGHT_R - 4);
+        const label = graphSettings.show_tags && node.tags.length > 0
+          ? `${node.title}  [${node.tags.join(', ')}]`
+          : node.title;
+        ctx.fillText(label, node.x || 0, (node.y || 0) - HIGHLIGHT_R - 4);
       }
     },
-    [highlight],
+    [highlight, graphSettings.show_tags],
   );
 
   return (
@@ -209,37 +307,70 @@ export default function GraphPanel() {
 
         <input
           type="text"
-          placeholder="Search nodes..."
+          placeholder="Filter by title/tag…"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
             if (e.target.value) setViewMode('full');
           }}
-          className="text-xs px-2 py-1 w-48 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-700)] text-[var(--secondary-900)] dark:text-[var(--secondary-100)]"
+          className="text-xs px-2 py-1 w-44 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-700)] text-[var(--secondary-900)] dark:text-[var(--secondary-100)]"
         />
+
+        <button
+          onClick={() => setSettingsOpen(o => !o)}
+          className={`text-xs px-2 py-1 rounded border ${settingsOpen ? 'bg-[var(--primary-100)] dark:bg-[var(--primary-900)]/30 border-[var(--primary-300)] dark:border-[var(--primary-700)]' : 'border-[var(--secondary-300)] dark:border-[var(--secondary-600)]'} hover:bg-[var(--secondary-200)] dark:hover:bg-[var(--secondary-700)]`}
+          title="Graph settings"
+        >
+          ⚙ {saveStatus === 'unsaved' ? '*' : ''}
+        </button>
 
         {graphData && (
           <span className="text-xs text-[var(--secondary-400)] whitespace-nowrap">
-            {graphData.node_count} notes · {graphData.edge_count} links
-            {orphans.length > 0 && ` · ${orphans.length} orphaned`}
+            {nodes.length}/{graphData.node_count} n · {edges.length} e
+            {orphans.length > 0 && ` · ${orphans.length} o`}
           </span>
         )}
       </div>
+
+      {/* Collapsible settings panel */}
+      {settingsOpen && (
+        <div className="px-4 py-3 border-b border-[var(--secondary-200)] dark:border-[var(--secondary-700)] bg-[var(--secondary-50)] dark:bg-[var(--secondary-800)] text-xs space-y-3 shrink-0">
+          {/* Visibility toggles */}
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked={graphSettings.show_connected} onChange={e => updateSetting('show_connected', e.target.checked)} className="accent-[var(--primary-500)]" />
+              Connected notes
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked={graphSettings.show_orphaned} onChange={e => updateSetting('show_orphaned', e.target.checked)} className="accent-[var(--primary-500)]" />
+              Orphaned notes
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked={graphSettings.show_tags} onChange={e => updateSetting('show_tags', e.target.checked)} className="accent-[var(--primary-500)]" />
+              Tags on hover
+            </label>
+          </div>
+
+          {/* Force sliders */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+            <SliderRow label="Repulsion" value={graphSettings.charge_strength} min={-30} max={0} step={1} onChange={v => updateSetting('charge_strength', v)} display={`${Math.round(graphSettings.charge_strength)}`} />
+            <SliderRow label="Link distance" value={graphSettings.link_distance} min={10} max={120} step={5} onChange={v => updateSetting('link_distance', v)} display={`${Math.round(graphSettings.link_distance)}px`} />
+            <SliderRow label="Alpha decay" value={graphSettings.alpha_decay} min={0.01} max={0.3} step={0.01} onChange={v => updateSetting('alpha_decay', v)} display={graphSettings.alpha_decay.toFixed(2)} />
+            <SliderRow label="Friction" value={graphSettings.velocity_decay} min={0.05} max={0.95} step={0.05} onChange={v => updateSetting('velocity_decay', v)} display={graphSettings.velocity_decay.toFixed(2)} />
+          </div>
+        </div>
+      )}
 
       {/* Graph canvas */}
       <div className="flex-1 relative bg-[var(--secondary-100)] dark:bg-[var(--secondary-900)]">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-[var(--secondary-100)]/70 dark:bg-[var(--secondary-900)]/70 z-10">
-            <div className="text-sm text-[var(--secondary-500)]">
-              Building graph...
-            </div>
+            <div className="text-sm text-[var(--secondary-500)]">Building graph...</div>
           </div>
         )}
 
         {error && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 px-3 py-1.5 rounded text-xs z-10">
-            {error}
-          </div>
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 px-3 py-1.5 rounded text-xs z-10">{error}</div>
         )}
 
         {nodes.length > 0 && (
@@ -250,7 +381,8 @@ export default function GraphPanel() {
               </div>
             )}
             <ForceGraph2D
-            graphData={{ nodes, links: edges }}
+            ref={graphRef}
+            graphData={graphDataProp}
             width={width}
             height={height}
             nodeLabel={(n: GraphNode) =>
@@ -267,13 +399,14 @@ export default function GraphPanel() {
             }}
             onNodeClick={(n: GraphNode) => handleNodeClick(n)}
             onNodeHover={(n: GraphNode | null) => handleNodeHover(n)}
+            onNodeDragStart={handleNodeDragStart}
+            onNodeDragEnd={handleNodeDragEnd}
             linkColor={() => '#6b728066'}
             linkDirectionalArrowLength={3}
             linkDirectionalArrowRelPos={1}
             linkWidth={0.5}
-            cooldownTicks={100}
-            d3AlphaDecay={0.02}
-            d3VelocityDecay={0.3}
+            d3AlphaDecay={graphSettings.alpha_decay}
+            d3VelocityDecay={velocityDecay}
             enableNodeDrag={true}
             enableZoomInteraction={true}
             minZoom={0.2}
@@ -297,10 +430,7 @@ export default function GraphPanel() {
                   Could not load graph data. Check that your vault has .md files with wiki-links.
                 </p>
               )}
-              <button
-                onClick={() => navigate('/')}
-                className="text-xs px-3 py-1 rounded bg-[var(--primary-500)] text-white hover:bg-[var(--primary-600)]"
-              >
+              <button onClick={() => navigate('/')} className="text-xs px-3 py-1 rounded bg-[var(--primary-500)] text-white hover:bg-[var(--primary-600)]">
                 Go to Pages
               </button>
             </div>
@@ -308,5 +438,31 @@ export default function GraphPanel() {
         )}
       </div>
     </div>
+  );
+}
+
+function SliderRow({ label, value, min, max, step, onChange, display }: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (v: number) => void;
+  display: string;
+}) {
+  return (
+    <label className="flex items-center gap-2">
+      <span className="w-24 text-right text-[var(--secondary-500)] shrink-0">{label}</span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={e => onChange(parseFloat(e.target.value))}
+        className="flex-1 accent-[var(--primary-500)] h-1.5"
+      />
+      <span className="w-12 text-left text-[var(--secondary-400)] font-mono tabular-nums">{display}</span>
+    </label>
   );
 }
