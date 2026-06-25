@@ -100,3 +100,31 @@ export interface OrphanDto {
   title: string;
   path: string;
 }
+
+// --- Connection suggestions ---
+
+export interface ConnectionSuggestion {
+  title: string;
+  page_path: string;
+  score: number;
+  snippet: string;
+}
+
+// --- AI types ---
+
+export type AiAction = 'rewrite' | 'format' | 'structure' | 'summarize' | 'connect';
+
+export interface AiTransformResult {
+  content: string;
+}
+
+export interface ResearchResult {
+  findings: string;
+  sources: ResearchSource[];
+}
+
+export interface ResearchSource {
+  title: string;
+  url: string;
+  snippet: string;
+}

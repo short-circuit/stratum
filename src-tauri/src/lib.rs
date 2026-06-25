@@ -3,29 +3,45 @@ mod commands;
 use commands::vault::{AppState, VaultState};
 use std::path::PathBuf;
 use std::sync::Mutex;
+use tauri::Manager;
+
+fn resolve_default_vault_path(_app: &tauri::AppHandle) -> PathBuf {
+    #[cfg(target_os = "android")]
+    {
+        _app.path()
+            .app_data_dir()
+            .unwrap_or_else(|_| PathBuf::from("vault"))
+            .join("StratumVault")
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        dirs::home_dir()
+            .map(|h| h.join("StratumVault"))
+            .or_else(|| std::env::current_dir().ok().map(|d| d.join("vault")))
+            .unwrap_or_else(|| PathBuf::from("vault"))
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let default_vault = dirs::home_dir()
-        .map(|h| h.join("StratumVault"))
-        .or_else(|| std::env::current_dir().ok().map(|d| d.join("vault")));
-
-    let vault_path = default_vault.unwrap_or_else(|| PathBuf::from("vault"));
-    // Ensure vault directory exists
-    let _ = std::fs::create_dir_all(&vault_path);
-    let _ = std::fs::create_dir_all(vault_path.join(".pkm"));
-
-    // One-time migration: sync filesystem .md files into SQLite
-    let db_path = vault_path.join(".pkm").join("blocks.db");
-    match commands::page::sync_filesystem_to_db(&vault_path, &db_path) {
-        Ok(n) if n > 0 => eprintln!("[stratum] Synced {} existing pages from filesystem", n),
-        Err(e) => eprintln!("[stratum] Filesystem sync skipped: {}", e),
-        _ => {}
-    }
-
     tauri::Builder::default()
-        .manage(Mutex::new(VaultState::new(vault_path)) as AppState)
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            let vault_path = resolve_default_vault_path(app.handle());
+
+            let _ = std::fs::create_dir_all(&vault_path);
+            let _ = std::fs::create_dir_all(vault_path.join(".pkm"));
+
+            let db_path = vault_path.join(".pkm").join("blocks.db");
+            match commands::page::sync_filesystem_to_db(&vault_path, &db_path) {
+                Ok(n) if n > 0 => eprintln!("[stratum] Synced {} existing pages from filesystem", n),
+                Err(e) => eprintln!("[stratum] Filesystem sync skipped: {}", e),
+                _ => {}
+            }
+
+            app.manage(Mutex::new(VaultState::new(vault_path)) as AppState);
+
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
@@ -39,6 +55,7 @@ pub fn run() {
             // Vault
             commands::vault::get_vault_info,
             commands::vault::set_vault_path,
+            commands::vault::pick_vault_directory,
             // Pages
             commands::page::list_pages,
             commands::page::open_page,
@@ -60,6 +77,7 @@ pub fn run() {
             commands::search::get_backlinks,
             commands::search::get_page_backlinks,
             commands::search::autocomplete,
+            commands::search::suggest_connections,
             // Graph
             commands::graph::get_graph_data,
             commands::graph::get_connected_components,
@@ -85,6 +103,10 @@ pub fn run() {
             commands::whiteboard::list_whiteboards,
             commands::whiteboard::save_whiteboard,
             commands::whiteboard::load_whiteboard,
+            // AI
+            commands::ai::ai_transform_block,
+            commands::ai::ai_research,
+            commands::ai::ai_interlink_notes,
             // Settings
             commands::settings::get_settings,
             commands::settings::save_settings,

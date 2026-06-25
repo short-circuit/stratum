@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod block;
 pub mod export;
 pub mod flashcards;

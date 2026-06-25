@@ -4,6 +4,7 @@ import { useStore } from '../stores/appStore';
 import OutlinerEditor from './OutlinerEditor';
 import BacklinksPanel from './BacklinksPanel';
 import PropertiesPanel from './PropertiesPanel';
+import SuggestedConnectionsPanel from './SuggestedConnectionsPanel';
 
 export default function PageView() {
   const { pagePath } = useParams<{ pagePath: string }>();
@@ -52,6 +53,9 @@ export default function PageView() {
 
       {/* Backlinks dock */}
       <BacklinksPanel pagePath={currentPage.path} />
+
+      {/* Suggested connections */}
+      <SuggestedConnectionsPanel pagePath={currentPage.path} />
 
       {/* Properties panel */}
       <PropertiesPanel pagePath={currentPage.path} />

@@ -17,6 +17,8 @@ pub struct Config {
     pub theme: ThemeConfig,
     /// AI / LLM provider configuration.
     pub ai: AiConfig,
+    /// Web research configuration (SearXNG).
+    pub research: ResearchConfig,
     /// Plugin enable/disable.
     pub plugins: Vec<PluginConfig>,
     /// File watcher configuration.
@@ -32,6 +34,7 @@ impl Default for Config {
             sync: SyncConfig::default(),
             theme: ThemeConfig::default(),
             ai: AiConfig::default(),
+            research: ResearchConfig::default(),
             plugins: Vec::new(),
             watcher: WatcherConfig::default(),
         }
@@ -202,6 +205,28 @@ pub enum AiProvider {
     #[serde(rename = "z.ai")]
     Zai,
     Custom,
+}
+
+/// Configuration for web research (SearXNG).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ResearchConfig {
+    /// SearXNG endpoint URL.
+    pub searxng_endpoint: String,
+    /// Max search results to read per query.
+    pub max_results: usize,
+    /// Max research depth (search-read cycles).
+    pub max_depth: u32,
+}
+
+impl Default for ResearchConfig {
+    fn default() -> Self {
+        Self {
+            searxng_endpoint: "http://localhost:8888".to_string(),
+            max_results: 3,
+            max_depth: 2,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
