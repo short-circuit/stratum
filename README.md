@@ -7,7 +7,7 @@ A privacy-first, offline-capable personal knowledge management (PKM) system with
 native Git sync, bi-directional linking, graph visualization, and AI-augmented
 search/chat. Notes are stored as plain Markdown files on disk — zero vendor lock-in.
 
-> **Status**: Pre-alpha. Rust engine complete, Tauri + React frontend under active development.
+> **Status**: v0.3.0 — Alpha. Graph visualization with interactive settings, collapsible panels, reindex-vault command. Rust core and Tauri + React frontend under active development.
 
 ## Architecture
 
