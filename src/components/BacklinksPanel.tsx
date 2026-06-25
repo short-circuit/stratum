@@ -1,30 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/commands';
 import type { BacklinkItem } from '../lib/types';
-import { useCtrlHeld } from '../lib/useCtrlHeld';
-import LinkPreviewPopup from './LinkPreviewPopup';
 
 interface Props {
   pagePath: string;
-}
-
-interface PreviewState {
-  content: string;
-  pageTitle: string | null;
-  pagePath: string;
-  position: { x: number; y: number };
-  loading: boolean;
 }
 
 export default function BacklinksPanel({ pagePath }: Props) {
   const [backlinks, setBacklinks] = useState<BacklinkItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
-  const [preview, setPreview] = useState<PreviewState | null>(null);
-  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigate = useNavigate();
-  const { ctrlHeld } = useCtrlHeld();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -34,66 +21,6 @@ export default function BacklinksPanel({ pagePath }: Props) {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [pagePath]);
-
-  const handleMouseEnter = (bl: BacklinkItem, e: React.MouseEvent) => {
-    if (!ctrlHeld.current) return;
-
-    if (hoverTimer.current) clearTimeout(hoverTimer.current);
-    hoverTimer.current = setTimeout(async () => {
-      if (!ctrlHeld.current) return;
-
-      setPreview({
-        content: '',
-        pageTitle: null,
-        pagePath: '',
-        position: { x: e.clientX + 10, y: e.clientY + 10 },
-        loading: true,
-      });
-
-      try {
-        const targetSlug = bl.source_page
-          .replace(/\.md$/, '')
-          .split('/')
-          .pop() || bl.source_page;
-        const resolved = await api.resolveLinkTarget(targetSlug);
-        if (!resolved.page_path) {
-          setPreview(null);
-          return;
-        }
-        if (!ctrlHeld.current) { setPreview(null); return; }
-
-        // For backlinks, the current page is the target, and source_page is the linking page
-        // But we want context from the linking page (source_page) about the current page
-        // Actually for backlinks: we're hovering over a backlink item showing source_page
-        // The preview should show the context from source_page that links to current page
-        // Let me re-read: the backlink already shows context in the panel.
-        // For the popup, we fetch the actual block content from the source page
-        // showing what links back to the current page.
-        // Since backlinks already have `bl.context`, we can just use that for the content
-        // and show the source page title.
-        const ctx = await api.getBacklinkContext(bl.source_page, pagePath);
-        if (!ctrlHeld.current) { setPreview(null); return; }
-
-        setPreview({
-          content: ctx?.content || bl.context || '(empty)',
-          pageTitle: ctx?.page_title || resolved.title || targetSlug,
-          pagePath: bl.source_page,
-          position: { x: e.clientX + 10, y: e.clientY + 10 },
-          loading: false,
-        });
-      } catch {
-        setPreview(null);
-      }
-    }, 200);
-  };
-
-  const handleMouseLeave = () => {
-    if (hoverTimer.current) {
-      clearTimeout(hoverTimer.current);
-      hoverTimer.current = null;
-    }
-    setPreview(null);
-  };
 
   const linked = backlinks.filter(b => b.is_linked);
   const unlinked = backlinks.filter(b => !b.is_linked);
@@ -123,8 +50,6 @@ export default function BacklinksPanel({ pagePath }: Props) {
                     key={i}
                     className="text-xs p-1.5 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)] cursor-pointer"
                     onClick={() => navigate(`/page/${encodeURIComponent(bl.source_page)}`)}
-                    onMouseEnter={(e) => handleMouseEnter(bl, e)}
-                    onMouseLeave={handleMouseLeave}
                   >
                     <div className="text-[var(--secondary-500)]">{bl.source_page}</div>
                     <div className="text-[var(--secondary-700)] dark:text-[var(--secondary-300)] truncate">{bl.context}</div>
@@ -145,8 +70,6 @@ export default function BacklinksPanel({ pagePath }: Props) {
                     key={i}
                     className="text-xs p-1.5 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)] cursor-pointer text-[var(--secondary-500)]"
                     onClick={() => navigate(`/page/${encodeURIComponent(bl.source_page)}`)}
-                    onMouseEnter={(e) => handleMouseEnter(bl, e)}
-                    onMouseLeave={handleMouseLeave}
                   >
                     <div className="truncate">{bl.context}</div>
                   </li>
@@ -159,17 +82,6 @@ export default function BacklinksPanel({ pagePath }: Props) {
             <p className="text-xs text-[var(--secondary-400)]">No backlinks found.</p>
           )}
         </div>
-      )}
-
-      {preview && (
-        <LinkPreviewPopup
-          content={preview.content}
-          pageTitle={preview.pageTitle}
-          pagePath={preview.pagePath}
-          position={preview.position}
-          loading={preview.loading}
-          onClose={() => setPreview(null)}
-        />
       )}
     </div>
   );

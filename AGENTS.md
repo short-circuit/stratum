@@ -105,7 +105,7 @@ stratum/
 │   │       ├── template.rs     # Templates
 │   │       ├── export.rs       # HTML/JSON export
 │   │       ├── flashcards.rs   # SRS flashcards
-│   │       ├── whiteboard.rs   # Tldraw whiteboards
+│  │       ├── whiteboard.rs   # Excalidraw whiteboards
 │   │       └── settings.rs     # App settings
 │   └── capabilities/
 ├── docs/
@@ -161,7 +161,7 @@ React app uses **Zustand** for state (single store in `src/stores/appStore.ts`):
 | `BacklinksPanel` | Linked references and unlinked mentions for current page |
 | `SearchPanel` | Full-text block search via Tantivy |
 | `QueryPanel` | Datalog query input with result table |
-| `WhiteboardPanel` | Tldraw spatial canvas |
+| `WhiteboardPanel` | Excalidraw spatial canvas |
 | `FlashcardsPanel` | Spaced-repetition card review |
 | `SettingsPage` | App configuration (vault path, theme, AI, sync, graph settings) |
 
