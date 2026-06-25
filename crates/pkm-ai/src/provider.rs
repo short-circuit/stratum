@@ -857,7 +857,7 @@ impl LlmProvider for CustomProvider {
             max_tokens: u32,
         }
 
-        let custom_messages: Vec<CustomMessage> = messages
+        let mut custom_messages: Vec<CustomMessage> = messages
             .iter()
             .map(|m| CustomMessage {
                 role: match m.role {
@@ -869,6 +869,16 @@ impl LlmProvider for CustomProvider {
             })
             .collect();
 
+        if let Some(ref prompt) = config.system_prompt {
+            custom_messages.insert(
+                0,
+                CustomMessage {
+                    role: "system",
+                    content: prompt,
+                },
+            );
+        }
+
         let req = CustomRequest {
             model: &config.model,
             messages: custom_messages,
@@ -876,22 +886,50 @@ impl LlmProvider for CustomProvider {
             max_tokens: config.max_tokens,
         };
 
-        let mut request = self.client.post(&url).json(&req);
-        if let Some(ref key) = self.api_key {
-            request = request.bearer_auth(key);
-        }
+        let do_request = |target_url: &str| {
+            let mut r = self.client.post(target_url).json(&req);
+            if let Some(ref key) = self.api_key {
+                r = r.bearer_auth(key);
+            }
+            r
+        };
 
-        let resp = request
+        let mut resp = do_request(&url)
             .send()
             .await
             .map_err(|e| PkmError::Ai(format!("Custom provider request failed: {e}")))?;
 
-        // Try to parse as OpenAI-compatible response
+        // Retry with /chat/completions if base URL returned 405
+        if resp.status() == 405 && !url.ends_with("/chat/completions") {
+            let chat_url = format!("{}/chat/completions", url.trim_end_matches('/'));
+            eprintln!("[CustomProvider] 405 on {}, retrying {}", url, chat_url);
+            resp = do_request(&chat_url)
+                .send()
+                .await
+                .map_err(|e| PkmError::Ai(format!("Custom provider retry failed: {e}")))?;
+        }
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(PkmError::Ai(format!(
+                "Custom provider returned {}: {}",
+                status,
+                body.chars().take(200).collect::<String>()
+            )));
+        }
+
+        // Try to parse response – supports multiple common API shapes
         #[derive(Deserialize)]
         struct GenericResponse {
             choices: Option<Vec<GenericChoice>>,
             content: Option<String>,
             message: Option<GenericMessage>,
+            response: Option<String>,
+            generated_text: Option<String>,
+            output: Option<String>,
+            text: Option<String>,
+            results: Option<Vec<GenericResultItem>>,
         }
 
         #[derive(Deserialize)]
@@ -902,6 +940,11 @@ impl LlmProvider for CustomProvider {
         #[derive(Deserialize)]
         struct GenericMessage {
             content: Option<String>,
+        }
+
+        #[derive(Deserialize)]
+        struct GenericResultItem {
+            text: Option<String>,
         }
 
         let body: GenericResponse = resp
@@ -917,6 +960,15 @@ impl LlmProvider for CustomProvider {
                     .and_then(|c| c.into_iter().next())
                     .and_then(|c| c.message.content)
             })
+            .or_else(|| body.response)
+            .or_else(|| body.generated_text)
+            .or_else(|| body.output)
+            .or_else(|| {
+                body.results
+                    .and_then(|r| r.into_iter().next())
+                    .and_then(|r| r.text)
+            })
+            .or_else(|| body.text)
             .unwrap_or_default();
 
         Ok(ChatResponse {
@@ -952,7 +1004,7 @@ impl ProviderFactory {
                 AiProvider::Ollama => "http://localhost:11434".to_string(),
                 AiProvider::OpenAI => "https://api.openai.com/v1".to_string(),
                 AiProvider::Anthropic => "https://api.anthropic.com".to_string(),
-                AiProvider::Custom => "http://localhost:8080/v1".to_string(),
+                AiProvider::Custom => "http://localhost:8080/v1/chat/completions".to_string(),
                 AiProvider::Google => {
                     "https://generativelanguage.googleapis.com/v1beta".to_string()
                 }

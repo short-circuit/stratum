@@ -5,6 +5,8 @@ import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
 import type { BlockDto } from '../lib/types';
 import * as api from '../lib/commands';
+import AISlashMenu from './AISlashMenu';
+import AIFormattingToolbar from './AIFormattingToolbar';
 
 interface Props {
   pagePath: string;
@@ -100,7 +102,12 @@ export default function OutlinerEditor({ pagePath }: Props) {
           editor={editor}
           theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
           className="min-h-[400px] h-full"
-      />
+          slashMenu={false}
+          formattingToolbar={false}
+      >
+        <AISlashMenu pagePath={pagePath} />
+        <AIFormattingToolbar />
+      </BlockNoteView>
     </div>
   );
 }
