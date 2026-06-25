@@ -290,11 +290,7 @@ jobs:
       - name: Patch Xcode project & build
         shell: bash
         run: |
-          PBX="${{ github.workspace }}/src-tauri/gen/apple/stratum-tauri.xcodeproj/project.pbxproj"
-          cp "$PBX" "${{ runner.temp }}/pbx.before"
-          python3 -c "import re,sys;c=open(sys.argv[1]).read();c=re.sub(r'OTHER_LDFLAGS\s*=\s*\"','OTHER_LDFLAGS = \"-lz -liconv ',c);open(sys.argv[1],'w').write(c)"
-          cp "$PBX" "${{ runner.temp }}/pbx.after"
-          diff "${{ runner.temp }}/pbx.before" "${{ runner.temp }}/pbx.after" || true
+          python3 -c "import sys;c=open(sys.argv[1]).read();c=c.replace('VALID_ARCHS = arm64;','VALID_ARCHS = arm64;\n\t\t\t\tOTHER_LDFLAGS = \"-lz -liconv\";');open(sys.argv[1],'w').write(c)" "${{ github.workspace }}/src-tauri/gen/apple/stratum-tauri.xcodeproj/project.pbxproj"
           npx tauri ios build --target aarch64-sim --ci 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
