@@ -33,6 +33,10 @@ Thumbs.db
 result/
 .direnv/
 
+# === Android ===
+*.keystore
+*.b64
+
 # === Misc ===
 *.log
 *.tmp
