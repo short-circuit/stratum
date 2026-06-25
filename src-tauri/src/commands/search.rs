@@ -288,7 +288,9 @@ pub async fn suggest_connections(
     };
 
     let store = pkm_block::BlockStore::open(&db_path).map_err(|e| e.to_string())?;
-    let current_blocks = store.get_blocks_by_page(&page_path).map_err(|e| e.to_string())?;
+    let current_blocks = store
+        .get_blocks_by_page(&page_path)
+        .map_err(|e| e.to_string())?;
 
     let current_slug = std::path::Path::new(&page_path)
         .file_stem()
@@ -332,7 +334,9 @@ pub async fn suggest_connections(
     if let Ok(idx) = pkm_index::block_search::BlockIndex::create(&index_path) {
         if let Ok(results) = idx.search(&query, 20) {
             for r in &results {
-                if r.page_path == page_path { continue; }
+                if r.page_path == page_path {
+                    continue;
+                }
                 let slug = std::path::Path::new(&r.page_path)
                     .file_stem()
                     .and_then(|s| s.to_str())
@@ -359,7 +363,9 @@ pub async fn suggest_connections(
                 .file_stem()
                 .and_then(|s| s.to_str())
                 .unwrap_or("");
-            if slug == current_slug || seen.contains(slug) { continue; }
+            if slug == current_slug || seen.contains(slug) {
+                continue;
+            }
 
             let title = slug.replace('-', " ");
             let title_lower = title.to_lowercase();
@@ -374,7 +380,8 @@ pub async fn suggest_connections(
 
             if score > 0 {
                 let snippet = if let Ok(blocks) = store.get_blocks_by_page(p) {
-                    blocks.first()
+                    blocks
+                        .first()
                         .map(|b| snippet_from_text(&b.content, 80))
                         .unwrap_or_default()
                 } else {
@@ -403,7 +410,8 @@ fn snippet_from_text(text: &str, max_len: usize) -> String {
     if text.len() <= max_len {
         return text.to_string();
     }
-    let end = text.char_indices()
+    let end = text
+        .char_indices()
         .take(max_len)
         .last()
         .map(|(i, c)| i + c.len_utf8())

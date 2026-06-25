@@ -49,7 +49,11 @@ pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto
 
 /// Read a single .md file from disk, parse it, and sync its page metadata + blocks
 /// into SQLite. Returns true if the page was synced, false if the file couldn't be read.
-fn sync_page_from_disk(store: &pkm_block::BlockStore, rel: &str, vault_path: &Path) -> Result<bool, String> {
+fn sync_page_from_disk(
+    store: &pkm_block::BlockStore,
+    rel: &str,
+    vault_path: &Path,
+) -> Result<bool, String> {
     let full = vault_path.join(rel);
     let content = std::fs::read_to_string(&full).map_err(|e| e.to_string())?;
     let (fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
@@ -65,7 +69,9 @@ fn sync_page_from_disk(store: &pkm_block::BlockStore, rel: &str, vault_path: &Pa
     };
     store.upsert_page(&page).map_err(|e| e.to_string())?;
 
-    store.delete_blocks_by_page(rel).map_err(|e| e.to_string())?;
+    store
+        .delete_blocks_by_page(rel)
+        .map_err(|e| e.to_string())?;
     for block in &blocks {
         store.insert_block(block, rel).map_err(|e| e.to_string())?;
     }
@@ -104,7 +110,8 @@ pub fn sync_filesystem_to_db(vault_path: &Path, db_path: &Path) -> Result<usize,
 pub async fn reindex_vault(state: tauri::State<'_, AppState>) -> Result<usize, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    let md_files = find_md_files(&state.vault_path, &state.vault_path).map_err(|e| e.to_string())?;
+    let md_files =
+        find_md_files(&state.vault_path, &state.vault_path).map_err(|e| e.to_string())?;
 
     let mut count = 0;
     for rel in &md_files {

@@ -84,18 +84,21 @@ pub async fn pick_vault_directory(
     // Use a oneshot channel to wait for the dialog result
     let (tx, rx) = std::sync::mpsc::channel();
 
-    app.dialog()
-        .file()
-        .pick_folder(move |path| {
-            let _ = tx.send(path);
-        });
+    app.dialog().file().pick_folder(move |path| {
+        let _ = tx.send(path);
+    });
 
-    let picked = rx.recv().map_err(|_| "Folder picker cancelled".to_string())?;
+    let picked = rx
+        .recv()
+        .map_err(|_| "Folder picker cancelled".to_string())?;
     let picked_path = picked.ok_or("No folder selected".to_string())?;
 
     let vault_path = PathBuf::from(picked_path.to_string());
     if !vault_path.exists() {
-        return Err(format!("Selected path does not exist: {}", vault_path.display()));
+        return Err(format!(
+            "Selected path does not exist: {}",
+            vault_path.display()
+        ));
     }
 
     std::fs::create_dir_all(vault_path.join(".pkm"))
