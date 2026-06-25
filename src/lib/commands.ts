@@ -8,8 +8,6 @@ import type {
   SearchResultsDto,
   BacklinkItem,
   ConnectionSuggestion,
-  LinkTargetDto,
-  BacklinkContextDto,
   QueryResultDto,
   SyncStatusDto,
   GraphDataDto,
@@ -181,6 +179,14 @@ export async function loadWhiteboard(name: string): Promise<string> {
   return invoke('load_whiteboard', { name });
 }
 
+export async function saveLibrary(content: string): Promise<void> {
+  return invoke('save_library', { content });
+}
+
+export async function loadLibrary(): Promise<string> {
+  return invoke('load_library');
+}
+
 export async function getSettings(): Promise<{
   vault_path: string;
   theme: { dark_mode: boolean; primary_color: string; secondary_color: string; font_size: number };
@@ -278,19 +284,6 @@ export async function getOrphanedNotes(): Promise<OrphanDto[]> {
 
 export async function rebuildGraph(): Promise<string> {
   return invoke('rebuild_graph');
-}
-
-// --- Link resolution ---
-
-export async function resolveLinkTarget(target: string): Promise<LinkTargetDto> {
-  return invoke('resolve_link_target', { target });
-}
-
-export async function getBacklinkContext(
-  targetPage: string,
-  currentPage: string,
-): Promise<BacklinkContextDto | null> {
-  return invoke('get_backlink_context', { targetPage, currentPage });
 }
 
 // --- Reindex ---
