@@ -35,7 +35,9 @@ pub fn run() {
 
             let db_path = vault_path.join(".pkm").join("blocks.db");
             match commands::page::sync_filesystem_to_db(&vault_path, &db_path) {
-                Ok(n) if n > 0 => eprintln!("[stratum] Synced {} existing pages from filesystem", n),
+                Ok(n) if n > 0 => {
+                    eprintln!("[stratum] Synced {} existing pages from filesystem", n)
+                }
                 Err(e) => eprintln!("[stratum] Filesystem sync skipped: {}", e),
                 _ => {}
             }

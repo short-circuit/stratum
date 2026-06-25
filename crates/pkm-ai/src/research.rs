@@ -66,7 +66,11 @@ impl ResearchEngine {
                     round_sources.push(ResearchSource {
                         title: r.title.clone(),
                         url: r.url.clone(),
-                        snippet: if chars.len() > 500 { format!("{}...", snippet) } else { snippet },
+                        snippet: if chars.len() > 500 {
+                            format!("{}...", snippet)
+                        } else {
+                            snippet
+                        },
                     });
 
                     round_context.push_str(&format!(
@@ -83,9 +87,7 @@ impl ResearchEngine {
             context.push_str(&round_context);
 
             if depth + 1 < self.max_depth {
-                let analysis = self
-                    .analyze_progress(query, &context, depth)
-                    .await?;
+                let analysis = self.analyze_progress(query, &context, depth).await?;
                 new_queries = analysis.next_queries;
 
                 if !analysis.should_continue {
@@ -151,10 +153,7 @@ impl ResearchEngine {
         // Simple HTML-to-text extraction
         let text = strip_html(&html);
         // Clean up whitespace
-        let text = text
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ");
+        let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
 
         Ok(text)
     }
@@ -181,7 +180,9 @@ impl ResearchEngine {
         let config = ChatConfig::new(&self.model)
             .with_temperature(0.3)
             .with_max_tokens(1024)
-            .with_system_prompt("You are a research analyst. Output ONLY valid JSON, no other text.");
+            .with_system_prompt(
+                "You are a research analyst. Output ONLY valid JSON, no other text.",
+            );
 
         let response = self.llm.chat(&messages, &config).await?;
 
