@@ -102,9 +102,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Show build output
-        run: |
-          find target/release -maxdepth 1 -type f -name "stratum*" 2>/dev/null || echo "no binary"
-          find target/release/bundle -type f 2>/dev/null || echo "no bundle files"
+        run: ls -la target/release/stratum-tauri* 2>/dev/null || ls -la target/release/*.exe 2>/dev/null || echo "checking bundle dir" && ls -la target/release/bundle/ 2>/dev/null || echo "no output found"
 
       - name: Upload bundles
         uses: actions/upload-artifact@v4
@@ -312,10 +310,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-log
-          path: |
-            ${{ runner.temp }}/tauri-build.log
-            ${{ runner.temp }}/pbx.before
-            ${{ runner.temp }}/pbx.after
+          path: ${{ runner.temp }}/tauri-build.log
           if-no-files-found: warn
 
   release:
