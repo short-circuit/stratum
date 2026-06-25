@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useStore } from '../stores/appStore';
 import * as api from '../lib/commands';
 import { applyTheme } from '../lib/theme';
 
@@ -21,9 +22,10 @@ const SECONDARY_COLORS = [
   '#52525b', '#3f3f46', '#27272a',
 ];
 
-type Tab = 'vault' | 'theme' | 'ai';
+type Tab = 'vault' | 'theme' | 'ai' | 'research';
 
 export default function SettingsPage() {
+  const { pickVaultDirectory } = useStore();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [settings, setSettings] = useState<any>(null);
   const [saving, setSaving] = useState(false);
@@ -51,6 +53,7 @@ export default function SettingsPage() {
   }
 
   const ai = settings.ai;
+  const research = settings.research || { searxng_endpoint: 'http://localhost:8888', max_results: 3, max_depth: 2 };
   const theme = settings.theme || { dark_mode: true, primary_color: '#f97316', secondary_color: '#6b7280', font_size: 16 };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,6 +61,8 @@ export default function SettingsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateVault = (patch: any) => setSettings({ ...settings, ...patch });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateResearch = (patch: any) => setSettings({ ...settings, research: { ...research, ...patch } });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateTheme = (patch: any) => {
     const newTheme = { ...theme, ...patch };
@@ -101,6 +106,7 @@ export default function SettingsPage() {
     { id: 'vault', label: 'Vault' },
     { id: 'theme', label: 'Theme' },
     { id: 'ai', label: 'AI' },
+    { id: 'research', label: 'Research' },
   ];
 
   return (
@@ -150,12 +156,20 @@ export default function SettingsPage() {
             <h3 className="text-sm font-semibold text-[var(--secondary-700)] dark:text-[var(--secondary-300)] mb-3">Vault</h3>
             <div className="mb-3">
               <label className="text-xs text-[var(--secondary-500)] block mb-1">Vault Path</label>
-              <input
-                type="text"
-                value={settings.vault_path}
-                onChange={e => updateVault({ vault_path: e.target.value })}
-                className="w-full max-w-md text-sm px-2 py-1.5 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)] font-mono"
-              />
+              <div className="flex gap-2 max-w-md">
+                <input
+                  type="text"
+                  value={settings.vault_path}
+                  onChange={e => updateVault({ vault_path: e.target.value })}
+                  className="flex-1 text-sm px-2 py-1.5 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)] font-mono"
+                />
+                <button
+                  onClick={pickVaultDirectory}
+                  className="shrink-0 px-3 py-1.5 text-sm rounded bg-[var(--secondary-100)] dark:bg-[var(--secondary-700)] hover:bg-[var(--secondary-200)] dark:hover:bg-[var(--secondary-600)] text-[var(--secondary-600)] dark:text-[var(--secondary-300)]"
+                >
+                  Browse
+                </button>
+              </div>
             </div>
           </section>
         )}
@@ -303,6 +317,48 @@ export default function SettingsPage() {
                   Chunks: <input type="number" value={ai.rag_chunk_count} onChange={e => updateAi({ rag_chunk_count: parseInt(e.target.value) || 5 })} className="w-16 text-sm px-2 py-0.5 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)]" min={1} max={20} />
                 </label>
               )}
+            </div>
+          </section>
+        )}
+
+        {tab === 'research' && (
+          <section>
+            <h3 className="text-sm font-semibold text-[var(--secondary-700)] dark:text-[var(--secondary-300)] mb-3">Web Research (SearXNG)</h3>
+
+            <div className="mb-3">
+              <label className="text-xs text-[var(--secondary-500)] block mb-1">SearXNG Endpoint URL</label>
+              <input
+                type="text"
+                value={research.searxng_endpoint}
+                onChange={e => updateResearch({ searxng_endpoint: e.target.value })}
+                placeholder="http://localhost:8888"
+                className="w-full max-w-md text-sm px-2 py-1.5 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)]"
+              />
+              <p className="text-xs text-[var(--secondary-400)] mt-1">The URL of your SearXNG instance (e.g. http://localhost:8888)</p>
+            </div>
+
+            <div className="mb-3">
+              <label className="text-xs text-[var(--secondary-500)] block mb-1">Max Results Per Search</label>
+              <input
+                type="number"
+                value={research.max_results}
+                onChange={e => updateResearch({ max_results: parseInt(e.target.value) || 3 })}
+                min={1}
+                max={10}
+                className="w-24 text-sm px-2 py-1.5 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)]"
+              />
+            </div>
+
+            <div className="mb-3">
+              <label className="text-xs text-[var(--secondary-500)] block mb-1">Research Depth (search-read cycles)</label>
+              <input
+                type="number"
+                value={research.max_depth}
+                onChange={e => updateResearch({ max_depth: parseInt(e.target.value) || 2 })}
+                min={1}
+                max={5}
+                className="w-24 text-sm px-2 py-1.5 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)]"
+              />
             </div>
           </section>
         )}

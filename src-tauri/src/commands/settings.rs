@@ -8,6 +8,14 @@ pub struct SettingsDto {
     pub vault_path: String,
     pub theme: ThemeSettingsDto,
     pub ai: AiSettingsDto,
+    pub research: ResearchSettingsDto,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ResearchSettingsDto {
+    pub searxng_endpoint: String,
+    pub max_results: usize,
+    pub max_depth: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -81,6 +89,11 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             rag_enabled: config.ai.rag_enabled,
             rag_chunk_count: config.ai.rag_chunk_count,
         },
+        research: ResearchSettingsDto {
+            searxng_endpoint: config.research.searxng_endpoint.clone(),
+            max_results: config.research.max_results,
+            max_depth: config.research.max_depth,
+        },
     })
 }
 
@@ -127,6 +140,11 @@ pub async fn save_settings(
             rag_enabled: settings.ai.rag_enabled,
             rag_chunk_count: settings.ai.rag_chunk_count,
             embedding_model_path: None,
+        },
+        research: pkm_core::ResearchConfig {
+            searxng_endpoint: settings.research.searxng_endpoint,
+            max_results: settings.research.max_results,
+            max_depth: settings.research.max_depth,
         },
         ..pkm_core::Config::default()
     };

@@ -7,11 +7,15 @@ import type {
   BlockListDto,
   SearchResultsDto,
   BacklinkItem,
+  ConnectionSuggestion,
   QueryResultDto,
   SyncStatusDto,
   GraphDataDto,
   ComponentDto,
   OrphanDto,
+  AiAction,
+  AiTransformResult,
+  ResearchResult,
 } from './types';
 
 export async function getVaultInfo(): Promise<VaultInfo> {
@@ -20,6 +24,10 @@ export async function getVaultInfo(): Promise<VaultInfo> {
 
 export async function setVaultPath(path: string): Promise<void> {
   return invoke('set_vault_path', { path });
+}
+
+export async function pickVaultDirectory(): Promise<VaultInfo> {
+  return invoke('pick_vault_directory');
 }
 
 export async function listPages(): Promise<PageListDto> {
@@ -216,6 +224,33 @@ export async function getSyncStatus(): Promise<SyncStatusDto> {
 
 export async function syncVault(): Promise<SyncStatusDto> {
   return invoke('sync_vault');
+}
+
+// --- AI ---
+
+export async function aiTransformBlock(
+  text: string,
+  action: AiAction,
+  pagePath?: string,
+): Promise<AiTransformResult> {
+  return invoke('ai_transform_block', { text, action, pagePath });
+}
+
+export async function aiResearch(query: string): Promise<ResearchResult> {
+  return invoke('ai_research', { query });
+}
+
+export async function aiInterlinkNotes(
+  text: string,
+  pagePath?: string,
+): Promise<AiTransformResult> {
+  return invoke('ai_interlink_notes', { text, pagePath });
+}
+
+// --- Connections ---
+
+export async function suggestConnections(pagePath: string): Promise<ConnectionSuggestion[]> {
+  return invoke('suggest_connections', { pagePath });
 }
 
 // --- Graph ---
