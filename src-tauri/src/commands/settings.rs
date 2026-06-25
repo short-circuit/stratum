@@ -9,6 +9,18 @@ pub struct SettingsDto {
     pub theme: ThemeSettingsDto,
     pub ai: AiSettingsDto,
     pub research: ResearchSettingsDto,
+    pub graph: GraphSettingsDto,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GraphSettingsDto {
+    pub show_connected: bool,
+    pub show_orphaned: bool,
+    pub show_tags: bool,
+    pub charge_strength: f64,
+    pub link_distance: f64,
+    pub alpha_decay: f64,
+    pub velocity_decay: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -94,6 +106,15 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             max_results: config.research.max_results,
             max_depth: config.research.max_depth,
         },
+        graph: GraphSettingsDto {
+            show_connected: config.graph.show_connected,
+            show_orphaned: config.graph.show_orphaned,
+            show_tags: config.graph.show_tags,
+            charge_strength: config.graph.charge_strength,
+            link_distance: config.graph.link_distance,
+            alpha_decay: config.graph.alpha_decay,
+            velocity_decay: config.graph.velocity_decay,
+        },
     })
 }
 
@@ -146,7 +167,47 @@ pub async fn save_settings(
             max_results: settings.research.max_results,
             max_depth: settings.research.max_depth,
         },
+        graph: pkm_core::GraphConfig {
+            show_connected: settings.graph.show_connected,
+            show_orphaned: settings.graph.show_orphaned,
+            show_tags: settings.graph.show_tags,
+            charge_strength: settings.graph.charge_strength,
+            link_distance: settings.graph.link_distance,
+            alpha_decay: settings.graph.alpha_decay,
+            velocity_decay: settings.graph.velocity_decay,
+        },
         ..pkm_core::Config::default()
+    };
+
+    config.save(&config_path).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn save_graph_settings(
+    graph: GraphSettingsDto,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let config_path = state.vault_path.join(".pkm").join("config.toml");
+
+    let mut config = if config_path.exists() {
+        pkm_core::Config::load(&config_path).map_err(|e| e.to_string())?
+    } else {
+        pkm_core::Config {
+            vault_path: state.vault_path.clone(),
+            ..Default::default()
+        }
+    };
+
+    config.graph = pkm_core::GraphConfig {
+        show_connected: graph.show_connected,
+        show_orphaned: graph.show_orphaned,
+        show_tags: graph.show_tags,
+        charge_strength: graph.charge_strength,
+        link_distance: graph.link_distance,
+        alpha_decay: graph.alpha_decay,
+        velocity_decay: graph.velocity_decay,
     };
 
     config.save(&config_path).map_err(|e| e.to_string())?;
