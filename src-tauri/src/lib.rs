@@ -25,7 +25,7 @@ fn resolve_default_vault_path(_app: &tauri::AppHandle) -> PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let vault_path = resolve_default_vault_path(app.handle());
@@ -57,7 +57,6 @@ pub fn run() {
             // Vault
             commands::vault::get_vault_info,
             commands::vault::set_vault_path,
-            commands::vault::pick_vault_directory,
             // Pages
             commands::page::list_pages,
             commands::page::open_page,
@@ -81,11 +80,13 @@ pub fn run() {
             commands::search::get_page_backlinks,
             commands::search::autocomplete,
             commands::search::suggest_connections,
+            commands::search::get_backlink_context,
             // Graph
             commands::graph::get_graph_data,
             commands::graph::get_connected_components,
             commands::graph::get_orphaned_notes,
             commands::graph::rebuild_graph,
+            commands::graph::resolve_link_target,
             // Query
             commands::query::run_query,
             // Sync
@@ -115,7 +116,16 @@ pub fn run() {
             commands::settings::save_settings,
             commands::settings::save_graph_settings,
             commands::settings::fetch_models,
-        ])
+        ]);
+
+    #[cfg(desktop)]
+    {
+        builder = builder.invoke_handler(tauri::generate_handler![
+            commands::vault::pick_vault_directory,
+        ]);
+    }
+
+    builder
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -359,6 +359,56 @@ pub async fn get_orphaned_notes(
     get_orphaned_notes_from_store(&store)
 }
 
+#[derive(Debug, Serialize)]
+pub struct LinkTargetDto {
+    pub page_path: Option<String>,
+    pub slug: Option<String>,
+    pub title: Option<String>,
+}
+
+#[tauri::command]
+pub async fn resolve_link_target(
+    target: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<LinkTargetDto, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let paths = store.list_pages().map_err(|e| e.to_string())?;
+
+    let mut slug_to_path: HashMap<String, String> = HashMap::new();
+    let mut title_to_slug: HashMap<String, String> = HashMap::new();
+    let mut slug_to_title: HashMap<String, String> = HashMap::new();
+
+    for path in &paths {
+        let slug = slug_from_path(path);
+        slug_to_path.insert(slug.clone(), path.clone());
+        let fm = store.get_page(path).ok().flatten();
+        let title = fm
+            .as_ref()
+            .and_then(|f| f.title.clone())
+            .unwrap_or_else(|| slug.replace('-', " "));
+        slug_to_title.insert(slug.clone(), title.clone());
+        title_to_slug.insert(title.to_lowercase(), slug.clone());
+    }
+
+    let resolved_slug = resolve_slug(&target, &slug_to_path, &title_to_slug);
+    let result = resolved_slug.map(|slug| {
+        let page_path = slug_to_path.get(&slug).cloned();
+        let title = slug_to_title.get(&slug).cloned();
+        LinkTargetDto {
+            page_path,
+            slug: Some(slug),
+            title,
+        }
+    });
+
+    Ok(result.unwrap_or(LinkTargetDto {
+        page_path: None,
+        slug: None,
+        title: None,
+    }))
+}
+
 #[tauri::command]
 pub async fn rebuild_graph(state: tauri::State<'_, AppState>) -> Result<String, String> {
     let mut vault = state.lock().map_err(|e| e.to_string())?;

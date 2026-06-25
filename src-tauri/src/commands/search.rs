@@ -268,6 +268,57 @@ pub async fn autocomplete(
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct BacklinkContextDto {
+    pub block_id: String,
+    pub content: String,
+    pub page_title: Option<String>,
+}
+
+#[tauri::command]
+pub async fn get_backlink_context(
+    target_page: String,
+    current_page: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<Option<BacklinkContextDto>, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+
+    let current_slug = std::path::Path::new(&current_page)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_string();
+    let current_title = current_slug.replace('-', " ");
+
+    let page_fm = store.get_page(&target_page).ok().flatten();
+    let page_title = page_fm.and_then(|f| f.title);
+
+    let blocks = store
+        .get_blocks_by_page(&target_page)
+        .map_err(|e| e.to_string())?;
+
+    // Find the first block in target_page that contains a [[link]] to current_page
+    for block in &blocks {
+        let links = pkm_markdown::linker::extract_links(&block.content);
+        for link in &links {
+            let link_lower = link.target.to_lowercase();
+            if link_lower == current_slug.to_lowercase()
+                || link_lower == current_title.to_lowercase()
+                || link_lower == current_title.replace('-', " ").to_lowercase()
+            {
+                return Ok(Some(BacklinkContextDto {
+                    block_id: block.id.to_string(),
+                    content: block.content.clone(),
+                    page_title: page_title.clone(),
+                }));
+            }
+        }
+    }
+
+    Ok(None)
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ConnectionSuggestion {
     pub title: String,
     pub page_path: String,
