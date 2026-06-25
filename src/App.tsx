@@ -12,19 +12,43 @@ import FlashcardsPanel from './components/FlashcardsPanel';
 import WhiteboardPanel from './components/WhiteboardPanel';
 import GraphPanel from './components/GraphPanel';
 import SettingsPage from './components/SettingsPage';
+import VaultPicker from './components/VaultPicker';
 
 export default function App() {
-  const { loadVault, loadPages, error } = useStore();
+  const { vault, loading, loadVault, loadPages, error } = useStore();
 
   useEffect(() => {
-    loadVault();
-    loadPages();
+    if (!vault) {
+      loadVault();
+    }
   }, []);
 
+  useEffect(() => {
+    if (vault) {
+      loadPages();
+    }
+  }, [vault]);
+
+  if (loading && !vault) {
+    return (
+      <div className="flex items-center justify-center h-screen w-screen bg-white dark:bg-[var(--secondary-900)]">
+        <p className="text-sm text-[var(--secondary-500)]">Loading vault...</p>
+      </div>
+    );
+  }
+
+  if (!vault && error) {
+    return <VaultPicker />;
+  }
+
+  if (!vault) {
+    return <VaultPicker />;
+  }
+
   return (
-    <div className="flex h-screen w-screen bg-white dark:bg-[var(--secondary-900)] text-[var(--secondary-900)] dark:text-[var(--secondary-100)]">
+    <div className="flex h-screen w-screen bg-white dark:bg-[var(--secondary-900)] text-[var(--secondary-900)] dark:text-[var(--secondary-100)] safe-area-container">
       <Sidebar />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto safe-area-main">
         {error && (
           <div className="bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 p-2 text-sm">
             {error}
