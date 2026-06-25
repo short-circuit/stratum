@@ -102,7 +102,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Show build output
-        run: ls -la target/release/stratum-tauri* 2>/dev/null || ls -la target/release/*.exe 2>/dev/null || echo "checking bundle dir" && ls -la target/release/bundle/ 2>/dev/null || echo "no output found"
+        run: ls -la target/release/stratum* 2>/dev/null; ls -la target/release/bundle/ 2>/dev/null; echo "done"
 
       - name: Upload bundles
         uses: actions/upload-artifact@v4
