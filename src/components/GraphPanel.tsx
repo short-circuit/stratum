@@ -32,7 +32,7 @@ export default function GraphPanel() {
   const navigate = useNavigate();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const graphRef = useRef<any>(null);
-  const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [graphData, setGraphData] = useState<GraphDataDto | null>(null);
   const [components, setComponents] = useState<ComponentDto[]>([]);
   const [orphans, setOrphans] = useState<OrphanDto[]>([]);
@@ -44,7 +44,6 @@ export default function GraphPanel() {
   const [search, setSearch] = useState('');
   const [width, setWidth] = useState(800);
   const [height, setHeight] = useState(600);
-  const [velocityDecay, setVelocityDecay] = useState(0.3);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [graphSettings, setGraphSettings] = useState<GraphSettings>(DEFAULT_SETTINGS);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'unsaved'>('saved');
@@ -54,7 +53,6 @@ export default function GraphPanel() {
     api.getSettings().then(s => {
       if (s.graph) {
         setGraphSettings(s.graph);
-        setVelocityDecay(s.graph.velocity_decay);
       }
     }).catch(() => {});
   }, []);
@@ -64,7 +62,6 @@ export default function GraphPanel() {
   useEffect(() => {
     if (!initialized.current) { initialized.current = true; return; }
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     saveTimer.current = setTimeout(() => {
       setSaveStatus('unsaved');
       api.saveGraphSettings(graphSettings).then(() => setSaveStatus('saved')).catch(() => {});
@@ -72,11 +69,7 @@ export default function GraphPanel() {
   }, [graphSettings]);
 
   const updateSetting = useCallback(<K extends keyof GraphSettings>(key: K, value: GraphSettings[K]) => {
-    setGraphSettings(prev => {
-      const next = { ...prev, [key]: value };
-      if (key === 'velocity_decay') setVelocityDecay(value as number);
-      return next;
-    });
+    setGraphSettings(prev => ({ ...prev, [key]: value }));
   }, []);
 
   const loadData = useCallback(async () => {
@@ -194,30 +187,6 @@ export default function GraphPanel() {
     },
     [navigate],
   );
-
-  const handleNodeDragStart = useCallback(() => {
-    setVelocityDecay(0.85);
-    const g = graphRef.current;
-    if (g) {
-      try {
-        const charge = g.d3Force('charge');
-        // Near-zero charge during drag: the internal d3ReheatSimulation
-        // (alpha=1) has negligible repulsion so orphaned nodes stay put.
-        if (charge) charge.strength(-0.01);
-      } catch { /* d3Force getter may throw */ }
-    }
-  }, []);
-
-  const handleNodeDragEnd = useCallback(() => {
-    setVelocityDecay(graphSettings.velocity_decay);
-    const g = graphRef.current;
-    if (g) {
-      try {
-        const charge = g.d3Force('charge');
-        if (charge) charge.strength(graphSettings.charge_strength);
-      } catch { /* d3Force getter may throw */ }
-    }
-  }, [graphSettings.velocity_decay, graphSettings.charge_strength]);
 
   const handleNodeHover = useCallback(
     (node: GraphNode | null) => {
@@ -399,14 +368,12 @@ export default function GraphPanel() {
             }}
             onNodeClick={(n: GraphNode) => handleNodeClick(n)}
             onNodeHover={(n: GraphNode | null) => handleNodeHover(n)}
-            onNodeDragStart={handleNodeDragStart}
-            onNodeDragEnd={handleNodeDragEnd}
             linkColor={() => '#6b728066'}
             linkDirectionalArrowLength={3}
             linkDirectionalArrowRelPos={1}
             linkWidth={0.5}
             d3AlphaDecay={graphSettings.alpha_decay}
-            d3VelocityDecay={velocityDecay}
+            d3VelocityDecay={graphSettings.velocity_decay}
             enableNodeDrag={true}
             enableZoomInteraction={true}
             minZoom={0.2}
