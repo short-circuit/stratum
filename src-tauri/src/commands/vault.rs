@@ -73,3 +73,49 @@ pub async fn set_vault_path(path: String, state: tauri::State<'_, AppState>) -> 
     state.db_path = vault_path.join(".pkm").join("blocks.db");
     Ok(())
 }
+
+#[tauri::command]
+pub async fn pick_vault_directory(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<VaultInfo, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    // Use a oneshot channel to wait for the dialog result
+    let (tx, rx) = std::sync::mpsc::channel();
+
+    app.dialog()
+        .file()
+        .pick_folder(move |path| {
+            let _ = tx.send(path);
+        });
+
+    let picked = rx.recv().map_err(|_| "Folder picker cancelled".to_string())?;
+    let picked_path = picked.ok_or("No folder selected".to_string())?;
+
+    let vault_path = PathBuf::from(picked_path.to_string());
+    if !vault_path.exists() {
+        return Err(format!("Selected path does not exist: {}", vault_path.display()));
+    }
+
+    std::fs::create_dir_all(vault_path.join(".pkm"))
+        .map_err(|e| format!("Failed to initialize vault: {}", e))?;
+
+    let db_path = vault_path.join(".pkm").join("blocks.db");
+    let index_engine = IndexEngine::new(&vault_path).ok();
+
+    let mut vstate = state.lock().map_err(|e| e.to_string())?;
+    vstate.vault_path = vault_path.clone();
+    vstate.db_path = db_path.clone();
+    vstate.index_engine = index_engine;
+
+    let store = pkm_block::BlockStore::open(&db_path).map_err(|e| e.to_string())?;
+    let block_count = store.block_count().map_err(|e| e.to_string())?;
+    let page_count = store.page_count().map_err(|e| e.to_string())?;
+
+    Ok(VaultInfo {
+        path: vault_path.to_string_lossy().to_string(),
+        block_count,
+        page_count,
+    })
+}

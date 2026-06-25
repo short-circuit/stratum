@@ -270,3 +270,9 @@ export async function getOrphanedNotes(): Promise<OrphanDto[]> {
 export async function rebuildGraph(): Promise<string> {
   return invoke('rebuild_graph');
 }
+
+// --- Reindex ---
+
+export async function reindexVault(): Promise<number> {
+  return invoke('reindex_vault');
+}

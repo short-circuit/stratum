@@ -14,6 +14,7 @@ interface AppState {
   openPage: (path: string) => Promise<void>;
   createPage: (path: string, title?: string) => Promise<void>;
   deletePage: (path: string) => Promise<void>;
+  pickVaultDirectory: () => Promise<void>;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -75,6 +76,19 @@ export const useStore = create<AppState>((set, get) => ({
       await get().loadPages();
     } catch (e) {
       set({ error: String(e) });
+    }
+  },
+
+  pickVaultDirectory: async () => {
+    try {
+      set({ loading: true, error: null });
+      const vault = await api.pickVaultDirectory();
+      set({ vault });
+      await get().loadPages();
+    } catch (e) {
+      set({ error: String(e) });
+    } finally {
+      set({ loading: false });
     }
   },
 }));
