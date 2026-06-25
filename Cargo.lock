@@ -3454,7 +3454,7 @@ checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
 
 [[package]]
 name = "pkm-ai"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3474,7 +3474,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-block"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "pkm-core",
@@ -3491,7 +3491,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-cli"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3512,7 +3512,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-core"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "dirs 5.0.1",
@@ -3532,7 +3532,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-index"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "pkm-block",
@@ -3550,7 +3550,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-markdown"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "pkm-block",
@@ -3568,7 +3568,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-plugin"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "hex",
@@ -3584,7 +3584,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-query"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "pkm-block",
  "rusqlite",
@@ -3598,7 +3598,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-sync"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "git2",
@@ -3613,7 +3613,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-watcher"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "crossbeam-channel",
  "notify",
@@ -4823,7 +4823,7 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
 name = "stratum-tauri"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "dirs 5.0.1",
