@@ -16,6 +16,7 @@ import type {
   AiAction,
   AiTransformResult,
   ResearchResult,
+  GraphSettings,
 } from './types';
 
 export async function getVaultInfo(): Promise<VaultInfo> {
@@ -190,6 +191,7 @@ export async function getSettings(): Promise<{
     rag_enabled: boolean;
     rag_chunk_count: number;
   };
+  graph: GraphSettings;
 }> {
   return invoke('get_settings');
 }
@@ -206,8 +208,13 @@ export async function saveSettings(settings: {
     rag_enabled: boolean;
     rag_chunk_count: number;
   };
+  graph: GraphSettings;
 }): Promise<void> {
   return invoke('save_settings', { settings });
+}
+
+export async function saveGraphSettings(graph: GraphSettings): Promise<void> {
+  return invoke('save_graph_settings', { graph });
 }
 
 export async function fetchModels(): Promise<string[]> {
