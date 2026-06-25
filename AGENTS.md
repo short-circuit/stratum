@@ -163,19 +163,18 @@ React app uses **Zustand** for state (single store in `src/stores/appStore.ts`):
 | `QueryPanel` | Datalog query input with result table |
 | `WhiteboardPanel` | Tldraw spatial canvas |
 | `FlashcardsPanel` | Spaced-repetition card review |
-| `SettingsPage` | App configuration (vault path, theme, AI, sync) |
+| `SettingsPage` | App configuration (vault path, theme, AI, sync, graph settings) |
 
 ## Graph Engine
 
-The graph engine (`pkm-index/src/graph.rs` + newly exposed Tauri commands) provides:
+The graph engine (`src-tauri/src/commands/graph.rs`) builds data directly from the SQLite BlockStore — no file I/O or Tantivy index rebuild required:
 
-- **Node/Edge graph** built from `[[wiki-links]]` in `.md` files
-- **Backlink computation** (incoming edges + unlinked mentions)
-- **Connected components** via BFS (find clusters of interlinked notes)
-- **Orphaned notes** detection (notes with zero connections)
-- **Full rebuild** from filesystem via `IndexEngine::rebuild_all()`
+- **Node/Edge graph** built from `[[wiki-links]]` stored in SQLite blocks
+- **Connected components** via BFS on an adjacency list derived from block links
+- **Orphaned notes** detection (notes with zero incoming/outgoing connections)
+- **Slug resolution**: resolves `[[Title]]` links to note slugs via title lookup
 - **Tauri commands**: `get_graph_data`, `get_connected_components`, `get_orphaned_notes`, `rebuild_graph`
-- **Frontend**: `GraphPanel` renders force-directed layout, navigable by click
+- **Frontend**: `GraphPanel` renders force-directed layout (d3-force via `react-force-graph-2d`), with interactive settings panel for d3-force parameters (repulsion, link distance, alpha/friction decay), visibility toggles (connected/orphaned/tags), node search filter, component/orphan view modes, and click-to-navigate
 
 ## Sync Modes
 
