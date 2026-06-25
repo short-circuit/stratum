@@ -27,7 +27,8 @@ pub fn extract_links(text: &str) -> Vec<Link> {
                 if i + 1 < len && pairs[i].1 == ']' && pairs[i + 1].1 == ']' {
                     depth -= 2;
                     if depth == 0 {
-                        let inner: String = pairs[content_start..i].iter().map(|(_, c)| c).collect();
+                        let inner: String =
+                            pairs[content_start..i].iter().map(|(_, c)| c).collect();
                         let line = text[..link_start_byte].matches('\n').count() + 1;
 
                         if let Some(parsed) = parse_link_inner(&inner) {

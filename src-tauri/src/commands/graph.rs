@@ -180,7 +180,10 @@ pub async fn get_graph_data(state: tauri::State<'_, AppState>) -> Result<GraphDa
     let state = state.lock().map_err(|e| e.to_string())?;
     let vault_path_str = state.vault_path.to_string_lossy().to_string();
 
-    eprintln!("[stratum:graph] Building graph from SQLite: {}", vault_path_str);
+    eprintln!(
+        "[stratum:graph] Building graph from SQLite: {}",
+        vault_path_str
+    );
 
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     let data = build_graph_data_from_store(&store, &vault_path_str)?;
@@ -296,9 +299,7 @@ pub async fn get_connected_components(
     get_connected_components_from_store(&store)
 }
 
-fn get_orphaned_notes_from_store(
-    store: &pkm_block::BlockStore,
-) -> Result<Vec<OrphanDto>, String> {
+fn get_orphaned_notes_from_store(store: &pkm_block::BlockStore) -> Result<Vec<OrphanDto>, String> {
     let paths = store.list_pages().map_err(|e| e.to_string())?;
     let mut slug_to_path: HashMap<String, String> = HashMap::new();
     let mut slug_to_title: HashMap<String, String> = HashMap::new();

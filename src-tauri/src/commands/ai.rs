@@ -57,7 +57,12 @@ pub async fn ai_transform_block(
     page_path: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<AiTransformResult, String> {
-    eprintln!("[ai] transform_block action={:?} text_len={} page={:?}", &action, text.len(), &page_path);
+    eprintln!(
+        "[ai] transform_block action={:?} text_len={} page={:?}",
+        &action,
+        text.len(),
+        &page_path
+    );
 
     let config_path = {
         let s = state.lock().map_err(|e| e.to_string())?;
@@ -88,7 +93,10 @@ pub async fn ai_transform_block(
 
     let full_system = format!("{}{}", system_prompt, context_suffix);
 
-    eprintln!("[ai] calling provider={:?} model={}", config.ai.provider, config.ai.model);
+    eprintln!(
+        "[ai] calling provider={:?} model={}",
+        config.ai.provider, config.ai.model
+    );
 
     let chat_config = ChatConfig::new(&config.ai.model)
         .with_temperature(0.3)
@@ -141,9 +149,7 @@ pub async fn ai_research(
 
     eprintln!(
         "[ai] research searxng={} max_results={} max_depth={}",
-        config.research.searxng_endpoint,
-        config.research.max_results,
-        config.research.max_depth
+        config.research.searxng_endpoint, config.research.max_results, config.research.max_depth
     );
 
     let engine = ResearchEngine::new(
@@ -154,9 +160,16 @@ pub async fn ai_research(
     )
     .map_err(|e| format!("Failed to create research engine: {e}"))?;
 
-    let result = engine.research(&query).await.map_err(|e| format!("Research failed: {e}"))?;
+    let result = engine
+        .research(&query)
+        .await
+        .map_err(|e| format!("Research failed: {e}"))?;
 
-    eprintln!("[ai] research done, findings_len={} sources={}", result.findings.len(), result.sources.len());
+    eprintln!(
+        "[ai] research done, findings_len={} sources={}",
+        result.findings.len(),
+        result.sources.len()
+    );
 
     Ok(ResearchResultDto {
         findings: result.findings,
@@ -178,7 +191,11 @@ pub async fn ai_interlink_notes(
     page_path: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<AiTransformResult, String> {
-    eprintln!("[ai] interlink text_len={} page={:?}", text.len(), page_path);
+    eprintln!(
+        "[ai] interlink text_len={} page={:?}",
+        text.len(),
+        page_path
+    );
 
     let config_path;
     let db_path;
@@ -237,7 +254,9 @@ pub async fn ai_interlink_notes(
                             .and_then(|s| s.to_str())
                             .unwrap_or("");
                         if let Some(ref cur) = current_slug {
-                            if slug == cur { continue; }
+                            if slug == cur {
+                                continue;
+                            }
                         }
                         if seen.insert(page.to_string()) {
                             related_titles.push(slug.replace('-', " "));
@@ -247,10 +266,8 @@ pub async fn ai_interlink_notes(
             }
 
             // Step 2: supplement with keyword matching for any remaining pages
-            let keywords: std::collections::HashSet<String> = query_words
-                .iter()
-                .map(|w| w.to_lowercase())
-                .collect();
+            let keywords: std::collections::HashSet<String> =
+                query_words.iter().map(|w| w.to_lowercase()).collect();
 
             let found: std::collections::HashSet<_> = related_titles.iter().cloned().collect();
             for path in &pages {
@@ -259,13 +276,18 @@ pub async fn ai_interlink_notes(
                     .and_then(|s| s.to_str())
                     .unwrap_or(path);
                 if let Some(ref cur) = current_slug {
-                    if slug == cur { continue; }
+                    if slug == cur {
+                        continue;
+                    }
                 }
                 let title = slug.replace('-', " ");
-                if found.contains(&title) { continue; }
+                if found.contains(&title) {
+                    continue;
+                }
 
                 let title_lower = title.to_lowercase();
-                let mut score: usize = keywords.iter().filter(|k| title_lower.contains(*k)).count() * 3;
+                let mut score: usize =
+                    keywords.iter().filter(|k| title_lower.contains(*k)).count() * 3;
                 if let Ok(blocks) = store.get_blocks_by_page(path) {
                     for b in &blocks {
                         let block_lower = b.content.to_lowercase();
@@ -314,7 +336,10 @@ pub async fn ai_interlink_notes(
         .with_system_prompt(system);
 
     let messages = vec![ChatMessage::user(&text)];
-    let response = provider.chat(&messages, &chat_config).await.map_err(|e| e.to_string())?;
+    let response = provider
+        .chat(&messages, &chat_config)
+        .await
+        .map_err(|e| e.to_string())?;
 
     eprintln!("[ai] interlink response len={}", response.content.len());
 
@@ -333,7 +358,10 @@ pub async fn ai_interlink_notes(
         // Also handle piped links like [[homelab|something]]
         let piped = format!("[[{}|", slug);
         if let Some(pos) = result.to_lowercase().find(&piped.to_lowercase()) {
-            let close = result[pos..].find("]]").map(|p| pos + p + 2).unwrap_or(result.len());
+            let close = result[pos..]
+                .find("]]")
+                .map(|p| pos + p + 2)
+                .unwrap_or(result.len());
             let before = &result[..pos];
             let after = &result[close..];
             // Extract display text after the pipe
@@ -343,7 +371,5 @@ pub async fn ai_interlink_notes(
         }
     }
 
-    Ok(AiTransformResult {
-        content: result,
-    })
+    Ok(AiTransformResult { content: result })
 }
