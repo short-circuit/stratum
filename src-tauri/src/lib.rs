@@ -25,7 +25,7 @@ fn resolve_default_vault_path(_app: &tauri::AppHandle) -> PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let mut builder = tauri::Builder::default()
+    tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let vault_path = resolve_default_vault_path(app.handle());
@@ -57,6 +57,7 @@ pub fn run() {
             // Vault
             commands::vault::get_vault_info,
             commands::vault::set_vault_path,
+            commands::vault::pick_vault_directory,
             // Pages
             commands::page::list_pages,
             commands::page::open_page,
@@ -107,6 +108,8 @@ pub fn run() {
             commands::whiteboard::list_whiteboards,
             commands::whiteboard::save_whiteboard,
             commands::whiteboard::load_whiteboard,
+            commands::whiteboard::save_library,
+            commands::whiteboard::load_library,
             // AI
             commands::ai::ai_transform_block,
             commands::ai::ai_research,
@@ -116,16 +119,7 @@ pub fn run() {
             commands::settings::save_settings,
             commands::settings::save_graph_settings,
             commands::settings::fetch_models,
-        ]);
-
-    #[cfg(desktop)]
-    {
-        builder = builder.invoke_handler(tauri::generate_handler![
-            commands::vault::pick_vault_directory,
-        ]);
-    }
-
-    builder
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

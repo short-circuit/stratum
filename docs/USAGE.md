@@ -63,7 +63,7 @@ The left sidebar provides access to all features. It can be collapsed (◀) and 
 | ▷ Query | `/query` | Datalog queries |
 | 📋 Templates | `/templates` | Reusable page templates |
 | 🃏 Flashcards | `/flashcards` | Spaced repetition cards |
-| 🎨 Whiteboards | `/whiteboards` | Spatial canvas (Tldraw) |
+| 🎨 Whiteboards | `/whiteboards` | Spatial canvas (Excalidraw) |
 | ⚙ Settings | `/settings` | App configuration |
 
 ---
@@ -200,7 +200,7 @@ Spaced-repetition flashcards generated from your notes.
 
 ## Whiteboards
 
-A spatial canvas powered by [Tldraw](https://tldraw.dev) for freeform drawing and diagramming.
+A spatial canvas powered by [Excalidraw](https://excalidraw.com) for freeform drawing and diagramming.
 
 - Create, rename, and delete whiteboards
 - Drawing tools, shapes, text, and connectors

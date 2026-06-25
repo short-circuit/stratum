@@ -1,36 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useCreateBlockNote } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
 import type { BlockDto } from '../lib/types';
 import * as api from '../lib/commands';
-import { parseWikiLinks, isWikiLinkHref } from '../lib/wikiLinks';
-import { useCtrlHeld } from '../lib/useCtrlHeld';
-import LinkPreviewPopup from './LinkPreviewPopup';
+import AISlashMenu from './AISlashMenu';
+import AIFormattingToolbar from './AIFormattingToolbar';
 
 interface Props {
   pagePath: string;
-}
-
-interface PreviewState {
-  content: string;
-  pageTitle: string | null;
-  pagePath: string;
-  position: { x: number; y: number };
-  loading: boolean;
 }
 
 export default function OutlinerEditor({ pagePath }: Props) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState('init');
-  const [preview, setPreview] = useState<PreviewState | null>(null);
-  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-  const { ctrlHeld } = useCtrlHeld();
 
   const editor = useCreateBlockNote();
   console.log('[OutlinerEditor] created editor for', pagePath);
@@ -44,6 +29,7 @@ export default function OutlinerEditor({ pagePath }: Props) {
         console.log('[OutlinerEditor] got', blocks.length, 'blocks');
         try {
           const bnBlocks = dtoToBlockNote(blocks);
+          // Don't replace if no blocks — keep BlockNote's default paragraph
           if (bnBlocks.length > 0) {
             editor.replaceBlocks(editor.document, bnBlocks);
           }
@@ -60,93 +46,6 @@ export default function OutlinerEditor({ pagePath }: Props) {
         setStatus('error');
       });
   }, [pagePath]);
-
-  // Event delegation for wiki-link clicks and hover previews
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el || status !== 'ready') return;
-
-    const handleClick = (e: MouseEvent) => {
-      const linkEl = (e.target as HTMLElement).closest('a');
-      if (!linkEl) return;
-      const href = linkEl.getAttribute('href');
-      if (!href || !isWikiLinkHref(href)) return;
-      e.preventDefault();
-      api.resolveLinkTarget(href).then(resolved => {
-        if (resolved.page_path) {
-          navigate(`/page/${encodeURIComponent(resolved.page_path)}`);
-        }
-      });
-    };
-
-    const handleMouseOver = (e: MouseEvent) => {
-      const linkEl = (e.target as HTMLElement).closest('a');
-      if (!linkEl || !ctrlHeld.current) {
-        if (hoverTimer.current) {
-          clearTimeout(hoverTimer.current);
-          hoverTimer.current = null;
-        }
-        return;
-      }
-
-      const href = linkEl.getAttribute('href');
-      if (!href || !isWikiLinkHref(href)) return;
-
-      if (hoverTimer.current) clearTimeout(hoverTimer.current);
-      hoverTimer.current = setTimeout(async () => {
-        if (!ctrlHeld.current) return;
-
-        setPreview({
-          content: '',
-          pageTitle: null,
-          pagePath: '',
-          position: { x: e.clientX + 10, y: e.clientY + 10 },
-          loading: true,
-        });
-
-        try {
-          const resolved = await api.resolveLinkTarget(href);
-          if (!resolved.page_path) {
-            setPreview(null);
-            return;
-          }
-          if (!ctrlHeld.current) { setPreview(null); return; }
-
-          const ctx = await api.getBacklinkContext(resolved.page_path, pagePath);
-          if (!ctrlHeld.current) { setPreview(null); return; }
-
-          setPreview({
-            content: ctx?.content || '(empty)',
-            pageTitle: ctx?.page_title || resolved.title || resolved.slug || href,
-            pagePath: resolved.page_path,
-            position: { x: e.clientX + 10, y: e.clientY + 10 },
-            loading: false,
-          });
-        } catch {
-          setPreview(null);
-        }
-      }, 200);
-    };
-
-    const handleMouseOut = (e: MouseEvent) => {
-      const linkEl = (e.target as HTMLElement).closest('a');
-      if (!linkEl) return;
-      if (hoverTimer.current) {
-        clearTimeout(hoverTimer.current);
-        hoverTimer.current = null;
-      }
-    };
-
-    el.addEventListener('click', handleClick);
-    el.addEventListener('mouseover', handleMouseOver);
-    el.addEventListener('mouseout', handleMouseOut);
-    return () => {
-      el.removeEventListener('click', handleClick);
-      el.removeEventListener('mouseover', handleMouseOver);
-      el.removeEventListener('mouseout', handleMouseOut);
-      if (hoverTimer.current) clearTimeout(hoverTimer.current);
-    };
-  }, [status, pagePath, ctrlHeld, navigate]);
 
   const persistBlocks = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -199,29 +98,16 @@ export default function OutlinerEditor({ pagePath }: Props) {
 
   return (
     <div className="blocknote-editor-container" style={{ height: '100%' }}>
-      <div ref={containerRef} style={{ height: '100%' }}>
         <BlockNoteView
           editor={editor}
           theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
           className="min-h-[400px] h-full"
           slashMenu={false}
           formattingToolbar={false}
-        >
-          <AISlashMenu pagePath={pagePath} />
-          <AIFormattingToolbar />
-        </BlockNoteView>
-      </div>
-
-      {preview && (
-        <LinkPreviewPopup
-          content={preview.content}
-          pageTitle={preview.pageTitle}
-          pagePath={preview.pagePath}
-          position={preview.position}
-          loading={preview.loading}
-          onClose={() => setPreview(null)}
-        />
-      )}
+      >
+        <AISlashMenu pagePath={pagePath} />
+        <AIFormattingToolbar />
+      </BlockNoteView>
     </div>
   );
 }
@@ -250,7 +136,7 @@ function dtoToBlockNote(dtos: BlockDto[]): any[] {
     else if (dto.marker) { type = 'checkListItem'; }
     return {
       type,
-      content: parseWikiLinks(dto.content || ''),
+      content: dto.content || '',
       props,
       children: children.map(convert),
     };

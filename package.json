@@ -24,7 +24,7 @@
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.18.0",
     "react-force-graph-2d": "^1.27.0",
-    "tldraw": "^5.1.1",
+    "@excalidraw/excalidraw": "^0.18.1",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
