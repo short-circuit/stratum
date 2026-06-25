@@ -101,9 +101,6 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
-      - name: Show build output
-        run: ls -la target/release/stratum* 2>/dev/null; ls -la target/release/bundle/ 2>/dev/null; echo "done"
-
       - name: Upload bundles
         uses: actions/upload-artifact@v4
         with:
