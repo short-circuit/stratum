@@ -298,8 +298,7 @@ jobs:
         with:
           name: ios
           path: |
-            src-tauri/gen/ios/**/*.app
-            src-tauri/gen/ios/**/*.ipa
+            src-tauri/gen/apple/build/**/*.app
           if-no-files-found: warn
 
       - name: Upload build log
