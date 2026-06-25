@@ -206,7 +206,7 @@ export default function Sidebar() {
             <button onClick={handleExport} disabled={exporting} className="hover:text-[var(--secondary-600)] dark:hover:text-[var(--secondary-300)] disabled:opacity-50">
               {exporting ? '...' : 'Export'}
             </button>
-            <span className="text-[var(--secondary-300)] dark:text-[var(--secondary-600)]">v0.2</span>
+            <span className="text-[var(--secondary-300)] dark:text-[var(--secondary-600)]">v{__APP_VERSION__}</span>
           </>
         )}
       </div>
