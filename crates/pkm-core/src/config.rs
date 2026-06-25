@@ -23,6 +23,8 @@ pub struct Config {
     pub plugins: Vec<PluginConfig>,
     /// File watcher configuration.
     pub watcher: WatcherConfig,
+    /// Graph visualization settings.
+    pub graph: GraphConfig,
 }
 
 impl Default for Config {
@@ -37,6 +39,7 @@ impl Default for Config {
             research: ResearchConfig::default(),
             plugins: Vec::new(),
             watcher: WatcherConfig::default(),
+            graph: GraphConfig::default(),
         }
     }
 }
@@ -205,6 +208,33 @@ pub enum AiProvider {
     #[serde(rename = "z.ai")]
     Zai,
     Custom,
+}
+
+/// Graph visualization configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct GraphConfig {
+    pub show_connected: bool,
+    pub show_orphaned: bool,
+    pub show_tags: bool,
+    pub charge_strength: f64,
+    pub link_distance: f64,
+    pub alpha_decay: f64,
+    pub velocity_decay: f64,
+}
+
+impl Default for GraphConfig {
+    fn default() -> Self {
+        Self {
+            show_connected: true,
+            show_orphaned: true,
+            show_tags: true,
+            charge_strength: -8.0,
+            link_distance: 40.0,
+            alpha_decay: 0.08,
+            velocity_decay: 0.3,
+        }
+    }
 }
 
 /// Configuration for web research (SearXNG).
