@@ -8,6 +8,8 @@ import type {
   SearchResultsDto,
   BacklinkItem,
   ConnectionSuggestion,
+  LinkTargetDto,
+  BacklinkContextDto,
   QueryResultDto,
   SyncStatusDto,
   GraphDataDto,
@@ -276,6 +278,19 @@ export async function getOrphanedNotes(): Promise<OrphanDto[]> {
 
 export async function rebuildGraph(): Promise<string> {
   return invoke('rebuild_graph');
+}
+
+// --- Link resolution ---
+
+export async function resolveLinkTarget(target: string): Promise<LinkTargetDto> {
+  return invoke('resolve_link_target', { target });
+}
+
+export async function getBacklinkContext(
+  targetPage: string,
+  currentPage: string,
+): Promise<BacklinkContextDto | null> {
+  return invoke('get_backlink_context', { targetPage, currentPage });
 }
 
 // --- Reindex ---
