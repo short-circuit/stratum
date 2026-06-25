@@ -58,7 +58,7 @@ impl ResearchEngine {
             for q in &queries {
                 let results = self.search_searxng(q).await?;
                 for r in results.iter().take(self.max_results) {
-                    let page_content = self.read_url(&r.url).await.unwrap_or_default();
+                    let page_content = self.read_url(&r.url).await.unwrap_or(r.content.clone());
                     let chars: Vec<char> = page_content.chars().collect();
                     let snippet: String = chars.iter().take(500).collect();
                     let body: String = chars.iter().take(3000).collect();
@@ -164,7 +164,7 @@ impl ResearchEngine {
         &self,
         query: &str,
         context: &str,
-        depth: u32,
+        _depth: u32,
     ) -> PkmResult<ResearchAnalysis> {
         let system = format!(
             "You are a research analyst. You are researching: {query}\n\n\
@@ -254,29 +254,30 @@ fn strip_html(html: &str) -> String {
         if !in_tag {
             if chars[i] == '<' {
                 in_tag = true;
-                // Check for script/style
-                let rest: String = chars[i..].iter().take(7).collect();
-                if rest.starts_with("<script") {
-                    in_script = true;
-                } else if rest.starts_with("<style") {
-                    in_style = true;
+                let rest9: String = chars[i..].iter().take(9).collect();
+                if rest9.starts_with("</script") {
+                    in_script = false;
+                } else if rest9.starts_with("</style") {
+                    in_style = false;
+                } else {
+                    let rest7: String = chars[i..].iter().take(7).collect();
+                    if rest7.starts_with("<script") {
+                        in_script = true;
+                    } else if rest7.starts_with("<style") {
+                        in_style = true;
+                    }
                 }
                 i += 1;
                 continue;
             }
-            result.push(chars[i]);
+            if !in_script && !in_style {
+                result.push(chars[i]);
+            }
             i += 1;
         } else {
             if chars[i] == '>' {
                 in_tag = false;
-                if in_script && chars[i.saturating_sub(8)..=i].iter().collect::<String>().contains("</script") {
-                    in_script = false;
-                }
-                if in_style && chars[i.saturating_sub(6)..=i].iter().collect::<String>().contains("</style") {
-                    in_style = false;
-                }
                 i += 1;
-                // Add newline after block-level tags
                 continue;
             }
             i += 1;
