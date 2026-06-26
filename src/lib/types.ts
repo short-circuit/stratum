@@ -113,6 +113,20 @@ export interface GraphSettings {
   velocity_decay: number;
 }
 
+// --- Link resolution ---
+
+export interface LinkTargetDto {
+  page_path: string | null;
+  slug: string | null;
+  title: string | null;
+}
+
+export interface BacklinkContextDto {
+  block_id: string;
+  content: string;
+  page_title: string | null;
+}
+
 // --- Connection suggestions ---
 
 export interface ConnectionSuggestion {
