@@ -98,9 +98,7 @@ pub async fn save_library(
 }
 
 #[tauri::command]
-pub async fn load_library(
-    state: tauri::State<'_, AppState>,
-) -> Result<String, String> {
+pub async fn load_library(state: tauri::State<'_, AppState>) -> Result<String, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let path = state
         .vault_path
