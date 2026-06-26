@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCreateBlockNote } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
 import type { BlockDto } from '../lib/types';
 import * as api from '../lib/commands';
+import { parseWikiLinks, isWikiLinkHref, extractWikiLinkTarget } from '../lib/wikiLinks';
+import { useCtrlHeld } from '../lib/useCtrlHeld';
+import LinkPreviewPopup from './LinkPreviewPopup';
 import AISlashMenu from './AISlashMenu';
 import AIFormattingToolbar from './AIFormattingToolbar';
 
@@ -12,12 +16,31 @@ interface Props {
   pagePath: string;
 }
 
+interface PreviewState {
+  content: string;
+  pageTitle: string | null;
+  pagePath: string;
+  position: { x: number; y: number };
+  loading: boolean;
+}
+
 export default function OutlinerEditor({ pagePath }: Props) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState('init');
+  const [preview, setPreview] = useState<PreviewState | null>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoveredLink = useRef<string | null>(null);
+  const hoveredPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const { ctrlHeld } = useCtrlHeld();
 
-  const editor = useCreateBlockNote();
+  const editor = useCreateBlockNote({
+    links: {
+      isValidLink: () => true,
+    },
+  });
   console.log('[OutlinerEditor] created editor for', pagePath);
 
   useEffect(() => {
@@ -46,6 +69,101 @@ export default function OutlinerEditor({ pagePath }: Props) {
         setStatus('error');
       });
   }, [pagePath]);
+
+  // Wiki-link interaction: click navigation, hover preview, Ctrl key detection
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || status !== 'ready') return;
+
+    function getWikiLinkHref(target: EventTarget | null): string | null {
+      const linkEl = (target as HTMLElement).closest('a');
+      if (!linkEl) return null;
+      const href = linkEl.getAttribute('href');
+      if (!href || !isWikiLinkHref(href)) return null;
+      return href;
+    }
+
+    const handleClick = (e: MouseEvent) => {
+      const href = getWikiLinkHref(e.target);
+      if (!href) return;
+      e.preventDefault();
+      const target = extractWikiLinkTarget(href);
+      api.resolveLinkTarget(target).then(resolved => {
+        if (resolved.page_path) {
+          navigate(`/page/${encodeURIComponent(resolved.page_path)}`);
+        }
+      });
+    };
+
+    const triggerPreview = (href: string, x: number, y: number) => {
+      const target = extractWikiLinkTarget(href);
+      if (hoverTimer.current) clearTimeout(hoverTimer.current);
+      hoverTimer.current = setTimeout(async () => {
+        if (!ctrlHeld.current) { setPreview(null); return; }
+        setPreview({
+          content: '', pageTitle: null, pagePath: '',
+          position: { x: x + 10, y: y + 10 },
+          loading: true,
+        });
+        try {
+          const resolved = await api.resolveLinkTarget(target);
+          if (!resolved.page_path || !ctrlHeld.current) { setPreview(null); return; }
+          const ctx = await api.getBacklinkContext(resolved.page_path, pagePath);
+          if (!ctrlHeld.current) { setPreview(null); return; }
+          setPreview({
+            content: ctx?.content || '(empty)',
+            pageTitle: ctx?.page_title || resolved.title || resolved.slug || target,
+            pagePath: resolved.page_path,
+            position: { x: x + 10, y: y + 10 },
+            loading: false,
+          });
+        } catch { setPreview(null); }
+      }, 200);
+    };
+
+    const handleMouseOver = (e: MouseEvent) => {
+      const href = getWikiLinkHref(e.target);
+      if (!href) { hoveredLink.current = null; return; }
+      hoveredLink.current = href;
+      hoveredPos.current = { x: e.clientX, y: e.clientY };
+      if (ctrlHeld.current) {
+        triggerPreview(href, e.clientX, e.clientY);
+      }
+    };
+
+    const handleMouseOut = (e: MouseEvent) => {
+      if (!getWikiLinkHref(e.target)) return;
+      hoveredLink.current = null;
+      if (hoverTimer.current) { clearTimeout(hoverTimer.current); hoverTimer.current = null; }
+      setPreview(null);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === 'Control' || e.key === 'Meta') && hoveredLink.current) {
+        triggerPreview(hoveredLink.current, hoveredPos.current.x, hoveredPos.current.y);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Control' || e.key === 'Meta') {
+        setPreview(null);
+      }
+    };
+
+    el.addEventListener('click', handleClick);
+    el.addEventListener('mouseover', handleMouseOver);
+    el.addEventListener('mouseout', handleMouseOut);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      el.removeEventListener('click', handleClick);
+      el.removeEventListener('mouseover', handleMouseOver);
+      el.removeEventListener('mouseout', handleMouseOut);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    };
+  }, [status, pagePath, ctrlHeld, navigate]);
 
   const persistBlocks = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -98,16 +216,29 @@ export default function OutlinerEditor({ pagePath }: Props) {
 
   return (
     <div className="blocknote-editor-container" style={{ height: '100%' }}>
+      <div ref={containerRef} style={{ height: '100%' }}>
         <BlockNoteView
           editor={editor}
           theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
           className="min-h-[400px] h-full"
           slashMenu={false}
           formattingToolbar={false}
-      >
-        <AISlashMenu pagePath={pagePath} />
-        <AIFormattingToolbar />
-      </BlockNoteView>
+        >
+          <AISlashMenu pagePath={pagePath} />
+          <AIFormattingToolbar />
+        </BlockNoteView>
+      </div>
+
+      {preview && (
+        <LinkPreviewPopup
+          content={preview.content}
+          pageTitle={preview.pageTitle}
+          pagePath={preview.pagePath}
+          position={preview.position}
+          loading={preview.loading}
+          onClose={() => setPreview(null)}
+        />
+      )}
     </div>
   );
 }
@@ -136,7 +267,7 @@ function dtoToBlockNote(dtos: BlockDto[]): any[] {
     else if (dto.marker) { type = 'checkListItem'; }
     return {
       type,
-      content: dto.content || '',
+      content: parseWikiLinks(dto.content || ''),
       props,
       children: children.map(convert),
     };
@@ -160,7 +291,14 @@ function blockNoteToDto(blockNoteBlocks: any[]): BlockDto[] {
             (item: any) => {
             if (typeof item === 'string') return item;
             if (item?.text) return item.text;
-            if (item?.type === 'link') return `[[${item.href || ''}]]`;
+            if (item?.type === 'link') {
+              const h = item.href || '';
+              if (h.includes('stratum.internal/')) {
+                const target = decodeURIComponent(h.split('stratum.internal/')[1] || '');
+                return `[[${target}]]`;
+              }
+              return `[[${h}]]`;
+            }
             return '';
           }).join('');
         }
