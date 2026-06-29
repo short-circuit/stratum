@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/commands';
 import type { BacklinkItem } from '../lib/types';
+import { useCtrlHeld } from '../lib/useCtrlHeld';
+import LinkPreviewPopup from './LinkPreviewPopup';
 
 interface Props {
   pagePath: string;
@@ -11,6 +13,15 @@ export default function BacklinksPanel({ pagePath }: Props) {
   const [backlinks, setBacklinks] = useState<BacklinkItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
+  const ctrlHeld = useCtrlHeld();
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [preview, setPreview] = useState<{
+    content: string;
+    pageTitle: string | null;
+    pagePath: string;
+    position: { x: number; y: number };
+    loading: boolean;
+  } | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,6 +35,36 @@ export default function BacklinksPanel({ pagePath }: Props) {
 
   const linked = backlinks.filter(b => b.is_linked);
   const unlinked = backlinks.filter(b => !b.is_linked);
+
+  const handleMouseEnter = (item: BacklinkItem, e: React.MouseEvent) => {
+    hoverTimer.current = setTimeout(async () => {
+      if (!ctrlHeld.current) return;
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      setPreview({
+        content: item.context,
+        pageTitle: null,
+        pagePath: item.source_page,
+        position: { x: rect.left, y: rect.bottom + 4 },
+        loading: true,
+      });
+      try {
+        const page = await api.openPage(item.source_page);
+        if (ctrlHeld.current) {
+          setPreview(prev => prev ? { ...prev, pageTitle: page.title || null, loading: false } : null);
+        }
+      } catch { setPreview(null); }
+    }, 200);
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimer.current) { clearTimeout(hoverTimer.current); hoverTimer.current = null; }
+  };
+
+  // Dismiss preview when Ctrl is released
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!ctrlHeld.current) setPreview(null);
+  }, [ctrlHeld.current]);
 
   return (
     <div className="border-t border-[var(--secondary-200)] dark:border-[var(--secondary-700)]">
@@ -50,6 +91,8 @@ export default function BacklinksPanel({ pagePath }: Props) {
                     key={i}
                     className="text-xs p-1.5 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)] cursor-pointer"
                     onClick={() => navigate(`/page/${encodeURIComponent(bl.source_page)}`)}
+                    onMouseEnter={(e) => handleMouseEnter(bl, e)}
+                    onMouseLeave={handleMouseLeave}
                   >
                     <div className="text-[var(--secondary-500)]">{bl.source_page}</div>
                     <div className="text-[var(--secondary-700)] dark:text-[var(--secondary-300)] truncate">{bl.context}</div>
@@ -70,6 +113,8 @@ export default function BacklinksPanel({ pagePath }: Props) {
                     key={i}
                     className="text-xs p-1.5 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)] cursor-pointer text-[var(--secondary-500)]"
                     onClick={() => navigate(`/page/${encodeURIComponent(bl.source_page)}`)}
+                    onMouseEnter={(e) => handleMouseEnter(bl, e)}
+                    onMouseLeave={handleMouseLeave}
                   >
                     <div className="truncate">{bl.context}</div>
                   </li>
@@ -82,6 +127,17 @@ export default function BacklinksPanel({ pagePath }: Props) {
             <p className="text-xs text-[var(--secondary-400)]">No backlinks found.</p>
           )}
         </div>
+      )}
+
+      {preview && (
+        <LinkPreviewPopup
+          content={preview.content}
+          pageTitle={preview.pageTitle}
+          pagePath={preview.pagePath}
+          position={preview.position}
+          loading={preview.loading}
+          onClose={() => setPreview(null)}
+        />
       )}
     </div>
   );
