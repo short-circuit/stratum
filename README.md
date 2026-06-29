@@ -1,5 +1,9 @@
 # Stratum
 
+<p align="center">
+  <img src="src-tauri/icons/app-icon.svg" alt="Stratum" width="128">
+</p>
+
 [![CI](https://github.com/short-circuit/stratum/actions/workflows/ci.yml/badge.svg)](https://github.com/short-circuit/stratum/actions/workflows/ci.yml)
 [![Release](https://github.com/short-circuit/stratum/actions/workflows/release.yml/badge.svg)](https://github.com/short-circuit/stratum/actions/workflows/release.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
