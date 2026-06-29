@@ -215,6 +215,21 @@ cargo tauri dev                  # Dev mode (Rust + Vite)
 cargo tauri build                # Production bundle
 ```
 
+## License & Dependency Policy
+
+Stratum is **AGPL-3.0-only**. Every new dependency (Rust crate, npm package) must be license-compatible with AGPL-3.0. The following licenses are always acceptable:
+- MIT, Apache-2.0, BSD-2/3-Clause, ISC, Zlib, Unlicense, CC0-1.0, BSL-1.0
+- MPL-2.0 (AGPL-compatible per MPL §3.3)
+- Apache-2.0 WITH LLVM-exception
+- Unicode-3.0
+- Dual-licensed dependencies where at least one option is in the above list
+
+**Reject** any dependency that is:
+- GPL-2.0-only without a permissive dual-license alternative
+- A proprietary or non-OSI-approved license
+
+When in doubt, flag the dependency for review before adding it.
+
 ## Performance Targets
 
 | Metric | Target |
