@@ -96,50 +96,78 @@ pub async fn get_page_backlinks(
         .get_backlinks_for_page(&page_path)
         .map_err(|e| e.to_string())?;
 
+    // Build a set of identifiers for this page (slug, title, path stem)
+    let page_stem = std::path::Path::new(&page_path)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or(&page_path)
+        .to_string();
+    let page_slug = page_stem.replace(' ', "-").to_lowercase();
+    let page_display = page_stem.replace('-', " ");
+
+    // Collect known page identifiers for link resolution
+    let all_pages = store.list_pages().map_err(|e| e.to_string())?;
+    let mut page_identifiers: Vec<String> = Vec::new();
+    page_identifiers.push(page_stem.clone());
+    page_identifiers.push(page_slug.clone());
+    page_identifiers.push(page_display.clone());
+    if let Ok(Some(pg)) = store.get_page(&page_path) {
+        if let Some(ref t) = pg.title {
+            page_identifiers.push(t.clone());
+            page_identifiers.push(t.to_lowercase());
+        }
+    }
+
     let mut results = Vec::new();
-    for src_str in &page_backlinks {
-        if let Ok(src_id) = uuid::Uuid::parse_str(src_str) {
-            if let Ok(block) = store.get_block(src_id) {
-                results.push(BacklinkDto {
-                    source_id: src_str.clone(),
-                    source_page: page_path.clone(),
-                    context: block.content,
-                    is_linked: true,
+    let mut seen_source_ids: std::collections::HashSet<String> =
+        page_backlinks.iter().cloned().collect();
+
+    // First, extract wiki-links on-the-fly from all blocks (like the graph does)
+    for other_page in &all_pages {
+        if let Ok(blocks) = store.get_blocks_by_page(other_page) {
+            for block in &blocks {
+                let links = pkm_markdown::linker::extract_links(&block.content);
+                let is_linked = links.iter().any(|l| {
+                    let t = l.target.trim().to_lowercase();
+                    page_identifiers.iter().any(|id| id.to_lowercase() == t)
                 });
+                if is_linked && !seen_source_ids.contains(&block.id.to_string()) {
+                    seen_source_ids.insert(block.id.to_string());
+                    results.push(BacklinkDto {
+                        source_id: block.id.to_string(),
+                        source_page: other_page.clone(),
+                        context: block.content.clone(),
+                        is_linked: true,
+                    });
+                }
             }
         }
     }
 
-    // Also find unlinked mentions via page name in block content
-    let page_name = std::path::Path::new(&page_path)
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or(&page_path)
-        .replace('-', " ");
-    let lower_name = page_name.to_lowercase();
+    // Also find unlinked mentions via text matching in block content
+    let lower_name = page_display.to_lowercase();
 
-    let all_pages = store.list_pages().map_err(|e| e.to_string())?;
-    let linked_ids: std::collections::HashSet<String> = page_backlinks.iter().cloned().collect();
-
-    for other_page in all_pages {
-        let blocks = store
-            .get_blocks_by_page(&other_page)
-            .map_err(|e| e.to_string())?;
-        for block in blocks {
-            if block.content.to_lowercase().contains(&lower_name)
-                && !linked_ids.contains(&block.id.to_string())
-            {
-                results.push(BacklinkDto {
-                    source_id: block.id.to_string(),
-                    source_page: other_page.clone(),
-                    context: block.content,
-                    is_linked: false,
-                });
+    for other_page in &all_pages {
+        if let Ok(blocks) = store.get_blocks_by_page(other_page) {
+            for block in &blocks {
+                if block.content.to_lowercase().contains(&lower_name)
+                    && !seen_source_ids.contains(&block.id.to_string())
+                {
+                    seen_source_ids.insert(block.id.to_string());
+                    results.push(BacklinkDto {
+                        source_id: block.id.to_string(),
+                        source_page: other_page.clone(),
+                        context: block.content.clone(),
+                        is_linked: false,
+                    });
+                }
+                if results.len() > 50 {
+                    break;
+                }
             }
-            // Limit unlinked results
-            if results.len() > 50 {
-                break;
-            }
+        }
+        if results.len() > 50 {
+            break;
         }
     }
 

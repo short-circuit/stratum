@@ -43,8 +43,6 @@ export default function OutlinerEditor({ pagePath }: Props) {
   } | null>(null);
   const navigate = useNavigate();
   const navigateRef = useRef(navigate);
-  const suppressSave = useRef(false);
-  const didPostProcess = useRef(false);
   useEffect(() => { navigateRef.current = navigate; }, [navigate]);
 
   const editor = useCreateBlockNote({ schema });
@@ -75,11 +73,10 @@ export default function OutlinerEditor({ pagePath }: Props) {
       });
   }, [pagePath]);
 
-  // Step 2: onChange — only saves real user edits
+  // Step 2: onChange — debounced save
   const persistBlocks = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (blockNoteBlocks: any[]) => {
-      if (suppressSave.current) return;
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
         try {
@@ -99,36 +96,6 @@ export default function OutlinerEditor({ pagePath }: Props) {
       persistBlocks(editor.document);
     });
   }, [editor, persistBlocks, status]);
-
-  // Step 3: One-time post-process — convert [[wikilinks]] to link items
-  useEffect(() => {
-    if (status !== 'ready' || !editor || didPostProcess.current) return;
-    didPostProcess.current = true;
-    suppressSave.current = true;
-
-    const blocks = editor.document;
-    const updates: { id: string; content: import('../lib/wikiLinks').InlineItem[] }[] = [];
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (function walk(bs: any[]) {
-      for (const b of bs) {
-        if (b.id && typeof b.content === 'string' && b.content.match(/\[\[|[*_~`]/)) {
-          updates.push({ id: b.id, content: parseContentToInlineItems(b.content) });
-        }
-        if (b.children?.length) walk(b.children);
-      }
-    })(blocks);
-
-    for (const u of updates) {
-      try {
-        editor.updateBlock(u.id, { content: u.content });
-      } catch (e) {
-        console.warn('updateBlock failed:', u.id, e);
-      }
-    }
-
-    suppressSave.current = false;
-  }, [editor, status]);
 
   // Wiki-link click/hover delegation
   useEffect(() => {
@@ -294,8 +261,8 @@ function dtoToBlockNote(dtos: BlockDto[]): any[] {
       if (a.left_id === b.id) return 1;
       return 0;
     });
-    const content = dto.content || '';
-    const mermaidMatch = content.match(mermaidBlockRegex);
+    const contentStr = dto.content || '';
+    const mermaidMatch = contentStr.match(mermaidBlockRegex);
     if (mermaidMatch) {
       return {
         type: 'mermaid',
@@ -309,6 +276,9 @@ function dtoToBlockNote(dtos: BlockDto[]): any[] {
     const props: Record<string, any> = {};
     if (dto.heading_level) { type = 'heading'; props.level = dto.heading_level; }
     else if (dto.marker) { type = 'checkListItem'; }
+    // Parse inline content (bold, italic, wiki-links, code, strikethrough)
+    // before passing to BlockNote, which stores content as InlineContent[] internally
+    const content = parseContentToInlineItems(contentStr);
     return { type, content, props, children: children.map(convert) };
   }
   return rootBlocks.map(convert);

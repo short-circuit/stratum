@@ -22,7 +22,7 @@ const SECONDARY_COLORS = [
   '#52525b', '#3f3f46', '#27272a',
 ];
 
-type Tab = 'vault' | 'theme' | 'ai' | 'research';
+type Tab = 'vault' | 'theme' | 'ai' | 'research' | 'developer';
 
 export default function SettingsPage() {
   const { pickVaultDirectory } = useStore();
@@ -107,6 +107,7 @@ export default function SettingsPage() {
     { id: 'theme', label: 'Theme' },
     { id: 'ai', label: 'AI' },
     { id: 'research', label: 'Research' },
+    { id: 'developer', label: 'Developer' },
   ];
 
   return (
@@ -359,6 +360,40 @@ export default function SettingsPage() {
                 max={5}
                 className="w-24 text-sm px-2 py-1.5 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)]"
               />
+            </div>
+          </section>
+        )}
+        {tab === 'developer' && (
+          <section>
+            <h3 className="text-sm font-semibold text-[var(--secondary-700)] dark:text-[var(--secondary-300)] mb-3">Developer Tools</h3>
+
+            <div className="mb-4">
+              <p className="text-xs text-[var(--secondary-500)] mb-2">
+                Re-sync all pages from disk into the database. Useful after importing new notes
+                or recovering from a corrupted database. This operation is idempotent — running it
+                multiple times produces the same result.
+              </p>
+              <button
+                onClick={async () => {
+                  setFetching(true);
+                  setMsg('');
+                  try {
+                    const count = await api.reindexVault();
+                    setMsg(`Reindexed ${count} pages.`);
+                  } catch (e) {
+                    setMsg(`Reindex failed: ${e}`);
+                  } finally {
+                    setFetching(false);
+                  }
+                }}
+                disabled={fetching}
+                className="px-4 py-1.5 bg-[var(--primary-500)] text-white text-sm rounded hover:bg-[var(--primary-600)] disabled:opacity-50"
+              >
+                {fetching ? 'Reindexing...' : 'Reindex All'}
+              </button>
+              {msg && (
+                <p className="text-xs text-[var(--secondary-500)] mt-2">{msg}</p>
+              )}
             </div>
           </section>
         )}

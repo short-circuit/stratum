@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useStore } from '../stores/appStore';
+import * as api from '../lib/commands';
 import OutlinerEditor from './OutlinerEditor';
 import BacklinksPanel from './BacklinksPanel';
 import PropertiesPanel from './PropertiesPanel';
@@ -8,8 +9,23 @@ import SuggestedConnectionsPanel from './SuggestedConnectionsPanel';
 
 export default function PageView() {
   const { pagePath } = useParams<{ pagePath: string }>();
-  const { currentPage, openPage } = useStore();
+  const { currentPage, openPage, deletePage } = useStore();
   const [editorKey, setEditorKey] = useState(0);
+  const [noteMenuOpen, setNoteMenuOpen] = useState(false);
+  const [reindexing, setReindexing] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!noteMenuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setNoteMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [noteMenuOpen]);
 
   useEffect(() => {
     if (pagePath) {
@@ -18,6 +34,31 @@ export default function PageView() {
       setEditorKey(k => k + 1);
     }
   }, [pagePath]);
+
+  const handleReindex = async () => {
+    if (!currentPage) return;
+    setReindexing(true);
+    try {
+      await api.reindexPage(currentPage.path);
+      setEditorKey(k => k + 1);
+    } catch (e) {
+      console.error('Reindex failed:', e);
+    } finally {
+      setReindexing(false);
+      setNoteMenuOpen(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!currentPage) return;
+    if (!confirm(`Delete "${currentPage.title || currentPage.slug}"?`)) return;
+    try {
+      await deletePage(currentPage.path);
+      setNoteMenuOpen(false);
+    } catch (e) {
+      console.error('Delete failed:', e);
+    }
+  };
 
   if (!pagePath) {
     return (
@@ -44,6 +85,36 @@ export default function PageView() {
         <span className="text-xs text-[var(--secondary-400)]">
           {currentPage.path}
         </span>
+        <div className="ml-auto relative" ref={menuRef}>
+          <button
+            onClick={() => setNoteMenuOpen(!noteMenuOpen)}
+            disabled={reindexing}
+            className="text-xs px-2 py-1 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-700)] text-[var(--secondary-600)] dark:text-[var(--secondary-400)] disabled:opacity-50"
+          >
+            {reindexing ? '…' : 'Note'}
+          </button>
+          {noteMenuOpen && (
+            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[var(--secondary-800)] border border-[var(--secondary-200)] dark:border-[var(--secondary-700)] rounded-lg shadow-lg z-50 min-w-[160px] py-1">
+              <div className="px-3 py-1 text-xs font-semibold text-[var(--secondary-400)] uppercase tracking-wider">
+                Actions
+              </div>
+              <button
+                onClick={handleReindex}
+                disabled={reindexing}
+                className="w-full text-left px-3 py-1.5 text-sm hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-700)] text-[var(--secondary-700)] dark:text-[var(--secondary-300)] disabled:opacity-50"
+              >
+                Reindex Note
+              </button>
+              <div className="my-1 border-t border-[var(--secondary-200)] dark:border-[var(--secondary-700)]" />
+              <button
+                onClick={handleDelete}
+                className="w-full text-left px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+              >
+                Delete Page
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Editor + Backlinks */}

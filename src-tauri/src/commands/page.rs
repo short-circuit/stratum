@@ -53,6 +53,7 @@ fn sync_page_from_disk(
     store: &pkm_block::BlockStore,
     rel: &str,
     vault_path: &Path,
+    index_path: Option<&Path>,
 ) -> Result<bool, String> {
     let full = vault_path.join(rel);
     let content = std::fs::read_to_string(&full).map_err(|e| e.to_string())?;
@@ -76,6 +77,16 @@ fn sync_page_from_disk(
         store.insert_block(block, rel).map_err(|e| e.to_string())?;
     }
 
+    // Rebuild Tantivy search index for this page
+    if let Some(index_path) = index_path {
+        if let Ok(mut block_index) = pkm_index::block_search::BlockIndex::create(index_path) {
+            for block in &blocks {
+                let _ = block_index.index_block(block, rel);
+            }
+            let _ = block_index.flush();
+        }
+    }
+
     Ok(true)
 }
 
@@ -87,6 +98,7 @@ pub fn sync_filesystem_to_db(vault_path: &Path, db_path: &Path) -> Result<usize,
     let store = pkm_block::BlockStore::open(db_path).map_err(|e| e.to_string())?;
     let db_paths = store.list_pages().map_err(|e| e.to_string())?;
     let md_files = find_md_files(vault_path, vault_path).map_err(|e| e.to_string())?;
+    let index_path = vault_path.join(".pkm").join("search");
 
     let mut count = 0;
     for rel in md_files {
@@ -97,7 +109,7 @@ pub fn sync_filesystem_to_db(vault_path: &Path, db_path: &Path) -> Result<usize,
             true
         };
 
-        if needs_sync && sync_page_from_disk(&store, &rel, vault_path)? {
+        if needs_sync && sync_page_from_disk(&store, &rel, vault_path, Some(&index_path))? {
             count += 1;
         }
     }
@@ -113,15 +125,113 @@ pub async fn reindex_vault(state: tauri::State<'_, AppState>) -> Result<usize, S
     let md_files =
         find_md_files(&state.vault_path, &state.vault_path).map_err(|e| e.to_string())?;
 
+    let index_path = state.vault_path.join(".pkm").join("search");
     let mut count = 0;
     for rel in &md_files {
-        if sync_page_from_disk(&store, rel, &state.vault_path)? {
+        if sync_page_from_disk(&store, rel, &state.vault_path, Some(&index_path))? {
             count += 1;
         }
     }
 
     eprintln!("[stratum] Reindexed {} pages from filesystem", count);
     Ok(count)
+}
+
+/// Strip Stratum block property lines from content that was previously saved in block format.
+/// Removes `.id:`, `.marker:`, `.priority:` lines. For `.heading-level: N` lines, rewrites
+/// the preceding block line with ATX heading markers (e.g., `## `) to preserve heading level.
+fn strip_block_properties(content: &str) -> String {
+    let lines: Vec<&str> = content.lines().collect();
+    let mut out: Vec<String> = Vec::new();
+    let mut last_content_idx: Option<usize> = None;
+
+    for line in &lines {
+        let trimmed = line.trim_start();
+
+        if trimmed.starts_with(".id: ") || trimmed.starts_with(".marker: ")
+            || trimmed.starts_with(".priority: ")
+        {
+            continue;
+        }
+
+        if let Some(hl_val) = trimmed.strip_prefix(".heading-level: ") {
+            if let Ok(hl @ 1..=6) = hl_val.trim().parse::<u8>() {
+                if let Some(idx) = last_content_idx {
+                    let marker = "#".repeat(hl as usize);
+                    let prev = out[idx].trim_start().strip_prefix("- ").unwrap_or(&out[idx]);
+                    out[idx] = format!("{} {}", marker, prev);
+                }
+            }
+            continue;
+        }
+
+        last_content_idx = Some(out.len());
+        out.push(line.to_string());
+    }
+
+    out.join("\n")
+}
+
+/// Re-read a single .md file from disk and re-parse it using the plain-text converter,
+/// ignoring any `- ` block syntax. This is the "Reindex Note" operation.
+fn reparse_page_from_disk(
+    store: &pkm_block::BlockStore,
+    rel: &str,
+    vault_path: &Path,
+) -> Result<bool, String> {
+    let full = vault_path.join(rel);
+    let content = std::fs::read_to_string(&full).map_err(|e| e.to_string())?;
+    // Strip block property lines before conversion to avoid .id: uuid appearing as paragraph blocks
+    let cleaned = strip_block_properties(&content);
+    let (fm, _, blocks) = pkm_markdown::block_parser::parse_document_as_plain_markdown(&cleaned);
+
+    let mut page = pkm_block::Page::new(full, vault_path);
+    page.frontmatter = pkm_block::PageFrontmatter {
+        title: fm.title,
+        created: fm.created,
+        modified: fm.modified,
+        tags: fm.tags,
+        aliases: fm.aliases,
+        ..Default::default()
+    };
+    store.upsert_page(&page).map_err(|e| e.to_string())?;
+    store
+        .delete_blocks_by_page(rel)
+        .map_err(|e| e.to_string())?;
+    for block in &blocks {
+        store.insert_block(block, rel).map_err(|e| e.to_string())?;
+    }
+
+    // Rebuild Tantivy search index for this page
+    let index_path = vault_path.join(".pkm").join("search");
+    if let Ok(mut block_index) = pkm_index::block_search::BlockIndex::create(&index_path) {
+        for block in &blocks {
+            let _ = block_index.index_block(block, rel);
+        }
+        let _ = block_index.flush();
+    }
+
+    Ok(true)
+}
+
+/// Re-sync a single page from disk into SQLite, always using the plain-text converter.
+/// Useful for reindexing externally-created or previously-saved notes.
+/// Returns the number of blocks parsed from the page.
+#[tauri::command]
+pub async fn reindex_page(
+    path: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<usize, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    if reparse_page_from_disk(&store, &path, &state.vault_path)? {
+        let blocks = store
+            .get_blocks_by_page(&path)
+            .map_err(|e| e.to_string())?;
+        Ok(blocks.len())
+    } else {
+        Ok(0)
+    }
 }
 
 #[tauri::command]

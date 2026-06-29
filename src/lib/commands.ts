@@ -317,3 +317,7 @@ export async function getBacklinkContext(
 export async function reindexVault(): Promise<number> {
   return invoke('reindex_vault');
 }
+
+export async function reindexPage(path: string): Promise<number> {
+  return invoke('reindex_page', { path });
+}
