@@ -24,6 +24,7 @@ export const createMermaidSpec = createBlockSpec(
     content: 'inline' as const,
   },
   {
+    runsBefore: ['codeBlock'],
     meta: {
       code: true,
     },
@@ -185,9 +186,17 @@ export const createMermaidSpec = createBlockSpec(
       });
       observer.observe(contentDOM, { characterData: true, childList: true, subtree: true });
 
-      // Start in view mode
-      contentDOM.style.display = 'none';
-      renderDiagram();
+      // Start in edit mode if empty, view mode if content exists
+      const hasContent = !!getCode().trim();
+      if (hasContent) {
+        contentDOM.style.display = 'none';
+        renderDiagram();
+      } else {
+        showingDiagram = false;
+        diagramEl.style.display = 'none';
+        contentDOM.style.display = '';
+        container.style.minHeight = '80px';
+      }
 
       return {
         dom: container,
@@ -230,19 +239,11 @@ export const createMermaidSpec = createBlockSpec(
       key: 'mermaid-input-rule',
       inputRules: [
         {
-          find: /^```mermaid\s$/,
-          replace: ({ block }) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const content = (block as any).content;
-            let text = '';
-            if (typeof content === 'string') text = content;
-            else if (Array.isArray(content)) text = content.map((c: { text?: string }) => c?.text || '').join('');
-            const code = text.replace(/^```mermaid\s*/, '').trim();
-            return {
-              type: 'mermaid' as const,
-              props: { language: 'mermaid' },
-            };
-          },
+          find: /^```mermaid\s$/i,
+          replace: () => ({
+            type: 'mermaid' as const,
+            props: { language: 'mermaid' },
+          }),
         },
       ],
     },
