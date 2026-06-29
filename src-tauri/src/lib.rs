@@ -65,6 +65,7 @@ pub fn run() {
             commands::page::create_page,
             commands::page::delete_page,
             commands::page::reindex_vault,
+            commands::page::reindex_page,
             // Blocks
             commands::block::get_blocks,
             commands::block::build_markdown,
