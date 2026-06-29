@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/short-circuit/stratum/actions/workflows/ci.yml/badge.svg)](https://github.com/short-circuit/stratum/actions/workflows/ci.yml)
 [![Release](https://github.com/short-circuit/stratum/actions/workflows/release.yml/badge.svg)](https://github.com/short-circuit/stratum/actions/workflows/release.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 
 A privacy-first, offline-capable personal knowledge management (PKM) system with
 native Git sync, bi-directional linking, graph visualization, and AI-augmented
