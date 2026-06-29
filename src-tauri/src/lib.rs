@@ -114,6 +114,7 @@ pub fn run() {
             commands::ai::ai_transform_block,
             commands::ai::ai_research,
             commands::ai::ai_interlink_notes,
+            commands::ai::generate_mermaid,
             // Settings
             commands::settings::get_settings,
             commands::settings::save_settings,

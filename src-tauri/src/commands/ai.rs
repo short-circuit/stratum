@@ -16,6 +16,7 @@ pub enum AiAction {
     Structure,
     Summarize,
     Connect,
+    Mermaid,
 }
 
 fn system_prompt_for(action: &AiAction) -> &'static str {
@@ -46,6 +47,21 @@ fn system_prompt_for(action: &AiAction) -> &'static str {
              [[wiki-links]] to related concepts, topics, or notes that would create meaningful \
              connections. Add relevant wiki-links inline where they make sense contextually. \
              Return the text with wiki-links added, no explanations or metadata."
+        }
+        AiAction::Mermaid => {
+            "You are a diagram generation assistant. Generate a Mermaid.js diagram based on the \
+             user's description. Return ONLY the raw mermaid code without markdown fences, \
+             without explanation, and without any surrounding text. \
+             Use appropriate diagram types: graph (flowchart), sequenceDiagram, classDiagram, \
+             stateDiagram, gantt, pie, erDiagram, or journey.\n\n\
+             IMPORTANT SYNTAX RULES:\n\
+             - Never use parentheses () inside node labels — use commas or dashes instead. \
+             Parentheses have special meaning in mermaid (rounded nodes).\n\
+             - Never use curly braces {} inside node labels — they create rhombus/diamond nodes.\n\
+             - Keep labels short and simple. For example, write `Component Library` instead of \
+             `Component Library (e.g., Material UI)`.\n\
+             - Use proper node shapes: A[text] for rectangle, A{text} for diamond, \
+             A(text) for rounded, A>text] for asymmetric."
         }
     }
 }
@@ -182,6 +198,46 @@ pub async fn ai_research(
                 snippet: s.snippet,
             })
             .collect(),
+    })
+}
+
+#[tauri::command]
+pub async fn generate_mermaid(
+    prompt: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<AiTransformResult, String> {
+    eprintln!("[ai] generate_mermaid prompt_len={}", prompt.len());
+
+    let config_path = {
+        let s = state.lock().map_err(|e| e.to_string())?;
+        s.vault_path.join(".pkm").join("config.toml")
+    };
+
+    let config = if config_path.exists() {
+        pkm_core::Config::load(&config_path).map_err(|e| e.to_string())?
+    } else {
+        return Err("AI not configured. Please configure AI provider in Settings.".into());
+    };
+
+    let provider = ProviderFactory::create(&config.ai).map_err(|e| e.to_string())?;
+
+    let system_prompt = system_prompt_for(&AiAction::Mermaid);
+
+    let chat_config = ChatConfig::new(&config.ai.model)
+        .with_temperature(0.3)
+        .with_system_prompt(system_prompt);
+
+    let messages = vec![ChatMessage::user(&prompt)];
+
+    let response = provider.chat(&messages, &chat_config).await.map_err(|e| {
+        eprintln!("[ai] provider error: {}", e);
+        e.to_string()
+    })?;
+
+    eprintln!("[ai] mermaid response len={}", response.content.len());
+
+    Ok(AiTransformResult {
+        content: response.content,
     })
 }
 

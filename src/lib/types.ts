@@ -122,9 +122,23 @@ export interface ConnectionSuggestion {
   snippet: string;
 }
 
+// --- Link types ---
+
+export interface LinkTargetDto {
+  page_path: string | null;
+  slug: string | null;
+  title: string | null;
+}
+
+export interface BacklinkContextDto {
+  block_id: string;
+  content: string;
+  page_title: string | null;
+}
+
 // --- AI types ---
 
-export type AiAction = 'rewrite' | 'format' | 'structure' | 'summarize' | 'connect';
+export type AiAction = 'rewrite' | 'format' | 'structure' | 'summarize' | 'connect' | 'mermaid';
 
 export interface AiTransformResult {
   content: string;
