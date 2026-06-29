@@ -224,6 +224,37 @@ export default function AISlashMenu({ pagePath }: Props) {
       });
     }
 
+    // Mermaid generation item (always available)
+    aiItems.push({
+      title: 'Generate Mermaid Diagram',
+      subtext: 'Create a diagram from a description',
+      aliases: ['mermaid', 'diagram', 'chart'],
+      group: 'AI',
+      icon: <span className="text-xs opacity-60">📊</span>,
+      onItemClick: async () => {
+        setLoading('Generating Mermaid...');
+        try {
+          const prompt = capturedRef.current || extractText(editor.document as unknown);
+          capturedRef.current = '';
+          if (!prompt.trim()) return;
+          const code = await api.generateMermaid(prompt);
+          if (code.trim()) {
+            const pos = editor.getTextCursorPosition();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (editor as any).insertBlocks(
+              [{ type: 'mermaid', props: { language: 'mermaid' }, content: [{ type: 'text', text: code, styles: {} }] }],
+              pos.block,
+              'after',
+            );
+          }
+        } catch (e) {
+          console.error('[AI] mermaid generation failed:', e);
+        } finally {
+          setLoading(null);
+        }
+      },
+    });
+
     return filterSuggestionItems([...aiItems, ...defaultItems], query);
   }, [editor, pagePath]);
 

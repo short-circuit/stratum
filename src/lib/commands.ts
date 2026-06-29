@@ -262,6 +262,11 @@ export async function aiInterlinkNotes(
   return invoke('ai_interlink_notes', { text, pagePath });
 }
 
+export async function generateMermaid(prompt: string): Promise<string> {
+  const result = await invoke<AiTransformResult>('generate_mermaid', { prompt });
+  return result.content;
+}
+
 // --- Connections ---
 
 export async function suggestConnections(pagePath: string): Promise<ConnectionSuggestion[]> {
@@ -284,6 +289,27 @@ export async function getOrphanedNotes(): Promise<OrphanDto[]> {
 
 export async function rebuildGraph(): Promise<string> {
   return invoke('rebuild_graph');
+}
+
+// --- Link resolution ---
+
+export async function resolveLinkTarget(target: string): Promise<{
+  page_path: string | null;
+  slug: string | null;
+  title: string | null;
+}> {
+  return invoke('resolve_link_target', { target });
+}
+
+export async function getBacklinkContext(
+  targetPage: string,
+  currentPage: string,
+): Promise<{
+  block_id: string;
+  content: string;
+  page_title: string | null;
+} | null> {
+  return invoke('get_backlink_context', { targetPage, currentPage });
 }
 
 // --- Reindex ---

@@ -91,6 +91,36 @@ export default function AIFormattingToolbar() {
             >
               🌐
             </Btn>
+            <Btn
+              mainTooltip="Generate Mermaid diagram from selection"
+              onClick={async () => {
+                const { from, to } = editor.prosemirrorView.state.selection;
+                if (from === to) return;
+                const text = editor.prosemirrorView.state.doc.textBetween(from, to);
+                if (!text.trim()) return;
+                setBusy('mermaid');
+                try {
+                  const code = await api.generateMermaid(text);
+                  if (code.trim()) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const pos = (editor as any).getTextCursorPosition();
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    (editor as any).insertBlocks(
+                      [{ type: 'mermaid', props: { language: 'mermaid' }, content: [{ type: 'text', text: code, styles: {} }] }],
+                      pos.block,
+                      'after',
+                    );
+                  }
+                } catch (e) {
+                  console.error('[AI] mermaid generation failed:', e);
+                } finally {
+                  setBusy(null);
+                }
+              }}
+              isDisabled={busy !== null}
+            >
+              📊
+            </Btn>
           </FormattingToolbar>
         )}
       />
