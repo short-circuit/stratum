@@ -485,6 +485,53 @@ pub async fn suggest_connections(
     Ok(suggestions)
 }
 
+#[tauri::command]
+pub async fn search_by_tag(
+    tag: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<SearchResultsDto, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let pages = store.list_pages().map_err(|e| e.to_string())?;
+    let tag_lower = tag.to_lowercase();
+    let tag_pattern = format!("#{}", tag_lower);
+
+    let mut results = Vec::new();
+    let mut seen_pages = std::collections::HashSet::new();
+
+    for page_path in &pages {
+        // Check page frontmatter tags
+        let has_tag = store
+            .get_page(page_path)
+            .ok()
+            .flatten()
+            .map(|fm| fm.tags.iter().any(|t| t.to_lowercase() == tag_lower))
+            .unwrap_or(false);
+
+        if let Ok(blocks) = store.get_blocks_by_page(page_path) {
+            for block in &blocks {
+                // Check inline #tag in block content
+                let has_inline_tag = block.content.to_lowercase().contains(&tag_pattern);
+
+                if has_tag || has_inline_tag {
+                    let key = format!("{}:{}", page_path, block.id);
+                    if seen_pages.insert(key) {
+                        results.push(SearchResultDto {
+                            block_id: block.id.to_string(),
+                            content: block.content.clone(),
+                            page_path: page_path.clone(),
+                            snippet: block.content.clone(),
+                            score: 1.0,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(SearchResultsDto { results })
+}
+
 fn snippet_from_text(text: &str, max_len: usize) -> String {
     if text.len() <= max_len {
         return text.to_string();
