@@ -74,6 +74,16 @@ input[type="color"] {
   --mantine-primary-color-light-color: var(--primary-700);
 }
 
+/* ── Tag links in editor ── */
+.blocknote-editor-container a[href^="stratum-tag:"] {
+  color: var(--primary-500);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--primary-300);
+}
+.blocknote-editor-container a[href^="stratum-tag:"]:hover {
+  text-decoration: underline;
+}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar {
   width: 6px;

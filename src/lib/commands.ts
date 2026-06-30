@@ -94,6 +94,10 @@ export async function searchBlocks(
   return invoke('search_blocks', { query, limit });
 }
 
+export async function searchByTag(tag: string): Promise<SearchResultsDto> {
+  return invoke('search_by_tag', { tag });
+}
+
 export async function rebuildSearchIndex(): Promise<string> {
   return invoke('rebuild_search_index');
 }

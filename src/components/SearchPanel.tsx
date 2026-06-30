@@ -1,27 +1,48 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as api from '../lib/commands';
 import type { SearchResultDto } from '../lib/types';
 
 export default function SearchPanel() {
   const navigate = useNavigate();
-  const [query, setQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get('q') || '');
   const [results, setResults] = useState<SearchResultDto[]>([]);
   const [searching, setSearching] = useState(false);
   const [indexing, setIndexing] = useState(false);
   const [indexMsg, setIndexMsg] = useState('');
 
-  const doSearch = async () => {
-    if (!query.trim()) return;
+  const doSearch = useCallback(async (q: string) => {
+    if (!q.trim()) return;
     setSearching(true);
     try {
-      const { results: r } = await api.searchBlocks(query, 20);
-      setResults(r);
+      if (q.startsWith('#')) {
+        const { results: r } = await api.searchByTag(q.slice(1));
+        setResults(r);
+      } else {
+        const { results: r } = await api.searchBlocks(q, 20);
+        setResults(r);
+      }
     } catch (e) {
       console.error(e);
     } finally {
       setSearching(false);
     }
+  }, []);
+
+  // Auto-search when URL has ?q= param on mount or change
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q) {
+      setQuery(q);
+      doSearch(q);
+    }
+  }, [searchParams, doSearch]);
+
+  const handleSearch = () => {
+    if (!query.trim()) return;
+    setSearchParams(query ? { q: query } : {});
+    doSearch(query);
   };
 
   const doReindex = async () => {
@@ -43,12 +64,12 @@ export default function SearchPanel() {
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') doSearch(); }}
-          placeholder="Search blocks..."
+          onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
+          placeholder="Search blocks... (prefix with # to search tags)"
           className="flex-1 px-3 py-2 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)] text-sm"
         />
         <button
-          onClick={doSearch}
+          onClick={handleSearch}
           disabled={searching}
           className="px-4 py-2 bg-[var(--primary-500)] text-white rounded text-sm hover:bg-[var(--primary-600)] disabled:opacity-50"
         >

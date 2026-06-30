@@ -1,11 +1,20 @@
 const PREFIX = 'stratum:';
+const TAG_PREFIX = 'stratum-tag:';
 
 export function isWikiLinkHref(href: string): boolean {
-  return href.startsWith(PREFIX);
+  return href.startsWith(PREFIX) && !href.startsWith(TAG_PREFIX);
 }
 
 export function extractWikiLinkTarget(href: string): string {
   return href.slice(PREFIX.length);
+}
+
+export function isTagHref(href: string): boolean {
+  return href.startsWith(TAG_PREFIX);
+}
+
+export function extractTagTarget(href: string): string {
+  return href.slice(TAG_PREFIX.length);
 }
 
 export interface TextItem {
@@ -50,12 +59,12 @@ export function normalizeContent(text: string): string {
 }
 
 // Parse content string to BlockNote inline items.
-// Handles **bold**, *italic*, ~~strikethrough~~, `code`, [[wikilinks]].
+// Handles **bold**, *italic*, ~~strikethrough~~, `code`, [[wikilinks]], #tags.
 export function parseContentToInlineItems(text: string): InlineItem[] {
   if (!text) return [{ type: 'text', text: '', styles: {} }];
   const items: InlineItem[] = [];
   let pos = 0;
-  const RE = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(~~(.+?)~~)|(`(.+?)`)|(\[\[([^\]]+?)(?:\|([^\]]*))?\]\])/g;
+  const RE = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(~~(.+?)~~)|(`(.+?)`)|(\[\[([^\]]+?)(?:\|([^\]]*))?\]\])|(#([a-zA-Z][a-zA-Z0-9_\-/]*))/g;
   let m: RegExpExecArray | null;
   while ((m = RE.exec(text)) !== null) {
     if (m.index > pos) {
@@ -77,6 +86,21 @@ export function parseContentToInlineItems(text: string): InlineItem[] {
         href: PREFIX + target,
         content: [{ type: 'text', text: display, styles: {} }],
       });
+    } else if (m[12] !== undefined) {
+      // Validate #tag is at a word boundary (preceded by whitespace, (, or start of string)
+      const prevChar = m.index > 0 ? text[m.index - 1] : null;
+      if (prevChar && !/\s/.test(prevChar) && prevChar !== '(') {
+        items.push({ type: 'text', text: m[12], styles: {} });
+        pos = RE.lastIndex;
+        continue;
+      }
+      const tagName = m[13];
+      console.log('[wikiLinks] parsed #tag:', m[12], '→ href:', TAG_PREFIX + tagName);
+      items.push({
+        type: 'link',
+        href: TAG_PREFIX + tagName,
+        content: [{ type: 'text', text: m[12], styles: {} }],
+      });
     }
     pos = RE.lastIndex;
   }
@@ -91,7 +115,10 @@ export function inlineItemsToContent(items: InlineItem[]): string {
   let out = '';
   for (const item of items) {
     if (item.type === 'link') {
-      if (isWikiLinkHref(item.href || '')) {
+      if (isTagHref(item.href || '')) {
+        const text = item.content?.map((c: TextItem) => c?.text || '').join('') || '';
+        out += text;
+      } else if (isWikiLinkHref(item.href || '')) {
         const target = extractWikiLinkTarget(item.href);
         const display = item.content?.map((c: TextItem) => c?.text || '').join('') || target;
         if (display === target || display.replace(/-/g, ' ') === target.replace(/-/g, ' ')) {
