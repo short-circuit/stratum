@@ -65,6 +65,7 @@ export default function OutlinerEditor({ pagePath }: Props) {
           return true;
         }
         if (isWikiLinkHref(href)) {
+          if (!event.ctrlKey && !event.metaKey) return true;
           api.resolveLinkTarget(extractWikiLinkTarget(href)).then(resolved => {
             if (resolved.page_path) {
               navigateRef.current('/page/' + encodeURIComponent(resolved.page_path));
