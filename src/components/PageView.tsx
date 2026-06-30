@@ -118,7 +118,7 @@ export default function PageView() {
       </div>
 
       {/* Editor + Backlinks */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto bg-[var(--secondary-50)] dark:bg-[var(--secondary-800)]">
         <OutlinerEditor key={editorKey} pagePath={currentPage.path} />
       </div>
 

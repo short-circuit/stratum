@@ -75,6 +75,13 @@ input[type="color"] {
   --mantine-primary-color-light-color: var(--primary-700);
 }
 
+/* ── Editor fill container ── */
+.blocknote-editor-container .bn-editor {
+  min-height: 100%;
+  background: transparent;
+  border-radius: 0;
+}
+
 /* ── Tag links in editor ── */
 .blocknote-editor-container a[href^="stratum-tag:"] {
   color: var(--primary-500);
