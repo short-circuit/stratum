@@ -77,6 +77,7 @@ pub fn run() {
             commands::block::set_block_property,
             // Search
             commands::search::search_blocks,
+            commands::search::search_by_tag,
             commands::search::rebuild_search_index,
             commands::search::get_backlinks,
             commands::search::get_page_backlinks,

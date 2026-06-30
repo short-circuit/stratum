@@ -7,7 +7,7 @@ import '@blocknote/mantine/style.css';
 import { BlockNoteSchema, defaultBlockSpecs } from '@blocknote/core';
 import type { BlockDto } from '../lib/types';
 import * as api from '../lib/commands';
-import { parseContentToInlineItems, inlineItemsToContent, isWikiLinkHref, extractWikiLinkTarget, normalizeContent } from '../lib/wikiLinks';
+import { parseContentToInlineItems, inlineItemsToContent, isWikiLinkHref, extractWikiLinkTarget, isTagHref, extractTagTarget, normalizeContent } from '../lib/wikiLinks';
 import { useCtrlHeld } from '../lib/useCtrlHeld';
 import LinkPreviewPopup from './LinkPreviewPopup';
 import AISlashMenu from './AISlashMenu';
@@ -45,7 +45,37 @@ export default function OutlinerEditor({ pagePath }: Props) {
   const navigateRef = useRef(navigate);
   useEffect(() => { navigateRef.current = navigate; }, [navigate]);
 
-  const editor = useCreateBlockNote({ schema });
+  const editor = useCreateBlockNote({
+    schema,
+    links: {
+      isValidLink: (href) => {
+        if (href.startsWith('stratum:') || href.startsWith('stratum-tag:')) return true;
+        if (!href) return true;
+        return /^(?:https?|ftp|ftps|mailto|tel|callto|sms|cid|xmpp):/i.test(href);
+      },
+      onClick: (event) => {
+        const a = (event.target as HTMLElement).closest?.('a');
+        if (!a) return false;
+        const href = a.getAttribute('href');
+        if (!href) return false;
+        if (isTagHref(href)) {
+          if (!event.ctrlKey && !event.metaKey) return true;
+          const tagName = extractTagTarget(href);
+          navigateRef.current('/search?q=' + encodeURIComponent('#' + tagName));
+          return true;
+        }
+        if (isWikiLinkHref(href)) {
+          api.resolveLinkTarget(extractWikiLinkTarget(href)).then(resolved => {
+            if (resolved.page_path) {
+              navigateRef.current('/page/' + encodeURIComponent(resolved.page_path));
+            }
+          });
+          return true;
+        }
+        return false;
+      },
+    },
+  });
 
   // Step 1: Load blocks as strings
   useEffect(() => {
@@ -97,30 +127,10 @@ export default function OutlinerEditor({ pagePath }: Props) {
     });
   }, [editor, persistBlocks, status]);
 
-  // Wiki-link click/hover delegation
+  // Wiki-link hover preview delegation
   useEffect(() => {
     const el = containerRef.current;
     if (!el || status !== 'ready') return;
-
-    const getHref = (target: EventTarget | null): string | null => {
-      const a = (target as HTMLElement).closest?.('a');
-      if (!a) return null;
-      const href = a.getAttribute('href');
-      if (!href || !isWikiLinkHref(href)) return null;
-      return href;
-    };
-
-    const handleClick = (e: MouseEvent) => {
-      const href = getHref(e.target);
-      if (!href) return;
-      e.preventDefault();
-      e.stopPropagation();
-      api.resolveLinkTarget(extractWikiLinkTarget(href)).then(resolved => {
-        if (resolved.page_path) {
-          navigateRef.current(`/page/${encodeURIComponent(resolved.page_path)}`);
-        }
-      });
-    };
 
     let currentHovered = '';
 
@@ -144,11 +154,9 @@ export default function OutlinerEditor({ pagePath }: Props) {
       dismissPreview();
     };
 
-    el.addEventListener('click', handleClick);
     el.addEventListener('mouseover', handleMouseOver);
     el.addEventListener('mouseout', handleMouseOut);
     return () => {
-      el.removeEventListener('click', handleClick);
       el.removeEventListener('mouseover', handleMouseOver);
       el.removeEventListener('mouseout', handleMouseOut);
     };
@@ -297,12 +305,12 @@ function blockNoteToDto(blockNoteBlocks: any[]): BlockDto[] {
         let code = '';
         if (typeof b.content === 'string') code = b.content;
         else if (Array.isArray(b.content)) code = b.content.map((c: { text?: string }) => c?.text || '').join('');
-        content = `\`\`\`mermaid\n${code}\n\`\`\``;
+        content = '```mermaid\n' + code + '\n```';
       } else if (b.type === 'codeBlock' && b.props?.language === 'mermaid') {
         let code = '';
         if (typeof b.content === 'string') code = b.content;
         else if (Array.isArray(b.content)) code = b.content.map((c: { text?: string }) => c?.text || '').join('');
-        content = `\`\`\`mermaid\n${code}\n\`\`\``;
+        content = '```mermaid\n' + code + '\n```';
       } else if (b.content) {
         if (typeof b.content === 'string') content = b.content;
         else if (Array.isArray(b.content)) content = inlineItemsToContent(b.content);
