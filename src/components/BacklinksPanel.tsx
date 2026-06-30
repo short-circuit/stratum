@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import * as api from '../lib/commands';
 import type { BacklinkItem } from '../lib/types';
 import { useCtrlHeld } from '../lib/useCtrlHeld';
@@ -87,15 +87,16 @@ export default function BacklinksPanel({ pagePath }: Props) {
               </h4>
               <ul className="space-y-1">
                 {linked.map((bl, i) => (
-                  <li
-                    key={i}
-                    className="text-xs p-1.5 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)] cursor-pointer"
-                    onClick={() => navigate(`/page/${encodeURIComponent(bl.source_page)}`)}
-                    onMouseEnter={(e) => handleMouseEnter(bl, e)}
-                    onMouseLeave={handleMouseLeave}
-                  >
-                    <div className="text-[var(--secondary-500)]">{bl.source_page}</div>
-                    <div className="text-[var(--secondary-700)] dark:text-[var(--secondary-300)] truncate">{bl.context}</div>
+                  <li key={i}>
+                    <Link
+                      to={'/page/' + encodeURIComponent(bl.source_page)}
+                      className="block text-xs p-1.5 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)]"
+                      onMouseEnter={(e) => handleMouseEnter(bl, e as any)}
+                      onMouseLeave={handleMouseLeave}
+                    >
+                      <div className="text-[var(--secondary-500)]">{bl.source_page}</div>
+                      <div className="text-[var(--secondary-700)] dark:text-[var(--secondary-300)] truncate">{bl.context}</div>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -109,14 +110,15 @@ export default function BacklinksPanel({ pagePath }: Props) {
               </h4>
               <ul className="space-y-1">
                 {unlinked.map((bl, i) => (
-                  <li
-                    key={i}
-                    className="text-xs p-1.5 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)] cursor-pointer text-[var(--secondary-500)]"
-                    onClick={() => navigate(`/page/${encodeURIComponent(bl.source_page)}`)}
-                    onMouseEnter={(e) => handleMouseEnter(bl, e)}
-                    onMouseLeave={handleMouseLeave}
-                  >
-                    <div className="truncate">{bl.context}</div>
+                  <li key={i}>
+                    <Link
+                      to={'/page/' + encodeURIComponent(bl.source_page)}
+                      className="block text-xs p-1.5 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)] text-[var(--secondary-500)]"
+                      onMouseEnter={(e) => handleMouseEnter(bl, e as any)}
+                      onMouseLeave={handleMouseLeave}
+                    >
+                      <div className="truncate">{bl.context}</div>
+                    </Link>
                   </li>
                 ))}
               </ul>
