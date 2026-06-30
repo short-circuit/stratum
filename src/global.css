@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --safe-area-top: env(safe-area-inset-top, 0px);
@@ -82,6 +83,33 @@ input[type="color"] {
 }
 .blocknote-editor-container a[href^="stratum-tag:"]:hover {
   text-decoration: underline;
+}
+
+/* ── Excalidraw accent color overrides ── */
+.excalidraw.excalidraw {
+  --color-primary: var(--primary-500);
+  --color-primary-darker: var(--primary-600);
+  --color-primary-darkest: var(--primary-700);
+  --color-primary-light: var(--primary-100);
+  --color-primary-light-darker: var(--primary-200);
+  --color-primary-hover: var(--primary-500);
+  --color-brand-hover: var(--primary-600);
+  --color-brand-active: var(--primary-700);
+  --color-on-primary-container: #fff;
+  --color-surface-primary-container: var(--primary-100);
+}
+
+.excalidraw.excalidraw.theme--dark {
+  --color-primary: var(--primary-400);
+  --color-primary-darker: var(--primary-300);
+  --color-primary-darkest: var(--primary-200);
+  --color-primary-light: var(--primary-800);
+  --color-primary-light-darker: var(--primary-700);
+  --color-primary-hover: var(--primary-300);
+  --color-brand-hover: var(--primary-300);
+  --color-brand-active: var(--primary-200);
+  --color-on-primary-container: #fff;
+  --color-surface-primary-container: var(--primary-800);
 }
 
 /* ── Scrollbar ── */
