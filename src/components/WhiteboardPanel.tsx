@@ -143,6 +143,7 @@ export default function WhiteboardPanel() {
         {sceneData && libraryItems && (
           <Excalidraw
             key={activeBoard}
+            theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
             initialData={{ ...sceneData, libraryItems }}
             excalidrawAPI={(api: ExcalidrawImperativeAPI) => { excalidrawRef.current = api; }}
             onLibraryChange={handleLibraryChange}
