@@ -32,15 +32,17 @@ function hexToHsl(hex: string): HSL {
 }
 
 function setShades(prefix: string, hex: string) {
-  const { h, s } = hexToHsl(hex);
+  const { h, s, l: inputLightness } = hexToHsl(hex);
   const root = document.documentElement;
+  const offset = inputLightness - 50;
   const shades: [number, number][] = [
     [50, 96], [100, 92], [200, 84], [300, 68],
     [400, 55], [500, 50], [600, 42], [700, 34],
     [800, 26], [900, 16],
   ];
   for (const [n, l] of shades) {
-    root.style.setProperty(`--${prefix}-${n}`, `hsl(${h}, ${s}%, ${l}%)`);
+    const adjusted = Math.max(0, Math.min(100, l + offset));
+    root.style.setProperty(`--${prefix}-${n}`, `hsl(${h}, ${s}%, ${adjusted}%)`);
   }
 }
 
