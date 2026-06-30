@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../stores/appStore';
 import * as api from '../lib/commands';
 import { useState } from 'react';
+import StratumIcon from './StratumIcon';
 
 const NAV_ITEMS = [
   { id: 'journal', label: 'Journal', path: '/journal', icon: '📅' },
@@ -68,7 +69,10 @@ export default function Sidebar() {
       >
         {!collapsed && (
           <div className="min-w-0">
-            <h1 className="text-base font-bold truncate">Stratum</h1>
+            <h1 className="text-lg font-bold truncate flex items-center gap-2">
+              <StratumIcon className="w-6 h-6 shrink-0 text-[var(--primary-500)]" />
+              stratum
+            </h1>
             {vault && (
               <p className="text-xs text-[var(--secondary-500)] dark:text-[var(--secondary-400)] truncate mt-0.5">
                 {vault.block_count}b · {vault.page_count}p
