@@ -86,7 +86,6 @@ export default function OutlinerEditor({ pagePath }: Props) {
 
   // Step 1: Load blocks as strings
   useEffect(() => {
-    setStatus('loading');
     api.getBlocks(pagePath)
       .then(({ blocks }) => {
         try {
@@ -108,7 +107,7 @@ export default function OutlinerEditor({ pagePath }: Props) {
         setError(String(err));
         setStatus('error');
       });
-  }, [pagePath]);
+  }, [pagePath, editor]);
 
   // Step 2: onChange — debounced save
   const persistBlocks = useCallback(
@@ -135,6 +134,7 @@ export default function OutlinerEditor({ pagePath }: Props) {
   }, [editor, persistBlocks, status]);
 
   // Inline math rendering via ProseMirror decorations
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   useMathInline(editor as any, status === 'ready');
 
   // Double-click on rendered math to open editor
@@ -144,41 +144,6 @@ export default function OutlinerEditor({ pagePath }: Props) {
       containerRef.current,
       (latex: string, pos: number) => setMathEdit({ latex, pos }),
     );
-  }, [status]);
-
-  // Wiki-link hover preview delegation
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el || status !== 'ready') return;
-
-    let currentHovered = '';
-
-    const handleMouseOver = (e: MouseEvent) => {
-      const a = (e.target as HTMLElement).closest?.('a');
-      if (!a) return;
-      const href = a.getAttribute('href');
-      if (!href || !isWikiLinkHref(href)) return;
-      if (href === currentHovered) return;
-      currentHovered = href;
-      const rect = a.getBoundingClientRect();
-      showPreview(href, rect.left, rect.bottom + 4);
-    };
-
-    const handleMouseOut = (e: MouseEvent) => {
-      const a = (e.target as HTMLElement).closest?.('a');
-      if (!a) { currentHovered = ''; dismissPreview(); return; }
-      const href = a.getAttribute('href');
-      if (!href || !isWikiLinkHref(href)) { currentHovered = ''; dismissPreview(); return; }
-      currentHovered = '';
-      dismissPreview();
-    };
-
-    el.addEventListener('mouseover', handleMouseOver);
-    el.addEventListener('mouseout', handleMouseOut);
-    return () => {
-      el.removeEventListener('mouseover', handleMouseOver);
-      el.removeEventListener('mouseout', handleMouseOut);
-    };
   }, [status]);
 
   // Preview popup helpers
@@ -213,6 +178,41 @@ export default function OutlinerEditor({ pagePath }: Props) {
     if (hoverTimer.current) { clearTimeout(hoverTimer.current); hoverTimer.current = null; }
     setPreview(null);
   }, []);
+
+  // Wiki-link hover preview delegation
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || status !== 'ready') return;
+
+    let currentHovered = '';
+
+    const handleMouseOver = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement).closest?.('a');
+      if (!a) return;
+      const href = a.getAttribute('href');
+      if (!href || !isWikiLinkHref(href)) return;
+      if (href === currentHovered) return;
+      currentHovered = href;
+      const rect = a.getBoundingClientRect();
+      showPreview(href, rect.left, rect.bottom + 4);
+    };
+
+    const handleMouseOut = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement).closest?.('a');
+      if (!a) { currentHovered = ''; dismissPreview(); return; }
+      const href = a.getAttribute('href');
+      if (!href || !isWikiLinkHref(href)) { currentHovered = ''; dismissPreview(); return; }
+      currentHovered = '';
+      dismissPreview();
+    };
+
+    el.addEventListener('mouseover', handleMouseOver);
+    el.addEventListener('mouseout', handleMouseOut);
+    return () => {
+      el.removeEventListener('mouseover', handleMouseOver);
+      el.removeEventListener('mouseout', handleMouseOut);
+    };
+  }, [status, showPreview, dismissPreview]);
 
   useEffect(() => {
     const check = () => { if (!ctrlHeld.current) dismissPreview(); };

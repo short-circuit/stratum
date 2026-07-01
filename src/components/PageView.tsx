@@ -32,7 +32,7 @@ export default function PageView() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setEditorKey(k => k + 1);
     }
-  }, [pagePath]);
+  }, [pagePath, openPage]);
 
   const handleReindex = async () => {
     if (!currentPage) return;

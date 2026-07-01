@@ -21,13 +21,13 @@ export default function App() {
     if (!vault) {
       loadVault();
     }
-  }, []);
+  }, [loadVault, vault]);
 
   useEffect(() => {
     if (vault) {
       loadPages();
     }
-  }, [vault]);
+  }, [vault, loadPages]);
 
   if (loading && !vault) {
     return (

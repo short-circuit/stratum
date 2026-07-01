@@ -71,10 +71,10 @@ fn parse_raw_blocks(body: &str) -> Vec<RawBlock> {
             let indent = count_indent(line);
             let mut content_lines = vec![block_content(line).to_string()];
             let mut properties = BTreeMap::new();
-             let mut marker = None;
-             let mut priority = None;
-             let mut heading_level = None;
-             let mut block_id = None;
+            let mut marker = None;
+            let mut priority = None;
+            let mut heading_level = None;
+            let mut block_id = None;
 
             i += 1;
 
@@ -108,7 +108,8 @@ fn parse_raw_blocks(body: &str) -> Vec<RawBlock> {
                             priority = Some(value.to_uppercase());
                         }
                         "heading-level" => {
-                            heading_level = value.parse::<u8>().ok().filter(|l| (1..=6).contains(l));
+                            heading_level =
+                                value.parse::<u8>().ok().filter(|l| (1..=6).contains(l));
                         }
                         _ => {
                             properties.insert(key, value);
@@ -235,7 +236,7 @@ pub fn convert_body_to_blocks(body: &str) -> Vec<Block> {
         // Fenced code block — also match when prefixed by `- ` block syntax
         let fence_lang = match_fence(line).or_else(|| {
             let s = line.trim_start();
-            if s.starts_with("- ") { match_fence(&s[2..]) } else { None }
+            s.strip_prefix("- ").and_then(match_fence)
         });
         if let Some(lang) = fence_lang {
             let mut code_lines = Vec::new();
@@ -450,8 +451,8 @@ fn parse_atx_heading(line: &str) -> Option<u8> {
 /// Strip ATX heading markers from the start of a line.
 fn strip_atx_marker(line: &str) -> &str {
     let trimmed = line.trim_start();
-    if let Some(rest) = trimmed.strip_prefix(|c: char| c == '#') {
-        let after = rest.trim_start_matches(|c: char| c == '#');
+    if let Some(rest) = trimmed.strip_prefix('#') {
+        let after = rest.trim_start_matches('#');
         after.trim_start()
     } else {
         trimmed
@@ -718,7 +719,10 @@ mod tests {
         assert_eq!(blocks.len(), 2, "should produce 2 blocks");
         assert_eq!(blocks[0].content, "Backend");
         assert_eq!(blocks[0].meta.heading_level, Some(2));
-        assert_eq!(blocks[1].content, "[[Node.js]] / [[Express]] or [[Fastify]]");
+        assert_eq!(
+            blocks[1].content,
+            "[[Node.js]] / [[Express]] or [[Fastify]]"
+        );
         assert!(blocks[1].meta.heading_level.is_none());
     }
 
@@ -726,12 +730,25 @@ mod tests {
     fn test_convert_body_to_blocks_full_sample() {
         let body = "[[React]] with [[TypeScript]] and [[Tailwind CSS]]\n\nResponsive design with CSS Grid and Flexbox\n\n## Backend\n\n[[Node.js]] / [[Express]] or [[Fastify]]\n";
         let blocks = convert_body_to_blocks(body);
-        assert_eq!(blocks.len(), 4, "should produce 4 blocks: 2 paras, 1 heading, 1 para");
-        assert_eq!(blocks[0].content, "[[React]] with [[TypeScript]] and [[Tailwind CSS]]");
-        assert_eq!(blocks[1].content, "Responsive design with CSS Grid and Flexbox");
+        assert_eq!(
+            blocks.len(),
+            4,
+            "should produce 4 blocks: 2 paras, 1 heading, 1 para"
+        );
+        assert_eq!(
+            blocks[0].content,
+            "[[React]] with [[TypeScript]] and [[Tailwind CSS]]"
+        );
+        assert_eq!(
+            blocks[1].content,
+            "Responsive design with CSS Grid and Flexbox"
+        );
         assert_eq!(blocks[2].content, "Backend");
         assert_eq!(blocks[2].meta.heading_level, Some(2));
-        assert_eq!(blocks[3].content, "[[Node.js]] / [[Express]] or [[Fastify]]");
+        assert_eq!(
+            blocks[3].content,
+            "[[Node.js]] / [[Express]] or [[Fastify]]"
+        );
     }
 
     #[test]
@@ -739,7 +756,11 @@ mod tests {
         let raw = "## Test Heading\n\nSome paragraph with **bold** text.\n";
         let (fm, _body, blocks) = parse_document(raw);
         assert!(fm.title.is_none());
-        assert_eq!(blocks.len(), 2, "should fall back to converter and produce 2 blocks");
+        assert_eq!(
+            blocks.len(),
+            2,
+            "should fall back to converter and produce 2 blocks"
+        );
         assert_eq!(blocks[0].content, "Test Heading");
         assert_eq!(blocks[0].meta.heading_level, Some(2));
         assert_eq!(blocks[1].content, "Some paragraph with **bold** text.");
@@ -749,7 +770,11 @@ mod tests {
     fn test_convert_heading_after_text_no_blank_line() {
         let body = "Some intro text\n## Algorithms\nMore text here\n";
         let blocks = convert_body_to_blocks(body);
-        assert_eq!(blocks.len(), 3, "should produce 3 blocks: para, heading, para");
+        assert_eq!(
+            blocks.len(),
+            3,
+            "should produce 3 blocks: para, heading, para"
+        );
         assert_eq!(blocks[0].content, "Some intro text");
         assert!(blocks[0].meta.heading_level.is_none());
         assert_eq!(blocks[1].content, "Algorithms");
@@ -762,24 +787,37 @@ mod tests {
     fn test_convert_user_content_exact() {
         let body = "Supervised learning (classification, regression)\n\nUnsupervised learning (clustering, dimensionality reduction)\n\nReinforcement learning (agents, environments)\n\nSemi-supervised and self-supervised learning\\\n## Algorithms\n\nLinear/Logistic regression\n\nDecision trees and Random Forests\n\nSVM (Support Vector Machines)\n\nk-Nearest Neighbors\n\nNeural networks (see [[[Neural-Networks]]]())\\\n## Pipeline\\\n1. Data collection and cleaning\\\n2. Feature engineering and selection\\\n3. Model selection and training\\\n4. Evaluation and validation\\\n5. Deployment and monitoring\\\n## Related\n\n[[[AI]]]() — broader AI context\n\n[[[Python]]]() — scikit-learn, pandas, NumPy\n\n[[[Mathematics]]]() — statistics and linear algebra\n\n[[[Databases]]]() — data storage for ML\\\n#machinelearning #ml #datascience #ai";
         let blocks = convert_body_to_blocks(body);
-        // At minimum: paras before ## Algorithms, then Algos heading, then more paragraphs, 
+        // At minimum: paras before ## Algorithms, then Algos heading, then more paragraphs,
         // then ## Pipeline heading, then 5 ordered list items, then ## Related heading, then more paragraphs
-        assert!(blocks.len() >= 12, "should produce at least 12 blocks, got {}", blocks.len());
-        
+        assert!(
+            blocks.len() >= 12,
+            "should produce at least 12 blocks, got {}",
+            blocks.len()
+        );
+
         // Find the ## Algorithms heading
-        let algo = blocks.iter().find(|b| b.content == "Algorithms" && b.meta.heading_level == Some(2));
+        let algo = blocks
+            .iter()
+            .find(|b| b.content == "Algorithms" && b.meta.heading_level == Some(2));
         assert!(algo.is_some(), "should find ## Algorithms heading block");
-        
+
         // Find the ## Pipeline heading
-        let pipe = blocks.iter().find(|b| b.content == "Pipeline\\" && b.meta.heading_level == Some(2));
+        let pipe = blocks
+            .iter()
+            .find(|b| b.content == "Pipeline\\" && b.meta.heading_level == Some(2));
         assert!(pipe.is_some(), "should find ## Pipeline heading block");
-        
+
         // Find the ## Related heading
-        let related = blocks.iter().find(|b| b.content == "Related" && b.meta.heading_level == Some(2));
+        let related = blocks
+            .iter()
+            .find(|b| b.content == "Related" && b.meta.heading_level == Some(2));
         assert!(related.is_some(), "should find ## Related heading block");
-        
+
         // Should have ordered list items (1. 2. 3. 4. 5.)
-        let list_items: Vec<_> = blocks.iter().filter(|b| b.content.contains("Data collection")).collect();
+        let list_items: Vec<_> = blocks
+            .iter()
+            .filter(|b| b.content.contains("Data collection"))
+            .collect();
         assert!(!list_items.is_empty(), "should find ordered list items");
     }
 
@@ -787,7 +825,11 @@ mod tests {
     fn test_convert_preserves_wiki_links() {
         let body = "[[React]] with [[TypeScript]] and [[Tailwind CSS]]\n\n## Backend\n\n[[Node.js]] / [[Express]] or [[Fastify]]\n";
         let blocks = convert_body_to_blocks(body);
-        assert_eq!(blocks.len(), 3, "should produce 3 blocks: para, heading, para");
+        assert_eq!(
+            blocks.len(),
+            3,
+            "should produce 3 blocks: para, heading, para"
+        );
         assert!(blocks[0].content.contains("[[React]]"));
         assert!(blocks[0].content.contains("[[TypeScript]]"));
         assert!(blocks[0].content.contains("[[Tailwind CSS]]"));
@@ -801,7 +843,10 @@ mod tests {
         let body = "**bold** and *italic* and `code` and ~~strike~~\n\nSome plain text";
         let blocks = convert_body_to_blocks(body);
         assert_eq!(blocks.len(), 2);
-        assert_eq!(blocks[0].content, "**bold** and *italic* and `code` and ~~strike~~");
+        assert_eq!(
+            blocks[0].content,
+            "**bold** and *italic* and `code` and ~~strike~~"
+        );
         assert_eq!(blocks[1].content, "Some plain text");
     }
 
