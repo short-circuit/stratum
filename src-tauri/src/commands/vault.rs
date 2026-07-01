@@ -74,6 +74,94 @@ pub async fn set_vault_path(path: String, state: tauri::State<'_, AppState>) -> 
     Ok(())
 }
 
+/// Resolve a user-picked path to a real filesystem path.
+/// On Android, converts SAF content URI to a real path.
+#[cfg(target_os = "android")]
+fn resolve_picked_path(picked: &str) -> Result<PathBuf, String> {
+    let path_encoded = picked
+        .split("/tree/")
+        .nth(1)
+        .ok_or_else(|| format!("Could not parse Android content URI: {}", picked))?;
+    let path_decoded = percent_decode(path_encoded);
+
+    if let Some(subpath) = path_decoded.strip_prefix("primary:") {
+        Ok(PathBuf::from("/storage/emulated/0").join(subpath))
+    } else if let Some((volume, subpath)) = path_decoded.split_once(':') {
+        Ok(PathBuf::from("/storage").join(volume).join(subpath))
+    } else {
+        Err(format!("Unrecognized content URI format: {}", picked))
+    }
+}
+
+#[cfg(not(target_os = "android"))]
+fn resolve_picked_path(picked: &str) -> Result<PathBuf, String> {
+    Ok(PathBuf::from(picked))
+}
+
+#[cfg(target_os = "android")]
+fn percent_decode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars();
+    while let Some(c) = chars.next() {
+        if c == '%' {
+            let hex: String = chars.by_ref().take(2).collect();
+            if let Ok(b) = u8::from_str_radix(&hex, 16) {
+                out.push(b as char);
+            } else {
+                out.push('%');
+                out.push_str(&hex);
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
+/// Initialize vault at a user-picked path.
+/// Frontend calls `open({ directory: true })` and passes the result here.
+#[tauri::command]
+pub async fn init_vault(
+    path: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<VaultInfo, String> {
+    let vault_path = resolve_picked_path(&path)?;
+
+    if !vault_path.exists() {
+        std::fs::create_dir_all(&vault_path)
+            .map_err(|e| format!("Failed to create vault directory: {}", e))?;
+    }
+
+    let mut vstate = state.lock().map_err(|e| e.to_string())?;
+    let (_, block_count, page_count) = setup_vault(&vault_path, &mut vstate)?;
+
+    Ok(VaultInfo {
+        path: vault_path.to_string_lossy().to_string(),
+        block_count,
+        page_count,
+    })
+}
+
+fn setup_vault(
+    vault_path: &PathBuf,
+    vstate: &mut VaultState,
+) -> Result<(pkm_block::BlockStore, usize, usize), String> {
+    std::fs::create_dir_all(vault_path.join(".pkm"))
+        .map_err(|e| format!("Failed to initialize vault: {}", e))?;
+
+    let db_path = vault_path.join(".pkm").join("blocks.db");
+    let index_engine = IndexEngine::new(vault_path).ok();
+    vstate.vault_path = vault_path.clone();
+    vstate.db_path = db_path.clone();
+    vstate.index_engine = index_engine;
+
+    let store = pkm_block::BlockStore::open(&db_path).map_err(|e| e.to_string())?;
+    let block_count = store.block_count().map_err(|e| e.to_string())?;
+    let page_count = store.page_count().map_err(|e| e.to_string())?;
+    Ok((store, block_count, page_count))
+}
+
+#[cfg(desktop)]
 #[tauri::command]
 pub async fn pick_vault_directory(
     app: tauri::AppHandle,
@@ -81,7 +169,6 @@ pub async fn pick_vault_directory(
 ) -> Result<VaultInfo, String> {
     use tauri_plugin_dialog::DialogExt;
 
-    // Use a oneshot channel to wait for the dialog result
     let (tx, rx) = std::sync::mpsc::channel();
 
     app.dialog().file().pick_folder(move |path| {
@@ -101,20 +188,8 @@ pub async fn pick_vault_directory(
         ));
     }
 
-    std::fs::create_dir_all(vault_path.join(".pkm"))
-        .map_err(|e| format!("Failed to initialize vault: {}", e))?;
-
-    let db_path = vault_path.join(".pkm").join("blocks.db");
-    let index_engine = IndexEngine::new(&vault_path).ok();
-
     let mut vstate = state.lock().map_err(|e| e.to_string())?;
-    vstate.vault_path = vault_path.clone();
-    vstate.db_path = db_path.clone();
-    vstate.index_engine = index_engine;
-
-    let store = pkm_block::BlockStore::open(&db_path).map_err(|e| e.to_string())?;
-    let block_count = store.block_count().map_err(|e| e.to_string())?;
-    let page_count = store.page_count().map_err(|e| e.to_string())?;
+    let (_, block_count, page_count) = setup_vault(&vault_path, &mut vstate)?;
 
     Ok(VaultInfo {
         path: vault_path.to_string_lossy().to_string(),
