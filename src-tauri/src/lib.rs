@@ -73,8 +73,6 @@ pub fn run() {
             commands::block::update_block,
             commands::block::delete_block,
             commands::block::insert_block,
-            commands::block::get_block_properties,
-            commands::block::set_block_property,
             // Search
             commands::search::search_blocks,
             commands::search::search_by_tag,
