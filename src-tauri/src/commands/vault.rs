@@ -74,7 +74,6 @@ pub async fn set_vault_path(path: String, state: tauri::State<'_, AppState>) -> 
     Ok(())
 }
 
-#[cfg(desktop)]
 #[tauri::command]
 pub async fn pick_vault_directory(
     app: tauri::AppHandle,
