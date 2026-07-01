@@ -36,8 +36,7 @@ pub fn detect_fenced_code_block(content: &str) -> Option<(&str, &str)> {
 
 /// Returns true if the content is a fenced code block with the mermaid language.
 pub fn is_mermaid_block(content: &str) -> bool {
-    detect_fenced_code_block(content)
-        .is_some_and(|(lang, _)| lang == "mermaid")
+    detect_fenced_code_block(content).is_some_and(|(lang, _)| lang == "mermaid")
 }
 
 #[cfg(test)]
