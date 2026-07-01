@@ -175,10 +175,14 @@ export const createMermaidSpec = createBlockSpec(
       document.addEventListener('mouseup', onDocUp);
       document.addEventListener('mousedown', onDocDown);
 
-      // Re-render when code changes (only in view mode)
+      // Re-render when code changes
+      // Auto-switch to diagram view once content appears
       const observer = new MutationObserver(() => {
+        if (!showingDiagram && getCode().trim()) {
+          switchToView();
+          return;
+        }
         if (scheduledRender) cancelAnimationFrame(scheduledRender);
-        if (!showingDiagram) return;
         scheduledRender = requestAnimationFrame(() => {
           renderDiagram();
           scheduledRender = null;

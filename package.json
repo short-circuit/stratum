@@ -22,6 +22,7 @@
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-dialog": "^2.0.0",
     "@tauri-apps/plugin-log": "^2.8.0",
+    "katex": "^0.17.0",
     "mermaid": "^11.16.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
