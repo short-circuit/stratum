@@ -109,15 +109,16 @@ export default function BacklinksPanel({ pagePath }: Props) {
                 Unlinked Mentions ({unlinked.length})
               </h4>
               <ul className="space-y-1">
-                {unlinked.map((bl, i) => (
+                  {unlinked.map((bl, i) => (
                   <li key={i}>
                     <Link
                       to={'/page/' + encodeURIComponent(bl.source_page)}
-                      className="block text-xs p-1.5 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)] text-[var(--secondary-500)]"
+                      className="block text-xs p-1.5 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)]"
                       onMouseEnter={(e) => handleMouseEnter(bl, e as any)}
                       onMouseLeave={handleMouseLeave}
                     >
-                      <div className="truncate">{bl.context}</div>
+                      <div className="text-[var(--secondary-500)]">{bl.source_page}</div>
+                      <div className="text-[var(--secondary-600)] dark:text-[var(--secondary-400)] truncate">{bl.context}</div>
                     </Link>
                   </li>
                 ))}

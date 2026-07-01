@@ -145,9 +145,11 @@ pub async fn get_page_backlinks(
     }
 
     // Also find unlinked mentions via text matching in block content
+    // Skip the current page itself (self-references cause no-op navigation)
     let lower_name = page_display.to_lowercase();
 
     for other_page in &all_pages {
+        if other_page == &page_path { continue; }
         if let Ok(blocks) = store.get_blocks_by_page(other_page) {
             for block in &blocks {
                 if block.content.to_lowercase().contains(&lower_name)
