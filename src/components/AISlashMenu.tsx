@@ -8,6 +8,7 @@ import {
 import { filterSuggestionItems } from '@blocknote/core';
 import * as api from '../lib/commands';
 import type { AiAction } from '../lib/types';
+import MathEditorModal from './MathEditorModal';
 
 interface Props {
   pagePath: string;
@@ -20,6 +21,9 @@ function isJournal(path: string) {
 export default function AISlashMenu({ pagePath }: Props) {
   const editor = useBlockNoteEditor();
   const [loading, setLoading] = useState<string | null>(null);
+  const [mathModal, setMathModal] = useState<{
+    onSave: (latex: string) => void;
+  } | null>(null);
   const capturedRef = useRef('');
 
   // Capture selected text before "/" key replaces it
@@ -224,6 +228,26 @@ export default function AISlashMenu({ pagePath }: Props) {
       });
     }
 
+    // Math equation item (always available)
+    aiItems.push({
+      title: 'Math Equation',
+      subtext: 'Insert a LaTeX math equation',
+      aliases: ['math', 'equation', 'latex', 'formula'],
+      group: 'Blocks',
+      icon: <span className="text-xs opacity-60">Σ</span>,
+      onItemClick: () => {
+        capturedRef.current = '';
+        setMathModal({
+          onSave: (latex) => {
+            setMathModal(null);
+            if (!latex.trim()) return;
+            editor.focus();
+            editor.pasteMarkdown(`$${latex}$`);
+          },
+        });
+      },
+    });
+
     // Mermaid generation item (always available)
     aiItems.push({
       title: 'Generate Mermaid Diagram',
@@ -255,7 +279,11 @@ export default function AISlashMenu({ pagePath }: Props) {
       },
     });
 
-    return filterSuggestionItems([...aiItems, ...defaultItems], query);
+    const customGroups = new Set(aiItems.map((i) => i.group));
+    return filterSuggestionItems(
+      [...aiItems, ...defaultItems.filter((i) => !customGroups.has(i.group))],
+      query,
+    );
   }, [editor, pagePath]);
 
   return (
@@ -272,6 +300,13 @@ export default function AISlashMenu({ pagePath }: Props) {
             </span>
           </div>
         </div>
+      )}
+      {mathModal && (
+        <MathEditorModal
+          initialLatex=""
+          onSave={mathModal.onSave}
+          onCancel={() => setMathModal(null)}
+        />
       )}
       <SuggestionMenuController
         triggerCharacter="/"
