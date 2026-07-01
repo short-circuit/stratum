@@ -4,7 +4,6 @@ import { useStore } from '../stores/appStore';
 import * as api from '../lib/commands';
 import OutlinerEditor from './OutlinerEditor';
 import BacklinksPanel from './BacklinksPanel';
-import PropertiesPanel from './PropertiesPanel';
 import SuggestedConnectionsPanel from './SuggestedConnectionsPanel';
 
 export default function PageView() {
@@ -128,8 +127,6 @@ export default function PageView() {
       {/* Suggested connections */}
       <SuggestedConnectionsPanel pagePath={currentPage.path} />
 
-      {/* Properties panel */}
-      <PropertiesPanel pagePath={currentPage.path} />
     </div>
   );
 }
