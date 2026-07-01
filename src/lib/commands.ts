@@ -113,20 +113,6 @@ export async function autocomplete(
   return invoke('autocomplete', { query, kind });
 }
 
-export async function getBlockProperties(
-  blockId: string,
-): Promise<{ block_id: string; properties: [string, string][]; marker?: string; priority?: string }> {
-  return invoke('get_block_properties', { blockId });
-}
-
-export async function setBlockProperty(
-  blockId: string,
-  key: string,
-  value: string,
-): Promise<void> {
-  return invoke('set_block_property', { blockId, key, value });
-}
-
 export async function listTemplates(): Promise<{
   name: string; path: string; content: string; description?: string;
 }[]> {
