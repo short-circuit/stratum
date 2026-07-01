@@ -57,6 +57,8 @@ pub fn run() {
             // Vault
             commands::vault::get_vault_info,
             commands::vault::set_vault_path,
+            commands::vault::init_vault,
+            #[cfg(desktop)]
             commands::vault::pick_vault_directory,
             // Pages
             commands::page::list_pages,

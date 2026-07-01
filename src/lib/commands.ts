@@ -28,7 +28,10 @@ export async function setVaultPath(path: string): Promise<void> {
 }
 
 export async function pickVaultDirectory(): Promise<VaultInfo> {
-  return invoke('pick_vault_directory');
+  const { open } = await import('@tauri-apps/plugin-dialog');
+  const selected = await open({ directory: true, multiple: false });
+  if (!selected) throw new Error('No directory selected');
+  return invoke('init_vault', { path: selected });
 }
 
 export async function listPages(): Promise<PageListDto> {
