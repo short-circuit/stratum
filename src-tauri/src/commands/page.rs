@@ -148,7 +148,8 @@ fn strip_block_properties(content: &str) -> String {
     for line in &lines {
         let trimmed = line.trim_start();
 
-        if trimmed.starts_with(".id: ") || trimmed.starts_with(".marker: ")
+        if trimmed.starts_with(".id: ")
+            || trimmed.starts_with(".marker: ")
             || trimmed.starts_with(".priority: ")
         {
             continue;
@@ -158,7 +159,10 @@ fn strip_block_properties(content: &str) -> String {
             if let Ok(hl @ 1..=6) = hl_val.trim().parse::<u8>() {
                 if let Some(idx) = last_content_idx {
                     let marker = "#".repeat(hl as usize);
-                    let prev = out[idx].trim_start().strip_prefix("- ").unwrap_or(&out[idx]);
+                    let prev = out[idx]
+                        .trim_start()
+                        .strip_prefix("- ")
+                        .unwrap_or(&out[idx]);
                     out[idx] = format!("{} {}", marker, prev);
                 }
             }
@@ -225,9 +229,7 @@ pub async fn reindex_page(
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     if reparse_page_from_disk(&store, &path, &state.vault_path)? {
-        let blocks = store
-            .get_blocks_by_page(&path)
-            .map_err(|e| e.to_string())?;
+        let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
         Ok(blocks.len())
     } else {
         Ok(0)

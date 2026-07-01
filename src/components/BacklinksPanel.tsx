@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import * as api from '../lib/commands';
 import type { BacklinkItem } from '../lib/types';
 import { useCtrlHeld } from '../lib/useCtrlHeld';
@@ -22,7 +22,6 @@ export default function BacklinksPanel({ pagePath }: Props) {
     position: { x: number; y: number };
     loading: boolean;
   } | null>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -62,9 +61,12 @@ export default function BacklinksPanel({ pagePath }: Props) {
 
   // Dismiss preview when Ctrl is released
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!ctrlHeld.current) setPreview(null);
-  }, [ctrlHeld.current]);
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Control' || e.key === 'Meta') setPreview(null);
+    };
+    window.addEventListener('keyup', handleKeyUp);
+    return () => window.removeEventListener('keyup', handleKeyUp);
+  }, []);
 
   return (
     <div className="border-t border-[var(--secondary-200)] dark:border-[var(--secondary-700)]">
@@ -91,7 +93,7 @@ export default function BacklinksPanel({ pagePath }: Props) {
                     <Link
                       to={'/page/' + encodeURIComponent(bl.source_page)}
                       className="block text-xs p-1.5 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)]"
-                      onMouseEnter={(e) => handleMouseEnter(bl, e as any)}
+                      onMouseEnter={(e) => handleMouseEnter(bl, e)}
                       onMouseLeave={handleMouseLeave}
                     >
                       <div className="text-[var(--secondary-500)]">{bl.source_page}</div>
@@ -114,7 +116,7 @@ export default function BacklinksPanel({ pagePath }: Props) {
                     <Link
                       to={'/page/' + encodeURIComponent(bl.source_page)}
                       className="block text-xs p-1.5 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)]"
-                      onMouseEnter={(e) => handleMouseEnter(bl, e as any)}
+                      onMouseEnter={(e) => handleMouseEnter(bl, e)}
                       onMouseLeave={handleMouseLeave}
                     >
                       <div className="text-[var(--secondary-500)]">{bl.source_page}</div>

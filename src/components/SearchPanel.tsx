@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, startTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as api from '../lib/commands';
 import type { SearchResultDto } from '../lib/types';
@@ -34,8 +34,7 @@ export default function SearchPanel() {
   useEffect(() => {
     const q = searchParams.get('q');
     if (q) {
-      setQuery(q);
-      doSearch(q);
+      startTransition(() => { doSearch(q); });
     }
   }, [searchParams, doSearch]);
 

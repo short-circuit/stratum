@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Plugin, PluginKey } from 'prosemirror-state';
+import { Plugin, PluginKey, type EditorState } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 import { type Node } from 'prosemirror-model';
 import katex from 'katex';
@@ -65,12 +65,12 @@ export function useMathInline(editor: unknown, enabled: boolean) {
     const tryAdd = setInterval(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const te = (editor as any)._tiptapEditor as
-        | { registerPlugin?: (p: Plugin) => void; isDestroyed?: boolean; state: any }
+        | { registerPlugin?: (p: Plugin) => void; isDestroyed?: boolean; state: unknown }
         | undefined;
       if (!te || te.isDestroyed) return;
 
       // Check if plugin already installed
-      if (KEY.get(te.state)) return;
+      if (KEY.get(te.state as EditorState)) return;
 
       clearInterval(tryAdd);
 

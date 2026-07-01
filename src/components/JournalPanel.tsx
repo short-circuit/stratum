@@ -26,8 +26,9 @@ export default function JournalPanel() {
 
   useEffect(() => {
     if (!vault) return;
-    const path = journalPath(formatDate(today));
-    api.createPage(path, formatDate(today))
+    const today = formatDate(new Date());
+    const path = journalPath(today);
+    api.createPage(path, today)
       .then(() => console.log('Created journal:', path))
       .catch(err => {
         if (!String(err).includes('already exists')) {
