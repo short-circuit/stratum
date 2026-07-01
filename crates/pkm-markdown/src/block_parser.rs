@@ -232,8 +232,12 @@ pub fn convert_body_to_blocks(body: &str) -> Vec<Block> {
             continue;
         }
 
-        // Fenced code block
-        if let Some(lang) = match_fence(line) {
+        // Fenced code block — also match when prefixed by `- ` block syntax
+        let fence_lang = match_fence(line).or_else(|| {
+            let s = line.trim_start();
+            if s.starts_with("- ") { match_fence(&s[2..]) } else { None }
+        });
+        if let Some(lang) = fence_lang {
             let mut code_lines = Vec::new();
             i += 1;
             while i < lines.len() {
@@ -325,6 +329,14 @@ pub fn convert_body_to_blocks(body: &str) -> Vec<Block> {
                 let indent = cl.len() - cl.trim_start().len();
                 let depth = indent / 2;
                 let content = strip_list_marker(ct);
+
+                // If list content looks like a fenced code block opener
+                // (e.g. `- ```mermaid`), drop out of the list handler so
+                // the outer loop's code fence handler processes it instead.
+                if content.starts_with("```") || content.starts_with("~~~") {
+                    break;
+                }
+
                 let id = Uuid::new_v4();
                 let mut block = Block::new(id, content);
 

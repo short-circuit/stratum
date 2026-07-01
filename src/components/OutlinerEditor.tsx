@@ -13,6 +13,8 @@ import LinkPreviewPopup from './LinkPreviewPopup';
 import AISlashMenu from './AISlashMenu';
 import AIFormattingToolbar from './AIFormattingToolbar';
 import { createMermaidSpec } from './MermaidBlock';
+import { useMathInline, setupMathDblClick } from '../lib/useMathInline';
+import MathEditorModal from './MathEditorModal';
 
 const schema = BlockNoteSchema.create({
   blockSpecs: {
@@ -31,6 +33,10 @@ export default function OutlinerEditor({ pagePath }: Props) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState('init');
+  const [mathEdit, setMathEdit] = useState<{
+    latex: string;
+    pos: number;
+  } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const ctrlHeld = useCtrlHeld();
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,6 +133,18 @@ export default function OutlinerEditor({ pagePath }: Props) {
       persistBlocks(editor.document);
     });
   }, [editor, persistBlocks, status]);
+
+  // Inline math rendering via ProseMirror decorations
+  useMathInline(editor as any, status === 'ready');
+
+  // Double-click on rendered math to open editor
+  useEffect(() => {
+    if (status !== 'ready') return;
+    return setupMathDblClick(
+      containerRef.current,
+      (latex: string, pos: number) => setMathEdit({ latex, pos }),
+    );
+  }, [status]);
 
   // Wiki-link hover preview delegation
   useEffect(() => {
@@ -247,6 +265,24 @@ export default function OutlinerEditor({ pagePath }: Props) {
           position={preview.position}
           loading={preview.loading}
           onClose={() => setPreview(null)}
+        />
+      )}
+      {mathEdit && (
+        <MathEditorModal
+          initialLatex={mathEdit.latex}
+          onSave={(latex) => {
+            const pos = mathEdit.pos;
+            setMathEdit(null);
+            if (!latex.trim()) return;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const view = (editor as any)?.prosemirrorView as import('prosemirror-view').EditorView | undefined;
+            if (!view) return;
+            const text = `$${latex}$`;
+            const tr = view.state.tr.replaceWith(pos, pos + mathEdit.latex.length + 2, view.state.schema.text(text));
+            view.dispatch(tr);
+            view.focus();
+          }}
+          onCancel={() => setMathEdit(null)}
         />
       )}
     </div>
