@@ -19,5 +19,34 @@ export default defineConfig({
   build: {
     target: 'esnext',
     minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
+    chunkSizeWarningLimit: 5000,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'mermaid',
+              test: /[\\/]node_modules[\\/]mermaid[\\/]/,
+            },
+            {
+              name: 'excalidraw',
+              test: /[\\/]node_modules[\\/]@excalidraw[\\/]/,
+            },
+            {
+              name: 'blocknote',
+              test: /[\\/]node_modules[\\/]@blocknote[\\/]/,
+            },
+            {
+              name: 'katex',
+              test: /[\\/]node_modules[\\/]katex[\\/]/,
+            },
+            {
+              name: 'd3-graph',
+              test: /[\\/]node_modules[\\/](react-force-graph|d3-)[\\/]/,
+            },
+          ],
+        },
+      },
+    },
   },
 })
