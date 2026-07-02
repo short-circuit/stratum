@@ -103,13 +103,24 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
+      - name: Zip macOS app
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          cd target/release/bundle/macos
+          APP_NAME=$(ls -d *.app | head -1)
+          if [ -n "$APP_NAME" ]; then
+            ditto -c -k --keepParent "$APP_NAME" "${APP_NAME%.app}.zip"
+          fi
+
       - name: Upload bundles
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: |
-            target/release/bundle/**/*
-            target/release/stratum-tauri*
+            target/release/bundle/appimage/*.AppImage
+            target/release/bundle/macos/*.zip
+            target/release/stratum-tauri.exe
           if-no-files-found: warn
 
       - name: Upload build log
@@ -311,12 +322,22 @@ jobs:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
 
+      - name: Zip iOS app
+        shell: bash
+        run: |
+          cd src-tauri/gen/apple/build
+          APP_PATH=$(find . -name "*.app" -maxdepth 3 | head -1)
+          if [ -n "$APP_PATH" ]; then
+            APP_NAME=$(basename "$APP_PATH")
+            ditto -c -k --keepParent "$APP_PATH" "${APP_NAME%.app}.zip"
+          fi
+
       - name: Upload iOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ios
           path: |
-            src-tauri/gen/apple/build/**/*.app
+            src-tauri/gen/apple/build/**/*.zip
           if-no-files-found: warn
 
       - name: Upload build log
@@ -344,11 +365,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            linux-x86_64/**/*
-            macos-x86_64/**/*
-            windows-x86_64/**/*
-            android/**/*
-            ios/**/*
+            linux-x86_64/*.AppImage
+            macos-x86_64/*.zip
+            windows-x86_64/*.exe
+            android/*.apk
+            android/*.aab
+            ios/*.zip
           draft: true
           generate_release_notes: true
         env:
