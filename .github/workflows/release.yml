@@ -242,18 +242,12 @@ jobs:
             echo "ANDROID_KEYSTORE_PATH=${{ runner.temp }}/android.keystore" >> $GITHUB_ENV
           fi
 
-      - name: Pin custom icon resources via build.gradle.kts
+      - name: Debug icon resources
         run: |
-          cat >> src-tauri/gen/android/app/build.gradle.kts << 'GRADLE_EOF'
-
-          android {
-              sourceSets {
-                  getByName("main") {
-                      res.srcDirs("src/main/res", "$rootDir/../../android-patches/app/src/main/res")
-                  }
-              }
-          }
-          GRADLE_EOF
+          echo "=== Icon resources in gen project (after patches) ==="
+          find src-tauri/gen/android/app/src/main/res -name '*launcher*' -o -name '*mipmap*' | sort
+          echo "=== AndroidManifest icon attribute ==="
+          grep 'android:icon' src-tauri/gen/android/app/src/main/AndroidManifest.xml || echo "NO ICON IN MANIFEST"
 
       - name: Build Android app
         shell: bash

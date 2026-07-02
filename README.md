@@ -7,187 +7,84 @@
 [![CI](https://github.com/short-circuit/stratum/actions/workflows/ci.yml/badge.svg)](https://github.com/short-circuit/stratum/actions/workflows/ci.yml)
 [![Release](https://github.com/short-circuit/stratum/actions/workflows/release.yml/badge.svg)](https://github.com/short-circuit/stratum/actions/workflows/release.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-mkdocs--material-orange)](https://short-circuit.github.io/stratum/docs/)
 
-A privacy-first, offline-capable personal knowledge management (PKM) system with
-native Git sync, bi-directional linking, graph visualization, and AI-augmented
-search/chat. Notes are stored as plain Markdown files on disk — zero vendor lock-in.
+**Your second brain. No strings attached.**
 
-## Architecture
+A personal knowledge management system that **doesn't own your notes**.
+Every note is a plain `.md` file on disk. No proprietary format. No cloud lock-in.
+Just you, your ideas, and a tool that gets out of your way.
 
-Stratum uses a **Rust core** with a **Tauri v2 + React + TypeScript** frontend,
-communicating via Tauri IPC (`invoke()`). The Rust workspace contains these crates:
+Think Logseq's block outliner meets Obsidian's graph view, built on a Rust engine
+that stays fast even with 10,000+ notes — all running fully offline.
 
-| Crate | Purpose |
-|-------|---------|
-| `pkm-core` | Core types, config, errors |
-| `pkm-block` | Block model (UUID), tree ops, SQLite store |
-| `pkm-markdown` | Block-based markdown parser + serializer |
-| `pkm-index` | Note graph, backlink resolution, Tantivy full-text search, tag aggregation |
-| `pkm-query` | Datalog query engine targeting blocks |
-| `pkm-sync` | Git sync engine (git2), auto-commit, conflict resolution |
-| `pkm-watcher` | File system watcher (notify) with debounce |
-| `pkm-ai` | LLM provider abstraction, embeddings, RAG pipeline |
-| `pkm-plugin` | WASM plugin runtime (wasmtime), permission system |
-| `pkm-cli` | CLI binary (`stratum` command) |
+---
+
+## Why Stratum?
+
+Your notes should outlive your note-taking app. Most PKM tools either lock you into
+a proprietary format, require a cloud subscription, or slow down as your knowledge
+grows. Stratum was built differently from the ground up.
+
+- **Plain Markdown files** — open any note in any text editor. If Stratum disappeared
+  tomorrow, you'd lose nothing.
+- **Fully offline** — every feature works without internet. AI too (bring your own
+  Ollama).
+- **Fast at scale** — search in under 100ms at 10k notes. The editor doesn't stutter.
+  The graph doesn't lag.
+- **Zero vendor lock-in** — no proprietary database, no cloud sync dependency.
+  Your `.md` files are portable by design.
+
+## At a Glance
+
+| | |
+|---|---|
+| 🧱 **Block Outliner** | Every paragraph is an addressable block. Indent, outdent, drag, collapse. |
+| 🔗 **Wiki-Links** | `[[Link]]` with autocomplete, backlinks panel, and unlinked mentions. |
+| 🕸️ **Knowledge Graph** | Interactive force-directed graph. Find orphans, explore clusters. |
+| 🔍 **Full-Text Search** | Sub-100ms search. Tag search with `#tagname`. |
+| 📊 **Datalog Queries** | Query your knowledge graph like a database. |
+| 📅 **Daily Journal** | Auto-created daily notes. Capture fast, process later. |
+| 📋 **Templates** | Reusable templates with variable substitution. |
+| 🃏 **Flashcards** | Spaced repetition from your notes. Write once, remember forever. |
+| 🎨 **Whiteboards** | Excalidraw spatial canvas for visual thinking. |
+| 🧮 **Math & Diagrams** | KaTeX equations and Mermaid diagrams inline. |
+| 🤖 **AI Assistant** | Rewrite, summarize, interlink. Bring your own LLM. |
+| 🌐 **Web Research** | Multi-depth web research via SearXNG. |
+| 🔄 **Git Sync** | Auto-commit, push, pull. Version history built in. |
+| ⌨️ **CLI** | Full terminal interface — init, search, export, and more. |
 
 ## Quick Start
 
 ### Nix (recommended)
 
 ```bash
-# Enter dev shell with all dependencies (Rust, Node, Tauri libs)
 nix develop ./nix
-
-# Or use direnv for auto-activation
-direnv allow
-
-# Build Rust
 cargo build --workspace
-
-# Run tests
-cargo test --workspace
-
-# Frontend
 npm install
-npm run dev              # Vite dev server
-
-# Tauri desktop app
 cargo tauri dev
 ```
 
-### Manual Setup
+### Manual
 
-Requires: Rust 1.75+, Node.js 22+, system libraries for Tauri v2 (webkitgtk, glib, gtk3, libsoup, openssl).
+Requires Rust 1.75+, Node.js 22+, and Tauri v2 system libraries
+([install guide](https://short-circuit.github.io/stratum/docs/getting-started/installation/)).
 
 ```bash
 cargo build --workspace
-cargo test --workspace
 npm install
 npm run tauri:dev
 ```
 
-## Storage Model
+## Get Involved
 
-Notes are **plain `.md` files** on disk — readable and editable by any text editor.
-A hidden `.pkm/` directory in the vault root holds metadata cache:
+Stratum is in active development — all core features work, and there's plenty
+more to build. Check the [full documentation](https://short-circuit.github.io/stratum/docs/)
+for setup guides, feature walkthroughs, and the CLI reference.
 
-| File | Purpose |
-|------|---------|
-| `.pkm/blocks.db` | SQLite block storage |
-| `.pkm/search.idx` | Tantivy full-text search index |
-| `.pkm/config.toml` | User configuration |
-
-All cache is **rebuildable** from the `.md` files. Deleting `.pkm/` loses no data.
-
-## Features
-
-### Block-Based Outliner
-- Every paragraph is an addressable block with UUID
-- SQLite storage with O(1) insert/delete/move (parent_id + left_id model)
-- Indent/outdent, task markers (TODO/DOING/DONE), priorities
-- Block references `((uuid))` and page embeds `{{embed ...}}`
-
-### Graph Engine
-- Node/Edge graph built from `[[wiki-links]]` in `.md` files
-- Backlink computation with unlinked mention detection
-- Connected components via BFS (clusters of interlinked notes)
-- Orphaned note detection
-- Force-directed visualization with `react-force-graph-2d` (d3-force)
-- Click any node to navigate to that note
-
-### Markdown Engine
-- YAML frontmatter parsing
-- `[[Wiki-link]]` resolution with `[[Target|Display Text]]` support
-- `#tag` extraction (frontmatter + inline)
-- Block-based serialization with round-trip fidelity
-
-### Full-Text Search
-- Tantivy-powered search (sub-100ms at 10k notes)
-- Block-level and page-level search
-- Regex and full-text search modes
-
-### Datalog Queries
-- EDN and JSON dual-mode Datalog input
-- Datalog→SQL compiler targeting blocks.db
-- `:find` (vars + pull), `:where` patterns, page joins
-
-### Git Sync
-- Manual, auto-commit, auto-sync, and background modes
-- Remote push/pull via git2
-- Merge conflict detection
-
-### AI / Chat
-- Pluggable LLM providers: Ollama, OpenAI, Anthropic, Custom
-- RAG pipeline: search → context → LLM answer with citations
-- Fully offline mode with Ollama
-
-### More
-- **Templates** with variable substitution
-- **Flashcards** with spaced repetition scheduling
-- **Whiteboards** via Tldraw
-- **Export** to HTML and JSON
-
-## Project Structure
-
-```
-stratum/
-├── Cargo.toml              # Workspace root
-├── AGENTS.md               # AI assistant context
-├── nix/                    # Nix flake dev environment
-│   ├── flake.nix
-│   └── flake.lock
-├── crates/                 # Rust crates
-│   ├── pkm-core/
-│   ├── pkm-block/
-│   ├── pkm-markdown/
-│   ├── pkm-index/
-│   ├── pkm-query/
-│   ├── pkm-sync/
-│   ├── pkm-watcher/
-│   ├── pkm-ai/
-│   ├── pkm-plugin/
-│   └── pkm-cli/
-├── src/                    # React + TypeScript frontend
-│   ├── App.tsx
-│   ├── main.tsx
-│   ├── lib/
-│   ├── stores/
-│   └── components/
-├── src-tauri/              # Tauri v2 shell + Rust commands
-├── docs/
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-└── README.md
-```
-
-## Configuration
-
-```toml
-[vault]
-path = "~/notes"
-
-[sync]
-mode = "AutoCommit"
-remote_url = "git@github.com:user/vault.git"
-branch = "main"
-auto_commit_interval_secs = 300
-auto_sync_interval_secs = 1800
-
-[theme]
-dark_mode = true
-font_size = 16
-
-[ai]
-provider = "Ollama"
-model = "llama3.2"
-rag_enabled = true
-
-[watcher]
-enabled = true
-debounce_ms = 500
-```
+Contributions welcome. See [CONTRIBUTING](https://short-circuit.github.io/stratum/docs/contributing/)
+for the development workflow and conventions.
 
 ## License
 
-AGPL-3.0-only — see [LICENSE](LICENSE) for details.
+AGPL-3.0-only — see [LICENSE](LICENSE).
