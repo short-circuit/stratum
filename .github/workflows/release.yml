@@ -234,6 +234,14 @@ jobs:
       - name: Apply Android patches
         run: |
           cp -r src-tauri/android-patches/app/src/main/* src-tauri/gen/android/app/src/main/
+          cp src-tauri/android-patches/tauri.build.gradle.kts src-tauri/gen/android/app/tauri.build.gradle.kts 2>/dev/null || true
+
+      - name: Decode keystore
+        run: |
+          if [ -n "${{ secrets.ANDROID_KEYSTORE }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > ${{ runner.temp }}/android.keystore
+            echo "ANDROID_KEYSTORE_PATH=${{ runner.temp }}/android.keystore" >> $GITHUB_ENV
+          fi
 
       - name: Build Android app
         shell: bash
@@ -361,16 +369,45 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
 
+      - name: Stage release assets
+        shell: bash
+        run: |
+          mkdir -p assets
+
+          APPIMAGE=$(find linux-x86_64 -name '*.AppImage' -type f 2>/dev/null | head -1)
+          if [ -n "$APPIMAGE" ]; then
+            cp "$APPIMAGE" assets/stratum-pkm-linux.AppImage
+          fi
+
+          MACOS_ZIP=$(find macos-x86_64 -name '*.zip' -type f 2>/dev/null | head -1)
+          if [ -n "$MACOS_ZIP" ]; then
+            cp "$MACOS_ZIP" assets/stratum-pkm-macos.zip
+          fi
+
+          if [ -f windows-x86_64/stratum-tauri.exe ]; then
+            cp windows-x86_64/stratum-tauri.exe assets/stratum-pkm-windows.exe
+          fi
+
+          APK=$(find android -name '*.apk' -type f 2>/dev/null | head -1)
+          if [ -n "$APK" ]; then
+            cp "$APK" assets/stratum-pkm-android.apk
+          fi
+
+          AAB=$(find android -name '*.aab' -type f 2>/dev/null | head -1)
+          if [ -n "$AAB" ]; then
+            cp "$AAB" assets/stratum-pkm-android.aab
+          fi
+
+          if [ -f ios/stratum.zip ]; then
+            cp ios/stratum.zip assets/stratum-pkm-ios.zip
+          fi
+
+          ls -la assets/
+
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            linux-x86_64/**/*.AppImage
-            macos-x86_64/**/*.zip
-            windows-x86_64/*.exe
-            android/**/*.apk
-            android/**/*.aab
-            ios/*.zip
+          files: assets/*
           draft: true
           generate_release_notes: true
         env:
