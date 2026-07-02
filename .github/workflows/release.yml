@@ -217,9 +217,6 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Regenerate icons from source
-        run: npx tauri icon src-tauri/icons/app-icon.svg
-
       - name: Initialize Android project
         run: npx tauri android init
 
@@ -237,7 +234,6 @@ jobs:
       - name: Apply Android patches
         run: |
           cp -r src-tauri/android-patches/app/src/main/* src-tauri/gen/android/app/src/main/
-          cp src-tauri/android-patches/tauri.build.gradle.kts src-tauri/gen/android/app/tauri.build.gradle.kts 2>/dev/null || true
 
       - name: Decode keystore
         run: |
@@ -245,6 +241,27 @@ jobs:
             echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > ${{ runner.temp }}/android.keystore
             echo "ANDROID_KEYSTORE_PATH=${{ runner.temp }}/android.keystore" >> $GITHUB_ENV
           fi
+
+      - name: Configure signing in build.gradle.kts
+        run: |
+          cat >> src-tauri/gen/android/app/build.gradle.kts << 'GRADLE_EOF'
+
+          android {
+              signingConfigs {
+                  create("release") {
+                      storeFile = file(System.getenv("ANDROID_KEYSTORE_PATH") ?: "")
+                      storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                      keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                      keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+                  }
+              }
+              buildTypes {
+                  getByName("release") {
+                      signingConfig = signingConfigs.getByName("release")
+                  }
+              }
+          }
+          GRADLE_EOF
 
       - name: Build Android app
         shell: bash
