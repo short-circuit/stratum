@@ -218,7 +218,7 @@ jobs:
         run: npm run build
 
       - name: Regenerate icons from source
-        run: npx tauri icon
+        run: npx tauri icon src-tauri/icons/app-icon.svg
 
       - name: Initialize Android project
         run: npx tauri android init
