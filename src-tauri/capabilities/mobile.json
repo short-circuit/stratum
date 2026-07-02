@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "mobile",
+  "description": "enables permissions for mobile targets",
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "dialog:allow-open"
+  ]
+}
