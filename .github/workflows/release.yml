@@ -242,11 +242,6 @@ jobs:
             echo "ANDROID_KEYSTORE_PATH=${{ runner.temp }}/android.keystore" >> $GITHUB_ENV
           fi
 
-      - name: Disable resource shrinking and fix APK signing
-        run: |
-          sed -i '/isMinifyEnabled/a \            shrinkResources = false' src-tauri/gen/android/app/build.gradle.kts
-          grep -A2 'shrinkResources\|isMinifyEnabled' src-tauri/gen/android/app/build.gradle.kts
-
       - name: Build Android app
         shell: bash
         run: npx tauri android build --target aarch64 --apk 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
