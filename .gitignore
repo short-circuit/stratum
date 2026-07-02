@@ -37,6 +37,9 @@ result/
 *.keystore
 *.b64
 
+# === MkDocs ===
+docs/site/
+
 # === Misc ===
 *.log
 *.tmp
