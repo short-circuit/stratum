@@ -9,9 +9,10 @@ if (keystorePath != null) {
                 keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
             }
         }
-    }
-
-    afterEvaluate {
-        android.buildTypes.getByName("release").signingConfig = android.signingConfigs.getByName("release")
+        buildTypes {
+            getByName("release") {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
     }
 }

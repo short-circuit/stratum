@@ -217,6 +217,9 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+      - name: Regenerate icons from source
+        run: npx tauri icon
+
       - name: Initialize Android project
         run: npx tauri android init
 
