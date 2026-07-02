@@ -365,11 +365,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            linux-x86_64/*.AppImage
-            macos-x86_64/*.zip
+            linux-x86_64/**/*.AppImage
+            macos-x86_64/**/*.zip
             windows-x86_64/*.exe
-            android/*.apk
-            android/*.aab
+            android/**/*.apk
+            android/**/*.aab
             ios/*.zip
           draft: true
           generate_release_notes: true
