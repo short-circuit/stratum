@@ -242,12 +242,10 @@ jobs:
             echo "ANDROID_KEYSTORE_PATH=${{ runner.temp }}/android.keystore" >> $GITHUB_ENV
           fi
 
-      - name: Debug icon resources
+      - name: Disable resource shrinking and fix APK signing
         run: |
-          echo "=== Icon resources in gen project (after patches) ==="
-          find src-tauri/gen/android/app/src/main/res -name '*launcher*' -o -name '*mipmap*' | sort
-          echo "=== AndroidManifest icon attribute ==="
-          grep 'android:icon' src-tauri/gen/android/app/src/main/AndroidManifest.xml || echo "NO ICON IN MANIFEST"
+          sed -i '/isMinifyEnabled/a \            shrinkResources = false' src-tauri/gen/android/app/build.gradle.kts
+          grep -A2 'shrinkResources\|isMinifyEnabled' src-tauri/gen/android/app/build.gradle.kts
 
       - name: Build Android app
         shell: bash
