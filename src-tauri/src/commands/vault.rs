@@ -143,7 +143,7 @@ pub async fn init_vault(
 }
 
 fn setup_vault(
-    vault_path: &PathBuf,
+    vault_path: &std::path::Path,
     vstate: &mut VaultState,
 ) -> Result<(pkm_block::BlockStore, usize, usize), String> {
     std::fs::create_dir_all(vault_path.join(".pkm"))
@@ -151,7 +151,7 @@ fn setup_vault(
 
     let db_path = vault_path.join(".pkm").join("blocks.db");
     let index_engine = IndexEngine::new(vault_path).ok();
-    vstate.vault_path = vault_path.clone();
+    vstate.vault_path = vault_path.to_path_buf();
     vstate.db_path = db_path.clone();
     vstate.index_engine = index_engine;
 
