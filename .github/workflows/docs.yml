@@ -28,13 +28,13 @@ jobs:
 
       - name: Build docs
         run: |
-          cd docs
-          mkdocs build
+          mkdocs build -f docs/mkdocs.yml
           # Move built site into a docs/ subdirectory so it lives at
           # https://short-circuit.github.io/stratum/docs/
           # leaving gh-pages root free for the future landing page.
-          mkdir -p ../gh-pages-output
-          mv site ../gh-pages-output/docs
+          # mkdocs outputs 'site' relative to the config file dir, so it's at docs/site/
+          mkdir -p gh-pages-output
+          mv docs/site gh-pages-output/docs
 
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
