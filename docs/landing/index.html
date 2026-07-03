@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stratum — Your Second Brain. No Strings Attached.</title>
+<meta name="description" content="A privacy-first, offline-capable personal knowledge management system. Notes are plain Markdown files on disk — zero vendor lock-in.">
+<link rel="icon" href="docs/assets/images/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Base ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --orange-50:#fff7ed;--orange-100:#ffedd5;--orange-200:#fed7aa;--orange-300:#fdba74;
+  --orange-400:#fb923c;--orange-500:#f97316;--orange-600:#ea580c;--orange-700:#c2410c;
+  --gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;
+  --gray-400:#9ca3af;--gray-500:#6b7280;--gray-600:#4b5563;--gray-700:#374151;
+  --gray-800:#1f2937;--gray-900:#111827;--gray-950:#030712;
+  --bg:#ffffff;--bg-alt:var(--gray-50);--text:var(--gray-900);--text-muted:var(--gray-500);
+  --border:var(--gray-200);--primary:var(--orange-500);--primary-hover:var(--orange-600);
+  --primary-light:var(--orange-50);--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-lg:0 10px 25px rgba(0,0,0,.08),0 4px 10px rgba(0,0,0,.04);
+  --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:var(--gray-950);--bg-alt:var(--gray-900);--text:var(--gray-100);
+    --text-muted:var(--gray-400);--border:var(--gray-800);--primary-light:rgba(249,115,22,.12);
+    --shadow:0 1px 3px rgba(0,0,0,.3);--shadow-lg:0 10px 25px rgba(0,0,0,.4);}
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--primary);text-decoration:none;transition:color .2s}
+a:hover{color:var(--primary-hover)}
+img{max-width:100%;display:block}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+section{padding:100px 0}
+/* ── Animations ── */
+.fade-in{opacity:0;transform:translateY(30px);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
+.fade-in.visible{opacity:1;transform:translateY(0)}
+.fade-in-left{opacity:0;transform:translateX(-40px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+.fade-in-left.visible{opacity:1;transform:translateX(0)}
+.fade-in-right{opacity:0;transform:translateX(40px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+.fade-in-right.visible{opacity:1;transform:translateX(0)}
+.scale-in{opacity:0;transform:scale(.85);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}
+.scale-in.visible{opacity:1;transform:scale(1)}
+.stagger > *{opacity:0;transform:translateY(20px);transition:opacity .5s ease,transform .5s ease}
+.stagger.visible > *:nth-child(1){transition-delay:.05s}
+.stagger.visible > *:nth-child(2){transition-delay:.12s}
+.stagger.visible > *:nth-child(3){transition-delay:.19s}
+.stagger.visible > *:nth-child(4){transition-delay:.26s}
+.stagger.visible > *:nth-child(5){transition-delay:.33s}
+.stagger.visible > *:nth-child(6){transition-delay:.40s}
+.stagger.visible > *{opacity:1;transform:translateY(0)}
+/* ── Hero ── */
+.hero{min-height:100vh;display:flex;align-items:center;position:relative;overflow:hidden;padding-top:80px}
+.hero::before{content:'';position:absolute;top:-50%;right:-20%;width:800px;height:800px;
+  background:radial-gradient(circle,rgba(249,115,22,.08) 0%,transparent 70%);pointer-events:none}
+.hero::after{content:'';position:absolute;bottom:-30%;left:-10%;width:600px;height:600px;
+  background:radial-gradient(circle,rgba(249,115,22,.05) 0%,transparent 70%);pointer-events:none}
+.hero-content{position:relative;z-index:1;max-width:800px;margin:0 auto;text-align:center}
+.hero-icon{width:96px;height:96px;margin:0 auto 32px;color:var(--primary);animation:float 6s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.hero h1{font-size:clamp(2.5rem,6vw,4.5rem);font-weight:900;line-height:1.1;letter-spacing:-.03em;margin-bottom:20px}
+.hero h1 span{background:linear-gradient(135deg,var(--orange-400),var(--orange-600));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:clamp(1.1rem,2vw,1.35rem);color:var(--text-muted);max-width:640px;margin:0 auto 40px;line-height:1.7}
+.hero-badges{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:40px}
+.hero-badges img{height:24px;border-radius:4px}
+.hero-actions{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 32px;border-radius:100px;
+  font-size:1rem;font-weight:600;font-family:var(--font);border:none;cursor:pointer;
+  transition:all .25s cubic-bezier(.16,1,.3,1);text-decoration:none}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(249,115,22,.35)}
+.btn-primary:hover{background:var(--primary-hover);transform:translateY(-2px);box-shadow:0 6px 20px rgba(249,115,22,.4)}
+.btn-secondary{background:var(--bg-alt);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--border);transform:translateY(-2px)}
+/* ── Nav ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 0;
+  transition:background .3s,backdrop-filter .3s,box-shadow .3s}
+nav.scrolled{background:rgba(255,255,255,.8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  box-shadow:0 1px 3px rgba(0,0,0,.06)}
+@media(prefers-color-scheme:dark){nav.scrolled{background:rgba(3,7,18,.8)}}
+nav .container{display:flex;align-items:center;justify-content:space-between}
+nav .logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.15rem;color:var(--text)}
+nav .logo svg{width:28px;height:28px;color:var(--primary)}
+nav .nav-links{display:flex;gap:24px;align-items:center}
+nav .nav-links a{color:var(--text-muted);font-size:.9rem;font-weight:500;transition:color .2s}
+nav .nav-links a:hover{color:var(--text)}
+nav .nav-links .btn-nav{background:var(--primary);color:#fff;padding:8px 20px;border-radius:100px;font-size:.85rem;font-weight:600}
+nav .nav-links .btn-nav:hover{background:var(--primary-hover);color:#fff}
+/* ── Section titles ── */
+.section-label{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:.08em;color:var(--primary);margin-bottom:12px}
+.section-title{font-size:clamp(1.8rem,3.5vw,2.5rem);font-weight:800;letter-spacing:-.02em;
+  line-height:1.2;margin-bottom:16px}
+.section-sub{font-size:1.1rem;color:var(--text-muted);max-width:560px;margin-bottom:48px;line-height:1.7}
+.centered{text-align:center}.centered .section-sub{margin-left:auto;margin-right:auto}
+/* ── Features grid ── */
+.features-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
+.feature-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+  padding:28px;transition:all .3s cubic-bezier(.16,1,.3,1);position:relative;overflow:hidden}
+.feature-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--orange-400),var(--orange-600));
+  transform:scaleX(0);transform-origin:left;transition:transform .4s cubic-bezier(.16,1,.3,1)}
+.feature-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);border-color:var(--primary)}
+.feature-card:hover::before{transform:scaleX(1)}
+.feature-icon{width:44px;height:44px;border-radius:10px;background:var(--primary-light);
+  display:flex;align-items:center;justify-content:center;color:var(--primary);margin-bottom:16px;font-size:22px}
+.feature-card h3{font-size:1.05rem;font-weight:700;margin-bottom:8px}
+.feature-card p{font-size:.9rem;color:var(--text-muted);line-height:1.6}
+/* ── Showcase ── */
+.showcase-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+@media(max-width:768px){.showcase-grid{grid-template-columns:1fr;gap:32px}}
+.showcase-text .showcase-icon{width:48px;height:48px;border-radius:12px;background:var(--primary-light);
+  display:flex;align-items:center;justify-content:center;color:var(--primary);margin-bottom:16px;font-size:24px}
+.showcase-text h2{font-size:1.8rem;font-weight:800;letter-spacing:-.02em;line-height:1.2;margin-bottom:12px}
+.showcase-text p{color:var(--text-muted);line-height:1.7;margin-bottom:20px}
+.showcase-list{list-style:none;display:flex;flex-direction:column;gap:12px}
+.showcase-list li{display:flex;align-items:flex-start;gap:10px;font-size:.95rem;color:var(--text)}
+.showcase-list li svg{width:20px;height:20px;color:var(--primary);flex-shrink:0;margin-top:2px}
+.showcase-visual{background:var(--bg-alt);border:1px solid var(--border);border-radius:16px;
+  padding:32px;position:relative;overflow:hidden;min-height:320px}
+.showcase-visual .mock-editor{font-family:'JetBrains Mono',monospace;font-size:.85rem;line-height:1.8}
+.showcase-visual .mock-editor .line{display:flex;align-items:center;gap:8px;padding:2px 0}
+.showcase-visual .mock-editor .gutter{color:var(--gray-400);text-align:right;width:20px;user-select:none;font-size:.75rem}
+.showcase-visual .mock-editor .content{padding-left:8px}
+.showcase-visual .mock-editor .hl-orange{color:var(--orange-500)}
+.showcase-visual .mock-editor .hl-gray{color:var(--gray-400)}
+.showcase-visual .mock-editor .hl-green{color:#10b981}
+.showcase-visual .mock-editor .hl-blue{color:#3b82f6}
+.showcase-visual .mock-editor .indent-1{padding-left:24px}
+.showcase-visual .mock-editor .indent-2{padding-left:48px}
+.showcase-visual .mock-editor .indent-3{padding-left:72px}
+.showcase-visual .mock-graph{display:flex;align-items:center;justify-content:center;height:100%;min-height:250px}
+.showcase-visual .mock-graph svg{width:100%;max-width:300px}
+.mock-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.mock-card:last-child{margin-bottom:0}
+.mock-card .header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.mock-card .avatar{width:32px;height:32px;border-radius:8px;background:var(--primary-light);display:flex;
+  align-items:center;justify-content:center;color:var(--primary);font-weight:700;font-size:.85rem}
+.mock-card .name{font-weight:600;font-size:.9rem}
+.mock-card .time{font-size:.8rem;color:var(--text-muted)}
+.mock-card .text{font-size:.9rem;color:var(--text-muted);margin-bottom:12px;line-height:1.6}
+.mock-card .tags{display:flex;gap:6px;flex-wrap:wrap}
+.mock-card .tags span{padding:2px 10px;border-radius:100px;font-size:.75rem;font-weight:500}
+.mock-card .tags .tag-project{background:rgba(59,130,246,.1);color:#3b82f6}
+.mock-card .tags .tag-rust{background:rgba(249,115,22,.1);color:var(--orange-500)}
+.mock-card .tags .tag-done{background:rgba(16,185,129,.1);color:#10b981}
+/* ── Code block ── */
+.code-card{background:var(--gray-900);border-radius:var(--radius);padding:24px;overflow-x:auto;position:relative}
+.code-card .code-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.code-card .code-header span{font-size:.8rem;color:var(--gray-400);font-weight:500}
+.code-card .code-header .dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px}
+.code-card .code-header .dot-red{background:#ef4444}
+.code-card .code-header .dot-yellow{background:#eab308}
+.code-card .code-header .dot-green{background:#22c55e}
+.code-card pre{font-family:'JetBrains Mono',monospace;font-size:.85rem;line-height:1.7;color:var(--gray-200)}
+.code-card pre .cm-keyword{color:#c084fc}
+.code-card pre .cm-string{color:#fbbf24}
+.code-card pre .cm-comment{color:var(--gray-500)}
+.code-card pre .cm-func{color:#60a5fa}
+.code-card pre .cm-var{color:#f97316}
+/* ── Why section ── */
+.why-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+@media(max-width:768px){.why-grid{grid-template-columns:1fr}}
+.why-item{display:flex;gap:20px;padding:24px;border-radius:var(--radius);border:1px solid var(--border);
+  transition:all .3s ease}
+.why-item:hover{box-shadow:var(--shadow-lg);border-color:var(--primary)}
+.why-item .icon{width:48px;height:48px;border-radius:10px;background:var(--primary-light);
+  display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:22px;flex-shrink:0}
+.why-item h3{font-size:1rem;font-weight:700;margin-bottom:4px}
+.why-item p{font-size:.88rem;color:var(--text-muted);line-height:1.6}
+/* ── CTA ── */
+.cta-section{text-align:center;padding:120px 0;position:relative;overflow:hidden}
+.cta-section::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:800px;height:800px;background:radial-gradient(circle,rgba(249,115,22,.06) 0%,transparent 70%);pointer-events:none}
+.cta-section h2{font-size:clamp(2rem,4vw,3rem);font-weight:900;letter-spacing:-.03em;margin-bottom:16px}
+.cta-section p{font-size:1.15rem;color:var(--text-muted);max-width:500px;margin:0 auto 36px;line-height:1.7}
+.cta-actions{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+/* ── Footer ── */
+footer{padding:48px 0;border-top:1px solid var(--border)}
+footer .container{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+footer .copy{font-size:.85rem;color:var(--text-muted)}
+footer .links{display:flex;gap:20px}
+footer .links a{font-size:.85rem;color:var(--text-muted);transition:color .2s}
+footer .links a:hover{color:var(--text)}
+/* ── Responsive ── */
+@media(max-width:640px){
+  section{padding:60px 0}
+  nav .nav-links .desktop-only{display:none}
+  .hero h1{font-size:2.2rem}
+  .features-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav id="navbar">
+  <div class="container">
+    <a href="#" class="logo">
+      <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path fill="currentColor" d="m 29.635477,87.304254 c 7.094872,-2.581952 13.156675,-6.323177 20.90416,-7.0854 16.596,-1.632788 33.703763,10.659608 39.4784,25.827056 2.529908,6.645 3.28736,13.91432 1.995641,20.90416 -0.681706,3.68878 -3.31602,7.80699 -3.184223,11.53333 0.10899,3.08179 3.084921,6.19757 4.719886,8.65 3.870311,5.80547 7.903159,11.4943 11.773619,17.29999 1.66018,2.49024 3.36427,6.32687 6.00138,7.90914 2.11761,1.27057 5.33205,0.74086 7.69445,0.74086 h 17.29999 64.15415 175.88327 54.06249 c 10.39088,0 21.56872,1.10373 31.71665,-1.55403 16.58967,-4.34489 29.35068,-16.96681 33.23955,-33.76679 1.81281,-7.83136 1.36044,-15.80716 1.36044,-23.78749 0,-11.37551 -0.25354,-22.199239 -5.89738,-32.437491 C 483.97706,69.091512 471.17378,60.407953 457.08951,58.677276 449.8059,57.78226 442.07829,58.47093 434.74369,58.47093 H 396.53953 128.38962 106.04379 c -24.763331,0 -52.952966,-4.711639 -70.26844,17.299994 -2.69296,3.423338 -4.933883,7.347092 -6.139873,11.53333 M 124.06462,239.40004 v 0.72083 c -10.27819,10.16984 -5.77096,28.87943 4.32554,37.24635 8.41318,6.97199 21.41642,8.02725 30.99528,2.88668 15.81046,-8.48474 19.0494,-31.95978 5.70159,-44.24113 -8.54284,-7.86027 -19.62858,-8.62395 -30.20992,-5.26273 -2.82857,-7.46271 -9.03149,-14.26804 -13.45554,-20.90416 -11.11477,-16.67216 -22.640884,-33.07407 -33.770158,-49.73748 -4.155213,-6.22146 -10.074176,-12.59127 -13.141854,-19.398 -1.570248,-3.48415 3.541511,-8.77477 4.510195,-12.31866 2.18695,-8.00074 1.105888,-16.85687 -3.588019,-23.78692 -7.804445,-11.522411 -24.33521,-15.123592 -36.425426,-8.2718 -12.916515,7.32007 -17.87388,24.93917 -10.142281,37.82538 4.541162,7.56875 11.602184,12.02406 20.233944,13.37937 3.838033,0.60262 9.919788,-1.93099 12.724146,1.20862 4.691441,5.2523 8.021964,12.09688 12.090087,17.8495 11.231617,15.88235 22.061212,32.11055 32.852416,48.29582 5.22224,7.83259 10.37185,18.1592 17.3,24.50833 m 27.39166,-22.34583 c 21.23745,1.73482 37.55146,23.93009 34.2835,44.69165 -2.72568,17.31627 -17.71134,31.54859 -35.00434,33.87916 12.39342,17.59389 33.40233,17.29999 52.62082,17.29999 h 118.93746 c 17.30118,0 39.79633,-0.1038 49.73749,-17.29999 -18.09052,-2.43611 -32.87187,-16.47257 -35.7252,-34.59999 -3.27463,-20.80389 14.35621,-43.52733 35.7252,-43.97082 -8.04307,-17.24698 -30.21384,-17.29999 -46.13332,-17.29999 H 199.03126 c -13.49679,0 -26.45544,-0.72933 -38.20415,7.12878 -3.90982,2.61509 -7.82123,5.61347 -9.37083,10.17121 M 372.03121,228.904 c -19.35153,3.04731 -29.3497,24.66883 -19.55151,41.49186 4.20335,7.21695 11.36312,11.58872 19.55151,12.75862 5.09832,0.72844 10.96178,-1.7301 14.82103,2.42172 12.45646,13.40058 22.73444,29.09053 34.37582,43.20714 3.90982,4.74117 7.65757,9.61734 11.49716,14.41666 1.8793,2.34904 4.82049,5.01121 5.75058,7.92917 0.91494,2.87048 -1.42852,6.51975 -1.95617,9.37083 -1.05309,5.69037 -0.90662,11.95222 1.47836,17.29999 5.52768,12.39451 19.10107,18.57949 32.06652,15.49571 18.34099,-4.36235 26.36324,-26.74359 15.91895,-42.16653 -5.19881,-7.67698 -13.86944,-12.14035 -23.12728,-11.92604 -3.80524,0.0881 -10.38578,3.32418 -13.48725,0.85326 -4.50868,-3.59211 -7.86801,-9.66702 -11.45382,-14.15638 l -25.22916,-31.71666 c -3.44873,-4.3111 -6.92685,-8.5998 -10.29409,-12.97499 -1.33207,-1.73081 -3.34389,-3.63026 -3.98403,-5.76667 -0.95943,-3.20195 2.80022,-7.13997 3.8255,-10.09166 1.93848,-5.58078 1.92879,-11.66457 0.23802,-17.3 -3.89397,-12.97868 -16.97442,-21.26646 -30.44014,-19.14603 m 108.12496,174.84598 -0.72083,-0.72083 c -6.04037,2.32682 -12.20255,3.99758 -18.74166,3.53967 -17.807,-1.24694 -33.02137,-15.13658 -36.75194,-32.37299 -0.86051,-3.97593 -1.04407,-8.22614 -0.41492,-12.25417 0.41766,-2.67404 1.89786,-5.95364 1.18861,-8.64999 -0.78851,-2.99746 -3.7307,-5.61039 -5.64986,-7.92917 -1.86972,-2.25903 -3.58552,-5.15371 -6.69608,-5.65988 -8.43522,-1.37268 -18.09167,-0.10678 -26.64246,-0.10678 H 331.66455 165.1521 87.302125 c -13.217902,0 -28.378233,-2.09836 -41.087486,1.97952 -3.777988,1.21223 -7.514455,2.83155 -10.812497,5.04807 -18.043815,12.12666 -20.183327,30.72696 -20.183327,50.63906 0,9.22317 -0.256827,18.65361 3.207595,27.39165 5.918441,14.92764 18.981292,25.99593 34.99656,28.51687 9.029573,1.42129 18.978223,0.31646 28.112491,0.31646 h 51.179149 214.80827 64.87498 c 11.12046,0 23.84781,1.72425 34.59999,-1.46781 15.2653,-4.5319 26.92134,-16.3263 31.17937,-31.69051 1.52434,-5.50013 0.67446,-11.0998 1.97895,-16.57917 z"/>
+      </svg>
+      stratum
+    </a>
+    <div class="nav-links">
+      <a href="#features" class="desktop-only">Features</a>
+      <a href="#why" class="desktop-only">Why Stratum</a>
+      <a href="docs/" class="btn-nav">Documentation</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container hero-content">
+    <div class="hero-icon">
+      <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path fill="currentColor" d="m 29.635477,87.304254 c 7.094872,-2.581952 13.156675,-6.323177 20.90416,-7.0854 16.596,-1.632788 33.703763,10.659608 39.4784,25.827056 2.529908,6.645 3.28736,13.91432 1.995641,20.90416 -0.681706,3.68878 -3.31602,7.80699 -3.184223,11.53333 0.10899,3.08179 3.084921,6.19757 4.719886,8.65 3.870311,5.80547 7.903159,11.4943 11.773619,17.29999 1.66018,2.49024 3.36427,6.32687 6.00138,7.90914 2.11761,1.27057 5.33205,0.74086 7.69445,0.74086 h 17.29999 64.15415 175.88327 54.06249 c 10.39088,0 21.56872,1.10373 31.71665,-1.55403 16.58967,-4.34489 29.35068,-16.96681 33.23955,-33.76679 1.81281,-7.83136 1.36044,-15.80716 1.36044,-23.78749 0,-11.37551 -0.25354,-22.199239 -5.89738,-32.437491 C 483.97706,69.091512 471.17378,60.407953 457.08951,58.677276 449.8059,57.78226 442.07829,58.47093 434.74369,58.47093 H 396.53953 128.38962 106.04379 c -24.763331,0 -52.952966,-4.711639 -70.26844,17.299994 -2.69296,3.423338 -4.933883,7.347092 -6.139873,11.53333 M 124.06462,239.40004 v 0.72083 c -10.27819,10.16984 -5.77096,28.87943 4.32554,37.24635 8.41318,6.97199 21.41642,8.02725 30.99528,2.88668 15.81046,-8.48474 19.0494,-31.95978 5.70159,-44.24113 -8.54284,-7.86027 -19.62858,-8.62395 -30.20992,-5.26273 -2.82857,-7.46271 -9.03149,-14.26804 -13.45554,-20.90416 -11.11477,-16.67216 -22.640884,-33.07407 -33.770158,-49.73748 -4.155213,-6.22146 -10.074176,-12.59127 -13.141854,-19.398 -1.570248,-3.48415 3.541511,-8.77477 4.510195,-12.31866 2.18695,-8.00074 1.105888,-16.85687 -3.588019,-23.78692 -7.804445,-11.522411 -24.33521,-15.123592 -36.425426,-8.2718 -12.916515,7.32007 -17.87388,24.93917 -10.142281,37.82538 4.541162,7.56875 11.602184,12.02406 20.233944,13.37937 3.838033,0.60262 9.919788,-1.93099 12.724146,1.20862 4.691441,5.2523 8.021964,12.09688 12.090087,17.8495 11.231617,15.88235 22.061212,32.11055 32.852416,48.29582 5.22224,7.83259 10.37185,18.1592 17.3,24.50833 m 27.39166,-22.34583 c 21.23745,1.73482 37.55146,23.93009 34.2835,44.69165 -2.72568,17.31627 -17.71134,31.54859 -35.00434,33.87916 12.39342,17.59389 33.40233,17.29999 52.62082,17.29999 h 118.93746 c 17.30118,0 39.79633,-0.1038 49.73749,-17.29999 -18.09052,-2.43611 -32.87187,-16.47257 -35.7252,-34.59999 -3.27463,-20.80389 14.35621,-43.52733 35.7252,-43.97082 -8.04307,-17.24698 -30.21384,-17.29999 -46.13332,-17.29999 H 199.03126 c -13.49679,0 -26.45544,-0.72933 -38.20415,7.12878 -3.90982,2.61509 -7.82123,5.61347 -9.37083,10.17121 M 372.03121,228.904 c -19.35153,3.04731 -29.3497,24.66883 -19.55151,41.49186 4.20335,7.21695 11.36312,11.58872 19.55151,12.75862 5.09832,0.72844 10.96178,-1.7301 14.82103,2.42172 12.45646,13.40058 22.73444,29.09053 34.37582,43.20714 3.90982,4.74117 7.65757,9.61734 11.49716,14.41666 1.8793,2.34904 4.82049,5.01121 5.75058,7.92917 0.91494,2.87048 -1.42852,6.51975 -1.95617,9.37083 -1.05309,5.69037 -0.90662,11.95222 1.47836,17.29999 5.52768,12.39451 19.10107,18.57949 32.06652,15.49571 18.34099,-4.36235 26.36324,-26.74359 15.91895,-42.16653 -5.19881,-7.67698 -13.86944,-12.14035 -23.12728,-11.92604 -3.80524,0.0881 -10.38578,3.32418 -13.48725,0.85326 -4.50868,-3.59211 -7.86801,-9.66702 -11.45382,-14.15638 l -25.22916,-31.71666 c -3.44873,-4.3111 -6.92685,-8.5998 -10.29409,-12.97499 -1.33207,-1.73081 -3.34389,-3.63026 -3.98403,-5.76667 -0.95943,-3.20195 2.80022,-7.13997 3.8255,-10.09166 1.93848,-5.58078 1.92879,-11.66457 0.23802,-17.3 -3.89397,-12.97868 -16.97442,-21.26646 -30.44014,-19.14603 m 108.12496,174.84598 -0.72083,-0.72083 c -6.04037,2.32682 -12.20255,3.99758 -18.74166,3.53967 -17.807,-1.24694 -33.02137,-15.13658 -36.75194,-32.37299 -0.86051,-3.97593 -1.04407,-8.22614 -0.41492,-12.25417 0.41766,-2.67404 1.89786,-5.95364 1.18861,-8.64999 -0.78851,-2.99746 -3.7307,-5.61039 -5.64986,-7.92917 -1.86972,-2.25903 -3.58552,-5.15371 -6.69608,-5.65988 -8.43522,-1.37268 -18.09167,-0.10678 -26.64246,-0.10678 H 331.66455 165.1521 87.302125 c -13.217902,0 -28.378233,-2.09836 -41.087486,1.97952 -3.777988,1.21223 -7.514455,2.83155 -10.812497,5.04807 -18.043815,12.12666 -20.183327,30.72696 -20.183327,50.63906 0,9.22317 -0.256827,18.65361 3.207595,27.39165 5.918441,14.92764 18.981292,25.99593 34.99656,28.51687 9.029573,1.42129 18.978223,0.31646 28.112491,0.31646 h 51.179149 214.80827 64.87498 c 11.12046,0 23.84781,1.72425 34.59999,-1.46781 15.2653,-4.5319 26.92134,-16.3263 31.17937,-31.69051 1.52434,-5.50013 0.67446,-11.0998 1.97895,-16.57917 z"/>
+      </svg>
+    </div>
+    <h1>Your second brain.<br><span>No strings attached.</span></h1>
+    <p>A personal knowledge management system that doesn't own your notes. Every note is a plain <code>.md</code> file on disk. No proprietary format. No cloud lock-in. Built with Rust, powered by you.</p>
+    <div class="hero-badges">
+      <a href="https://github.com/short-circuit/stratum/actions/workflows/ci.yml"><img src="https://github.com/short-circuit/stratum/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+      <a href="https://github.com/short-circuit/stratum/actions/workflows/release.yml"><img src="https://github.com/short-circuit/stratum/actions/workflows/release.yml/badge.svg" alt="Release"></a>
+      <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg" alt="License"></a>
+    </div>
+    <div class="hero-actions">
+      <a href="docs/" class="btn btn-primary">Get Started →</a>
+      <a href="https://github.com/short-circuit/stratum" class="btn btn-secondary">GitHub</a>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features" style="background:var(--bg-alt)">
+  <div class="container centered fade-in">
+    <div class="section-label">Everything you need</div>
+    <h2 class="section-title">A tool that grows with your knowledge</h2>
+    <p class="section-sub">Stratum combines the best of modern PKM tools into one fast, offline-first package. No subscriptions. No lock-in.</p>
+  </div>
+  <div class="container">
+    <div class="features-grid stagger">
+      <div class="feature-card">
+        <div class="feature-icon">🧱</div>
+        <h3>Block Outliner</h3>
+        <p>Every paragraph is an addressable block with a UUID. Indent, outdent, drag to reorder — your notes have structure.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔗</div>
+        <h3>Wiki-Links & Backlinks</h3>
+        <p>Connect ideas with <code>[[wiki-links]]</code>. See linked and unlinked references in the backlinks panel.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🕸️</div>
+        <h3>Knowledge Graph</h3>
+        <p>An interactive force-directed graph of your entire vault. Find orphans, discover clusters, explore connections.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <h3>Full-Text Search</h3>
+        <p>Tantivy-powered search returns results in under 100ms — even with 10,000+ notes. Tag search with <code>#tag</code>.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Datalog Queries</h3>
+        <p>Query your knowledge graph like a database. <code>:find ?block :where [?b :block/marker "TODO"]</code></p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>AI Assistant</h3>
+        <p>Rewrite, summarize, structure, or interlink your notes. Bring your own LLM — Ollama, OpenAI, Anthropic, or any OpenAI-compatible endpoint.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <h3>Git Sync</h3>
+        <p>Auto-commit, push, pull. Your version history is built in. Your data is never locked into a proprietary database.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧮</div>
+        <h3>Math &amp; Diagrams</h3>
+        <p>KaTeX equations and Mermaid diagrams render inline. From quadratic formulas to flowcharts — right in your notes.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎨</div>
+        <h3>Whiteboards</h3>
+        <p>Excalidraw spatial canvas for visual thinking. Architecture diagrams, mind maps, brainstorming — all saved as JSON in your vault.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🃏</div>
+        <h3>Flashcards</h3>
+        <p>Spaced repetition built in. Write <code>question::</code> and <code>answer::</code> in any block — Stratum generates review cards automatically.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📋</div>
+        <h3>Templates</h3>
+        <p>Reusable templates with variable substitution. Create a meeting notes template and apply it in one click.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌐</div>
+        <h3>Web Research</h3>
+        <p>Multi-depth research via SearXNG. Stratum searches, reads, and synthesizes findings directly into your notes with citations.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Showcase: Block Editor -->
+<section>
+  <div class="container">
+    <div class="showcase-grid fade-in">
+      <div class="showcase-visual">
+        <div class="mock-editor">
+          <div class="line"><span class="gutter">1</span><span class="content hl-orange">- Meeting notes: Sprint Planning</span></div>
+          <div class="line"><span class="gutter">2</span><span class="content hl-gray indent-1">.date: 2026-07-03</span></div>
+          <div class="line"><span class="gutter">3</span><span class="content hl-gray indent-1">.tags: [meeting, sprint]</span></div>
+          <div class="line"><span class="gutter">4</span><span class="content"></span></div>
+          <div class="line"><span class="gutter">5</span><span class="content hl-orange">- <span class="hl-green">TODO</span> Review open PRs before standup</span></div>
+          <div class="line"><span class="gutter">6</span><span class="content"><span class="indent-1">- Related: </span><span class="hl-blue">[[PR Review Process]]</span></span></div>
+          <div class="line"><span class="gutter">7</span><span class="content hl-gray indent-1">.priority: A</span></div>
+          <div class="line"><span class="gutter">8</span><span class="content"></span></div>
+          <div class="line"><span class="gutter">9</span><span class="content hl-orange">- <span class="hl-green">DOING</span> Documentation rewrite for v0.5</span></div>
+          <div class="line"><span class="gutter">10</span><span class="content"><span class="indent-1">- Blocking on: </span><span class="hl-blue">[[API Changes]]</span></span></div>
+          <div class="line"><span class="gutter">11</span><span class="content"></span></div>
+          <div class="line"><span class="gutter">12</span><span class="content hl-orange">- <span class="hl-green">DONE</span> Database migration script</span></div>
+          <div class="line"><span class="gutter">13</span><span class="content"><span class="indent-1">$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$</span></span></div>
+        </div>
+      </div>
+      <div class="showcase-text fade-in-right">
+        <div class="showcase-icon">🧱</div>
+        <h2>Outliner that thinks like you do</h2>
+        <p>Blocks, not paragraphs. Every unit of content has a UUID, can be nested, tagged, marked as a task, and referenced from anywhere. No more wrestling with document structure — just write and organize.</p>
+        <ul class="showcase-list">
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+            Indent, outdent, and drag to reorder blocks
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+            Task markers: <code>TODO</code>, <code>DOING</code>, <code>DONE</code> with priorities
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+            Block references <code>((uuid))</code> and page embeds
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+            KaTeX math and Mermaid diagrams inline
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Showcase: Graph -->
+<section style="background:var(--bg-alt)">
+  <div class="container">
+    <div class="showcase-grid fade-in">
+      <div class="showcase-text">
+        <div class="showcase-icon">🕸️</div>
+        <h2>See your knowledge take shape</h2>
+        <p>The graph view maps every <code>[[wiki-link]]</code> as a node in an interactive network. Nodes scale by connectivity, color by tag. Find orphaned notes, explore connected components, and navigate your knowledge graph by clicking.</p>
+        <ul class="showcase-list">
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+            Force-directed layout — drag nodes, zoom, pan
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+            Connected components and orphan detection
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+            Filter by search, toggle tag nodes
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+            Click any node to navigate to that page
+          </li>
+        </ul>
+      </div>
+      <div class="showcase-visual fade-in-left">
+        <div class="mock-graph">
+          <svg viewBox="0 0 300 280" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="g1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fb923c"/><stop offset="100%" stop-color="#ea580c"/></radialGradient>
+              <radialGradient id="g2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#60a5fa"/><stop offset="100%" stop-color="#3b82f6"/></radialGradient>
+              <radialGradient id="g3" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#10b981"/></radialGradient>
+              <radialGradient id="g4" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#8b5cf6"/></radialGradient>
+            </defs>
+            <!-- Edges -->
+            <line x1="150" y1="40" x2="80" y2="120" stroke="var(--border)" stroke-width="2" opacity=".6"/>
+            <line x1="150" y1="40" x2="220" y2="120" stroke="var(--border)" stroke-width="2" opacity=".6"/>
+            <line x1="150" y1="40" x2="150" y2="190" stroke="var(--border)" stroke-width="2" opacity=".6"/>
+            <line x1="80" y1="120" x2="30" y2="200" stroke="var(--border)" stroke-width="2" opacity=".6"/>
+            <line x1="80" y1="120" x2="140" y2="240" stroke="var(--border)" stroke-width="2" opacity=".4"/>
+            <line x1="220" y1="120" x2="270" y2="200" stroke="var(--border)" stroke-width="2" opacity=".6"/>
+            <line x1="220" y1="120" x2="160" y2="240" stroke="var(--border)" stroke-width="2" opacity=".4"/>
+            <line x1="150" y1="190" x2="140" y2="240" stroke="var(--border)" stroke-width="2" opacity=".5"/>
+            <line x1="150" y1="190" x2="160" y2="240" stroke="var(--border)" stroke-width="2" opacity=".5"/>
+            <!-- Nodes -->
+            <circle cx="150" cy="40" r="22" fill="url(#g1)" opacity=".9"/>
+            <text x="150" y="45" text-anchor="middle" fill="white" font-size="9" font-weight="600">Stratum</text>
+            <circle cx="80" cy="120" r="16" fill="url(#g2)" opacity=".8"/>
+            <text x="80" y="125" text-anchor="middle" fill="white" font-size="8" font-weight="600">PKM</text>
+            <circle cx="220" cy="120" r="16" fill="url(#g2)" opacity=".8"/>
+            <text x="220" y="125" text-anchor="middle" fill="white" font-size="8" font-weight="600">Rust</text>
+            <circle cx="150" cy="190" r="13" fill="url(#g3)" opacity=".75"/>
+            <text x="150" y="195" text-anchor="middle" fill="white" font-size="7" font-weight="600">Graph</text>
+            <circle cx="30" cy="200" r="10" fill="url(#g4)" opacity=".7"/>
+            <text x="30" y="204" text-anchor="middle" fill="white" font-size="6" font-weight="600">AI</text>
+            <circle cx="270" cy="200" r="10" fill="url(#g4)" opacity=".7"/>
+            <text x="270" y="204" text-anchor="middle" fill="white" font-size="6" font-weight="600">Sync</text>
+            <circle cx="140" cy="240" r="8" fill="var(--gray-400)" opacity=".5"/>
+            <circle cx="160" cy="240" r="8" fill="var(--gray-400)" opacity=".5"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Why Stratum -->
+<section id="why" class="centered fade-in">
+  <div class="container">
+    <div class="section-label">Built different</div>
+    <h2 class="section-title">Why use Stratum?</h2>
+    <p class="section-sub" style="margin-bottom:48px">Most PKM tools are built by companies that profit from your data. Stratum is built differently — by developers, for developers, with principles that put you first.</p>
+  </div>
+  <div class="container">
+    <div class="why-grid fade-in">
+      <div class="why-item">
+        <div class="icon">📄</div>
+        <div>
+          <h3>Plain Markdown Files</h3>
+          <p>Every note is a <code>.md</code> file on your filesystem. Open them in any text editor. If Stratum disappeared tomorrow, your notes survive intact.</p>
+        </div>
+      </div>
+      <div class="why-item">
+        <div class="icon">🔒</div>
+        <div>
+          <h3>Fully Offline</h3>
+          <p>No cloud dependency. No always-online requirement. Every feature, including AI, works without an internet connection when using local models.</p>
+        </div>
+      </div>
+      <div class="why-item">
+        <div class="icon">⚡</div>
+        <div>
+          <h3>Fast at Scale</h3>
+          <p>Built with Rust and Tantivy. Full-text search in under 100ms at 10k notes. The editor doesn't stutter. The graph doesn't lag. Memory stays under 80MB idle.</p>
+        </div>
+      </div>
+      <div class="why-item">
+        <div class="icon">🔓</div>
+        <div>
+          <h3>Zero Vendor Lock-In</h3>
+          <p>No proprietary database format. No cloud sync dependency. Your data is a directory of Markdown files — the most portable format in existence.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" style="background:var(--bg-alt)">
+  <div class="container fade-in">
+    <h2>Ready to take control of your knowledge?</h2>
+    <p>No sign-up. No data collection. Download, build, or run from source. Your notes stay yours.</p>
+    <div class="cta-actions">
+      <a href="docs/getting-started/installation/" class="btn btn-primary">Install Stratum →</a>
+      <a href="docs/getting-started/quickstart/" class="btn btn-secondary">Quick Start Guide</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="copy">&copy; 2026 Stratum Contributors — AGPL-3.0</div>
+    <div class="links">
+      <a href="https://github.com/short-circuit/stratum">GitHub</a>
+      <a href="docs/">Documentation</a>
+      <a href="https://github.com/short-circuit/stratum/blob/master/LICENSE">License</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Navbar scroll effect
+const nav = document.getElementById('navbar');
+let ticking = false;
+window.addEventListener('scroll', () => {
+  if (!ticking) {
+    requestAnimationFrame(() => {
+      nav.classList.toggle('scrolled', window.scrollY > 20);
+      ticking = false;
+    });
+    ticking = true;
+  }
+});
+
+// Intersection Observer for scroll animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      // Don't unobserve — let the animation stay visible
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+document.querySelectorAll('.fade-in, .fade-in-left, .fade-in-right, .scale-in, .stagger').forEach(el => {
+  observer.observe(el);
+});
+</script>
+</body>
+</html>
