@@ -44,9 +44,9 @@ export function createMuiTheme(
   const { h: sh, s: ss } = hexToHsl(secondaryHex);
 
   // Generate background/surface/divider colors from the secondary hue
-  let backgroundDefault = '';
-  let backgroundPaper = '';
-  let dividerColor = '';
+  let backgroundDefault: string;
+  let backgroundPaper: string;
+  let dividerColor: string;
 
   if (dark) {
     backgroundDefault = hslStr(sh, Math.min(ss, 25), 7);
