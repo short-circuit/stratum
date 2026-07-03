@@ -1,4 +1,6 @@
-import { useEffect, useRef } from 'react';
+import Typography from '@mui/material/Typography';
+import CircularProgress from '@mui/material/CircularProgress';
+import Popover from '@mui/material/Popover';
 import { useNavigate } from 'react-router-dom';
 
 interface Props {
@@ -11,50 +13,36 @@ interface Props {
 }
 
 export default function LinkPreviewPopup({ content, pageTitle, pagePath, position, loading, onClose }: Props) {
-  const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener('mousedown', handler, true);
-    return () => document.removeEventListener('mousedown', handler, true);
-  }, [onClose]);
-
-  const handleClick = () => {
-    navigate(`/page/${encodeURIComponent(pagePath)}`);
-    onClose();
-  };
-
   return (
-    <div
-      ref={ref}
-      style={{ left: position.x, top: position.y, zIndex: 9999 }}
-      className="fixed bg-white dark:bg-[var(--secondary-800)] border border-[var(--secondary-200)] dark:border-[var(--secondary-700)] rounded-lg shadow-xl p-3 max-w-xs"
+    <Popover
+      open
+      onClose={onClose}
+      anchorReference="anchorPosition"
+      anchorPosition={{ left: position.x, top: position.y }}
+      anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+      transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+      slotProps={{ paper: { sx: { maxWidth: 280, p: 1.5 } } }}
     >
       {loading ? (
-        <div className="text-xs text-[var(--secondary-400)]">Loading...</div>
+        <CircularProgress size={14} />
       ) : (
         <>
-          <div
-            className="text-sm font-semibold text-blue-600 dark:text-blue-400 cursor-pointer hover:underline truncate mb-1"
-            onClick={handleClick}
+          <Typography
+            variant="subtitle2"
+            color="primary"
+            sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' }, mb: 0.5 }}
+            onClick={() => { navigate(`/page/${encodeURIComponent(pagePath)}`); onClose(); }}
           >
             {pageTitle || pagePath}
-          </div>
-          <div className="text-xs text-[var(--secondary-600)] dark:text-[var(--secondary-300)] line-clamp-3">
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {content}
-          </div>
-          <div className="text-[10px] text-[var(--secondary-400)] mt-1">Ctrl+click to navigate</div>
+          </Typography>
+          <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>Ctrl+click to navigate</Typography>
         </>
       )}
-    </div>
+    </Popover>
   );
 }
