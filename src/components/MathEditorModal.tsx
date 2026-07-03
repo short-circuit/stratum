@@ -1,5 +1,16 @@
 import { useMemo, useRef, useState, useCallback } from 'react';
 import katex from 'katex';
+import Box from '@mui/material/Box';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
+import Alert from '@mui/material/Alert';
+import CloseIcon from '@mui/icons-material/Close';
 import MathSymbolPalette from './MathSymbolPalette';
 
 interface Props {
@@ -53,99 +64,70 @@ export default function MathEditorModal({ initialLatex, onSave, onCancel }: Prop
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-      onClick={onCancel}
-    >
-      <div
-        className="bg-white dark:bg-[var(--secondary-800)] rounded-xl shadow-2xl border border-[var(--secondary-200)] dark:border-[var(--secondary-700)] w-[700px] max-w-[90vw] max-h-[85vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={handleKeyDown}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--secondary-200)] dark:border-[var(--secondary-700)]">
-          <h2 className="text-sm font-medium text-[var(--secondary-700)] dark:text-[var(--secondary-300)]">Edit Equation</h2>
-          <button
-            onClick={onCancel}
-            className="text-[var(--secondary-400)] hover:text-[var(--secondary-600)] dark:hover:text-[var(--secondary-300)] text-lg leading-none p-1"
-          >
-            ✕
-          </button>
-        </div>
+    <Dialog open maxWidth="md" fullWidth onClose={onCancel}>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Typography variant="body1" sx={{ fontWeight: 500 }}>Edit Equation</Typography>
+        <IconButton size="small" onClick={onCancel}>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
 
-        {/* Symbol palette */}
-        <MathSymbolPalette onInsert={insertAtCursor} />
+      <MathSymbolPalette onInsert={insertAtCursor} />
 
-        {/* Body: editor + preview */}
-        <div className="flex flex-col gap-3 p-4 overflow-y-auto flex-1">
-          {/* Textarea input */}
-          <textarea
-            ref={(node) => {
-              textareaRef.current = node;
-              node?.focus();
+      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <TextField
+          inputRef={(node) => {
+            textareaRef.current = node;
+            node?.focus();
+          }}
+          multiline
+          minRows={4}
+          value={latex}
+          onChange={(e) => setLatex(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="E = mc^2"
+          spellCheck={false}
+          sx={{ '& .MuiInputBase-root': { fontFamily: 'monospace', fontSize: '0.875rem' } }}
+        />
+
+        <Box>
+          <Typography variant="caption" color="text.disabled" sx={{ textTransform: 'uppercase', fontWeight: 500, display: 'block', mb: 0.5 }}>
+            Preview
+          </Typography>
+          <Box
+            sx={{ minHeight: 60, p: 2, border: 1, borderColor: 'divider', borderRadius: 1, bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center', overflowX: 'auto' }}
+            dangerouslySetInnerHTML={{
+              __html: html
+                ? html
+                : error
+                  ? `<span style="color:#f44336;font-size:0.875rem">${error}</span>`
+                  : '<span style="color:#9e9e9e;font-size:0.875rem">Preview</span>',
             }}
-            value={latex}
-            onChange={(e) => setLatex(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="E = mc^2"
-            rows={4}
-            className="w-full resize-y font-mono text-sm p-3 rounded-lg border border-[var(--secondary-200)] dark:border-[var(--secondary-700)] bg-[var(--secondary-50)] dark:bg-[var(--secondary-900)] text-[var(--secondary-700)] dark:text-[var(--secondary-300)] placeholder-[var(--secondary-400)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-400)]"
-            spellCheck={false}
           />
+        </Box>
 
-          {/* Preview */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-wider text-[var(--secondary-400)] font-medium">Preview</span>
-            <div
-              className="min-h-[60px] p-4 rounded-lg border border-[var(--secondary-200)] dark:border-[var(--secondary-700)] bg-[var(--secondary-50)] dark:bg-[var(--secondary-900)] flex items-center justify-center overflow-x-auto"
-              dangerouslySetInnerHTML={{
-                __html: html
-                  ? html
-                  : error
-                    ? `<span class="text-red-500 text-sm">${error}</span>`
-                    : '<span class="text-[var(--secondary-400)] text-sm">Preview</span>',
-              }}
-            />
-          </div>
+        {error && (
+          <Alert severity="error" sx={{ fontSize: '0.75rem' }}>{error}</Alert>
+        )}
 
-          {error && (
-            <div className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-200 dark:border-red-800">
-              {error}
-            </div>
-          )}
-
-          {/* Tips */}
-          <div className="text-[10px] text-[var(--secondary-400)] space-y-0.5">
-            <div>Ctrl+Enter to save &bull; Esc to cancel</div>
-            <div>
-              <a
-                href="https://katex.org/docs/supported.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-[var(--primary-500)]"
-              >
-                KaTeX supported functions
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex justify-end gap-2 px-4 py-3 border-t border-[var(--secondary-200)] dark:border-[var(--secondary-700)]">
-          <button
-            onClick={onCancel}
-            className="px-3 py-1.5 text-xs rounded-md border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] text-[var(--secondary-600)] dark:text-[var(--secondary-300)] hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)] transition-colors"
+        <Typography variant="caption" color="text.disabled" sx={{ lineHeight: 1.6 }}>
+          Ctrl+Enter to save · Esc to cancel<br />
+          <Box
+            component="a"
+            href="https://katex.org/docs/supported.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: 'primary.main', '&:hover': { textDecoration: 'underline' } }}
           >
-            Cancel
-          </button>
-          <button
-            onClick={() => onSave(latex)}
-            className="px-3 py-1.5 text-xs rounded-md bg-[var(--primary-500)] text-white hover:bg-[var(--primary-600)] transition-colors font-medium"
-          >
-            Save
-          </button>
-        </div>
-      </div>
-    </div>
+            KaTeX supported functions
+          </Box>
+        </Typography>
+      </DialogContent>
+
+      <DialogActions>
+        <Button onClick={onCancel}>Cancel</Button>
+        <Button variant="contained" onClick={() => onSave(latex)}>Save</Button>
+      </DialogActions>
+    </Dialog>
   );
 }
