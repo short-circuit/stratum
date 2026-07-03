@@ -1,43 +1,53 @@
-import { useStore } from '../stores/appStore';
+import Box from '@mui/material/Box';
+import List from '@mui/material/List';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemText from '@mui/material/ListItemText';
+import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
 import { useNavigate } from 'react-router-dom';
+import { useStore } from '../stores/appStore';
 
 export default function PagesHome() {
   const { pages, vault } = useStore();
   const navigate = useNavigate();
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <h2 className="text-lg font-semibold mb-1">Pages</h2>
+    <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
+      <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>Pages</Typography>
       {vault && (
-        <p className="text-xs text-[var(--secondary-500)] mb-4">
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
           {vault.path} · {pages.length} page{pages.length !== 1 ? 's' : ''}
-        </p>
+        </Typography>
       )}
 
       {pages.length > 0 ? (
-        <div className="space-y-0.5">
+        <List disablePadding>
           {pages.map(page => (
-            <button
+            <ListItemButton
               key={page.path}
               onClick={() => navigate(`/page/${encodeURIComponent(page.path)}`)}
-              className="w-full text-left flex items-center gap-3 px-3 py-2 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)] transition-colors"
+              sx={{ borderRadius: 1, mb: 0.25 }}
             >
-              <span className="text-sm flex-1 truncate">
-                {page.title || page.slug}
-              </span>
-              <span className="text-xs text-[var(--secondary-400)]">{page.path}</span>
-              <span className="text-xs text-[var(--secondary-400)]">{page.block_count} blocks</span>
-            </button>
+              <ListItemText
+                primary={page.title || page.slug}
+                secondary={page.path}
+                slotProps={{
+                  primary: { variant: 'body2', noWrap: true },
+                  secondary: { variant: 'caption' },
+                }}
+              />
+              <Chip label={`${page.block_count}b`} size="small" variant="outlined" sx={{ ml: 1 }} />
+            </ListItemButton>
           ))}
-        </div>
+        </List>
       ) : (
-        <div className="text-center py-12 text-[var(--secondary-400)]">
-          <p className="text-sm">No pages yet.</p>
-          <p className="text-xs mt-1">
+        <Box sx={{ textAlign: 'center', py: 6 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>No pages yet.</Typography>
+          <Typography variant="caption" color="text.disabled">
             Create a page from the sidebar or open the journal to get started.
-          </p>
-        </div>
+          </Typography>
+        </Box>
       )}
-    </div>
+    </Box>
   );
 }
