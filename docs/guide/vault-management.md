@@ -24,7 +24,7 @@ stratum -p ~/my-vault init
 
 Stratum remembers your last used vault. You can change vaults via **Settings → Vault**:
 
-1. Click **⚙ Settings** in the sidebar
+1. Click **:material-cog: Settings** in the sidebar
 2. Go to the **Vault** tab
 3. Click **Browse** and select a new vault directory
 4. Stratum reloads with the new vault

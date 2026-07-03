@@ -1,6 +1,22 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { useNavigate } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import ToggleButton from '@mui/material/ToggleButton';
+import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
+import Collapse from '@mui/material/Collapse';
+import Slider from '@mui/material/Slider';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Checkbox from '@mui/material/Checkbox';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import SettingsIcon from '@mui/icons-material/Settings';
 import * as api from '../lib/commands';
 import type { GraphSettings, GraphNodeDto, GraphEdgeDto, GraphDataDto, ComponentDto, OrphanDto } from '../lib/types';
 
@@ -81,12 +97,10 @@ export default function GraphPanel() {
         api.getConnectedComponents(),
         api.getOrphanedNotes(),
       ]);
-      console.debug('[GraphPanel]', { nodes: data.node_count, edges: data.edge_count, vault: data.vault_path, components: comps.length, orphans: orphs.length });
       setGraphData(data);
       setComponents(comps);
       setOrphans(orphs);
     } catch (e) {
-      console.error('[GraphPanel] load failed:', e);
       setError(String(e));
     } finally {
       setLoading(false);
@@ -94,19 +108,37 @@ export default function GraphPanel() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData();
-  }, [loadData]);
+    const fetch = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [data, comps, orphs] = await Promise.all([
+          api.getGraphData(),
+          api.getConnectedComponents(),
+          api.getOrphanedNotes(),
+        ]);
+        setGraphData(data);
+        setComponents(comps);
+        setOrphans(orphs);
+      } catch (e) {
+        setError(String(e));
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetch();
+  }, []);
 
   useEffect(() => {
     const updateSize = () => {
+      const settingsH = settingsOpen ? 160 : 0;
       setWidth(window.innerWidth - 240);
-      setHeight(window.innerHeight - 48);
+      setHeight(window.innerHeight - 48 - settingsH);
     };
     updateSize();
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
-  }, []);
+  }, [settingsOpen]);
 
   // Configure d3 forces when settings or graph data changes
   useEffect(() => {
@@ -232,122 +264,129 @@ export default function GraphPanel() {
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Toolbar */}
-      <div className="flex items-center gap-3 px-4 py-2 border-b border-[var(--secondary-200)] dark:border-[var(--secondary-700)] bg-[var(--secondary-50)] dark:bg-[var(--secondary-800)] shrink-0">
-        <button
-          onClick={loadData}
-          disabled={loading}
-          className="text-xs px-2 py-1 rounded bg-[var(--primary-500)] text-white hover:bg-[var(--primary-600)] disabled:opacity-50"
-        >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 0.75, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper', flexShrink: 0 }}>
+        <Button size="small" variant="contained" onClick={loadData} disabled={loading}>
           {loading ? 'Loading...' : 'Refresh'}
-        </button>
+        </Button>
 
-        <select
+        <ToggleButtonGroup
           value={viewMode}
-          onChange={(e) => setViewMode(e.target.value as typeof viewMode)}
-          className="text-xs px-2 py-1 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-700)] text-[var(--secondary-900)] dark:text-[var(--secondary-100)]"
+          exclusive
+          onChange={(_, v) => v && setViewMode(v)}
+          size="small"
         >
-          <option value="full">Full Graph</option>
-          <option value="component">Connected Components</option>
-          <option value="orphans">Orphaned Notes</option>
-        </select>
+          <ToggleButton value="full" sx={{ textTransform: 'none', fontSize: '0.75rem', px: 1.5 }}>Full</ToggleButton>
+          <ToggleButton value="component" sx={{ textTransform: 'none', fontSize: '0.75rem', px: 1.5 }}>Components</ToggleButton>
+          <ToggleButton value="orphans" sx={{ textTransform: 'none', fontSize: '0.75rem', px: 1.5 }}>Orphans</ToggleButton>
+        </ToggleButtonGroup>
 
         {viewMode === 'component' && components.length > 0 && (
           <>
-            <select
+            <Select
               value={selectedComponent}
               onChange={(e) => setSelectedComponent(Number(e.target.value))}
-              className="text-xs px-2 py-1 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-700)] text-[var(--secondary-900)] dark:text-[var(--secondary-100)]"
+              size="small"
+              sx={{ fontSize: '0.75rem', minWidth: 160 }}
             >
               {components.map((c, i) => (
-                <option key={i} value={i}>
+                <MenuItem key={i} value={i} sx={{ fontSize: '0.75rem' }}>
                   Component {i + 1} ({c.size} notes)
-                </option>
+                </MenuItem>
               ))}
-            </select>
-            <span className="text-xs text-[var(--secondary-500)]">
+            </Select>
+            <Typography variant="caption" color="text.secondary">
               {components.length} groups total
-            </span>
+            </Typography>
           </>
         )}
 
-        <div className="flex-1" />
+        <Box sx={{ flex: 1 }} />
 
-        <input
-          type="text"
+        <TextField
+          size="small"
           placeholder="Filter by title/tag…"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
             if (e.target.value) setViewMode('full');
           }}
-          className="text-xs px-2 py-1 w-44 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-700)] text-[var(--secondary-900)] dark:text-[var(--secondary-100)]"
+          sx={{ width: 180, '& .MuiInputBase-input': { fontSize: '0.75rem', py: 0.75 } }}
         />
 
-        <button
+        <IconButton
+          size="small"
           onClick={() => setSettingsOpen(o => !o)}
-          className={`text-xs px-2 py-1 rounded border ${settingsOpen ? 'bg-[var(--primary-100)] dark:bg-[var(--primary-900)]/30 border-[var(--primary-300)] dark:border-[var(--primary-700)]' : 'border-[var(--secondary-300)] dark:border-[var(--secondary-600)]'} hover:bg-[var(--secondary-200)] dark:hover:bg-[var(--secondary-700)]`}
+          color={settingsOpen ? 'primary' : 'default'}
           title="Graph settings"
         >
-          ⚙ {saveStatus === 'unsaved' ? '*' : ''}
-        </button>
+          <SettingsIcon fontSize="small" />
+          {saveStatus === 'unsaved' && (
+            <Typography variant="caption" sx={{ position: 'absolute', top: 0, right: 2, fontWeight: 700 }}>*</Typography>
+          )}
+        </IconButton>
 
         {graphData && (
-          <span className="text-xs text-[var(--secondary-400)] whitespace-nowrap">
+          <Typography variant="caption" color="text.disabled" sx={{ whiteSpace: 'nowrap' }}>
             {nodes.length}/{graphData.node_count} n · {edges.length} e
             {orphans.length > 0 && ` · ${orphans.length} o`}
-          </span>
+          </Typography>
         )}
-      </div>
+      </Box>
 
       {/* Collapsible settings panel */}
-      {settingsOpen && (
-        <div className="px-4 py-3 border-b border-[var(--secondary-200)] dark:border-[var(--secondary-700)] bg-[var(--secondary-50)] dark:bg-[var(--secondary-800)] text-xs space-y-3 shrink-0">
+      <Collapse in={settingsOpen}>
+        <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
           {/* Visibility toggles */}
-          <div className="flex flex-wrap gap-4">
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input type="checkbox" checked={graphSettings.show_connected} onChange={e => updateSetting('show_connected', e.target.checked)} className="accent-[var(--primary-500)]" />
-              Connected notes
-            </label>
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input type="checkbox" checked={graphSettings.show_orphaned} onChange={e => updateSetting('show_orphaned', e.target.checked)} className="accent-[var(--primary-500)]" />
-              Orphaned notes
-            </label>
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input type="checkbox" checked={graphSettings.show_tags} onChange={e => updateSetting('show_tags', e.target.checked)} className="accent-[var(--primary-500)]" />
-              Tags on hover
-            </label>
-          </div>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 1.5 }}>
+            <FormControlLabel
+              control={<Checkbox size="small" checked={graphSettings.show_connected} onChange={e => updateSetting('show_connected', e.target.checked)} />}
+              label={<Typography variant="caption">Connected notes</Typography>}
+            />
+            <FormControlLabel
+              control={<Checkbox size="small" checked={graphSettings.show_orphaned} onChange={e => updateSetting('show_orphaned', e.target.checked)} />}
+              label={<Typography variant="caption">Orphaned notes</Typography>}
+            />
+            <FormControlLabel
+              control={<Checkbox size="small" checked={graphSettings.show_tags} onChange={e => updateSetting('show_tags', e.target.checked)} />}
+              label={<Typography variant="caption">Tags on hover</Typography>}
+            />
+          </Box>
 
           {/* Force sliders */}
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gapX: 3, gapY: 1 }}>
             <SliderRow label="Repulsion" value={graphSettings.charge_strength} min={-30} max={0} step={1} onChange={v => updateSetting('charge_strength', v)} display={`${Math.round(graphSettings.charge_strength)}`} />
             <SliderRow label="Link distance" value={graphSettings.link_distance} min={10} max={120} step={5} onChange={v => updateSetting('link_distance', v)} display={`${Math.round(graphSettings.link_distance)}px`} />
             <SliderRow label="Alpha decay" value={graphSettings.alpha_decay} min={0.01} max={0.3} step={0.01} onChange={v => updateSetting('alpha_decay', v)} display={graphSettings.alpha_decay.toFixed(2)} />
             <SliderRow label="Friction" value={graphSettings.velocity_decay} min={0.05} max={0.95} step={0.05} onChange={v => updateSetting('velocity_decay', v)} display={graphSettings.velocity_decay.toFixed(2)} />
-          </div>
-        </div>
-      )}
+          </Box>
+        </Box>
+      </Collapse>
 
       {/* Graph canvas */}
-      <div className="flex-1 relative bg-[var(--secondary-100)] dark:bg-[var(--secondary-900)]">
+      <Box sx={{ flex: 1, position: 'relative', bgcolor: 'background.default' }}>
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-[var(--secondary-100)]/70 dark:bg-[var(--secondary-900)]/70 z-10">
-            <div className="text-sm text-[var(--secondary-500)]">Building graph...</div>
-          </div>
+          <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(0,0,0,0.03)', zIndex: 10 }}>
+            <CircularProgress size={20} sx={{ mr: 1 }} />
+            <Typography variant="body2" color="text.secondary">Building graph...</Typography>
+          </Box>
         )}
 
         {error && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 px-3 py-1.5 rounded text-xs z-10">{error}</div>
+          <Alert severity="error" sx={{ position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>
+            {error}
+          </Alert>
         )}
 
         {nodes.length > 0 && (
           <>
             {graphData && graphData.node_count > 0 && graphData.edge_count === 0 && (
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 px-3 py-1.5 rounded text-xs z-10 shadow">
-                Pages found but no wiki-links yet. Add <code className="bg-amber-200 dark:bg-amber-800 px-1 rounded">[[Page Name]]</code> in your notes to create connections.
-              </div>
+              <Alert severity="warning" icon={false} sx={{ position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 10, boxShadow: 3 }}>
+                <Typography variant="caption">
+                  Pages found but no wiki-links yet. Add <Box component="code" sx={{ bgcolor: 'warning.light', px: 0.5, borderRadius: 0.5, fontSize: '0.7rem' }}>[[Page Name]]</Box> in your notes to create connections.
+                </Typography>
+              </Alert>
             )}
             <ForceGraph2D
             ref={graphRef}
@@ -380,31 +419,32 @@ export default function GraphPanel() {
             maxZoom={8}
           />
           </>)}
-
         {!loading && !error && nodes.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-sm text-[var(--secondary-400)] text-center max-w-sm px-4">
-              <p className="mb-1 font-medium">No graph data yet</p>
+          <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Box sx={{ textAlign: 'center', maxWidth: 320 }}>
+              <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>No graph data yet</Typography>
               {graphData ? (
-                <p className="text-xs mb-3">
-                  Vault at <code className="bg-[var(--secondary-200)] dark:bg-[var(--secondary-700)] px-1 rounded">{graphData.vault_path}</code> has
-                  0 .md files. Create pages first, then add{' '}
-                  <code className="bg-[var(--secondary-200)] dark:bg-[var(--secondary-700)] px-1 rounded">[[wiki-links]]</code>{' '}
-                  between them to build the graph.
-                </p>
+                <>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+                    Vault at <Box component="code" sx={{ bgcolor: 'grey.200', px: 0.5, borderRadius: 0.5 }}>{graphData.vault_path}</Box> has
+                    {' '}0 .md files. Create pages first, then add{' '}
+                    <Box component="code" sx={{ bgcolor: 'grey.200', px: 0.5, borderRadius: 0.5 }}>[[wiki-links]]</Box>{' '}
+                    between them to build the graph.
+                  </Typography>
+                </>
               ) : (
-                <p className="text-xs mb-3">
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
                   Could not load graph data. Check that your vault has .md files with wiki-links.
-                </p>
+                </Typography>
               )}
-              <button onClick={() => navigate('/')} className="text-xs px-3 py-1 rounded bg-[var(--primary-500)] text-white hover:bg-[var(--primary-600)]">
+              <Button variant="outlined" size="small" onClick={() => navigate('/')}>
                 Go to Pages
-              </button>
-            </div>
-          </div>
+              </Button>
+            </Box>
+          </Box>
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
 
@@ -418,18 +458,18 @@ function SliderRow({ label, value, min, max, step, onChange, display }: {
   display: string;
 }) {
   return (
-    <label className="flex items-center gap-2">
-      <span className="w-24 text-right text-[var(--secondary-500)] shrink-0">{label}</span>
-      <input
-        type="range"
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <Typography variant="caption" sx={{ width: 100, textAlign: 'right', color: 'text.secondary', flexShrink: 0 }}>{label}</Typography>
+      <Slider
+        size="small"
+        value={value}
         min={min}
         max={max}
         step={step}
-        value={value}
-        onChange={e => onChange(parseFloat(e.target.value))}
-        className="flex-1 accent-[var(--primary-500)] h-1.5"
+        onChange={(_, v) => onChange(v as number)}
+        sx={{ flex: 1 }}
       />
-      <span className="w-12 text-left text-[var(--secondary-400)] font-mono tabular-nums">{display}</span>
-    </label>
+      <Typography variant="caption" sx={{ width: 48, textAlign: 'left', color: 'text.disabled', fontFamily: 'monospace', fontSize: '0.7rem' }}>{display}</Typography>
+    </Box>
   );
 }

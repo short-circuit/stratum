@@ -1,4 +1,12 @@
 import { useState, useEffect } from 'react';
+import Box from '@mui/material/Box';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import Alert from '@mui/material/Alert';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import AddIcon from '@mui/icons-material/Add';
 import * as api from '../lib/commands';
 
 export default function TemplatesPanel() {
@@ -25,88 +33,85 @@ export default function TemplatesPanel() {
   };
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      <h2 className="text-lg font-semibold mb-3">Templates</h2>
+    <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
+      <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>Templates</Typography>
 
-      <div className="mb-4">
-        <label className="text-xs text-[var(--secondary-500)] block mb-1">Target page path</label>
-        <input
-          type="text"
-          value={targetPath}
-          onChange={e => setTargetPath(e.target.value)}
-          placeholder="pages/my-new-page.md"
-          className="w-full text-sm px-2 py-1 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)]"
-        />
-      </div>
+      <TextField
+        label="Target page path"
+        placeholder="pages/my-new-page.md"
+        value={targetPath}
+        onChange={e => setTargetPath(e.target.value)}
+        fullWidth
+        size="small"
+        sx={{ mb: 2 }}
+      />
 
-      <div className="mb-4">
-        <label className="text-xs text-[var(--secondary-500)] block mb-1">Variables</label>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>Variables</Typography>
         {variables.map(([k, v], i) => (
-          <div key={i} className="flex gap-1 mb-1">
-            <input
-              type="text"
+          <Box key={i} sx={{ display: 'flex', gap: 0.5, mb: 0.5 }}>
+            <TextField
+              size="small"
+              placeholder="key"
               value={k}
               onChange={e => {
                 const next = [...variables];
                 next[i] = [e.target.value, v];
                 setVariables(next);
               }}
-              placeholder="key"
-              className="flex-1 text-xs px-1.5 py-0.5 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)]"
+              sx={{ flex: 1, '& .MuiInputBase-input': { fontSize: '0.75rem', py: 0.75 } }}
             />
-            <input
-              type="text"
+            <TextField
+              size="small"
+              placeholder="value"
               value={v}
               onChange={e => {
                 const next = [...variables];
                 next[i] = [k, e.target.value];
                 setVariables(next);
               }}
-              placeholder="value"
-              className="flex-1 text-xs px-1.5 py-0.5 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)]"
+              sx={{ flex: 1, '& .MuiInputBase-input': { fontSize: '0.75rem', py: 0.75 } }}
             />
-          </div>
+          </Box>
         ))}
-        <button
+        <Button
+          size="small"
+          startIcon={<AddIcon />}
           onClick={() => setVariables([...variables, ['', '']])}
-          className="text-xs text-[var(--primary-500)] hover:text-[var(--primary-600)]"
+          sx={{ textTransform: 'none', fontSize: '0.75rem' }}
         >
-          + Add variable
-        </button>
-      </div>
+          Add variable
+        </Button>
+      </Box>
 
       {message && (
-        <div className="text-sm mb-3 p-2 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">
+        <Alert severity={message.startsWith('Error') ? 'error' : 'success'} sx={{ mb: 2 }}>
           {message}
-        </div>
+        </Alert>
       )}
 
-      <div className="space-y-2">
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         {templates.map(t => (
-          <div
-            key={t.name}
-            className="p-3 rounded border border-[var(--secondary-200)] dark:border-[var(--secondary-700)] hover:border-[var(--primary-300)]"
-          >
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="text-sm font-medium">{t.name}</h3>
-              <button
-                onClick={() => apply(t.name)}
-                className="text-xs px-3 py-1 bg-[var(--primary-500)] text-white rounded hover:bg-[var(--primary-600)]"
-              >
-                Apply
-              </button>
-            </div>
-            {t.description && (
-              <p className="text-xs text-[var(--secondary-500)]">{t.description}</p>
-            )}
-          </div>
+          <Card key={t.name} variant="outlined" sx={{ '&:hover': { borderColor: 'primary.light' } }}>
+            <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>{t.name}</Typography>
+                <Button size="small" variant="contained" onClick={() => apply(t.name)}>
+                  Apply
+                </Button>
+              </Box>
+              {t.description && (
+                <Typography variant="caption" color="text.secondary">{t.description}</Typography>
+              )}
+            </CardContent>
+          </Card>
         ))}
         {templates.length === 0 && (
-          <p className="text-sm text-[var(--secondary-400)]">
+          <Typography variant="body2" color="text.secondary">
             No templates yet. Save a page as template to get started.
-          </p>
+          </Typography>
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
