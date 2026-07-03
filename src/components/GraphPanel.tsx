@@ -347,7 +347,7 @@ export default function GraphPanel() {
       </Collapse>
 
       {/* Graph canvas */}
-      <Box sx={{ flex: 1, position: 'relative', bgcolor: 'grey.100' }}>
+      <Box sx={{ flex: 1, position: 'relative', bgcolor: 'background.default' }}>
         {loading && (
           <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(0,0,0,0.03)', zIndex: 10 }}>
             <CircularProgress size={20} sx={{ mr: 1 }} />
