@@ -27,9 +27,10 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import SvgIcon from '@mui/material/SvgIcon';
 import { useStore } from '../stores/appStore';
 import * as api from '../lib/commands';
-import StratumIcon from './StratumIcon';
+import { StratumPath } from './StratumIcon';
 
 const NAV_ITEMS = [
   { id: 'journal', label: 'Journal', path: '/journal', icon: <CalendarMonthIcon /> },
@@ -119,9 +120,9 @@ export default function Sidebar() {
       >
             {!collapsed && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0 }}>
-                <Box sx={{ color: 'primary.main', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <StratumIcon />
-                </Box>
+                <SvgIcon color="primary" viewBox="0 0 512 512" sx={{ fontSize: 20, flexShrink: 0 }}>
+                  <StratumPath />
+                </SvgIcon>
                 <Box sx={{ minWidth: 0, lineHeight: 1.2 }}>
                   <Typography variant="h6" noWrap sx={{ fontWeight: 700, fontSize: '1rem' }}>
                     stratum
