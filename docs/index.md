@@ -68,7 +68,7 @@ See the [Installation Guide](getting-started/installation.md) for detailed setup
 | :material-link-variant: **Wiki-Links** | `[[Page Name]]`, `[[Target\|Display]]`, `((block-ref))`, `{{embed}}` |
 | :material-pound: **Tags** | `#tag` inline and YAML frontmatter tags |
 | :material-checkbox-marked: **Tasks** | `TODO`, `DOING`, `DONE` markers with priorities |
-| :material-chart-network: **Graph View** | Force-directed graph, connected components, orphan detection |
+| :material-graph: **Graph View** | Force-directed graph, connected components, orphan detection |
 | :material-magnify: **Search** | Full-text block search via Tantivy. Tag search with `#tag` |
 | :material-table: **Datalog** | Query blocks with Datalog: `:find`, `:where`, `:pull` |
 | :material-calendar: **Journal** | Daily notes, auto-created |
