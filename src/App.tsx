@@ -1,5 +1,9 @@
 import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Alert from '@mui/material/Alert';
+import CircularProgress from '@mui/material/CircularProgress';
+import Typography from '@mui/material/Typography';
 import { useStore } from './stores/appStore';
 import Sidebar from './components/Sidebar';
 import PageView from './components/PageView';
@@ -31,14 +35,11 @@ export default function App() {
 
   if (loading && !vault) {
     return (
-      <div className="flex items-center justify-center h-screen w-screen bg-white dark:bg-[var(--secondary-900)]">
-        <p className="text-sm text-[var(--secondary-500)]">Loading vault...</p>
-      </div>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100vw', bgcolor: 'background.default' }}>
+        <CircularProgress size={20} sx={{ mr: 1.5 }} />
+        <Typography variant="body2" color="text.secondary">Loading vault...</Typography>
+      </Box>
     );
-  }
-
-  if (!vault && error) {
-    return <VaultPicker />;
   }
 
   if (!vault) {
@@ -46,13 +47,11 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen w-screen bg-white dark:bg-[var(--secondary-900)] text-[var(--secondary-900)] dark:text-[var(--secondary-100)] safe-area-container">
+    <Box sx={{ display: 'flex', height: '100vh', width: '100vw', bgcolor: 'background.default', color: 'text.primary' }} className="safe-area-container">
       <Sidebar />
-      <main className="flex-1 overflow-auto safe-area-main">
+      <Box component="main" sx={{ flexGrow: 1, overflow: 'auto' }} className="safe-area-main">
         {error && (
-          <div className="bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 p-2 text-sm">
-            {error}
-          </div>
+          <Alert severity="error" sx={{ borderRadius: 0 }}>{error}</Alert>
         )}
         <Routes>
           <Route path="/" element={<PagesHome />} />
@@ -66,7 +65,7 @@ export default function App() {
           <Route path="/graph" element={<GraphPanel />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
-      </main>
-    </div>
+      </Box>
+    </Box>
   );
 }
