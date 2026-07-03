@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
@@ -50,20 +50,40 @@ export default function SettingsPage() {
   const [msgSeverity, setMsgSeverity] = useState<'success' | 'error'>('success');
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [tab, setTab] = useState<Tab>('vault');
+  const savedThemeRef = useRef<{ primary: string; secondary: string; dark: boolean; fontSize: number } | null>(null);
+  const muiSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const syncMuiTheme = useCallback((primary: string, secondary: string, dark: boolean, fontSize: number) => {
+    if (muiSyncTimer.current) clearTimeout(muiSyncTimer.current);
+    muiSyncTimer.current = setTimeout(() => {
+      setThemeConfig({ primaryHex: primary, secondaryHex: secondary, dark, fontSize });
+    }, 150);
+  }, [setThemeConfig]);
 
   useEffect(() => {
     api.getSettings().then(s => {
       setSettings(s);
       if (s.theme) {
-        applyTheme(
-          s.theme.primary_color || '#f97316',
-          s.theme.secondary_color || '#6b7280',
-          s.theme.dark_mode,
-          s.theme.font_size,
-        );
+        const p = s.theme.primary_color || '#f97316';
+        const sec = s.theme.secondary_color || '#6b7280';
+        const d = s.theme.dark_mode ?? true;
+        const f = s.theme.font_size || 16;
+        savedThemeRef.current = { primary: p, secondary: sec, dark: d, fontSize: f };
+        applyTheme(p, sec, d, f);
+        setThemeConfig({ primaryHex: p, secondaryHex: sec, dark: d, fontSize: f });
       }
     }).catch(err => { setMsg(`Load failed: ${err}`); setMsgSeverity('error'); });
-  }, []);
+
+    return () => {
+      // Restore saved theme on unmount without save
+      const saved = savedThemeRef.current;
+      if (saved) {
+        applyTheme(saved.primary, saved.secondary, saved.dark, saved.fontSize);
+        setThemeConfig({ primaryHex: saved.primary, secondaryHex: saved.secondary, dark: saved.dark, fontSize: saved.fontSize });
+      }
+      if (muiSyncTimer.current) clearTimeout(muiSyncTimer.current);
+    };
+  }, [setThemeConfig]);
 
   if (!settings) {
     return (
@@ -88,18 +108,20 @@ export default function SettingsPage() {
     const newTheme = { ...theme, ...patch };
     setSettings({ ...settings, theme: newTheme });
     applyTheme(newTheme.primary_color, newTheme.secondary_color, newTheme.dark_mode, newTheme.font_size);
+    syncMuiTheme(newTheme.primary_color, newTheme.secondary_color, newTheme.dark_mode, newTheme.font_size || 16);
   };
 
   const handleSave = async () => {
     setSaving(true); setMsg('');
     try {
       await api.saveSettings(settings);
-      setThemeConfig({
-        primaryHex: theme.primary_color,
-        secondaryHex: theme.secondary_color,
-        dark: theme.dark_mode,
-        fontSize: theme.font_size || 16,
-      });
+      const p = theme.primary_color;
+      const sec = theme.secondary_color;
+      const d = theme.dark_mode;
+      const f = theme.font_size || 16;
+      savedThemeRef.current = { primary: p, secondary: sec, dark: d, fontSize: f };
+      if (muiSyncTimer.current) clearTimeout(muiSyncTimer.current);
+      setThemeConfig({ primaryHex: p, secondaryHex: sec, dark: d, fontSize: f });
       setMsg('Saved.'); setMsgSeverity('success');
     }
     catch (e) { setMsg(`Save failed: ${e}`); setMsgSeverity('error'); }
