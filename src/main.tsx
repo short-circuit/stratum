@@ -1,8 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import { ThemeProvider } from '@mui/material/styles'
-import CssBaseline from '@mui/material/CssBaseline'
 import '@fontsource/inter/300.css'
 import '@fontsource/inter/400.css'
 import '@fontsource/inter/500.css'
@@ -10,7 +8,7 @@ import '@fontsource/inter/600.css'
 import '@fontsource/inter/700.css'
 import App from './App'
 import { applyTheme } from './lib/theme'
-import { createMuiTheme } from './lib/muiTheme'
+import { useStore } from './stores/appStore'
 import * as api from './lib/commands'
 import './global.css'
 
@@ -33,16 +31,13 @@ async function init() {
     applyTheme(primary, secondary, dark)
   }
 
-  const muiTheme = createMuiTheme(primary, secondary, dark, fontSize)
+  useStore.getState().setThemeConfig({ primaryHex: primary, secondaryHex: secondary, dark, fontSize })
 
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-      <ThemeProvider theme={muiTheme}>
-        <CssBaseline />
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </ThemeProvider>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
     </React.StrictMode>,
   )
 }

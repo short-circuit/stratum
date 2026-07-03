@@ -1,10 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import { useStore } from './stores/appStore';
+import { createMuiTheme } from './lib/muiTheme';
 import Sidebar from './components/Sidebar';
 import PageView from './components/PageView';
 import JournalPanel from './components/JournalPanel';
@@ -18,7 +21,7 @@ import GraphPanel from './components/GraphPanel';
 import SettingsPage from './components/SettingsPage';
 import VaultPicker from './components/VaultPicker';
 
-export default function App() {
+function AppContent() {
   const { vault, loading, loadVault, loadPages, error } = useStore();
 
   useEffect(() => {
@@ -67,5 +70,21 @@ export default function App() {
         </Routes>
       </Box>
     </Box>
+  );
+}
+
+export default function App() {
+  const { themeConfig } = useStore();
+
+  const muiTheme = useMemo(
+    () => createMuiTheme(themeConfig.primaryHex, themeConfig.secondaryHex, themeConfig.dark, themeConfig.fontSize),
+    [themeConfig],
+  );
+
+  return (
+    <ThemeProvider theme={muiTheme}>
+      <CssBaseline />
+      <AppContent />
+    </ThemeProvider>
   );
 }
