@@ -27,14 +27,16 @@ jobs:
           pip install mkdocs-material
 
       - name: Build docs
+        env:
+          NO_MKDOCS_2_WARNING: "true"
         run: |
           mkdocs build -f docs/mkdocs.yml
           # Move built site into a docs/ subdirectory so it lives at
           # https://short-circuit.github.io/stratum/docs/
           # leaving gh-pages root free for the future landing page.
-          # mkdocs outputs 'site' relative to the config file dir, so it's at docs/site/
+          # site_dir: ../site puts output at repo-root/site/
           mkdir -p gh-pages-output
-          mv docs/site gh-pages-output/docs
+          mv site gh-pages-output/docs
 
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
