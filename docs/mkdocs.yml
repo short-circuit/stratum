@@ -8,6 +8,7 @@ repo_name: short-circuit/stratum
 edit_uri: blob/master/docs/
 
 docs_dir: .
+site_dir: ../site
 
 theme:
   name: material
@@ -73,9 +74,9 @@ copyright: Copyright &copy; 2026 Stratum Contributors — AGPL-3.0
 nav:
   - Home: index.md
   - Getting Started:
-    - installation.md
-    - quickstart.md
-    - configuration.md
+    - getting-started/installation.md
+    - getting-started/quickstart.md
+    - getting-started/configuration.md
   - User Guide:
     - guide/vault-management.md
     - guide/block-editor.md

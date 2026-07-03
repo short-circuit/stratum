@@ -1,0 +1,104 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.yml
+
+site_name: Stratum
+site_description: Privacy-first, offline-capable personal knowledge management system
+site_url: https://short-circuit.github.io/stratum/docs/
+repo_url: https://github.com/short-circuit/stratum
+repo_name: short-circuit/stratum
+edit_uri: blob/master/docs/
+
+docs_dir: .
+site_dir: ../site
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: orange
+      accent: deep orange
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: orange
+      accent: deep orange
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  logo: assets/images/icon.svg
+  favicon: assets/images/icon.svg
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.tabs.link
+    - content.admonition
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.keys
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/short-circuit/stratum
+  generator: false
+
+copyright: Copyright &copy; 2026 Stratum Contributors — AGPL-3.0
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - getting-started/installation.md
+    - getting-started/quickstart.md
+    - getting-started/configuration.md
+  - User Guide:
+    - guide/vault-management.md
+    - guide/block-editor.md
+    - guide/linking-and-backlinks.md
+    - guide/tags.md
+    - guide/tasks.md
+    - guide/graph-view.md
+    - guide/search.md
+    - guide/datalog-queries.md
+    - guide/journal.md
+    - guide/templates.md
+    - guide/flashcards.md
+    - guide/whiteboards.md
+    - guide/math-equations.md
+    - guide/diagrams.md
+    - guide/ai-features.md
+    - guide/web-research.md
+    - guide/git-sync.md
+    - guide/export.md
+  - CLI Reference:
+    - cli/command-reference.md
+  - Advanced:
+    - advanced/file-format.md
+    - advanced/plugins.md
+  - Contributing: contributing.md

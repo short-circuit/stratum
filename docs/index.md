@@ -1,7 +1,4 @@
 ---
-template: home.html
-title: Home
----
 
 # Stratum
 
