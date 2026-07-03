@@ -121,7 +121,7 @@ export default function Sidebar() {
             {!collapsed && (
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <SvgIcon color="primary" sx={{ fontSize: 24 }}>
+                  <SvgIcon color="primary" sx={{ fontSize: 24 }} viewBox="0 0 512 512">
                     <StratumPath />
                   </SvgIcon>
                   <Typography variant="h6" noWrap sx={{ fontWeight: 700, lineHeight: 1.2 }}>

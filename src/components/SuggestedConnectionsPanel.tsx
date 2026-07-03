@@ -46,7 +46,7 @@ export default function SuggestedConnectionsPanel({ pagePath }: Props) {
   };
 
   return (
-    <Accordion slotProps={{ transition: { unmountOnExit: true } }}>
+    <Accordion disableGutters square sx={{ boxShadow: 0, '&:before': { display: 'none' } }} slotProps={{ transition: { unmountOnExit: true } }}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
           Suggested Connections

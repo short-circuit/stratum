@@ -113,13 +113,14 @@ export default function GraphPanel() {
 
   useEffect(() => {
     const updateSize = () => {
+      const settingsH = settingsOpen ? 160 : 0;
       setWidth(window.innerWidth - 240);
-      setHeight(window.innerHeight - 48);
+      setHeight(window.innerHeight - 48 - settingsH);
     };
     updateSize();
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
-  }, []);
+  }, [settingsOpen]);
 
   // Configure d3 forces when settings or graph data changes
   useEffect(() => {
