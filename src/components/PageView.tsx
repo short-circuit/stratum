@@ -1,5 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import Button from '@mui/material/Button';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListSubheader from '@mui/material/ListSubheader';
+import Divider from '@mui/material/Divider';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { useStore } from '../stores/appStore';
 import * as api from '../lib/commands';
 import OutlinerEditor from './OutlinerEditor';
@@ -10,21 +19,8 @@ export default function PageView() {
   const { pagePath } = useParams<{ pagePath: string }>();
   const { currentPage, openPage, deletePage } = useStore();
   const [editorKey, setEditorKey] = useState(0);
-  const [noteMenuOpen, setNoteMenuOpen] = useState(false);
+  const [noteMenuAnchor, setNoteMenuAnchor] = useState<HTMLElement | null>(null);
   const [reindexing, setReindexing] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  // Close menu on outside click
-  useEffect(() => {
-    if (!noteMenuOpen) return;
-    const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setNoteMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [noteMenuOpen]);
 
   useEffect(() => {
     if (pagePath) {
@@ -44,7 +40,7 @@ export default function PageView() {
       console.error('Reindex failed:', e);
     } finally {
       setReindexing(false);
-      setNoteMenuOpen(false);
+      setNoteMenuAnchor(null);
     }
   };
 
@@ -53,7 +49,7 @@ export default function PageView() {
     if (!confirm(`Delete "${currentPage.title || currentPage.slug}"?`)) return;
     try {
       await deletePage(currentPage.path);
-      setNoteMenuOpen(false);
+      setNoteMenuAnchor(null);
     } catch (e) {
       console.error('Delete failed:', e);
     }
@@ -61,72 +57,60 @@ export default function PageView() {
 
   if (!pagePath) {
     return (
-      <div className="flex items-center justify-center h-full text-[var(--secondary-400)]">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Stratum PKM</h2>
-          <p className="text-sm">Select a page from the sidebar or create a new one.</p>
-        </div>
-      </div>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>Stratum PKM</Typography>
+          <Typography variant="body2" color="text.secondary">Select a page from the sidebar or create a new one.</Typography>
+        </Box>
+      </Box>
     );
   }
 
   if (!currentPage) {
-    return <div className="p-4 text-[var(--secondary-400)]">Loading...</div>;
+    return <Box sx={{ p: 2 }}><Typography variant="body2" color="text.secondary">Loading...</Typography></Box>;
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Page header */}
-      <div className="px-6 py-3 border-b border-[var(--secondary-200)] dark:border-[var(--secondary-700)] flex items-center gap-3">
-        <h1 className="text-lg font-bold">
+      <Box sx={{ px: 3, py: 1.5, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.1rem' }}>
           {currentPage.title || currentPage.slug}
-        </h1>
-        <span className="text-xs text-[var(--secondary-400)]">
-          {currentPage.path}
-        </span>
-        <div className="ml-auto relative" ref={menuRef}>
-          <button
-            onClick={() => setNoteMenuOpen(!noteMenuOpen)}
-            disabled={reindexing}
-            className="text-xs px-2 py-1 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-700)] text-[var(--secondary-600)] dark:text-[var(--secondary-400)] disabled:opacity-50"
-          >
-            {reindexing ? '…' : 'Note'}
-          </button>
-          {noteMenuOpen && (
-            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[var(--secondary-800)] border border-[var(--secondary-200)] dark:border-[var(--secondary-700)] rounded-lg shadow-lg z-50 min-w-[160px] py-1">
-              <div className="px-3 py-1 text-xs font-semibold text-[var(--secondary-400)] uppercase tracking-wider">
-                Actions
-              </div>
-              <button
-                onClick={handleReindex}
-                disabled={reindexing}
-                className="w-full text-left px-3 py-1.5 text-sm hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-700)] text-[var(--secondary-700)] dark:text-[var(--secondary-300)] disabled:opacity-50"
-              >
-                Reindex Note
-              </button>
-              <div className="my-1 border-t border-[var(--secondary-200)] dark:border-[var(--secondary-700)]" />
-              <button
-                onClick={handleDelete}
-                className="w-full text-left px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-              >
-                Delete Page
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+        </Typography>
+        <Chip label={currentPage.path} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} />
+        <Box sx={{ flex: 1 }} />
+        <Button
+          size="small"
+          variant="outlined"
+          endIcon={<ArrowDropDownIcon />}
+          onClick={e => setNoteMenuAnchor(e.currentTarget)}
+          disabled={reindexing}
+          sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+        >
+          {reindexing ? '…' : 'Note'}
+        </Button>
+        <Menu
+          anchorEl={noteMenuAnchor}
+          open={Boolean(noteMenuAnchor)}
+          onClose={() => setNoteMenuAnchor(null)}
+        >
+          <ListSubheader sx={{ lineHeight: '28px', fontSize: '0.7rem', color: 'text.disabled' }}>Actions</ListSubheader>
+          <MenuItem onClick={handleReindex} disabled={reindexing} dense>Reindex Note</MenuItem>
+          <Divider />
+          <MenuItem onClick={handleDelete} dense sx={{ color: 'error.main' }}>Delete Page</MenuItem>
+        </Menu>
+      </Box>
 
       {/* Editor + Backlinks */}
-      <div className="flex-1 overflow-auto bg-[var(--secondary-50)] dark:bg-[var(--secondary-800)]">
+      <Box sx={{ flex: 1, overflow: 'auto', bgcolor: 'action.hover' }}>
         <OutlinerEditor key={editorKey} pagePath={currentPage.path} />
-      </div>
+      </Box>
 
       {/* Backlinks dock */}
       <BacklinksPanel pagePath={currentPage.path} />
 
       {/* Suggested connections */}
       <SuggestedConnectionsPanel pagePath={currentPage.path} />
-
-    </div>
+    </Box>
   );
 }
