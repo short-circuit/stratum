@@ -7,6 +7,8 @@ repo_url: https://github.com/short-circuit/stratum
 repo_name: short-circuit/stratum
 edit_uri: blob/master/docs/
 
+docs_dir: .
+
 theme:
   name: material
   palette:
