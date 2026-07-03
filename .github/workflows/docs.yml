@@ -37,6 +37,8 @@ jobs:
           # site_dir: ../site puts output at repo-root/site/
           mkdir -p gh-pages-output
           mv site gh-pages-output/docs
+          # Copy landing page to root of gh-pages
+          cp docs/landing/index.html gh-pages-output/index.html
 
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
