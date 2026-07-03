@@ -88,17 +88,20 @@ export default function SettingsPage() {
     const newTheme = { ...theme, ...patch };
     setSettings({ ...settings, theme: newTheme });
     applyTheme(newTheme.primary_color, newTheme.secondary_color, newTheme.dark_mode, newTheme.font_size);
-    setThemeConfig({
-      primaryHex: newTheme.primary_color,
-      secondaryHex: newTheme.secondary_color,
-      dark: newTheme.dark_mode,
-      fontSize: newTheme.font_size || 16,
-    });
   };
 
   const handleSave = async () => {
     setSaving(true); setMsg('');
-    try { await api.saveSettings(settings); setMsg('Saved.'); setMsgSeverity('success'); }
+    try {
+      await api.saveSettings(settings);
+      setThemeConfig({
+        primaryHex: theme.primary_color,
+        secondaryHex: theme.secondary_color,
+        dark: theme.dark_mode,
+        fontSize: theme.font_size || 16,
+      });
+      setMsg('Saved.'); setMsgSeverity('success');
+    }
     catch (e) { setMsg(`Save failed: ${e}`); setMsgSeverity('error'); }
     finally { setSaving(false); }
   };

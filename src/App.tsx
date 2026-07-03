@@ -74,7 +74,7 @@ function AppContent() {
 }
 
 export default function App() {
-  const { themeConfig } = useStore();
+  const themeConfig = useStore(s => s.themeConfig);
 
   const muiTheme = useMemo(
     () => createMuiTheme(themeConfig.primaryHex, themeConfig.secondaryHex, themeConfig.dark, themeConfig.fontSize),
