@@ -11,7 +11,7 @@ import Grid from '@mui/material/Grid';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DrawIcon from '@mui/icons-material/Draw';
 import Chip from '@mui/material/Chip';
-import { Excalidraw, MainMenu, restore, restoreLibraryItems } from '@excalidraw/excalidraw';
+import { Excalidraw, MainMenu, restore, restoreLibraryItems, exportToCanvas } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import type { ExcalidrawImperativeAPI, SceneData, LibraryItems } from '@excalidraw/excalidraw/types';
 import * as api from '../lib/commands';
@@ -24,6 +24,43 @@ interface Board {
 
 const emptyScene = { elements: [], appState: { viewBackgroundColor: '#ffffff' } };
 const AUTOSAVE_MS = 800;
+const THUMBNAIL_MAX = 300;
+
+function parseBoardMeta(content: string) {
+  let elementCount = 0;
+  let preview: string | null = null;
+  try {
+    const parsed = JSON.parse(content);
+    if (Array.isArray(parsed.elements)) {
+      elementCount = parsed.elements.length;
+    }
+    if (typeof parsed.preview === 'string') {
+      preview = parsed.preview;
+    }
+  } catch { /* ignore */ }
+  return { elementCount, preview };
+}
+
+async function generateThumbnail(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  elements: readonly any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  appState: any,
+): Promise<string | null> {
+  try {
+    const canvas = await exportToCanvas({
+      elements,
+      appState: { ...appState, viewBackgroundColor: appState.viewBackgroundColor || '#ffffff' },
+      files: null,
+      maxWidthOrHeight: THUMBNAIL_MAX,
+      exportPadding: 8,
+    });
+    return canvas.toDataURL('image/webp', 0.6);
+  } catch (e) {
+    console.warn('Failed to generate thumbnail:', e);
+    return null;
+  }
+}
 
 export default function WhiteboardPanel() {
   const [boards, setBoards] = useState<Board[]>([]);
@@ -46,51 +83,50 @@ export default function WhiteboardPanel() {
     });
   }, []);
 
-  const doSave = useCallback(async () => {
+  const doSave = useCallback(async (generatePreview = false) => {
     if (!activeBoard || !excalidrawRef.current) return;
     try {
       const elements = excalidrawRef.current.getSceneElements();
       const { collaborators, ...cleanAppState } = excalidrawRef.current.getAppState();
       void collaborators;
-      await api.saveWhiteboard(activeBoard, JSON.stringify({
+      const data: Record<string, unknown> = {
         type: 'excalidraw',
         version: 2,
         source: 'stratum',
         elements,
         appState: cleanAppState,
-      }));
+      };
+      if (generatePreview && elements.length > 0) {
+        const thumb = await generateThumbnail(elements, cleanAppState);
+        if (thumb) data.preview = thumb;
+      }
+      await api.saveWhiteboard(activeBoard, JSON.stringify(data));
       setDirty(false);
     } catch (e) {
       console.error('Failed to save whiteboard:', e);
     }
   }, [activeBoard]);
 
-  // Auto-save on dirty changes (debounced)
   useEffect(() => {
     if (!dirty) return;
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    autoSaveTimer.current = setTimeout(doSave, AUTOSAVE_MS);
+    autoSaveTimer.current = setTimeout(() => doSave(true), AUTOSAVE_MS);
     return () => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     };
   }, [dirty, doSave]);
 
-  // Also save when navigating away from the board
   const navigateBack = useCallback(() => {
-    // Flush pending auto-save immediately
     if (autoSaveTimer.current) {
       clearTimeout(autoSaveTimer.current);
       autoSaveTimer.current = null;
     }
-    if (dirty) {
-      doSave().then(() => {
-        setActiveBoard(null);
-        setSceneData(null);
-      });
-    } else {
+    const flush = dirty ? doSave(true) : Promise.resolve();
+    flush.then(() => {
       setActiveBoard(null);
       setSceneData(null);
-    }
+      api.listWhiteboards().then(setBoards);
+    });
   }, [dirty, doSave]);
 
   const loadBoard = useCallback(async (name: string) => {
@@ -129,20 +165,12 @@ export default function WhiteboardPanel() {
     api.saveLibrary(JSON.stringify(items));
   }, []);
 
-  // --- Listing view ---
-  if (!activeBoard) {
-    // Parse element count from stored content without loading the full scene
-    const boardMeta = boards.map(b => {
-      let elementCount = 0;
-      try {
-        const parsed = JSON.parse(b.content);
-        if (Array.isArray(parsed.elements)) {
-          elementCount = parsed.elements.length;
-        }
-      } catch { /* ignore */ }
-      return { ...b, elementCount };
-    });
+  const boardMeta = boards.map(b => {
+    const { elementCount, preview } = parseBoardMeta(b.content);
+    return { ...b, elementCount, preview };
+  });
 
+  if (!activeBoard) {
     return (
       <Box sx={{ p: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>Whiteboards</Typography>
@@ -172,12 +200,36 @@ export default function WhiteboardPanel() {
                 }}
               >
                 <CardActionArea onClick={() => loadBoard(b.name)} sx={{ height: '100%' }}>
-                  <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 4 }}>
-                    <DrawIcon sx={{ fontSize: 48, color: 'primary.main', opacity: 0.7 }} />
-                    <Typography variant="subtitle2" align="center" noWrap sx={{ maxWidth: '100%' }}>
-                      {b.name}
-                    </Typography>
-                    <Chip label={`${b.elementCount} elements`} size="small" variant="outlined" />
+                  <Box sx={{
+                    width: '100%',
+                    height: 140,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: 'action.hover',
+                    overflow: 'hidden',
+                    position: 'relative',
+                  }}>
+                    {b.preview ? (
+                      <Box
+                        component="img"
+                        src={b.preview}
+                        alt={b.name}
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain',
+                        }}
+                      />
+                    ) : (
+                      <DrawIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
+                    )}
+                  </Box>
+                  <CardContent sx={{ py: 1.5, px: 2 }}>
+                    <Typography variant="subtitle2" noWrap>{b.name}</Typography>
+                    {b.elementCount > 0 && (
+                      <Chip label={`${b.elementCount} elements`} size="small" variant="outlined" sx={{ mt: 0.5 }} />
+                    )}
                   </CardContent>
                 </CardActionArea>
               </Card>
@@ -195,7 +247,6 @@ export default function WhiteboardPanel() {
     );
   }
 
-  // --- Active board view ---
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.default' }}>
