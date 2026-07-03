@@ -1,10 +1,12 @@
 interface StratumIconProps {
   className?: string;
+  size?: number;
 }
 
-export default function StratumIcon({ className }: StratumIconProps) {
+export default function StratumIcon({ className, size }: StratumIconProps) {
+  const s = size ?? 20;
   return (
-    <svg viewBox="0 0 512 512" fill="none" width="100%" height="100%" className={className}>
+    <svg viewBox="0 0 512 512" width={s} height={s} className={className}>
       <StratumPath />
     </svg>
   );
