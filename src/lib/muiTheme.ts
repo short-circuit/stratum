@@ -49,13 +49,13 @@ export function createMuiTheme(
   let dividerColor = '';
 
   if (dark) {
-    backgroundDefault = hslStr(sh, Math.min(ss, 12), 6);
-    backgroundPaper = hslStr(sh, Math.min(ss, 14), 10);
-    dividerColor = hslStr(sh, Math.min(ss, 10), 20);
+    backgroundDefault = hslStr(sh, Math.min(ss, 25), 7);
+    backgroundPaper = hslStr(sh, Math.min(ss, 20), 12);
+    dividerColor = hslStr(sh, Math.min(ss, 18), 22);
   } else {
-    backgroundDefault = hslStr(sh, Math.min(ss, 8), 96);
+    backgroundDefault = hslStr(sh, Math.min(ss, 20), 94);
     backgroundPaper = '#ffffff';
-    dividerColor = hslStr(sh, Math.min(ss, 10), 86);
+    dividerColor = hslStr(sh, Math.min(ss, 18), 82);
   }
 
   return createTheme({
@@ -73,9 +73,9 @@ export function createMuiTheme(
       },
       divider: dividerColor,
       text: {
-        primary: dark ? hslStr(sh, Math.min(ss, 6), 92) : hslStr(sh, Math.min(ss, 10), 20),
-        secondary: dark ? hslStr(sh, Math.min(ss, 5), 65) : hslStr(sh, Math.min(ss, 8), 50),
-        disabled: dark ? hslStr(sh, Math.min(ss, 4), 35) : hslStr(sh, Math.min(ss, 6), 70),
+        primary: dark ? hslStr(sh, 10, 92) : hslStr(sh, 12, 18),
+        secondary: dark ? hslStr(sh, 8, 68) : hslStr(sh, 10, 48),
+        disabled: dark ? hslStr(sh, 6, 38) : hslStr(sh, 8, 68),
       },
     },
     typography: {
