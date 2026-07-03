@@ -38,6 +38,7 @@ result/
 *.b64
 
 # === MkDocs ===
+site/
 docs/site/
 
 # === Misc ===
