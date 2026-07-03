@@ -1,4 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Box from '@mui/material/Box';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
+import List from '@mui/material/List';
+import ListItemButton from '@mui/material/ListItemButton';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Excalidraw, MainMenu, restore, restoreLibraryItems } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import type { ExcalidrawImperativeAPI, SceneData, LibraryItems } from '@excalidraw/excalidraw/types';
@@ -82,64 +90,51 @@ export default function WhiteboardPanel() {
 
   if (!activeBoard) {
     return (
-      <div className="p-4 max-w-2xl mx-auto">
-        <h2 className="text-lg font-semibold mb-3">Whiteboards</h2>
+      <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
+        <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>Whiteboards</Typography>
 
-        <div className="flex gap-2 mb-4">
-          <input
-            type="text"
+        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+          <TextField
+            size="small"
+            placeholder="Whiteboard name"
             value={newName}
             onChange={e => setNewName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') createBoard(); }}
-            placeholder="Whiteboard name"
-            className="flex-1 text-sm px-2 py-1 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)]"
+            fullWidth
           />
-          <button
-            onClick={createBoard}
-            className="px-3 py-1 bg-[var(--primary-500)] text-white text-sm rounded hover:bg-[var(--primary-600)]"
-          >
+          <Button variant="contained" onClick={createBoard} sx={{ whiteSpace: 'nowrap' }}>
             Create
-          </button>
-        </div>
+          </Button>
+        </Box>
 
-        <div className="space-y-1">
+        <List disablePadding>
           {boards.map(b => (
-            <button
-              key={b.name}
-              onClick={() => loadBoard(b.name)}
-              className="w-full text-left px-3 py-2 text-sm rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)]"
-            >
+            <ListItemButton key={b.name} onClick={() => loadBoard(b.name)} sx={{ borderRadius: 1 }}>
               {b.name}
-            </button>
+            </ListItemButton>
           ))}
           {boards.length === 0 && (
-            <p className="text-sm text-[var(--secondary-400)]">No whiteboards yet.</p>
+            <Typography variant="body2" color="text.secondary">No whiteboards yet.</Typography>
           )}
-        </div>
-      </div>
+        </List>
+      </Box>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--secondary-200)] dark:border-[var(--secondary-700)] bg-white dark:bg-[var(--secondary-900)]">
-        <button
-          onClick={() => { setActiveBoard(null); setSceneData(null); }}
-          className="text-sm px-2 py-1 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)]"
-        >
-          ← Back
-        </button>
-        <span className="text-sm font-medium">{activeBoard}</span>
-        <div className="flex-1" />
-        <button
-          onClick={saveBoard}
-          className="text-sm px-3 py-1 bg-[var(--primary-500)] text-white rounded hover:bg-[var(--primary-600)]"
-        >
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.default' }}>
+        <IconButton size="small" onClick={() => { setActiveBoard(null); setSceneData(null); }}>
+          <ArrowBackIcon fontSize="small" />
+        </IconButton>
+        <Typography variant="body2" sx={{ fontWeight: 500 }}>{activeBoard}</Typography>
+        <Box sx={{ flex: 1 }} />
+        <Button size="small" variant="contained" onClick={saveBoard}>
           Save
-        </button>
-      </div>
+        </Button>
+      </Box>
 
-      <div className="flex-1 relative min-h-0">
+      <Box sx={{ flex: 1, position: 'relative', minHeight: 0 }}>
         {sceneData && libraryItems && (
           <Excalidraw
             key={activeBoard}
@@ -159,7 +154,7 @@ export default function WhiteboardPanel() {
             </MainMenu>
           </Excalidraw>
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }

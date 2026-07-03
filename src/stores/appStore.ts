@@ -2,12 +2,20 @@ import { create } from 'zustand';
 import type { VaultInfo, PageDto } from '../lib/types';
 import * as api from '../lib/commands';
 
+export interface ThemeConfig {
+  primaryHex: string;
+  secondaryHex: string;
+  dark: boolean;
+  fontSize: number;
+}
+
 interface AppState {
   vault: VaultInfo | null;
   pages: PageDto[];
   currentPage: PageDto | null;
   loading: boolean;
   error: string | null;
+  themeConfig: ThemeConfig;
 
   loadVault: () => Promise<void>;
   loadPages: () => Promise<void>;
@@ -15,6 +23,7 @@ interface AppState {
   createPage: (path: string, title?: string) => Promise<void>;
   deletePage: (path: string) => Promise<void>;
   pickVaultDirectory: () => Promise<void>;
+  setThemeConfig: (config: ThemeConfig) => void;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -23,6 +32,7 @@ export const useStore = create<AppState>((set, get) => ({
   currentPage: null,
   loading: false,
   error: null,
+  themeConfig: { primaryHex: '#f97316', secondaryHex: '#6b7280', dark: true, fontSize: 16 },
 
   loadVault: async () => {
     try {
@@ -90,5 +100,9 @@ export const useStore = create<AppState>((set, get) => ({
     } finally {
       set({ loading: false });
     }
+  },
+
+  setThemeConfig: (config: ThemeConfig) => {
+    set({ themeConfig: config });
   },
 }));

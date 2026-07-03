@@ -1,26 +1,37 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import '@fontsource/inter/300.css'
+import '@fontsource/inter/400.css'
+import '@fontsource/inter/500.css'
+import '@fontsource/inter/600.css'
+import '@fontsource/inter/700.css'
 import App from './App'
 import { applyTheme } from './lib/theme'
+import { useStore } from './stores/appStore'
 import * as api from './lib/commands'
 import './global.css'
 
-// Load settings and apply theme before render
 async function init() {
+  let primary = '#f97316'
+  let secondary = '#6b7280'
+  let dark = true
+  let fontSize = 16
+
   try {
     const settings = await api.getSettings();
     if (settings.theme) {
-      applyTheme(
-        settings.theme.primary_color || '#f97316',
-        settings.theme.secondary_color || '#6b7280',
-        settings.theme.dark_mode,
-        settings.theme.font_size,
-      );
+      primary = settings.theme.primary_color || primary
+      secondary = settings.theme.secondary_color || secondary
+      dark = settings.theme.dark_mode ?? dark
+      fontSize = settings.theme.font_size || fontSize
+      applyTheme(primary, secondary, dark, fontSize)
     }
   } catch {
-    applyTheme('#f97316', '#6b7280', true);
+    applyTheme(primary, secondary, dark)
   }
+
+  useStore.getState().setThemeConfig({ primaryHex: primary, secondaryHex: secondary, dark, fontSize })
 
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

@@ -1,6 +1,4 @@
-@import "tailwindcss";
 @import "katex/dist/katex.min.css";
-@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --safe-area-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));

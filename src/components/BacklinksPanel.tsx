@@ -1,25 +1,34 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import Typography from '@mui/material/Typography';
+import List from '@mui/material/List';
+import ListItemButton from '@mui/material/ListItemButton';
+import CircularProgress from '@mui/material/CircularProgress';
+import Popover from '@mui/material/Popover';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import * as api from '../lib/commands';
 import type { BacklinkItem } from '../lib/types';
 import { useCtrlHeld } from '../lib/useCtrlHeld';
-import LinkPreviewPopup from './LinkPreviewPopup';
 
 interface Props {
   pagePath: string;
 }
 
 export default function BacklinksPanel({ pagePath }: Props) {
+  const navigate = useNavigate();
   const [backlinks, setBacklinks] = useState<BacklinkItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [collapsed, setCollapsed] = useState(true);
   const ctrlHeld = useCtrlHeld();
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [preview, setPreview] = useState<{
     content: string;
     pageTitle: string | null;
     pagePath: string;
-    position: { x: number; y: number };
+    anchorEl: HTMLElement | null;
     loading: boolean;
   } | null>(null);
 
@@ -36,14 +45,14 @@ export default function BacklinksPanel({ pagePath }: Props) {
   const unlinked = backlinks.filter(b => !b.is_linked);
 
   const handleMouseEnter = (item: BacklinkItem, e: React.MouseEvent) => {
+    const el = e.currentTarget as HTMLElement;
     hoverTimer.current = setTimeout(async () => {
       if (!ctrlHeld.current) return;
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       setPreview({
         content: item.context,
         pageTitle: null,
         pagePath: item.source_page,
-        position: { x: rect.left, y: rect.bottom + 4 },
+        anchorEl: el,
         loading: true,
       });
       try {
@@ -69,81 +78,94 @@ export default function BacklinksPanel({ pagePath }: Props) {
   }, []);
 
   return (
-    <div className="border-t border-[var(--secondary-200)] dark:border-[var(--secondary-700)]">
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="w-full flex items-center justify-between px-4 py-2 text-xs font-semibold text-[var(--secondary-500)] uppercase hover:bg-[var(--secondary-50)] dark:hover:bg-[var(--secondary-800)] transition-colors"
-      >
-        <span>Backlinks ({backlinks.length})</span>
-        <span className={`transform transition-transform ${collapsed ? '' : 'rotate-90'}`}>&#9654;</span>
-      </button>
-
-      {!collapsed && (
-        <div className="px-4 pb-3 max-h-64 overflow-auto">
-          {loading && <p className="text-xs text-[var(--secondary-400)]">Loading...</p>}
+    <>
+      <Accordion disableGutters square sx={{ boxShadow: 0, '&:before': { display: 'none' } }} slotProps={{ transition: { unmountOnExit: true } }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
+            Backlinks ({backlinks.length})
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={{ maxHeight: 200, overflow: 'auto', p: 1.5 }}>
+          {loading && <CircularProgress size={14} sx={{ display: 'block', mx: 'auto' }} />}
 
           {linked.length > 0 && (
-            <div className="mb-3">
-              <h4 className="text-xs text-[var(--secondary-400)] mb-1">
+            <Box sx={{ mb: 1.5 }}>
+              <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 0.5 }}>
                 Linked References ({linked.length})
-              </h4>
-              <ul className="space-y-1">
+              </Typography>
+              <List dense disablePadding>
                 {linked.map((bl, i) => (
-                  <li key={i}>
-                    <Link
-                      to={'/page/' + encodeURIComponent(bl.source_page)}
-                      className="block text-xs p-1.5 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)]"
-                      onMouseEnter={(e) => handleMouseEnter(bl, e)}
-                      onMouseLeave={handleMouseLeave}
-                    >
-                      <div className="text-[var(--secondary-500)]">{bl.source_page}</div>
-                      <div className="text-[var(--secondary-700)] dark:text-[var(--secondary-300)] truncate">{bl.context}</div>
-                    </Link>
-                  </li>
+                  <ListItemButton
+                    key={i}
+                    dense
+                    onClick={() => navigate(`/page/${encodeURIComponent(bl.source_page)}`)}
+                    onMouseEnter={(e) => handleMouseEnter(bl, e)}
+                    onMouseLeave={handleMouseLeave}
+                    sx={{ borderRadius: 1, flexDirection: 'column', alignItems: 'flex-start' }}
+                  >
+                    <Typography variant="caption" color="text.secondary">{bl.source_page}</Typography>
+                    <Typography variant="caption" noWrap sx={{ maxWidth: '100%' }}>{bl.context}</Typography>
+                  </ListItemButton>
                 ))}
-              </ul>
-            </div>
+              </List>
+            </Box>
           )}
 
           {unlinked.length > 0 && (
-            <div>
-              <h4 className="text-xs text-[var(--secondary-400)] mb-1">
+            <Box>
+              <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 0.5 }}>
                 Unlinked Mentions ({unlinked.length})
-              </h4>
-              <ul className="space-y-1">
-                  {unlinked.map((bl, i) => (
-                  <li key={i}>
-                    <Link
-                      to={'/page/' + encodeURIComponent(bl.source_page)}
-                      className="block text-xs p-1.5 rounded hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)]"
-                      onMouseEnter={(e) => handleMouseEnter(bl, e)}
-                      onMouseLeave={handleMouseLeave}
-                    >
-                      <div className="text-[var(--secondary-500)]">{bl.source_page}</div>
-                      <div className="text-[var(--secondary-600)] dark:text-[var(--secondary-400)] truncate">{bl.context}</div>
-                    </Link>
-                  </li>
+              </Typography>
+              <List dense disablePadding>
+                {unlinked.map((bl, i) => (
+                  <ListItemButton
+                    key={i}
+                    dense
+                    onClick={() => navigate(`/page/${encodeURIComponent(bl.source_page)}`)}
+                    onMouseEnter={(e) => handleMouseEnter(bl, e)}
+                    onMouseLeave={handleMouseLeave}
+                    sx={{ borderRadius: 1, flexDirection: 'column', alignItems: 'flex-start' }}
+                  >
+                    <Typography variant="caption" color="text.secondary">{bl.source_page}</Typography>
+                    <Typography variant="caption" color="text.disabled" noWrap sx={{ maxWidth: '100%' }}>{bl.context}</Typography>
+                  </ListItemButton>
                 ))}
-              </ul>
-            </div>
+              </List>
+            </Box>
           )}
 
           {!loading && backlinks.length === 0 && (
-            <p className="text-xs text-[var(--secondary-400)]">No backlinks found.</p>
+            <Typography variant="caption" color="text.disabled">No backlinks found.</Typography>
           )}
-        </div>
-      )}
+        </AccordionDetails>
+      </Accordion>
 
-      {preview && (
-        <LinkPreviewPopup
-          content={preview.content}
-          pageTitle={preview.pageTitle}
-          pagePath={preview.pagePath}
-          position={preview.position}
-          loading={preview.loading}
-          onClose={() => setPreview(null)}
-        />
-      )}
-    </div>
+      <Popover
+        open={Boolean(preview)}
+        anchorEl={preview?.anchorEl}
+        onClose={() => setPreview(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        slotProps={{ paper: { sx: { maxWidth: 280, p: 1.5 } } }}
+      >
+        {preview?.loading ? (
+          <CircularProgress size={14} />
+        ) : (
+          <>
+            <Typography
+              variant="subtitle2"
+              color="primary"
+              sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' }, mb: 0.5 }}
+              onClick={() => { navigate(`/page/${encodeURIComponent(preview!.pagePath)}`); setPreview(null); }}
+            >
+              {preview?.pageTitle || preview?.pagePath}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              {preview?.content}
+            </Typography>
+            <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>Ctrl+click to navigate</Typography>
+          </>
+        )}
+      </Popover>
+    </>
   );
 }

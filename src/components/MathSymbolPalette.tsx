@@ -1,4 +1,9 @@
 import { useState } from 'react';
+import Box from '@mui/material/Box';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import ToggleButton from '@mui/material/ToggleButton';
 
 interface Category {
   label: string;
@@ -149,34 +154,37 @@ export default function MathSymbolPalette({ onInsert }: Props) {
   const [activeCategory, setActiveCategory] = useState(0);
 
   return (
-    <div className="math-symbol-palette border-b border-[var(--secondary-200)] dark:border-[var(--secondary-700)] pb-1">
-      <div className="flex gap-1 overflow-x-auto px-1 py-1 text-[10px]">
-        {CATEGORIES.map((cat, i) => (
-          <button
-            key={cat.label}
-            onClick={() => setActiveCategory(i)}
-            className={`px-2 py-0.5 rounded whitespace-nowrap transition-colors ${
-              i === activeCategory
-                ? 'bg-[var(--primary-200)] dark:bg-[var(--primary-800)] text-[var(--primary-700)] dark:text-[var(--primary-300)] font-medium'
-                : 'text-[var(--secondary-500)] hover:text-[var(--secondary-700)] dark:hover:text-[var(--secondary-300)]'
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
-      <div className="flex flex-wrap gap-0.5 px-1 py-1">
-        {CATEGORIES[activeCategory].symbols.map((sym) => (
-          <button
-            key={sym.latex}
-            onClick={() => onInsert(sym.latex)}
-            title={sym.latex}
-            className={`flex items-center justify-center text-sm rounded hover:bg-[var(--primary-100)] dark:hover:bg-[var(--primary-900)] transition-colors border border-transparent hover:border-[var(--primary-300)] dark:hover:border-[var(--primary-700)] ${CATEGORIES[activeCategory].label === 'Templates' ? 'w-10 h-9 whitespace-pre-line leading-tight text-xs' : 'w-7 h-7'}`}
-          >
-            {sym.char}
-          </button>
-        ))}
-      </div>
-    </div>
+    <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+      <Tabs
+        value={activeCategory}
+        onChange={(_, i) => setActiveCategory(i)}
+        variant="scrollable"
+        scrollButtons="auto"
+        sx={{ minHeight: 36, '& .MuiTab-root': { minHeight: 36, py: 0, fontSize: '0.7rem', textTransform: 'none' } }}
+      >
+        {CATEGORIES.map(cat => <Tab key={cat.label} label={cat.label} />)}
+      </Tabs>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.25, p: 0.75 }}>
+        <ToggleButtonGroup size="small">
+          {CATEGORIES[activeCategory].symbols.map(sym => (
+            <ToggleButton
+              key={sym.latex}
+              value={sym.latex}
+              selected={false}
+              onClick={() => onInsert(sym.latex)}
+              title={sym.latex}
+              sx={{
+                p: 0.25, minWidth: 28, height: 28, borderRadius: '4px!important',
+                fontSize: CATEGORIES[activeCategory].label === 'Templates' ? '0.65rem' : '0.8rem',
+                whiteSpace: CATEGORIES[activeCategory].label === 'Templates' ? 'pre-line' : undefined,
+                lineHeight: CATEGORIES[activeCategory].label === 'Templates' ? 1.1 : undefined,
+              }}
+            >
+              {sym.char}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+      </Box>
+    </Box>
   );
 }
