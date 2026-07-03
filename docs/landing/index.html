@@ -59,8 +59,8 @@ section{padding:100px 0}
 .hero::after{content:'';position:absolute;bottom:-30%;left:-10%;width:600px;height:600px;
   background:radial-gradient(circle,rgba(249,115,22,.05) 0%,transparent 70%);pointer-events:none}
 .hero-content{position:relative;z-index:1;max-width:800px;margin:0 auto;text-align:center}
-.hero-icon{width:96px;height:96px;margin:0 auto 32px;color:var(--primary);animation:float 6s ease-in-out infinite}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.hero-icon{width:112px;height:112px;margin:0 auto 32px;color:var(--primary);animation:float 5s cubic-bezier(.45,.05,.35,1) infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
 .hero h1{font-size:clamp(2.5rem,6vw,4.5rem);font-weight:900;line-height:1.1;letter-spacing:-.03em;margin-bottom:20px}
 .hero h1 span{background:linear-gradient(135deg,var(--orange-400),var(--orange-600));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
