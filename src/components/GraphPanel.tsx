@@ -108,8 +108,26 @@ export default function GraphPanel() {
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    const fetch = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [data, comps, orphs] = await Promise.all([
+          api.getGraphData(),
+          api.getConnectedComponents(),
+          api.getOrphanedNotes(),
+        ]);
+        setGraphData(data);
+        setComponents(comps);
+        setOrphans(orphs);
+      } catch (e) {
+        setError(String(e));
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetch();
+  }, []);
 
   useEffect(() => {
     const updateSize = () => {
