@@ -2,6 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCreateBlockNote } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
 import { useNavigate } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Alert from '@mui/material/Alert';
+import CircularProgress from '@mui/material/CircularProgress';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
 import { BlockNoteSchema, defaultBlockSpecs } from '@blocknote/core';
@@ -222,26 +227,23 @@ export default function OutlinerEditor({ pagePath }: Props) {
 
   if (status === 'init' || status === 'loading') {
     return (
-      <div className="flex items-center justify-center h-64 text-[var(--secondary-400)] text-sm">
-        <div className="text-center">
-          <div className="animate-pulse mb-2">Loading editor...</div>
-          <div className="text-xs text-[var(--secondary-500)]">{pagePath}</div>
-        </div>
-      </div>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 256 }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <CircularProgress size={20} sx={{ mb: 1.5 }} />
+          <Typography variant="body2" color="text.secondary">Loading editor...</Typography>
+          <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.25 }}>{pagePath}</Typography>
+        </Box>
+      </Box>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 text-red-500 text-sm">
+      <Alert severity="error" sx={{ m: 2 }} action={
+        <Button size="small" color="inherit" onClick={() => { setError(null); setStatus('init'); }}>Retry</Button>
+      }>
         Editor error: {error}
-        <button
-          onClick={() => { setError(null); setStatus('init'); }}
-          className="ml-2 underline"
-        >
-          Retry
-        </button>
-      </div>
+      </Alert>
     );
   }
 
