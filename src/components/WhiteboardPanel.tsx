@@ -11,6 +11,7 @@ import Grid from '@mui/material/Grid';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DrawIcon from '@mui/icons-material/Draw';
 import Chip from '@mui/material/Chip';
+import { useTheme } from '@mui/material/styles';
 import { Excalidraw, MainMenu, restore, restoreLibraryItems, exportToCanvas } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import type { ExcalidrawImperativeAPI, SceneData, LibraryItems } from '@excalidraw/excalidraw/types';
@@ -29,6 +30,7 @@ const THUMBNAIL_MAX = 300;
 function parseBoardMeta(content: string) {
   let elementCount = 0;
   let preview: string | null = null;
+  let previewTheme: 'dark' | 'light' | null = null;
   try {
     const parsed = JSON.parse(content);
     if (Array.isArray(parsed.elements)) {
@@ -37,8 +39,46 @@ function parseBoardMeta(content: string) {
     if (typeof parsed.preview === 'string') {
       preview = parsed.preview;
     }
+    if (parsed.previewTheme === 'dark' || parsed.previewTheme === 'light') {
+      previewTheme = parsed.previewTheme;
+    }
   } catch { /* ignore */ }
-  return { elementCount, preview };
+  return { elementCount, preview, previewTheme };
+}
+
+function invertHexColor(hex: string): string {
+  const clean = hex.replace('#', '');
+  if (clean.length !== 6) return hex;
+  const r = (255 - parseInt(clean.substring(0, 2), 16)).toString(16).padStart(2, '0');
+  const g = (255 - parseInt(clean.substring(2, 4), 16)).toString(16).padStart(2, '0');
+  const b = (255 - parseInt(clean.substring(4, 6), 16)).toString(16).padStart(2, '0');
+  return `#${r}${g}${b}`;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function adaptElementsTheme(elements: readonly any[], toDark: boolean): any[] {
+  return elements.map(el => {
+    if (!el || typeof el !== 'object') return el;
+    const copy = { ...el };
+    // Determine if this element likely uses dark-on-light or light-on-dark colors
+    // by checking stroke and background lightness
+    if (copy.strokeColor && copy.strokeColor.startsWith('#')) {
+      const r = parseInt(copy.strokeColor.slice(1, 3), 16);
+      const g = parseInt(copy.strokeColor.slice(3, 5), 16);
+      const b = parseInt(copy.strokeColor.slice(5, 7), 16);
+      const luminance = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+      const isDarkStroke = luminance < 0.5;
+      // If we need dark theme but element has dark strokes → invert
+      // If we need light theme but element has light strokes → invert
+      if ((toDark && isDarkStroke) || (!toDark && !isDarkStroke)) {
+        copy.strokeColor = invertHexColor(copy.strokeColor);
+        if (copy.backgroundColor && copy.backgroundColor.startsWith('#')) {
+          copy.backgroundColor = invertHexColor(copy.backgroundColor);
+        }
+      }
+    }
+    return copy;
+  });
 }
 
 async function generateThumbnail(
@@ -46,18 +86,19 @@ async function generateThumbnail(
   elements: readonly any[],
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   appState: any,
-): Promise<string | null> {
+  isDark: boolean,
+): Promise<{ dataUrl: string; theme: 'dark' | 'light' } | null> {
   try {
-    const isDark = document.documentElement.classList.contains('dark');
     const bgColor = isDark ? '#232329' : '#ffffff';
+    const adaptedElements = adaptElementsTheme(elements, isDark);
     const canvas = await exportToCanvas({
-      elements,
-      appState: { ...appState, viewBackgroundColor: bgColor },
+      elements: adaptedElements,
+      appState: { ...appState, viewBackgroundColor: bgColor, exportWithDarkMode: isDark },
       files: null,
       maxWidthOrHeight: THUMBNAIL_MAX,
       exportPadding: 8,
     });
-    return canvas.toDataURL('image/webp', 0.6);
+    return { dataUrl: canvas.toDataURL('image/webp', 0.6), theme: isDark ? 'dark' : 'light' };
   } catch (e) {
     console.warn('Failed to generate thumbnail:', e);
     return null;
@@ -73,6 +114,9 @@ export default function WhiteboardPanel() {
   const excalidrawRef = useRef<ExcalidrawImperativeAPI | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dirty, setDirty] = useState(false);
+  const muiTheme = useTheme();
+  const isDarkRef = useRef(muiTheme.palette.mode === 'dark');
+  useEffect(() => { isDarkRef.current = muiTheme.palette.mode === 'dark'; }, [muiTheme.palette.mode]);
 
   useEffect(() => {
     api.listWhiteboards().then(setBoards);
@@ -99,8 +143,11 @@ export default function WhiteboardPanel() {
         appState: cleanAppState,
       };
       if (generatePreview && elements.length > 0) {
-        const thumb = await generateThumbnail(elements, cleanAppState);
-        if (thumb) data.preview = thumb;
+        const thumb = await generateThumbnail(elements, cleanAppState, isDarkRef.current);
+        if (thumb) {
+          data.preview = thumb.dataUrl;
+          data.previewTheme = thumb.theme;
+        }
       }
       await api.saveWhiteboard(activeBoard, JSON.stringify(data));
       setDirty(false);
@@ -168,8 +215,8 @@ export default function WhiteboardPanel() {
   }, []);
 
   const boardMeta = boards.map(b => {
-    const { elementCount, preview } = parseBoardMeta(b.content);
-    return { ...b, elementCount, preview };
+    const { elementCount, preview, previewTheme } = parseBoardMeta(b.content);
+    return { ...b, elementCount, preview, previewTheme };
   });
 
   if (!activeBoard) {
@@ -208,7 +255,7 @@ export default function WhiteboardPanel() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    bgcolor: 'action.hover',
+                    bgcolor: b.previewTheme === 'dark' ? '#232329' : '#ffffff',
                     overflow: 'hidden',
                     position: 'relative',
                   }}>
