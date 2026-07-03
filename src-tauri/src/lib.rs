@@ -27,6 +27,7 @@ fn resolve_default_vault_path(_app: &tauri::AppHandle) -> PathBuf {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_edge_to_edge::init())
         .setup(|app| {
             let vault_path = resolve_default_vault_path(app.handle());
 
