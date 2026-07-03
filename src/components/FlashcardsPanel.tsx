@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
 import * as api from '../lib/commands';
 
-interface Card {
+interface CardData {
   id: string;
   front: string;
   back: string;
@@ -12,8 +18,15 @@ interface Card {
   next_review: string;
 }
 
+const RATINGS = [
+  { label: 'Blackout', q: 0, color: 'error' as const },
+  { label: 'Hard', q: 2, color: 'warning' as const },
+  { label: 'Good', q: 3, color: 'success' as const },
+  { label: 'Easy', q: 5, color: 'primary' as const },
+];
+
 export default function FlashcardsPanel() {
-  const [cards, setCards] = useState<Card[]>([]);
+  const [cards, setCards] = useState<CardData[]>([]);
   const [current, setCurrent] = useState(0);
   const [showBack, setShowBack] = useState(false);
   const [message, setMessage] = useState('');
@@ -39,91 +52,81 @@ export default function FlashcardsPanel() {
 
   if (cards.length === 0) {
     return (
-      <div className="p-4 max-w-2xl mx-auto">
-        <h2 className="text-lg font-semibold mb-3">Flashcards</h2>
-        <p className="text-sm text-[var(--secondary-400)]">
-          No flashcards found. Create blocks with <code>question::</code> and
-          <code> answer::</code> properties to generate cards.
-        </p>
-      </div>
+      <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
+        <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>Flashcards</Typography>
+        <Typography variant="body2" color="text.secondary">
+          No flashcards found. Create blocks with <Box component="code" sx={{ bgcolor: 'action.hover', px: 0.5, borderRadius: 0.5 }}>question::</Box> and
+          {' '}<Box component="code" sx={{ bgcolor: 'action.hover', px: 0.5, borderRadius: 0.5 }}>answer::</Box> properties to generate cards.
+        </Typography>
+      </Box>
     );
   }
 
   if (current >= cards.length) {
     return (
-      <div className="p-4 max-w-2xl mx-auto text-center">
-        <h2 className="text-lg font-semibold mb-3">Session Complete!</h2>
-        <p className="text-sm text-[var(--secondary-400)] mb-4">
+      <Box sx={{ p: 3, maxWidth: 600, mx: 'auto', textAlign: 'center' }}>
+        <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>Session Complete!</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Reviewed {cards.length} card{cards.length !== 1 ? 's' : ''}.
-        </p>
-        <button
-          onClick={() => { setCurrent(0); setShowBack(false); }}
-          className="px-4 py-2 bg-[var(--primary-500)] text-white rounded text-sm hover:bg-[var(--primary-600)]"
-        >
+        </Typography>
+        <Button variant="contained" onClick={() => { setCurrent(0); setShowBack(false); }}>
           Start Again
-        </button>
-      </div>
+        </Button>
+      </Box>
     );
   }
 
   const card = cards[current];
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      <h2 className="text-lg font-semibold mb-1">Flashcards</h2>
-      <p className="text-xs text-[var(--secondary-400)] mb-4">
+    <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
+      <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>Flashcards</Typography>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
         Card {current + 1} of {cards.length}
         {card.next_review && ` · Next: ${card.next_review}`}
-      </p>
+      </Typography>
 
       {/* Card */}
-      <div
-        className="min-h-[200px] flex items-center justify-center p-8 rounded-lg border-2 border-[var(--secondary-200)] dark:border-[var(--secondary-700)] bg-[var(--secondary-50)] dark:bg-[var(--secondary-800)] cursor-pointer mb-4"
+      <Card
+        sx={{ minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', mb: 2, border: 2, borderColor: 'divider' }}
         onClick={() => setShowBack(!showBack)}
       >
-        <div className="text-center max-w-lg">
-          <p className="text-sm text-[var(--secondary-400)] mb-2">
-            {showBack ? 'Answer' : 'Question'}
-          </p>
-          <p className="text-lg font-medium">
-            {showBack ? card.back : card.front}
-          </p>
-          <p className="text-xs text-[var(--secondary-400)] mt-4">
-            {showBack ? 'Click to see question' : 'Click to reveal answer'}
-          </p>
-        </div>
-      </div>
+        <CardContent>
+          <Box sx={{ textAlign: 'center', maxWidth: 400 }}>
+            <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 1 }}>
+              {showBack ? 'Answer' : 'Question'}
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 500 }}>
+              {showBack ? card.back : card.front}
+            </Typography>
+            <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 2 }}>
+              {showBack ? 'Click to see question' : 'Click to reveal answer'}
+            </Typography>
+          </Box>
+        </CardContent>
+      </Card>
 
       {/* Source */}
-      <p className="text-xs text-[var(--secondary-400)] mb-3 text-center">
+      <Typography variant="caption" color="text.disabled" sx={{ display: 'block', textAlign: 'center', mb: 2 }}>
         Source: {card.page_path} · Ease: {card.ease_factor.toFixed(1)} · Interval: {card.interval_days}d
-      </p>
+      </Typography>
 
       {message && (
-        <div className="text-center text-sm mb-3 font-medium text-[var(--primary-600)]">
+        <Typography variant="body2" color="primary" sx={{ textAlign: 'center', mb: 1.5, fontWeight: 500 }}>
           {message}
-        </div>
+        </Typography>
       )}
 
       {/* SM-2 rating buttons */}
       {showBack && !message && (
-        <div className="flex justify-center gap-2">
-          {[
-            { label: 'Blackout', q: 0, color: 'bg-red-500 hover:bg-red-600' },
-            { label: 'Hard', q: 2, color: 'bg-orange-500 hover:bg-orange-600' },
-            { label: 'Good', q: 3, color: 'bg-green-500 hover:bg-green-600' },
-            { label: 'Easy', q: 5, color: 'bg-[var(--primary-500)] hover:bg-[var(--primary-600)]' },
-          ].map(({ label, q, color }) => (
-            <button
-              key={q}
-              onClick={() => review(q)}
-              className={`px-3 py-1.5 text-white text-xs rounded ${color}`}
-            >
+        <Stack direction="row" spacing={1} sx={{ justifyContent: 'center' }}>
+          {RATINGS.map(({ label, q, color }) => (
+            <Button key={q} variant="contained" color={color} size="small" onClick={() => review(q)}>
               {label}
-            </button>
+            </Button>
           ))}
-        </div>
+        </Stack>
       )}
-    </div>
+    </Box>
   );
 }

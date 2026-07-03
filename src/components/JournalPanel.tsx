@@ -1,5 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import Alert from '@mui/material/Alert';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useStore } from '../stores/appStore';
 import * as api from '../lib/commands';
 
@@ -13,6 +20,11 @@ function formatDate(d: Date): string {
 function journalPath(date: string): string {
   return `journals/${date}.md`;
 }
+
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
 
 export default function JournalPanel() {
   const navigate = useNavigate();
@@ -81,51 +93,38 @@ export default function JournalPanel() {
     }
   };
 
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
-
   return (
-    <div className="p-4">
-      {/* Error display */}
+    <Box sx={{ p: 3, maxWidth: 400, mx: 'auto' }}>
       {error && (
-        <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 text-xs rounded">
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
-          <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
-        </div>
+        </Alert>
       )}
 
       {/* Month navigation */}
-      <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={prevMonth}
-          className="px-2 py-1 text-sm rounded hover:bg-[var(--secondary-200)] dark:hover:bg-[var(--secondary-700)]"
-        >
-          ←
-        </button>
-        <h3 className="text-sm font-semibold">
-          {months[viewMonth]} {viewYear}
-        </h3>
-        <button
-          onClick={nextMonth}
-          className="px-2 py-1 text-sm rounded hover:bg-[var(--secondary-200)] dark:hover:bg-[var(--secondary-700)]"
-        >
-          →
-        </button>
-      </div>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <IconButton size="small" onClick={prevMonth}>
+          <ChevronLeftIcon />
+        </IconButton>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+          {MONTHS[viewMonth]} {viewYear}
+        </Typography>
+        <IconButton size="small" onClick={nextMonth}>
+          <ChevronRightIcon />
+        </IconButton>
+      </Box>
 
       {/* Day headers */}
-      <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.25, textAlign: 'center', mb: 0.5 }}>
         {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-          <div key={d} className="text-xs text-[var(--secondary-400)] py-1">{d}</div>
+          <Typography key={d} variant="caption" color="text.disabled" sx={{ py: 0.5 }}>{d}</Typography>
         ))}
-      </div>
+      </Box>
 
       {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-0.5">
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.25 }}>
         {Array.from({ length: firstDay }).map((_, i) => (
-          <div key={`empty-${i}`} />
+          <Box key={`empty-${i}`} />
         ))}
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
@@ -134,30 +133,34 @@ export default function JournalPanel() {
           const isSelected = date === selectedDate;
 
           return (
-            <button
+            <Button
               key={day}
+              size="small"
               onClick={() => goToJournal(date)}
-              className={`
-                text-xs p-1.5 rounded text-center transition-colors
-                ${isToday ? 'bg-[var(--primary-100)] dark:bg-[var(--primary-900)]/30 text-[var(--primary-700)] dark:text-[var(--primary-300)] font-bold' : ''}
-                ${isSelected && !isToday ? 'bg-[var(--secondary-200)] dark:bg-[var(--secondary-700)]' : ''}
-                hover:bg-[var(--secondary-100)] dark:hover:bg-[var(--secondary-800)]
-              `}
+              sx={{
+                minWidth: 0, p: 0.75, fontSize: '0.75rem', borderRadius: 1,
+                fontWeight: isToday ? 700 : 400,
+                bgcolor: isToday ? 'primary.light' : isSelected ? 'action.selected' : 'transparent',
+                color: isToday ? 'primary.contrastText' : undefined,
+                '&:hover': { bgcolor: isToday ? 'primary.light' : 'action.hover' },
+              }}
             >
               {day}
-            </button>
+            </Button>
           );
         })}
-      </div>
+      </Box>
 
       {/* Today button */}
-      <button
+      <Button
+        variant="contained"
+        fullWidth
         onClick={() => goToJournal(formatDate(today))}
         disabled={creating}
-        className="mt-4 w-full px-3 py-2 bg-[var(--primary-500)] text-white rounded text-sm hover:bg-[var(--primary-600)] disabled:opacity-50"
+        sx={{ mt: 2 }}
       >
         {creating ? 'Creating...' : `Today: ${formatDate(today)}`}
-      </button>
-    </div>
+      </Button>
+    </Box>
   );
 }
