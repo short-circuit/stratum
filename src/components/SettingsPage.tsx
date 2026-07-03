@@ -41,7 +41,7 @@ const CAPABILITIES = ['chat', 'embedding', 'tts'] as const;
 type Tab = 'vault' | 'theme' | 'ai' | 'research' | 'developer';
 
 export default function SettingsPage() {
-  const { pickVaultDirectory } = useStore();
+  const { pickVaultDirectory, setThemeConfig } = useStore();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [settings, setSettings] = useState<any>(null);
   const [saving, setSaving] = useState(false);
@@ -88,6 +88,12 @@ export default function SettingsPage() {
     const newTheme = { ...theme, ...patch };
     setSettings({ ...settings, theme: newTheme });
     applyTheme(newTheme.primary_color, newTheme.secondary_color, newTheme.dark_mode, newTheme.font_size);
+    setThemeConfig({
+      primaryHex: newTheme.primary_color,
+      secondaryHex: newTheme.secondary_color,
+      dark: newTheme.dark_mode,
+      fontSize: newTheme.font_size || 16,
+    });
   };
 
   const handleSave = async () => {
