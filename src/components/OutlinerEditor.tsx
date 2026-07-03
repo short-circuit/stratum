@@ -252,7 +252,7 @@ export default function OutlinerEditor({ pagePath }: Props) {
       <BlockNoteView
         editor={editor}
         theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
-        className="min-h-[400px] h-full"
+        style={{ minHeight: '400px', height: '100%' }}
         slashMenu={false}
         formattingToolbar={false}
       >

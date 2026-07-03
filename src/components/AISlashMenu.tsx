@@ -72,7 +72,7 @@ export default function AISlashMenu({ pagePath }: Props) {
       subtext,
       aliases: [],
       group: 'AI',
-      icon: <span className="text-xs opacity-60">✨</span>,
+      icon: <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>✨</span>,
       onItemClick: () => {
         setLoading(title);
         (async () => {
@@ -125,7 +125,7 @@ export default function AISlashMenu({ pagePath }: Props) {
       subtext: 'Search the web and write research notes',
       aliases: ['research', 'search', 'web'],
       group: 'AI',
-      icon: <span className="text-xs opacity-60">🌐</span>,
+      icon: <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>🌐</span>,
       onItemClick: async () => {
         setLoading('Researching...');
         try {
@@ -169,7 +169,7 @@ export default function AISlashMenu({ pagePath }: Props) {
         subtext: 'Search vault and add [[wiki-links]] to related notes',
         aliases: ['interlink', 'wikilinks', 'connect'],
         group: 'AI',
-        icon: <span className="text-xs opacity-60">🔗</span>,
+        icon: <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>🔗</span>,
         onItemClick: async () => {
           setLoading('Interlinking...');
           try {
@@ -204,7 +204,7 @@ export default function AISlashMenu({ pagePath }: Props) {
         subtext: 'Search vault and add [[wiki-links]] to related notes',
         aliases: ['interlink', 'wikilinks', 'connect'],
         group: 'AI',
-        icon: <span className="text-xs opacity-60">🔗</span>,
+        icon: <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>🔗</span>,
         onItemClick: async () => {
           setLoading('Interlinking...');
           try {
@@ -237,7 +237,7 @@ export default function AISlashMenu({ pagePath }: Props) {
       subtext: 'Insert a LaTeX math equation',
       aliases: ['math', 'equation', 'latex', 'formula'],
       group: 'Blocks',
-      icon: <span className="text-xs opacity-60">Σ</span>,
+      icon: <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>Σ</span>,
       onItemClick: () => {
         capturedRef.current = '';
         setMathModal({
@@ -257,7 +257,7 @@ export default function AISlashMenu({ pagePath }: Props) {
       subtext: 'Create a diagram from a description',
       aliases: ['mermaid', 'diagram', 'chart'],
       group: 'AI',
-      icon: <span className="text-xs opacity-60">📊</span>,
+      icon: <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>📊</span>,
       onItemClick: async () => {
         setLoading('Generating Mermaid...');
         try {
