@@ -118,22 +118,22 @@ export default function Sidebar() {
         }}
       >
             {!collapsed && (
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box component="span" sx={{ color: 'primary.main', display: 'flex', fontSize: 24, lineHeight: 0 }}>
-                    <StratumIcon />
-                  </Box>
-                  <Typography variant="h6" noWrap sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0 }}>
+                <Box sx={{ color: 'primary.main', display: 'flex', fontSize: 28, flexShrink: 0 }}>
+                  <StratumIcon />
+                </Box>
+                <Box sx={{ minWidth: 0, lineHeight: 1.2 }}>
+                  <Typography variant="h6" noWrap sx={{ fontWeight: 700, fontSize: '1rem' }}>
                     stratum
                   </Typography>
+                  {vault && (
+                    <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', mt: 0.1 }}>
+                      {vault.block_count}b · {vault.page_count}p
+                    </Typography>
+                  )}
                 </Box>
-            {vault && (
-              <Typography variant="caption" color="text.secondary" noWrap sx={{ mt: 0.25, display: 'block' }}>
-                {vault.block_count}b · {vault.page_count}p
-              </Typography>
+              </Box>
             )}
-          </Box>
-        )}
         <IconButton
           size="small"
           onClick={() => setCollapsed(c => !c)}

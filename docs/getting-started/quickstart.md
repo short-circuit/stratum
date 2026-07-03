@@ -31,12 +31,12 @@ The main interface has three areas:
 
 | Tab | Icon | Function |
 |-----|------|----------|
-| Journal | :material-calendar: | Daily notes |
-| Pages | :material-file-document: | Page list, create/delete |
-| Graph | :material-chart-network: | Knowledge graph visualization |
+| Journal | :material-calendar-month: | Daily notes |
+| Pages | :material-file-document-outline: | Page list, create/delete |
+| Graph | :material-hub: | Knowledge graph visualization |
 | Search | :material-magnify: | Full-text block search |
-| Query | :material-table: | Datalog query interface |
-| Templates | :material-file-code: | Reusable page templates |
+| Query | :material-code-tags: | Datalog query interface |
+| Templates | :material-clipboard-text-outline: | Reusable page templates |
 | Flashcards | :material-cards: | Spaced repetition review |
 | Whiteboards | :material-draw: | Excalidraw spatial canvas |
 | Settings | :material-cog: | App configuration |

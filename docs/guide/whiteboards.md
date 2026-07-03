@@ -6,7 +6,7 @@ Whiteboards provide a spatial canvas for free-form ideation, diagrams, and visua
 
 ## Opening Whiteboards
 
-Click **🎨 Whiteboards** in the sidebar or navigate to `/whiteboards`.
+Click **:material-draw: Whiteboards** in the sidebar or navigate to `/whiteboards`.
 
 ## Creating a Whiteboard
 
