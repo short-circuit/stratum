@@ -1,4 +1,14 @@
 import { useState } from 'react';
+import Box from '@mui/material/Box';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import Alert from '@mui/material/Alert';
+import Table from '@mui/material/Table';
+import TableHead from '@mui/material/TableHead';
+import TableBody from '@mui/material/TableBody';
+import TableRow from '@mui/material/TableRow';
+import TableCell from '@mui/material/TableCell';
 import * as api from '../lib/commands';
 
 export default function QueryPanel() {
@@ -23,66 +33,61 @@ export default function QueryPanel() {
   };
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
-      <h2 className="text-lg font-semibold mb-3">Datalog Query</h2>
+    <Box sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
+      <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>Datalog Query</Typography>
 
-      <textarea
+      <TextField
+        multiline
+        minRows={6}
         value={datalog}
         onChange={e => setDatalog(e.target.value)}
-        className="w-full h-32 px-3 py-2 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)] text-sm font-mono"
         placeholder="Enter Datalog query..."
+        fullWidth
+        sx={{ mb: 1.5, '& .MuiInputBase-root': { fontFamily: 'monospace', fontSize: '0.875rem' } }}
       />
 
-      <div className="flex gap-2 mt-2 mb-4">
-        <button
-          onClick={doQuery}
-          disabled={running}
-          className="px-4 py-2 bg-[var(--primary-500)] text-white rounded text-sm hover:bg-[var(--primary-600)] disabled:opacity-50"
-        >
+      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+        <Button variant="contained" onClick={doQuery} disabled={running}>
           {running ? 'Running...' : 'Run Query'}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="text"
           onClick={() => setDatalog('{:query [:find ?b :where [?b :block/marker "TODO"]]}')}
-          className="px-3 py-2 text-sm text-[var(--secondary-500)] hover:text-[var(--secondary-700)] dark:hover:text-[var(--secondary-300)]"
         >
           Reset
-        </button>
-      </div>
+        </Button>
+      </Box>
 
       {error && (
-        <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 rounded text-sm mb-3">
-          {error}
-        </div>
+        <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
       )}
 
       {result && result.rows.length > 0 && (
-        <div className="overflow-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr>
+        <Box sx={{ overflow: 'auto' }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
                 {result.columns.map((col, i) => (
-                  <th key={i} className="text-left px-3 py-2 bg-[var(--secondary-100)] dark:bg-[var(--secondary-800)] border-b border-[var(--secondary-200)] dark:border-[var(--secondary-700)]">
-                    {col}
-                  </th>
+                  <TableCell key={i} sx={{ fontWeight: 600 }}>{col}</TableCell>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {result.rows.map((row, i) => (
-                <tr key={i} className="border-b border-[var(--secondary-100)] dark:border-[var(--secondary-800)]">
+                <TableRow key={i}>
                   {row.map((cell, j) => (
-                    <td key={j} className="px-3 py-2">{cell}</td>
+                    <TableCell key={j}>{cell}</TableCell>
                   ))}
-                </tr>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Box>
       )}
 
       {result && result.rows.length === 0 && (
-        <p className="text-[var(--secondary-400)] text-sm">Query returned no results.</p>
+        <Typography variant="body2" color="text.secondary">Query returned no results.</Typography>
       )}
-    </div>
+    </Box>
   );
 }
