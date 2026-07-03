@@ -76,8 +76,11 @@ npm run lint
 
 - TypeScript 6.0 strict mode
 - React 19 with function components and hooks
+- **MUI (Material UI)** v6 for UI components — use `@mui/material` and `@mui/icons-material`
+  - Use the `sx` prop for styling (not Tailwind)
+  - Icons from `@mui/icons-material` — match existing icon style and naming
+  - Use MUI's built-in `theme` (light/dark) via `useTheme()` hook
 - Zustand for global state
-- Tailwind CSS v4 for styling
 - Tauri `invoke()` wrappers in `src/lib/commands.ts`
 - DTO types in `src/lib/types.ts`
 
