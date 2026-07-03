@@ -1,0 +1,26 @@
+name: DCO
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check Signed-off-by in commits
+        run: |
+          # Check every commit in the PR for Signed-off-by trailer
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          git log "$base..$head" --format="%H %s" | while read sha msg; do
+            if ! git log -1 --format="%(trailers:key=Signed-off-by,valueonly)" "$sha" | grep -q '.\+'; then
+              echo "::error::Commit $sha is missing Signed-off-by trailer"
+              exit 1
+            fi
+          done
+          echo "All commits have Signed-off-by"
