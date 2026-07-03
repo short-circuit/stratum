@@ -4,7 +4,7 @@ Stratum stores its configuration in `.pkm/config.toml` inside your vault directo
 
 ## Quick Access
 
-You can edit most settings through the **Settings** panel (⚙ in the sidebar).
+You can edit most settings through the **Settings** panel (:material-cog: in the sidebar).
 The configuration file is also directly editable — Stratum auto-reloads on changes.
 
 ## Configuration File Reference
