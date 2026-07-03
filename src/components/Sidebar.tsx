@@ -119,7 +119,7 @@ export default function Sidebar() {
       >
             {!collapsed && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0 }}>
-                <StratumIcon style={{ width: '1.5rem', height: '1.5rem', flexShrink: 0, color: 'var(--primary-500)' }} />
+                <StratumIcon style={{ width: '1.5rem', height: '1.5rem', color: 'var(--primary-500)', flexShrink: 0 }} />
                 <Box sx={{ minWidth: 0, lineHeight: 1.2 }}>
                   <Typography variant="h6" noWrap sx={{ fontWeight: 700, fontSize: '1rem' }}>
                     stratum
