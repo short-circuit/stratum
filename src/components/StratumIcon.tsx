@@ -1,4 +1,7 @@
-import appIconUrl from '../../src-tauri/icons/app-icon.svg';
+import iconRaw from '../../src-tauri/icons/app-icon.svg?raw';
+
+// Strip hardcoded fill so icon inherits currentColor
+const iconSvg = iconRaw.replace(/style="[^"]*"/, '').replace('<svg', '<svg fill="currentColor"');
 
 interface StratumIconProps {
   className?: string;
@@ -7,12 +10,10 @@ interface StratumIconProps {
 
 export default function StratumIcon({ className, style }: StratumIconProps) {
   return (
-    <img
-      src={appIconUrl}
-      alt="Stratum"
+    <span
       className={className}
-      style={{ ...style, display: 'block' }}
-      draggable={false}
+      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', ...style }}
+      dangerouslySetInnerHTML={{ __html: iconSvg }}
     />
   );
 }
