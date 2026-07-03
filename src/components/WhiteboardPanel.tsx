@@ -48,9 +48,11 @@ async function generateThumbnail(
   appState: any,
 ): Promise<string | null> {
   try {
+    const isDark = document.documentElement.classList.contains('dark');
+    const bgColor = isDark ? '#232329' : '#ffffff';
     const canvas = await exportToCanvas({
       elements,
-      appState: { ...appState, viewBackgroundColor: appState.viewBackgroundColor || '#ffffff' },
+      appState: { ...appState, viewBackgroundColor: bgColor },
       files: null,
       maxWidthOrHeight: THUMBNAIL_MAX,
       exportPadding: 8,
