@@ -6,7 +6,7 @@ The Journal provides daily notes — automatically created pages for each day.
 
 ## Opening the Journal
 
-Click **📅 Journal** in the sidebar or navigate to `/journal`.
+Click **:material-calendar-month: Journal** in the sidebar or navigate to `/journal`.
 
 ## How it Works
 

@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback, startTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import List from '@mui/material/List';
+import ListItemButton from '@mui/material/ListItemButton';
+import SearchIcon from '@mui/icons-material/Search';
 import * as api from '../lib/commands';
 import type { SearchResultDto } from '../lib/types';
 
@@ -57,54 +64,45 @@ export default function SearchPanel() {
   };
 
   return (
-    <div className="p-4 max-w-3xl mx-auto">
-      <div className="flex gap-2 mb-2">
-        <input
-          type="text"
+    <Box sx={{ p: 3, maxWidth: 700, mx: 'auto' }}>
+      <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+        <TextField
+          size="small"
+          placeholder="Search blocks... (prefix with # to search tags)"
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
-          placeholder="Search blocks... (prefix with # to search tags)"
-          className="flex-1 px-3 py-2 rounded border border-[var(--secondary-300)] dark:border-[var(--secondary-600)] bg-white dark:bg-[var(--secondary-800)] text-sm"
+          fullWidth
+          slotProps={{ input: { startAdornment: <SearchIcon fontSize="small" sx={{ mr: 0.5, color: 'text.disabled' }} /> } }}
         />
-        <button
-          onClick={handleSearch}
-          disabled={searching}
-          className="px-4 py-2 bg-[var(--primary-500)] text-white rounded text-sm hover:bg-[var(--primary-600)] disabled:opacity-50"
-        >
+        <Button variant="contained" onClick={handleSearch} disabled={searching} sx={{ whiteSpace: 'nowrap' }}>
           {searching ? '...' : 'Search'}
-        </button>
-      </div>
-      <div className="flex items-center gap-2 mb-4">
-        <button
-          onClick={doReindex}
-          disabled={indexing}
-          className="text-xs text-[var(--secondary-400)] hover:text-[var(--secondary-600)] dark:hover:text-[var(--secondary-300)] disabled:opacity-50"
-        >
+        </Button>
+      </Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+        <Button size="small" variant="text" onClick={doReindex} disabled={indexing} sx={{ color: 'text.secondary', textTransform: 'none', fontSize: '0.75rem' }}>
           {indexing ? 'Indexing...' : 'Rebuild search index'}
-        </button>
-        {indexMsg && <span className="text-xs text-[var(--secondary-500)]">{indexMsg}</span>}
-      </div>
+        </Button>
+        {indexMsg && <Typography variant="caption" color="text.secondary">{indexMsg}</Typography>}
+      </Box>
 
-      <div className="space-y-2">
+      <List disablePadding>
         {results.map((r, i) => (
-          <button
+          <ListItemButton
             key={i}
             onClick={() => navigate(`/page/${encodeURIComponent(r.page_path)}`)}
-            className="w-full text-left p-3 rounded border border-[var(--secondary-200)] dark:border-[var(--secondary-700)] hover:border-[var(--primary-400)] hover:bg-[var(--primary-50)] dark:hover:bg-[var(--primary-900)]/10 transition-colors"
+            sx={{ borderRadius: 1, mb: 0.5, border: 1, borderColor: 'divider', flexDirection: 'column', alignItems: 'flex-start' }}
           >
-            <div className="text-xs text-[var(--secondary-500)] mb-1 flex items-center gap-2">
-              <span>{r.page_path}</span>
-              <span className="text-[var(--secondary-300)]">·</span>
-              <span>score: {r.score.toFixed(2)}</span>
-            </div>
-            <p className="text-sm">{r.snippet}</p>
-          </button>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.25 }}>
+              {r.page_path} · score: {r.score.toFixed(2)}
+            </Typography>
+            <Typography variant="body2">{r.snippet}</Typography>
+          </ListItemButton>
         ))}
         {results.length === 0 && query && !searching && (
-          <p className="text-[var(--secondary-400)] text-sm">No results found.</p>
+          <Typography variant="body2" color="text.secondary">No results found.</Typography>
         )}
-      </div>
-    </div>
+      </List>
+    </Box>
   );
 }

@@ -6,7 +6,7 @@ Templates let you create reusable page structures with variable substitution.
 
 ## Opening Templates
 
-Click **📋 Templates** in the sidebar or navigate to `/templates`.
+Click **:material-clipboard-text-outline: Templates** in the sidebar or navigate to `/templates`.
 
 ## Creating a Template
 

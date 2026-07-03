@@ -5,6 +5,9 @@ import {
   FormattingToolbar,
   getFormattingToolbarItems,
 } from '@blocknote/react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import CircularProgress from '@mui/material/CircularProgress';
 import * as api from '../lib/commands';
 
 export default function AIFormattingToolbar() {
@@ -49,15 +52,12 @@ export default function AIFormattingToolbar() {
   return (
     <>
       {busy && (
-        <div className="fixed inset-0 z-[9998] bg-black/10 dark:bg-black/30 flex items-start justify-center pt-32">
-          <div className="bg-white dark:bg-[#1a1a2e] border border-[var(--secondary-200)] dark:border-[var(--secondary-700)] rounded-lg shadow-xl px-6 py-4 flex items-center gap-3">
-            <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            <span className="text-sm">AI {busy}...</span>
-          </div>
-        </div>
+        <Box sx={{ position: 'fixed', inset: 0, zIndex: 9998, bgcolor: 'rgba(0,0,0,0.1)', display: 'flex', justifyContent: 'center', pt: 16 }}>
+          <Box sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 2, boxShadow: 4, px: 3, py: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <CircularProgress size={18} />
+            <Typography variant="body2">AI {busy}...</Typography>
+          </Box>
+        </Box>
       )}
       <FormattingToolbarController
         formattingToolbar={({ blockTypeSelectItems }) => (

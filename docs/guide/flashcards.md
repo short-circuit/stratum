@@ -20,7 +20,7 @@ Create blocks with `question::` and `answer::` properties in your notes. Stratum
 
 ## Opening Flashcards
 
-Click **🃏 Flashcards** in the sidebar or navigate to `/flashcards`.
+Click **:material-cards: Flashcards** in the sidebar or navigate to `/flashcards`.
 
 ## Review Session
 
