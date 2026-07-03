@@ -6,7 +6,7 @@ interface StratumIconProps {
 export default function StratumIcon({ className, size }: StratumIconProps) {
   const s = size ?? 20;
   return (
-    <svg viewBox="0 0 512 512" width={s} height={s} className={className}>
+    <svg viewBox="-74 -219 578 578" width={s} height={s} className={className}>
       <StratumPath />
     </svg>
   );
