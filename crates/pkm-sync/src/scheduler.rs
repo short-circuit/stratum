@@ -16,6 +16,8 @@ pub struct SchedulerConfig {
     pub branch: String,
     /// Interval in seconds between sync ticks.
     pub interval_secs: u64,
+    /// Path to SSH private key for git authentication.
+    pub ssh_key_path: Option<std::path::PathBuf>,
 }
 
 impl Default for SchedulerConfig {
@@ -24,6 +26,7 @@ impl Default for SchedulerConfig {
             remote: "origin".to_string(),
             branch: "main".to_string(),
             interval_secs: 300, // 5 minutes
+            ssh_key_path: None,
         }
     }
 }
@@ -341,6 +344,7 @@ mod tests {
                 remote: "origin".to_string(),
                 branch: "main".to_string(),
                 interval_secs: 60,
+                ssh_key_path: None,
             },
         );
 
@@ -381,6 +385,7 @@ mod tests {
                 remote: "origin".to_string(),
                 branch: "main".to_string(),
                 interval_secs: 60,
+                ssh_key_path: None,
             },
         );
 

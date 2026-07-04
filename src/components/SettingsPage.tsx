@@ -13,6 +13,7 @@ import Alert from '@mui/material/Alert';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import ToggleButton from '@mui/material/ToggleButton';
+import type { SyncStatusDto, CommitLogEntry } from '../lib/types';
 import { useStore } from '../stores/appStore';
 import * as api from '../lib/commands';
 import { applyTheme } from '../lib/theme';
@@ -34,11 +35,13 @@ const PROVIDERS = [
   { value: 'google', label: 'Google AI' },
   { value: 'zai', label: 'Z.AI' },
   { value: 'custom', label: 'Custom (OpenAI-compatible)' },
+  { value: 'custom-openai', label: 'Custom OpenAI API' },
+  { value: 'custom-anthropic', label: 'Custom Anthropic API' },
 ];
 
 const CAPABILITIES = ['chat', 'embedding', 'tts'] as const;
 
-type Tab = 'vault' | 'theme' | 'ai' | 'research' | 'developer';
+type Tab = 'vault' | 'theme' | 'ai' | 'research' | 'developer' | 'sync';
 
 export default function SettingsPage() {
   const { pickVaultDirectory, setThemeConfig } = useStore();
@@ -52,6 +55,13 @@ export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>('vault');
   const savedThemeRef = useRef<{ primary: string; secondary: string; dark: boolean; fontSize: number } | null>(null);
   const muiSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatusDto | null>(null);
+  const [commits, setCommits] = useState<CommitLogEntry[]>([]);
+  const [commitsOpen, setCommitsOpen] = useState(false);
+  const [conflictModalOpen, setConflictModalOpen] = useState(false);
+  const [conflictFiles, setConflictFiles] = useState<string[]>([]);
+  const [passphraseModalOpen, setPassphraseModalOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const syncMuiTheme = useCallback((primary: string, secondary: string, dark: boolean, fontSize: number) => {
     if (muiSyncTimer.current) clearTimeout(muiSyncTimer.current);
@@ -73,6 +83,9 @@ export default function SettingsPage() {
         setThemeConfig({ primaryHex: p, secondaryHex: sec, dark: d, fontSize: f });
       }
     }).catch(err => { setMsg(`Load failed: ${err}`); setMsgSeverity('error'); });
+
+    api.getSyncStatus().then(setSyncStatus).catch(() => {});
+    api.getCommitLog().then(setCommits).catch(() => {});
 
     return () => {
       // Restore saved theme on unmount without save
@@ -96,6 +109,15 @@ export default function SettingsPage() {
   const ai = settings.ai;
   const research = settings.research || { searxng_endpoint: 'http://localhost:8888', max_results: 3, max_depth: 2 };
   const theme = settings.theme || { dark_mode: true, primary_color: '#f97316', secondary_color: '#6b7280', font_size: 16 };
+  const syncSettings = settings.sync || {
+    mode: 'manual',
+    remote_url: null,
+    branch: 'main',
+    auto_commit_interval_secs: 300,
+    auto_sync_interval_secs: 1800,
+    ssh_key_path: null,
+    commit_template: "stratum({datetime}): {editedfiles} edited, {newfiles} added, {deletedfiles} deleted",
+  };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateAi = (patch: any) => setSettings({ ...settings, ai: { ...ai, ...patch } });
@@ -110,6 +132,8 @@ export default function SettingsPage() {
     applyTheme(newTheme.primary_color, newTheme.secondary_color, newTheme.dark_mode, newTheme.font_size);
     syncMuiTheme(newTheme.primary_color, newTheme.secondary_color, newTheme.dark_mode, newTheme.font_size || 16);
   };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateSync = (patch: any) => setSettings({ ...settings, sync: { ...syncSettings, ...patch } });
 
   const handleSave = async () => {
     setSaving(true); setMsg('');
@@ -133,6 +157,29 @@ export default function SettingsPage() {
     try { const models = await api.fetchModels(); setAvailableModels(models); setMsg(`Found ${models.length} models`); setMsgSeverity('success'); }
     catch (e) { setMsg(`Fetch failed: ${e}`); setMsgSeverity('error'); }
     finally { setFetching(false); }
+  };
+
+  const handleSyncNow = async () => {
+    setSyncing(true);
+    setMsg('');
+    try {
+      const result = await api.syncVault();
+      setSyncStatus(result);
+      if (result.status === 'conflicts') {
+        setConflictFiles(result.conflicts);
+        setConflictModalOpen(true);
+      }
+      setMsg(result.status === 'ok' ? 'Sync completed.' : result.status === 'conflicts' ? `Conflicts in ${result.conflicts.length} file(s).` : 'Sync had errors.');
+    } catch (e) {
+      const errStr = String(e);
+      if (errStr.includes('NeedsPassphrase') || errStr.includes('passphrase')) {
+        setPassphraseModalOpen(true);
+      } else {
+        setMsg(`Sync failed: ${e}`);
+      }
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const toggleModelCapability = (modelName: string, cap: string) => {
@@ -162,8 +209,9 @@ export default function SettingsPage() {
           <Tab label="Theme" value="theme" sx={{ minHeight: 40, textTransform: 'none' }} />
           <Tab label="AI" value="ai" sx={{ minHeight: 40, textTransform: 'none' }} />
           <Tab label="Research" value="research" sx={{ minHeight: 40, textTransform: 'none' }} />
-          <Tab label="Developer" value="developer" sx={{ minHeight: 40, textTransform: 'none' }} />
-        </Tabs>
+           <Tab label="Developer" value="developer" sx={{ minHeight: 40, textTransform: 'none' }} />
+           <Tab label="Sync" value="sync" sx={{ minHeight: 40, textTransform: 'none' }} />
+         </Tabs>
         <Box sx={{ flex: 1 }} />
         <Button
           variant="contained"
@@ -333,7 +381,7 @@ export default function SettingsPage() {
                 {PROVIDERS.map(p => <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>)}
               </Select>
 
-              {(ai.provider === 'ollama' || ai.provider === 'custom' || ai.provider === 'zai') && (
+              {(ai.provider === 'ollama' || ai.provider === 'custom' || ai.provider === 'zai' || ai.provider === 'custom-openai' || ai.provider === 'custom-anthropic') && (
                 <TextField
                   label="API Endpoint URL"
                   placeholder="http://localhost:11434"
@@ -488,6 +536,558 @@ export default function SettingsPage() {
             </Box>
           </Box>
         )}
+
+        {tab === 'sync' && (
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>Sync</Typography>
+
+            <Box sx={{ maxWidth: 600, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              {/* Section 1 — Sync Mode */}
+              <Box>
+                <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}>
+                  Sync Mode
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                  {['manual', 'auto_commit', 'auto_sync', 'background'].map(mode => (
+                    <Box
+                      key={mode}
+                      component="button"
+                      onClick={() => updateSync({ mode })}
+                      sx={{
+                        px: 2,
+                        py: 1,
+                        borderRadius: 1,
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        textTransform: 'capitalize',
+                        bgcolor: syncSettings.mode === mode ? 'var(--primary-500)' : 'action.selected',
+                        color: syncSettings.mode === mode ? '#fff' : 'text.primary',
+                        '&:hover': { opacity: 0.85 },
+                      }}
+                    >
+                      {mode === 'auto_commit' ? 'Auto-Commit' : mode === 'auto_sync' ? 'Auto-Sync' : mode}
+                    </Box>
+                  ))}
+                </Box>
+                <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.75 }}>
+                  {syncSettings.mode === 'manual' && 'Sync only when you click the Sync button. No automatic commits.'}
+                  {syncSettings.mode === 'auto_commit' && 'Changes are automatically committed to git on a timer. Manual push/pull required.'}
+                  {syncSettings.mode === 'auto_sync' && 'Automatic commits + periodic push/pull to remote.'}
+                  {syncSettings.mode === 'background' && 'Full background sync — commits, push, and pull happen automatically.'}
+                </Typography>
+              </Box>
+
+              {/* Section 2 — Remote & Branch */}
+              <Box>
+                <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}>
+                  Remote & Branch
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    size="small"
+                    placeholder="git@github.com:user/vault.git"
+                    value={syncSettings.remote_url || ''}
+                    onChange={e => updateSync({ remote_url: e.target.value || null })}
+                    sx={{ flex: 1, '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.75rem' } }}
+                  />
+                  <TextField
+                    size="small"
+                    placeholder="main"
+                    value={syncSettings.branch}
+                    onChange={e => updateSync({ branch: e.target.value || 'main' })}
+                    sx={{ width: 120, '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.75rem' } }}
+                  />
+                </Box>
+              </Box>
+
+              {/* Section 3 — SSH Key */}
+              <Box>
+                <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}>
+                  SSH Key Path
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <TextField
+                    size="small"
+                    placeholder="~/.ssh/id_ed25519"
+                    value={syncSettings.ssh_key_path || ''}
+                    onChange={e => updateSync({ ssh_key_path: e.target.value || null })}
+                    sx={{ flex: 1, '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.75rem' } }}
+                  />
+                  <Box
+                    sx={{
+                      px: 1.5,
+                      py: 0.25,
+                      borderRadius: 1,
+                      fontSize: '0.65rem',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      bgcolor: syncSettings.ssh_key_path ? '#10b981' : '#6b7280',
+                      color: '#fff',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {syncSettings.ssh_key_path ? 'Set' : 'Agent'}
+                  </Box>
+                </Box>
+                <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.25 }}>
+                  Leave empty to use SSH agent.
+                </Typography>
+              </Box>
+
+              {/* Section 4 — Auto-Commit Settings */}
+              {['auto_commit', 'auto_sync', 'background'].includes(syncSettings.mode) && (
+                <Box>
+                  <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}>
+                    Auto-Commit Settings
+                  </Typography>
+                  <TextField
+                    label="Commit Interval (seconds)"
+                    type="number"
+                    value={syncSettings.auto_commit_interval_secs}
+                    onChange={e => updateSync({ auto_commit_interval_secs: parseInt(e.target.value) || 30 })}
+                    size="small"
+                    slotProps={{ htmlInput: { min: 30 } }}
+                    sx={{ width: 200, mb: 1.5 }}
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                    Commit Message Template
+                  </Typography>
+                  <TextField
+                    size="small"
+                    value={syncSettings.commit_template}
+                    onChange={e => updateSync({ commit_template: e.target.value })}
+                    slotProps={{ htmlInput: { 'data-template-input': '' } }}
+                    sx={{
+                      width: '100%',
+                      mb: 0.75,
+                      '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.75rem' },
+                    }}
+                  />
+                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1 }}>
+                    {['{datetime}', '{editedfiles}', '{newfiles}', '{deletedfiles}', '{count}'].map(placeholder => (
+                      <Box
+                        key={placeholder}
+                        component="button"
+                        onClick={() => {
+                          const input = document.querySelector('[data-template-input]') as HTMLInputElement;
+                          if (input) {
+                            const start = input.selectionStart ?? input.value.length;
+                            const end = input.selectionEnd ?? start;
+                            const before = input.value.substring(0, start);
+                            const after = input.value.substring(end);
+                            input.value = before + placeholder + after;
+                            input.selectionStart = input.selectionEnd = start + placeholder.length;
+                            input.focus();
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                          }
+                        }}
+                        sx={{
+                          px: 1,
+                          py: 0.25,
+                          borderRadius: 0.5,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          bgcolor: 'action.hover',
+                          cursor: 'pointer',
+                          fontSize: '0.65rem',
+                          fontFamily: 'monospace',
+                          color: 'text.secondary',
+                          '&:hover': { bgcolor: 'action.selected' },
+                        }}
+                      >
+                        {placeholder}
+                      </Box>
+                    ))}
+                  </Box>
+                  <Box
+                    sx={{
+                      px: 1,
+                      py: 0.75,
+                      borderRadius: 0.5,
+                      bgcolor: 'action.hover',
+                      fontSize: '0.7rem',
+                      fontFamily: 'monospace',
+                      color: 'text.disabled',
+                    }}
+                  >
+                    Preview: {syncSettings.commit_template
+                      .replace('{datetime}', new Date().toISOString().slice(0, 19).replace('T', ' '))
+                      .replace('{editedfiles}', '3')
+                      .replace('{newfiles}', '1')
+                      .replace('{deletedfiles}', '0')
+                      .replace('{count}', '4')}
+                  </Box>
+                </Box>
+              )}
+
+              {/* Section 5 — Auto-Sync Settings */}
+              {['auto_sync', 'background'].includes(syncSettings.mode) && (
+                <Box>
+                  <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}>
+                    Auto-Sync Settings
+                  </Typography>
+                  <TextField
+                    label="Pull/Push Interval (seconds)"
+                    type="number"
+                    value={syncSettings.auto_sync_interval_secs}
+                    onChange={e => updateSync({ auto_sync_interval_secs: parseInt(e.target.value) || 60 })}
+                    size="small"
+                    slotProps={{ htmlInput: { min: 60 } }}
+                    sx={{ width: 200 }}
+                  />
+                </Box>
+              )}
+
+              {/* Section 6 — Controls */}
+              <Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.75 }}>
+                  <Button
+                    variant="contained"
+                    onClick={handleSyncNow}
+                    disabled={syncing}
+                    sx={{ textTransform: 'none', bgcolor: 'var(--primary-500)', '&:hover': { opacity: 0.85 } }}
+                  >
+                    {syncing ? 'Syncing...' : 'Sync Now'}
+                  </Button>
+                  {syncStatus && (
+                    <Box
+                      sx={{
+                        px: 1.5,
+                        py: 0.25,
+                        borderRadius: 1,
+                        fontSize: '0.65rem',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        color: '#fff',
+                        bgcolor: syncStatus.status === 'ok' ? '#10b981' :
+                                syncStatus.status === 'conflicts' ? '#ef4444' :
+                                syncStatus.status === 'no_repo' ? '#eab308' : '#6b7280',
+                      }}
+                    >
+                      {syncStatus.status === 'ok' && 'OK'}
+                      {syncStatus.status === 'conflicts' && `Conflicts (${syncStatus.conflicts.length})`}
+                      {syncStatus.status === 'no_repo' && 'No Repo'}
+                      {syncStatus.status !== 'ok' && syncStatus.status !== 'conflicts' && syncStatus.status !== 'no_repo' && syncStatus.status}
+                      {(syncStatus.ahead > 0 || syncStatus.behind > 0) && (
+                        <Box component="span" sx={{ ml: 0.5, fontWeight: 400 }}>
+                          +{syncStatus.ahead}/-{syncStatus.behind}
+                        </Box>
+                      )}
+                    </Box>
+                  )}
+                  {['auto_commit', 'auto_sync', 'background'].includes(syncSettings.mode) && (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={async () => {
+                        try {
+                          await api.startSyncScheduler();
+                          setMsg('Scheduler started.'); setMsgSeverity('success');
+                        } catch (e) {
+                          setMsg(`Scheduler error: ${e}`); setMsgSeverity('error');
+                        }
+                      }}
+                      sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+                    >
+                      Start Scheduler
+                    </Button>
+                  )}
+                </Box>
+                {syncStatus && (
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    {syncStatus.branch && (
+                      <Typography variant="caption" color="text.disabled" sx={{ fontFamily: 'monospace' }}>
+                        {syncStatus.branch}
+                      </Typography>
+                    )}
+                    {syncStatus.last_sync_time && (
+                      <Typography variant="caption" color="text.disabled">
+                        Last sync: {new Date(syncStatus.last_sync_time).toLocaleString()}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
+              </Box>
+
+              {/* Section 7 — Recent Commits */}
+              <Box>
+                <Box
+                  component="button"
+                  onClick={() => {
+                    if (!commitsOpen && commits.length === 0) {
+                      api.getCommitLog().then(setCommits).catch(() => {});
+                    }
+                    setCommitsOpen(!commitsOpen);
+                  }}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    bgcolor: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'text.secondary',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    p: 0,
+                    '&:hover': { color: 'text.primary' },
+                  }}
+                >
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                    {commitsOpen ? '▼' : '▶'} Recent Commits
+                  </Typography>
+                </Box>
+                {commitsOpen && (
+                  <Box sx={{ mt: 0.75, overflow: 'auto' }}>
+                    {commits.length === 0 ? (
+                      <Typography variant="caption" color="text.disabled">No commits yet.</Typography>
+                    ) : (
+                      <Box sx={{ minWidth: 500 }}>
+                        <Box sx={{ display: 'flex', borderBottom: 1, borderColor: 'divider', pb: 0.5, mb: 0.5 }}>
+                          {['Hash', 'Author', 'Message', 'Date'].map(h => (
+                            <Typography key={h} variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', flex: h === 'Hash' ? '0 0 80px' : h === 'Author' ? '0 0 120px' : h === 'Date' ? '0 0 160px' : 1 }}>
+                              {h}
+                            </Typography>
+                          ))}
+                        </Box>
+                        {commits.map(entry => (
+                          <Box key={entry.hash} sx={{ display: 'flex', py: 0.5, '&:hover': { bgcolor: 'action.hover' } }}>
+                            <Typography variant="caption" sx={{ flex: '0 0 80px', fontFamily: 'monospace', color: 'var(--primary-500)' }}>
+                              {entry.hash.slice(0, 7)}
+                            </Typography>
+                            <Typography variant="caption" sx={{ flex: '0 0 120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {entry.author}
+                            </Typography>
+                            <Typography variant="caption" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
+                              {entry.message}
+                            </Typography>
+                            <Typography variant="caption" sx={{ flex: '0 0 160px', color: 'text.disabled' }}>
+                              {new Date(entry.timestamp).toLocaleString()}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          </Box>
+        )}
+      </Box>
+
+      {/* Passphrase Modal */}
+      {passphraseModalOpen && (
+        <PassphraseModal
+          onClose={() => setPassphraseModalOpen(false)}
+          onSubmit={async (passphrase: string) => {
+            setSyncing(true);
+            try {
+              const result = await api.syncVaultWithPassphrase(passphrase);
+              setSyncStatus(result);
+              setPassphraseModalOpen(false);
+              if (result.status === 'conflicts') {
+                setConflictFiles(result.conflicts);
+                setConflictModalOpen(true);
+              }
+              setMsg(result.status === 'ok' ? 'Sync completed.' : result.status === 'conflicts' ? `Conflicts in ${result.conflicts.length} file(s).` : 'Sync had errors.');
+            } catch (e) {
+              setMsg(`Sync failed: ${e}`);
+            } finally {
+              setSyncing(false);
+            }
+          }}
+        />
+      )}
+
+      {/* Conflict Resolution Modal */}
+      {conflictModalOpen && (
+        <ConflictModal
+          files={conflictFiles}
+          onResolve={async (file: string) => {
+            try {
+              await api.resolveConflictFile(file);
+              setConflictFiles(prev => prev.filter(f => f !== file));
+              setMsg(`Resolved: ${file}`); setMsgSeverity('success');
+            } catch (e) {
+              setMsg(`Resolve failed: ${e}`); setMsgSeverity('error');
+            }
+          }}
+          onResolveAll={async () => {
+            for (const f of conflictFiles) {
+              try { await api.resolveConflictFile(f); } catch { /* skip */ }
+            }
+            setConflictFiles([]);
+            setConflictModalOpen(false);
+            setMsg('All conflicts resolved.'); setMsgSeverity('success');
+          }}
+          onAbort={async () => {
+            try {
+              await api.abortMerge();
+              setConflictFiles([]);
+              setConflictModalOpen(false);
+              setMsg('Merge aborted.'); setMsgSeverity('success');
+            } catch (e) {
+              setMsg(`Abort failed: ${e}`); setMsgSeverity('error');
+            }
+          }}
+        />
+      )}
+    </Box>
+  );
+}
+
+/* Passphrase Modal Component */
+function PassphraseModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (passphrase: string) => Promise<void> }) {
+  const [value, setValue] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    await onSubmit(value);
+    setSubmitting(false);
+  };
+
+  return (
+    <Box
+      sx={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: 'rgba(0,0,0,0.5)',
+      }}
+    >
+      <Box
+        sx={{
+          bgcolor: 'background.paper',
+          borderRadius: 2,
+          p: 3,
+          maxWidth: 400,
+          width: '90%',
+          boxShadow: 24,
+        }}
+      >
+        <Typography variant="subtitle2" sx={{ mb: 1 }}>SSH Key Passphrase</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+          Enter the passphrase for your SSH key to authenticate with the remote.
+        </Typography>
+        <TextField
+          size="small"
+          type="password"
+          placeholder="Enter passphrase..."
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
+          autoFocus
+          sx={{ width: '100%', mb: 2 }}
+        />
+        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+          <Button variant="outlined" size="small" onClick={onClose} sx={{ textTransform: 'none' }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleSubmit}
+            disabled={submitting || !value}
+            sx={{ textTransform: 'none', bgcolor: 'var(--primary-500)' }}
+          >
+            {submitting ? 'Submitting...' : 'Submit'}
+          </Button>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+/* Conflict Resolution Modal Component */
+function ConflictModal({
+  files,
+  onResolve,
+  onResolveAll,
+  onAbort,
+}: {
+  files: string[];
+  onResolve: (file: string) => Promise<void>;
+  onResolveAll: () => Promise<void>;
+  onAbort: () => Promise<void>;
+}) {
+  const [resolving, setResolving] = useState<string | null>(null);
+
+  return (
+    <Box
+      sx={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: 'rgba(0,0,0,0.5)',
+      }}
+    >
+      <Box
+        sx={{
+          bgcolor: 'background.paper',
+          borderRadius: 2,
+          p: 3,
+          maxWidth: 500,
+          width: '90%',
+          boxShadow: 24,
+        }}
+      >
+        <Typography variant="subtitle2" sx={{ mb: 1.5, color: '#ef4444' }}>Sync Conflicts Detected</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+          The following files have merge conflicts. Resolve each file or abort the merge.
+        </Typography>
+        <Box sx={{ maxHeight: 240, overflow: 'auto', mb: 2 }}>
+          {files.map(file => (
+            <Box key={file} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+              <Typography variant="caption" sx={{ flex: 1, fontFamily: 'monospace', fontSize: '0.7rem' }}>
+                {file}
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={async () => {
+                  setResolving(file);
+                  await onResolve(file);
+                  setResolving(null);
+                }}
+                disabled={resolving === file}
+                sx={{ textTransform: 'none', fontSize: '0.65rem', minWidth: 60 }}
+              >
+                {resolving === file ? '...' : 'Accept'}
+              </Button>
+            </Box>
+          ))}
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+          <Button
+            variant="outlined"
+            size="small"
+            color="error"
+            onClick={onAbort}
+            sx={{ textTransform: 'none' }}
+          >
+            Abort Merge
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={onResolveAll}
+            sx={{ textTransform: 'none', bgcolor: 'var(--primary-500)' }}
+          >
+            Resolve All
+          </Button>
+        </Box>
       </Box>
     </Box>
   );

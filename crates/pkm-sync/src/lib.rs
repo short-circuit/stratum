@@ -7,4 +7,4 @@ pub mod scheduler;
 pub use auto_commit::AutoCommitEngine;
 pub use conflict::{ConflictFile, ConflictHunk};
 pub use git::{CommitInfo, GitEngine, PullResult};
-pub use scheduler::{SyncResult, SyncScheduler};
+pub use scheduler::{SchedulerConfig, SyncResult, SyncScheduler};

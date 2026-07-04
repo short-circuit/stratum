@@ -10,6 +10,7 @@ pub struct SettingsDto {
     pub ai: AiSettingsDto,
     pub research: ResearchSettingsDto,
     pub graph: GraphSettingsDto,
+    pub sync: SyncSettingsDto,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -21,6 +22,7 @@ pub struct GraphSettingsDto {
     pub link_distance: f64,
     pub alpha_decay: f64,
     pub velocity_decay: f64,
+    pub link_curvature: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -55,6 +57,17 @@ pub struct AiModelDto {
     pub capabilities: Vec<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SyncSettingsDto {
+    pub mode: String,
+    pub remote_url: Option<String>,
+    pub branch: String,
+    pub auto_commit_interval_secs: u64,
+    pub auto_sync_interval_secs: u64,
+    pub ssh_key_path: Option<String>,
+    pub commit_template: String,
+}
+
 #[tauri::command]
 pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
@@ -85,6 +98,8 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
                 pkm_core::AiProvider::Google => "google".into(),
                 pkm_core::AiProvider::Zai => "zai".into(),
                 pkm_core::AiProvider::Custom => "custom".into(),
+                pkm_core::AiProvider::CustomOpenAI => "custom-openai".into(),
+                pkm_core::AiProvider::CustomAnthropic => "custom-anthropic".into(),
             },
             endpoint: config.ai.endpoint,
             api_key: config.ai.api_key,
@@ -114,6 +129,21 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             link_distance: config.graph.link_distance,
             alpha_decay: config.graph.alpha_decay,
             velocity_decay: config.graph.velocity_decay,
+            link_curvature: config.graph.link_curvature,
+        },
+        sync: SyncSettingsDto {
+            mode: match config.sync.mode {
+                pkm_core::SyncMode::Manual => "manual".into(),
+                pkm_core::SyncMode::AutoCommit => "auto_commit".into(),
+                pkm_core::SyncMode::AutoSync => "auto_sync".into(),
+                pkm_core::SyncMode::Background => "background".into(),
+            },
+            remote_url: config.sync.remote_url.clone(),
+            branch: config.sync.branch.clone(),
+            auto_commit_interval_secs: config.sync.auto_commit_interval_secs,
+            auto_sync_interval_secs: config.sync.auto_sync_interval_secs,
+            ssh_key_path: config.sync.ssh_key_path.clone(),
+            commit_template: config.sync.commit_template.clone(),
         },
     })
 }
@@ -132,7 +162,16 @@ pub async fn save_settings(
         "google" => pkm_core::AiProvider::Google,
         "zai" => pkm_core::AiProvider::Zai,
         "custom" => pkm_core::AiProvider::Custom,
+        "custom-openai" => pkm_core::AiProvider::CustomOpenAI,
+        "custom-anthropic" => pkm_core::AiProvider::CustomAnthropic,
         _ => pkm_core::AiProvider::Ollama,
+    };
+
+    let sync_mode = match settings.sync.mode.as_str() {
+        "auto_commit" => pkm_core::SyncMode::AutoCommit,
+        "auto_sync" => pkm_core::SyncMode::AutoSync,
+        "background" => pkm_core::SyncMode::Background,
+        _ => pkm_core::SyncMode::Manual,
     };
 
     let config = pkm_core::Config {
@@ -175,6 +214,17 @@ pub async fn save_settings(
             link_distance: settings.graph.link_distance,
             alpha_decay: settings.graph.alpha_decay,
             velocity_decay: settings.graph.velocity_decay,
+            link_curvature: settings.graph.link_curvature,
+        },
+        sync: pkm_core::SyncConfig {
+            mode: sync_mode,
+            remote_url: settings.sync.remote_url,
+            branch: settings.sync.branch,
+            auto_commit_interval_secs: settings.sync.auto_commit_interval_secs,
+            auto_sync_interval_secs: settings.sync.auto_sync_interval_secs,
+            ssh_key_path: settings.sync.ssh_key_path,
+            commit_template: settings.sync.commit_template,
+            ..pkm_core::SyncConfig::default()
         },
         ..pkm_core::Config::default()
     };
@@ -208,6 +258,7 @@ pub async fn save_graph_settings(
         link_distance: graph.link_distance,
         alpha_decay: graph.alpha_decay,
         velocity_decay: graph.velocity_decay,
+        link_curvature: graph.link_curvature,
     };
 
     config.save(&config_path).map_err(|e| e.to_string())?;

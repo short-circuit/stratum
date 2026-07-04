@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use git2::{Oid, Repository, Signature, Status};
 use pkm_core::{PkmError, PkmResult};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Information about a single commit.
 #[derive(Debug, Clone)]
@@ -22,6 +22,8 @@ pub struct PullResult {
 /// A Git engine wrapping `git2` for PKM vault operations.
 pub struct GitEngine {
     repo: Repository,
+    ssh_key_path: Option<PathBuf>,
+    passphrase: Option<String>,
 }
 
 impl GitEngine {
@@ -33,14 +35,22 @@ impl GitEngine {
         } else {
             Repository::init(path).map_err(|e| PkmError::Git(format!("init repo: {e}")))?
         };
-        Ok(Self { repo })
+        Ok(Self {
+            repo,
+            ssh_key_path: None,
+            passphrase: None,
+        })
     }
 
     /// Clone a remote repository to a local path.
     pub fn clone<P: AsRef<Path>>(url: &str, path: P) -> PkmResult<Self> {
         let repo = Repository::clone(url, path.as_ref())
             .map_err(|e| PkmError::Git(format!("clone repo: {e}")))?;
-        Ok(Self { repo })
+        Ok(Self {
+            repo,
+            ssh_key_path: None,
+            passphrase: None,
+        })
     }
 
     /// Stage one or more files (relative to the repo root).
@@ -108,7 +118,9 @@ impl GitEngine {
             .find_remote(remote)
             .map_err(|e| PkmError::Git(format!("find remote {remote}: {e}")))?;
         let refspec = format!("refs/heads/{branch}:refs/heads/{branch}");
-        rem.push(&[&refspec], None)
+        let mut push_opts = git2::PushOptions::new();
+        push_opts.remote_callbacks(self.credentials_callback());
+        rem.push(&[&refspec], Some(&mut push_opts))
             .map_err(|e| PkmError::Git(format!("push: {e}")))?;
         Ok(())
     }
@@ -121,9 +133,9 @@ impl GitEngine {
             .find_remote(remote)
             .map_err(|e| PkmError::Git(format!("find remote {remote}: {e}")))?;
 
-        // Fetch without credentials callback for now (uses defaults / ssh-agent).
         {
             let mut fetch_opts = git2::FetchOptions::new();
+            fetch_opts.remote_callbacks(self.credentials_callback());
             fetch_opts
                 .download_tags(git2::AutotagOption::All)
                 .update_fetchhead(true);
@@ -336,6 +348,80 @@ impl GitEngine {
     pub fn repository(&self) -> &Repository {
         &self.repo
     }
+
+    /// Set the path to an SSH private key for authentication.
+    pub fn set_ssh_key_path(&mut self, path: Option<PathBuf>) {
+        self.ssh_key_path = path;
+    }
+
+    /// Return the configured SSH key path, if any.
+    pub fn ssh_key_path(&self) -> Option<&PathBuf> {
+        self.ssh_key_path.as_ref()
+    }
+
+    /// Set the passphrase for the SSH private key.
+    pub fn set_passphrase(&mut self, passphrase: Option<String>) {
+        self.passphrase = passphrase;
+    }
+
+    /// Return the configured SSH passphrase, if any.
+    pub fn passphrase(&self) -> Option<&str> {
+        self.passphrase.as_deref()
+    }
+
+    /// Build a `RemoteCallbacks` struct that handles SSH authentication
+    /// using the configured key path / passphrase, or falls back to the
+    /// SSH agent.
+    pub fn credentials_callback(&self) -> git2::RemoteCallbacks<'static> {
+        let key_path = self.ssh_key_path.clone();
+        let passphrase = self.passphrase.clone();
+        let mut callbacks = git2::RemoteCallbacks::new();
+        callbacks.credentials(move |_url, username_from_url, _allowed_types| {
+            let username = username_from_url.unwrap_or("git");
+            if let Some(ref kp) = key_path {
+                git2::Cred::ssh_key(username, None, kp, passphrase.as_deref())
+            } else {
+                git2::Cred::ssh_key_from_agent(username)
+            }
+        });
+        callbacks
+    }
+
+    /// Return the name of the currently checked-out branch, if any.
+    pub fn get_current_branch(&self) -> Option<String> {
+        self.repo
+            .head()
+            .ok()
+            .and_then(|h| h.shorthand().map(|s| s.to_string()))
+    }
+
+    /// Compute how far ahead and behind the local branch is relative to a
+    /// remote-tracking branch (e.g. `origin/main`).
+    ///
+    /// Returns `(ahead, behind)` counts.
+    pub fn ahead_behind(&self, remote_branch: &str) -> PkmResult<(usize, usize)> {
+        let local_oid = self
+            .repo
+            .head()
+            .and_then(|h| h.peel_to_commit())
+            .map_err(|e| PkmError::Git(format!("get local HEAD commit: {e}")))?
+            .id();
+
+        let upstream_oid = self
+            .repo
+            .find_branch(remote_branch, git2::BranchType::Local)
+            .map_err(|e| PkmError::Git(format!("find branch {remote_branch}: {e}")))?
+            .upstream()
+            .map_err(|e| PkmError::Git(format!("get upstream for {remote_branch}: {e}")))?
+            .get()
+            .peel_to_commit()
+            .map_err(|e| PkmError::Git(format!("peel upstream commit: {e}")))?
+            .id();
+
+        self.repo
+            .graph_ahead_behind(local_oid, upstream_oid)
+            .map_err(|e| PkmError::Git(format!("graph ahead-behind: {e}")))
+    }
 }
 
 #[cfg(test)]
@@ -445,5 +531,73 @@ mod tests {
             .unwrap();
         let url = engine.get_remote_url("origin");
         assert_eq!(url.as_deref(), Some("https://example.com/repo.git"));
+    }
+
+    #[test]
+    fn test_set_ssh_key_path() {
+        let (_td, mut engine) = init_repo();
+        // Default is None
+        assert!(engine.ssh_key_path().is_none());
+        // Set a path
+        engine.set_ssh_key_path(Some(PathBuf::from("/tmp/test_key")));
+        assert_eq!(
+            engine.ssh_key_path(),
+            Some(&PathBuf::from("/tmp/test_key"))
+        );
+        // Clear it
+        engine.set_ssh_key_path(None);
+        assert!(engine.ssh_key_path().is_none());
+    }
+
+    #[test]
+    fn test_set_passphrase() {
+        let (_td, mut engine) = init_repo();
+        // Default is None
+        assert!(engine.passphrase().is_none());
+        // Set a passphrase
+        engine.set_passphrase(Some("s3cret".to_string()));
+        assert_eq!(engine.passphrase(), Some("s3cret"));
+        // Clear it
+        engine.set_passphrase(None);
+        assert!(engine.passphrase().is_none());
+    }
+
+    #[test]
+    fn test_get_current_branch_default() {
+        let (_td, engine) = init_repo();
+        // git2 HEAD is unborn on a fresh repo — make a commit so it resolves
+        fs::write(_td.path().join("init.md"), "init").unwrap();
+        engine.add(&["init.md"]).unwrap();
+        engine.commit("init", "Tester").unwrap();
+
+        let branch = engine.get_current_branch();
+        assert_eq!(branch.as_deref(), Some("master"));
+    }
+
+    #[test]
+    fn test_ahead_behind_zero() {
+        let td_orig = TempDir::new().unwrap();
+        let orig = GitEngine::init(td_orig.path()).unwrap();
+
+        // Make an initial commit so we have something to clone
+        fs::write(td_orig.path().join("readme.md"), "# Test").unwrap();
+        orig.add(&["readme.md"]).unwrap();
+        orig.commit("first", "Alice").unwrap();
+
+        // Clone — the clone sets up a tracking branch pointing at the same commit
+        let td_clone = TempDir::new().unwrap();
+        let cloned =
+            GitEngine::clone(td_orig.path().to_str().unwrap(), td_clone.path()).unwrap();
+
+        let (ahead, behind) = cloned.ahead_behind("master").unwrap();
+        assert_eq!(ahead, 0);
+        assert_eq!(behind, 0);
+    }
+
+    #[test]
+    fn test_credentials_callback_construct() {
+        let (_td, engine) = init_repo();
+        // Verify the callback can be constructed without panic
+        let _cb = engine.credentials_callback();
     }
 }
