@@ -10,6 +10,9 @@ pub struct VaultState {
     pub vault_path: PathBuf,
     pub db_path: PathBuf,
     pub index_engine: Option<IndexEngine>,
+    pub sync_scheduler: Option<pkm_sync::SyncScheduler>,
+    pub auto_commit_engine: Option<pkm_sync::AutoCommitEngine>,
+    pub passphrase: Option<String>,
 }
 
 impl VaultState {
@@ -23,6 +26,9 @@ impl VaultState {
             vault_path,
             db_path,
             index_engine,
+            sync_scheduler: None,
+            auto_commit_engine: None,
+            passphrase: None,
         }
     }
 
@@ -37,6 +43,11 @@ impl VaultState {
             .as_mut()
             .ok_or_else(|| "IndexEngine not available".to_string())
     }
+
+    pub fn set_passphrase(&mut self, passphrase: String) {
+        self.passphrase = Some(passphrase);
+    }
+
 }
 
 pub type AppState = Mutex<VaultState>;
