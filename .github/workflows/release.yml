@@ -49,8 +49,6 @@ jobs:
             target/release/deps
             target/release/.cargo-lock
           key: ${{ runner.os }}-cargo-release-${{ hashFiles('Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-release-
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -153,8 +151,6 @@ jobs:
             target/release/deps
             target/release/.cargo-lock
           key: ${{ runner.os }}-cargo-release-${{ hashFiles('Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-release-
 
       - name: Add Android targets
         run: |
@@ -316,8 +312,6 @@ jobs:
             target/release/deps
             target/release/.cargo-lock
           key: ${{ runner.os }}-cargo-release-${{ hashFiles('Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-release-
 
       - name: Add iOS targets
         run: |
