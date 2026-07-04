@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useBlockNoteEditor, useComponentsContext } from '@blocknote/react';
 import {
   FormattingToolbarController,
@@ -51,13 +52,14 @@ export default function AIFormattingToolbar() {
 
   return (
     <>
-      {busy && (
-        <Box sx={{ position: 'fixed', inset: 0, zIndex: 9998, bgcolor: 'rgba(0,0,0,0.1)', display: 'flex', justifyContent: 'center', pt: 16 }}>
-          <Box sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 2, boxShadow: 4, px: 3, py: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <CircularProgress size={18} />
-            <Typography variant="body2">AI {busy}...</Typography>
+      {busy && createPortal(
+        <Box sx={{ position: 'fixed', inset: 0, zIndex: 9999, bgcolor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Box sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 2, boxShadow: 8, px: 4, py: 3, display: 'flex', alignItems: 'center', gap: 2, minWidth: 200, justifyContent: 'center' }}>
+            <CircularProgress size={20} />
+            <Typography variant="body1" color="text.secondary">AI {busy}...</Typography>
           </Box>
-        </Box>
+        </Box>,
+        document.body,
       )}
       <FormattingToolbarController
         formattingToolbar={({ blockTypeSelectItems }) => (

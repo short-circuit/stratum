@@ -1,7 +1,9 @@
 //! Search and query commands.
 
 use crate::commands::vault::AppState;
+use pkm_markdown::linker::extract_links;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SearchResultDto {
@@ -267,6 +269,62 @@ pub async fn autocomplete(
                 if items.len() >= 10 {
                     break;
                 }
+            }
+        }
+        "backlink" => {
+            let pages = store.list_pages().map_err(|e| e.to_string())?;
+            let lower = query.to_lowercase();
+
+            // Build slug → path lookup map
+            let mut slug_to_path: HashMap<String, String> = HashMap::new();
+            for path in &pages {
+                let slug = std::path::Path::new(&path)
+                    .file_stem()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or(&path)
+                    .to_string();
+                slug_to_path.insert(slug, path.clone());
+            }
+
+            // Count incoming links per page by scanning all blocks
+            let mut incoming_count: HashMap<String, usize> = HashMap::new();
+            for path in &pages {
+                if let Ok(blocks) = store.get_blocks_by_page(path) {
+                    for block in &blocks {
+                        let links = extract_links(&block.content);
+                        for link in &links {
+                            let target_slug = link.target.replace(' ', "-").to_lowercase();
+                            // Only count links to pages that actually exist
+                            if slug_to_path.contains_key(&target_slug) {
+                                *incoming_count.entry(target_slug).or_default() += 1;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Collect results, filtered by query
+            let mut results: Vec<(usize, String, String)> = Vec::new();
+            for path in pages {
+                let slug = std::path::Path::new(&path)
+                    .file_stem()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or(&path)
+                    .to_string();
+                if slug.to_lowercase().contains(&lower) || path.to_lowercase().contains(&lower) {
+                    let count = incoming_count.get(&slug).copied().unwrap_or(0);
+                    results.push((count, slug, path));
+                }
+            }
+
+            // Sort by incoming link count descending, take top 10
+            results.sort_by(|a, b| b.0.cmp(&a.0));
+            for (_, slug, path) in results.into_iter().take(10) {
+                items.push(AutocompleteItem {
+                    text: slug.replace('-', " "),
+                    kind: "backlink".into(),
+                    detail: Some(path),
+                });
             }
         }
         "block" => {
