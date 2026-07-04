@@ -37,7 +37,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../lib/commands';
-import type { KanbanBlockDto } from '../lib/types';
+import type { BlockDto, KanbanBlockDto } from '../lib/types';
 import KanbanEditDialog from './KanbanEditDialog';
 
 const COLUMNS = ['todo', 'in_progress', 'done'] as const;
@@ -327,6 +327,8 @@ export default function KanbanPanel() {
   }, []);
 
   useEffect(() => {
+    // Initial data fetch — runs once since loadBlocks is stable ([] deps)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadBlocks();
   }, [loadBlocks]);
 
@@ -394,7 +396,7 @@ export default function KanbanPanel() {
 
     // Persist
     try {
-      await api.updateBlock(block.page_path, { ...block, marker: targetMarker } as any);
+      await api.updateBlock(block.page_path, { ...block, marker: targetMarker } as BlockDto);
       await loadBlocks();
     } catch {
       await loadBlocks();
@@ -437,7 +439,7 @@ export default function KanbanPanel() {
 
   async function handleEditSave(updated: KanbanBlockDto) {
     try {
-      await api.updateBlock(updated.page_path, updated as any);
+      await api.updateBlock(updated.page_path, updated as BlockDto);
       // Sync .md file by re-saving all blocks on that page
       const pageBlocks = await api.getBlocks(updated.page_path);
       await api.saveBlocks(updated.page_path, pageBlocks.blocks);

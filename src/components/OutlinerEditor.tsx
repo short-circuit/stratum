@@ -38,9 +38,11 @@ const mermaidBlockRegex = /^```mermaid\n?([\s\S]*?)\n?```\s*$/;
 
 const MARKER_KEYWORDS = ['TODO', 'DOING', 'DONE', 'NOW', 'LATER', 'WAITING', 'CANCELLED'];
 
-function extractTextContent(block: any): string {
+interface InlineContentItem { text?: string; type?: string; }
+
+function extractTextContent(block: { content?: InlineContentItem[] }): string {
   if (!block.content || !Array.isArray(block.content)) return '';
-  return block.content.map((c: any) => c.text || '').join('');
+  return block.content.map((c: InlineContentItem) => c.text || '').join('');
 }
 
 interface Props {
@@ -126,27 +128,6 @@ export default function OutlinerEditor({ pagePath }: Props) {
     blockMetaRef.current.set(id, { ...existing, ...meta });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function detectAndApplyMarkers(blockNoteBlocks: any[]): void {
-    if (!pagePath.startsWith('journals/')) return;
-
-    for (const b of blockNoteBlocks) {
-      const content = extractTextContent(b);
-      const firstWord = content.trim().split(/\s+/)[0]?.toUpperCase();
-      if (firstWord && MARKER_KEYWORDS.includes(firstWord)) {
-        const existingMeta = blockMetaRef.current.get(b.id);
-        if (existingMeta?.marker) continue;
-
-        setBlockMeta(b.id, { marker: firstWord });
-
-        const rest = content.trim().slice(firstWord.length).trim();
-        if (rest !== content.trim() && Array.isArray(b.content) && b.content.length > 0) {
-          b.content[0].text = rest;
-        }
-      }
-    }
-  }
-
   // Step 1: Load blocks as strings
   useEffect(() => {
     api.getBlocks(pagePath)
@@ -180,6 +161,23 @@ export default function OutlinerEditor({ pagePath }: Props) {
   const persistBlocks = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (blockNoteBlocks: any[]) => {
+      function detectAndApplyMarkers(blocks: typeof blockNoteBlocks): void {
+        if (!pagePath.startsWith('journals/')) return;
+        for (const b of blocks) {
+          const content = extractTextContent(b);
+          const firstWord = content.trim().split(/\s+/)[0]?.toUpperCase();
+          if (firstWord && MARKER_KEYWORDS.includes(firstWord)) {
+            const existingMeta = blockMetaRef.current.get(b.id);
+            if (existingMeta?.marker) continue;
+            setBlockMeta(b.id, { marker: firstWord });
+            const rest = content.trim().slice(firstWord.length).trim();
+            if (rest !== content.trim() && Array.isArray(b.content) && b.content.length > 0) {
+              b.content[0].text = rest;
+            }
+          }
+        }
+      }
+
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
         try {
@@ -192,7 +190,7 @@ export default function OutlinerEditor({ pagePath }: Props) {
         }
       }, 500);
     },
-    [pagePath, editor],
+    [pagePath],
   );
 
   useEffect(() => {

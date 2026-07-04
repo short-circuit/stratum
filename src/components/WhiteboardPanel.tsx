@@ -138,12 +138,7 @@ export default function WhiteboardPanel() {
         setLibraryItems([]);
       }
     })();
-    return () => {
-      // Save library on unmount (e.g. app close / navigation away)
-      if (libraryRef.current) {
-        api.saveLibrary(libraryRef.current);
-      }
-    };
+    return () => {};
   }, []);
 
   const doSave = useCallback(async (generatePreview = false) => {
@@ -182,8 +177,6 @@ export default function WhiteboardPanel() {
     };
   }, [dirty, doSave]);
 
-  const libraryRef = useRef<string | null>(null);
-
   const navigateBack = useCallback(() => {
     if (autoSaveTimer.current) {
       clearTimeout(autoSaveTimer.current);
@@ -191,14 +184,11 @@ export default function WhiteboardPanel() {
     }
     const flush = dirty ? doSave(true) : Promise.resolve();
     flush.then(() => {
-      if (libraryRef.current) {
-        api.saveLibrary(libraryRef.current);
-      }
       setActiveBoard(null);
       setSceneData(null);
       api.listWhiteboards().then(setBoards);
     });
-  }, [dirty, doSave, libraryRef]);
+  }, [dirty, doSave]);
 
   const loadBoard = useCallback(async (name: string) => {
     try {
@@ -233,10 +223,7 @@ export default function WhiteboardPanel() {
   }, []);
 
   const handleLibraryChange = useCallback((items: LibraryItems) => {
-    console.log('[library] handleLibraryChange called with', items.length, 'items');
     const json = JSON.stringify(items);
-    console.log('[library] JSON length:', json.length);
-    libraryRef.current = json;
     api.saveLibrary(json).then(() => {
       console.log('[library] save completed successfully');
     }).catch(e => {
