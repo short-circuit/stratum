@@ -97,6 +97,7 @@ pub async fn save_library(
     Ok(())
 }
 
+/// Load the user's personal library from `library.excalidrawlib`.
 #[tauri::command]
 pub async fn load_library(state: tauri::State<'_, AppState>) -> Result<String, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
@@ -108,4 +109,36 @@ pub async fn load_library(state: tauri::State<'_, AppState>) -> Result<String, S
         return Ok("[]".to_string());
     }
     std::fs::read_to_string(&path).map_err(|e| e.to_string())
+}
+
+/// Load additional `.excalidrawlib` files from the whiteboards folder (excluding
+/// `library.excalidrawlib`) and merge them into a single JSON array. Any library
+/// files placed in the folder are auto-loaded into the library panel.
+#[tauri::command]
+pub async fn load_extra_libraries(state: tauri::State<'_, AppState>) -> Result<String, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let wb_dir = state.vault_path.join("whiteboards");
+    if !wb_dir.exists() {
+        return Ok("[]".to_string());
+    }
+
+    let mut merged: Vec<serde_json::Value> = Vec::new();
+    let entries = std::fs::read_dir(&wb_dir).map_err(|e| e.to_string())?;
+    for entry in entries {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+        // Skip the personal library file — it's loaded separately
+        if path.file_stem().and_then(|s| s.to_str()) == Some("library") {
+            continue;
+        }
+        if path.extension().and_then(|e| e.to_str()) == Some("excalidrawlib") {
+            if let Ok(content) = std::fs::read_to_string(&path) {
+                if let Ok(items) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
+                    merged.extend(items);
+                }
+            }
+        }
+    }
+
+    serde_json::to_string(&merged).map_err(|e| e.to_string())
 }

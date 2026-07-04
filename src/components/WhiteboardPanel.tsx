@@ -120,13 +120,30 @@ export default function WhiteboardPanel() {
 
   useEffect(() => {
     api.listWhiteboards().then(setBoards);
-    api.loadLibrary().then(content => {
-      if (content) {
-        setLibraryItems(restoreLibraryItems(JSON.parse(content), 'published'));
-      } else {
+    (async () => {
+      try {
+        const personal = await api.loadLibrary();
+        const extra = await api.loadExtraLibraries();
+        console.log('[library] loaded personal:', personal?.length, 'chars');
+        console.log('[library] loaded extra:', extra?.length, 'chars');
+        const personalItems = personal ? JSON.parse(personal) : [];
+        const extraItems = extra ? JSON.parse(extra) : [];
+        const merged = [...personalItems, ...extraItems];
+        console.log('[library] merged items count:', merged.length);
+        const restored = restoreLibraryItems(merged, 'published');
+        console.log('[library] restored items count:', restored.length);
+        setLibraryItems(restored);
+      } catch (e) {
+        console.error('[library] failed to load libraries:', e);
         setLibraryItems([]);
       }
-    });
+    })();
+    return () => {
+      // Save library on unmount (e.g. app close / navigation away)
+      if (libraryRef.current) {
+        api.saveLibrary(libraryRef.current);
+      }
+    };
   }, []);
 
   const doSave = useCallback(async (generatePreview = false) => {
@@ -165,6 +182,8 @@ export default function WhiteboardPanel() {
     };
   }, [dirty, doSave]);
 
+  const libraryRef = useRef<string | null>(null);
+
   const navigateBack = useCallback(() => {
     if (autoSaveTimer.current) {
       clearTimeout(autoSaveTimer.current);
@@ -172,11 +191,14 @@ export default function WhiteboardPanel() {
     }
     const flush = dirty ? doSave(true) : Promise.resolve();
     flush.then(() => {
+      if (libraryRef.current) {
+        api.saveLibrary(libraryRef.current);
+      }
       setActiveBoard(null);
       setSceneData(null);
       api.listWhiteboards().then(setBoards);
     });
-  }, [dirty, doSave]);
+  }, [dirty, doSave, libraryRef]);
 
   const loadBoard = useCallback(async (name: string) => {
     try {
@@ -211,7 +233,15 @@ export default function WhiteboardPanel() {
   }, []);
 
   const handleLibraryChange = useCallback((items: LibraryItems) => {
-    api.saveLibrary(JSON.stringify(items));
+    console.log('[library] handleLibraryChange called with', items.length, 'items');
+    const json = JSON.stringify(items);
+    console.log('[library] JSON length:', json.length);
+    libraryRef.current = json;
+    api.saveLibrary(json).then(() => {
+      console.log('[library] save completed successfully');
+    }).catch(e => {
+      console.error('[library] Failed to save library:', e);
+    });
   }, []);
 
   const boardMeta = boards.map(b => {

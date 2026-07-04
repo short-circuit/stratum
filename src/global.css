@@ -129,6 +129,12 @@ input[type="color"] {
   --color-surface-primary-container: var(--primary-800);
 }
 
+/* Hide the "Browse Library" button from Excalidraw's library sidebar.
+   Libraries are auto-loaded from the whiteboards folder instead. */
+.excalidraw .library-menu-browse-button {
+  display: none !important;
+}
+
 /* ── Scrollbar ── */
 /* ── Inline math rendered in editor ── */
 .math-inline-rendered {
