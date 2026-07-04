@@ -34,5 +34,6 @@ pkm-ai = { path = "../crates/pkm-ai" }
 pkm-watcher = { path = "../crates/pkm-watcher" }
 pulldown-cmark.workspace = true
 reqwest.workspace = true
+git2.workspace = true
 dirs.workspace = true
 openssl-sys.workspace = true

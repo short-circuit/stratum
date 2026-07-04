@@ -43,7 +43,54 @@ pub fn run() {
                 _ => {}
             }
 
-            app.manage(Mutex::new(VaultState::new(vault_path)) as AppState);
+            app.manage(Mutex::new(VaultState::new(vault_path.clone())) as AppState);
+
+            let config_path = vault_path.join(".pkm").join("config.toml");
+            if config_path.exists() {
+                if let Ok(config) = pkm_core::Config::load(&config_path) {
+                    if config.sync.mode == pkm_core::SyncMode::AutoCommit
+                        || config.sync.mode == pkm_core::SyncMode::AutoSync
+                        || config.sync.mode == pkm_core::SyncMode::Background
+                    {
+                        if let Ok(git) = pkm_sync::git::GitEngine::init(&vault_path) {
+                            let auto_commit = pkm_sync::AutoCommitEngine::new(
+                                git,
+                                config.sync.auto_commit_interval_secs,
+                            );
+                            if let Ok(mut state) = app.state::<AppState>().lock() {
+                                state.auto_commit_engine = Some(auto_commit);
+                                eprintln!(
+                                    "[stratum] Auto-commit engine initialized (interval={}s)",
+                                    config.sync.auto_commit_interval_secs
+                                );
+                            }
+                        }
+                    }
+
+                    if config.sync.mode == pkm_core::SyncMode::AutoSync
+                        || config.sync.mode == pkm_core::SyncMode::Background
+                    {
+                        if let Ok(git) = pkm_sync::git::GitEngine::init(&vault_path) {
+                            let sched_config = pkm_sync::SchedulerConfig {
+                                remote: "origin".to_string(),
+                                branch: config.sync.branch.clone(),
+                                interval_secs: config.sync.auto_sync_interval_secs,
+                                ssh_key_path: config
+                                    .sync
+                                    .ssh_key_path
+                                    .clone()
+                                    .map(std::path::PathBuf::from),
+                            };
+                            let mut scheduler = pkm_sync::SyncScheduler::new(git, sched_config);
+                            scheduler.start();
+                            if let Ok(mut state) = app.state::<AppState>().lock() {
+                                state.sync_scheduler = Some(scheduler);
+                                eprintln!("[stratum] Sync scheduler started");
+                            }
+                        }
+                    }
+                }
+            }
 
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -96,6 +143,12 @@ pub fn run() {
             // Sync
             commands::sync::get_sync_status,
             commands::sync::sync_vault,
+            commands::sync::sync_vault_with_passphrase,
+            commands::sync::start_sync_scheduler,
+            commands::sync::stop_sync_scheduler,
+            commands::sync::get_commit_log,
+            commands::sync::resolve_conflict_file,
+            commands::sync::abort_merge,
             // Templates
             commands::template::list_templates,
             commands::template::save_template,
@@ -107,12 +160,16 @@ pub fn run() {
             commands::flashcards::generate_flashcards,
             commands::flashcards::generate_cards_from_page,
             commands::flashcards::review_card,
+            // Kanban
+            commands::kanban::get_kanban_blocks,
+            commands::kanban::create_kanban_block,
             // Whiteboards
             commands::whiteboard::list_whiteboards,
             commands::whiteboard::save_whiteboard,
             commands::whiteboard::load_whiteboard,
             commands::whiteboard::save_library,
             commands::whiteboard::load_library,
+            commands::whiteboard::load_extra_libraries,
             // AI
             commands::ai::ai_transform_block,
             commands::ai::ai_research,

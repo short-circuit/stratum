@@ -7,7 +7,7 @@
 use crate::block::{Block, BlockId, BlockMeta, Priority, TaskMarker};
 use crate::page::{Page, PageFrontmatter};
 use chrono::{DateTime, Utc};
-use rusqlite::{params, Connection};
+use rusqlite::{params, params_from_iter, Connection};
 use std::collections::BTreeMap;
 use std::path::Path;
 use uuid::Uuid;
@@ -408,6 +408,40 @@ impl BlockStore {
         Ok(blocks)
     }
 
+    /// Find blocks matching any of the given markers, returning each block
+    /// paired with its page_path. Returns empty vec for empty markers slice.
+    pub fn find_blocks_by_markers(&self, markers: &[&str]) -> StoreResult<Vec<(Block, String)>> {
+        if markers.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let placeholders: Vec<String> = markers.iter().map(|_| "?".to_string()).collect();
+        let sql = format!(
+            "SELECT id, page_path FROM blocks WHERE LOWER(marker) IN ({})",
+            placeholders.join(", ")
+        );
+
+        let mut stmt = self.conn.prepare(&sql)?;
+        let params: Vec<String> = markers.iter().map(|m| m.to_lowercase()).collect();
+
+        let rows: Vec<(String, String)> = stmt
+            .query_map(params_from_iter(params.iter()), |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        let mut results = Vec::new();
+        for (id_str, page_path) in rows {
+            if let Ok(id) = Uuid::parse_str(&id_str) {
+                if let Ok(block) = self.get_block(id) {
+                    results.push((block, page_path));
+                }
+            }
+        }
+        Ok(results)
+    }
+
     pub fn block_count(&self) -> StoreResult<usize> {
         let count: i64 = self
             .conn
@@ -577,6 +611,56 @@ mod tests {
         let todos = store.find_blocks_by_marker("TODO").unwrap();
         assert_eq!(todos.len(), 1);
         assert_eq!(todos[0].id, a);
+    }
+
+    #[test]
+    fn test_find_blocks_by_markers() {
+        let store = BlockStore::open_in_memory().unwrap();
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let c = Uuid::new_v4();
+
+        store
+            .insert_block(
+                &Block::new(a, "Task 1".into()).with_marker(TaskMarker::Todo),
+                "pages/tasks.md",
+            )
+            .unwrap();
+        store
+            .insert_block(
+                &Block::new(b, "Task 2".into()).with_marker(TaskMarker::Doing),
+                "pages/tasks.md",
+            )
+            .unwrap();
+        store
+            .insert_block(
+                &Block::new(c, "Task 3".into()).with_marker(TaskMarker::Done),
+                "pages/archive.md",
+            )
+            .unwrap();
+
+        // Query for ["TODO", "DOING"] — returns 2 results with correct page_path
+        let results = store.find_blocks_by_markers(&["TODO", "DOING"]).unwrap();
+        assert_eq!(results.len(), 2);
+        for (block, page_path) in &results {
+            assert_eq!(page_path.as_str(), "pages/tasks.md");
+            assert!(
+                block.marker == Some(TaskMarker::Todo)
+                    || block.marker == Some(TaskMarker::Doing)
+            );
+        }
+        let result_ids: Vec<BlockId> = results.iter().map(|(b, _)| b.id).collect();
+        assert!(result_ids.contains(&a));
+        assert!(result_ids.contains(&b));
+        assert!(!result_ids.contains(&c));
+
+        // Query for ["NOW"] — returns empty
+        let empty = store.find_blocks_by_markers(&["NOW"]).unwrap();
+        assert_eq!(empty.len(), 0);
+
+        // Query with empty markers — returns empty
+        let empty2 = store.find_blocks_by_markers(&[]).unwrap();
+        assert_eq!(empty2.len(), 0);
     }
 
     #[test]

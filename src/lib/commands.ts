@@ -10,6 +10,8 @@ import type {
   ConnectionSuggestion,
   QueryResultDto,
   SyncStatusDto,
+  SyncSettings,
+  CommitLogEntry,
   GraphDataDto,
   ComponentDto,
   OrphanDto,
@@ -17,6 +19,9 @@ import type {
   AiTransformResult,
   ResearchResult,
   GraphSettings,
+  AutocompleteItem,
+  KanbanBlockDto,
+  KanbanDataDto,
 } from './types';
 
 export async function getVaultInfo(): Promise<VaultInfo> {
@@ -112,7 +117,7 @@ export async function getPageBacklinks(pagePath: string): Promise<BacklinkItem[]
 export async function autocomplete(
   query: string,
   kind: string,
-): Promise<{ text: string; kind: string; detail?: string }[]> {
+): Promise<AutocompleteItem[]> {
   return invoke('autocomplete', { query, kind });
 }
 
@@ -180,6 +185,10 @@ export async function loadLibrary(): Promise<string> {
   return invoke('load_library');
 }
 
+export async function loadExtraLibraries(): Promise<string> {
+  return invoke('load_extra_libraries');
+}
+
 export async function getSettings(): Promise<{
   vault_path: string;
   theme: { dark_mode: boolean; primary_color: string; secondary_color: string; font_size: number };
@@ -193,6 +202,7 @@ export async function getSettings(): Promise<{
     rag_chunk_count: number;
   };
   graph: GraphSettings;
+  sync: SyncSettings;
 }> {
   return invoke('get_settings');
 }
@@ -210,6 +220,7 @@ export async function saveSettings(settings: {
     rag_chunk_count: number;
   };
   graph: GraphSettings;
+  sync: SyncSettings;
 }): Promise<void> {
   return invoke('save_settings', { settings });
 }
@@ -232,6 +243,30 @@ export async function getSyncStatus(): Promise<SyncStatusDto> {
 
 export async function syncVault(): Promise<SyncStatusDto> {
   return invoke('sync_vault');
+}
+
+export async function syncVaultWithPassphrase(passphrase: string): Promise<SyncStatusDto> {
+  return invoke('sync_vault_with_passphrase', { passphrase });
+}
+
+export async function startSyncScheduler(): Promise<void> {
+  return invoke('start_sync_scheduler');
+}
+
+export async function stopSyncScheduler(): Promise<void> {
+  return invoke('stop_sync_scheduler');
+}
+
+export async function getCommitLog(): Promise<CommitLogEntry[]> {
+  return invoke('get_commit_log');
+}
+
+export async function resolveConflictFile(path: string): Promise<void> {
+  return invoke('resolve_conflict_file', { path });
+}
+
+export async function abortMerge(): Promise<void> {
+  return invoke('abort_merge');
 }
 
 // --- AI ---
@@ -313,4 +348,17 @@ export async function reindexVault(): Promise<number> {
 
 export async function reindexPage(path: string): Promise<number> {
   return invoke('reindex_page', { path });
+}
+
+// --- Kanban ---
+
+export async function getKanbanBlocks(): Promise<KanbanDataDto> {
+  return invoke('get_kanban_blocks');
+}
+
+export async function createKanbanBlock(
+  content: string,
+  marker: string,
+): Promise<KanbanBlockDto> {
+  return invoke('create_kanban_block', { content, marker });
 }

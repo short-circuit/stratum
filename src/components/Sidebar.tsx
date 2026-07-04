@@ -19,6 +19,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import CodeIcon from '@mui/icons-material/Code';
 import DescriptionIcon from '@mui/icons-material/Description';
 import QuizIcon from '@mui/icons-material/Quiz';
+import ChecklistIcon from '@mui/icons-material/Checklist';
 import DrawIcon from '@mui/icons-material/Draw';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -35,6 +36,7 @@ const NAV_ITEMS = [
   { id: 'journal', label: 'Journal', path: '/journal', icon: <CalendarMonthIcon /> },
   { id: 'pages', label: 'Pages', path: '/' as const, icon: <ArticleIcon /> },
   { id: 'graph', label: 'Graph', path: '/graph', icon: <HubIcon /> },
+  { id: 'kanban', label: 'Kanban', path: '/kanban', icon: <ChecklistIcon /> },
   { id: 'search', label: 'Search', path: '/search', icon: <SearchIcon /> },
   { id: 'query', label: 'Query', path: '/query', icon: <CodeIcon /> },
   { id: 'templates', label: 'Templates', path: '/templates', icon: <DescriptionIcon /> },
