@@ -540,10 +540,7 @@ mod tests {
         assert!(engine.ssh_key_path().is_none());
         // Set a path
         engine.set_ssh_key_path(Some(PathBuf::from("/tmp/test_key")));
-        assert_eq!(
-            engine.ssh_key_path(),
-            Some(&PathBuf::from("/tmp/test_key"))
-        );
+        assert_eq!(engine.ssh_key_path(), Some(&PathBuf::from("/tmp/test_key")));
         // Clear it
         engine.set_ssh_key_path(None);
         assert!(engine.ssh_key_path().is_none());
@@ -586,8 +583,7 @@ mod tests {
 
         // Clone — the clone sets up a tracking branch pointing at the same commit
         let td_clone = TempDir::new().unwrap();
-        let cloned =
-            GitEngine::clone(td_orig.path().to_str().unwrap(), td_clone.path()).unwrap();
+        let cloned = GitEngine::clone(td_orig.path().to_str().unwrap(), td_clone.path()).unwrap();
 
         let (ahead, behind) = cloned.ahead_behind("master").unwrap();
         assert_eq!(ahead, 0);

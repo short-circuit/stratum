@@ -49,3 +49,4 @@ docs/site/
 *.pyc
 __pycache__/
 gen/android/
+.sisyphus/

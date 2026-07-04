@@ -448,10 +448,7 @@ mod tests {
 
         insert_test_page(&store, &vault_root, &rel_path);
 
-        let block = Block::new(
-            Uuid::new_v4(),
-            format!("Self reference [[{}]]", slug),
-        );
+        let block = Block::new(Uuid::new_v4(), format!("Self reference [[{}]]", slug));
         store.insert_block(&block, &rel_path).unwrap();
 
         let data = build_graph_data_from_store(&store, "/tmp/test-vault").unwrap();
@@ -459,8 +456,14 @@ mod tests {
         assert_eq!(data.node_count, 1, "should have 1 node");
         assert_eq!(data.edge_count, 1, "should have 1 self-link edge");
         assert_eq!(data.edges[0].source, slug, "edge source should be the slug");
-        assert_eq!(data.edges[0].target, slug, "edge target should be the slug (self-link)");
-        assert_eq!(data.nodes[0].degree, 1, "self-link degree should be 1 (not double-counted)");
+        assert_eq!(
+            data.edges[0].target, slug,
+            "edge target should be the slug (self-link)"
+        );
+        assert_eq!(
+            data.nodes[0].degree, 1,
+            "self-link degree should be 1 (not double-counted)"
+        );
     }
 
     #[test]

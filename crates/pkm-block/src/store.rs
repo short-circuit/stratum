@@ -645,8 +645,7 @@ mod tests {
         for (block, page_path) in &results {
             assert_eq!(page_path.as_str(), "pages/tasks.md");
             assert!(
-                block.marker == Some(TaskMarker::Todo)
-                    || block.marker == Some(TaskMarker::Doing)
+                block.marker == Some(TaskMarker::Todo) || block.marker == Some(TaskMarker::Doing)
             );
         }
         let result_ids: Vec<BlockId> = results.iter().map(|(b, _)| b.id).collect();

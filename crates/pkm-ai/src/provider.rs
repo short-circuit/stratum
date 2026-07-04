@@ -1279,7 +1279,10 @@ mod tests {
             ..Default::default()
         };
         let provider = ProviderFactory::create(&config);
-        assert!(provider.is_ok(), "CustomAnthropic provider should be created");
+        assert!(
+            provider.is_ok(),
+            "CustomAnthropic provider should be created"
+        );
     }
 
     #[test]

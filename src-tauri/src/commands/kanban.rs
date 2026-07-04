@@ -31,14 +31,20 @@ pub struct KanbanDataDto {
 
 /// Query all blocks with task markers across all pages.
 #[tauri::command]
-pub async fn get_kanban_blocks(
-    state: tauri::State<'_, AppState>,
-) -> Result<KanbanDataDto, String> {
+pub async fn get_kanban_blocks(state: tauri::State<'_, AppState>) -> Result<KanbanDataDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
 
     // Use the find_blocks_by_markers method
-    let markers = &["TODO", "DOING", "DONE", "NOW", "LATER", "WAITING", "CANCELLED"];
+    let markers = &[
+        "TODO",
+        "DOING",
+        "DONE",
+        "NOW",
+        "LATER",
+        "WAITING",
+        "CANCELLED",
+    ];
     let results = store
         .find_blocks_by_markers(markers)
         .map_err(|e| e.to_string())?;
