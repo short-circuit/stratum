@@ -21,7 +21,32 @@ import WhiteboardPanel from './components/WhiteboardPanel';
 import GraphPanel from './components/GraphPanel';
 import SettingsPage from './components/SettingsPage';
 import VaultPicker from './components/VaultPicker';
+import { getCurrentWindow, type CloseRequestedEvent } from '@tauri-apps/api/window';
+import { getLatestLibraryJson } from './lib/libraryStore';
+import * as api from './lib/commands';
 
+// Register window close handler at app level so it survives route changes
+// Must call event.preventDefault() to prevent close before async save completes
+getCurrentWindow().onCloseRequested(async (event: CloseRequestedEvent) => {
+  event.preventDefault();
+  let json = getLatestLibraryJson();
+  if (!json) {
+    json = localStorage.getItem('stratum-library');
+  }
+  if (json) {
+    console.log('[library] saving on app close, length:', json.length);
+    try {
+      await api.saveLibrary(json);
+      console.log('[library] saved on app close');
+    } catch (e) {
+      console.error('[library] failed to save on app close:', e);
+    }
+  } else {
+    console.log('[library] nothing to save on close');
+  }
+  // Manually close after save completes
+  getCurrentWindow().destroy();
+});
 
 function AppContent() {
   const { vault, loading, loadVault, loadPages, error } = useStore();
