@@ -64,6 +64,26 @@ export interface SyncStatusDto {
   ahead: number;
   behind: number;
   conflicts: string[];
+  last_sync_time: string | null;
+  last_sync_success: boolean | null;
+  pending_commits: number;
+}
+
+export interface SyncSettings {
+  mode: string;
+  remote_url: string | null;
+  branch: string;
+  auto_commit_interval_secs: number;
+  auto_sync_interval_secs: number;
+  ssh_key_path: string | null;
+  commit_template: string;
+}
+
+export interface CommitLogEntry {
+  hash: string;
+  author: string;
+  message: string;
+  timestamp: string;
 }
 
 // --- Graph types ---
@@ -111,6 +131,7 @@ export interface GraphSettings {
   link_distance: number;
   alpha_decay: number;
   velocity_decay: number;
+  link_curvature: number;
 }
 
 // --- Connection suggestions ---
@@ -128,6 +149,12 @@ export interface LinkTargetDto {
   page_path: string | null;
   slug: string | null;
   title: string | null;
+}
+
+export interface AutocompleteItem {
+  text: string;
+  kind: string;
+  detail?: string;
 }
 
 export interface BacklinkContextDto {
@@ -153,4 +180,22 @@ export interface ResearchSource {
   title: string;
   url: string;
   snippet: string;
+}
+
+export interface KanbanBlockDto {
+  id: string;
+  content: string;
+  parent_id: string | null;
+  left_id: string | null;
+  properties: [string, string][];
+  marker: string | null;
+  priority: string | null;
+  collapsed: boolean;
+  heading_level: number | null;
+  page_path: string;
+  page_title: string | null;
+}
+
+export interface KanbanDataDto {
+  blocks: KanbanBlockDto[];
 }
