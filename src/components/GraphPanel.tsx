@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import ForceGraph2D from 'react-force-graph-2d';
+import ForceGraph3D from 'react-force-graph-3d';
+import SpriteText from 'three-spritetext';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -17,22 +18,38 @@ import Alert from '@mui/material/Alert';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import SettingsIcon from '@mui/icons-material/Settings';
+import { useTheme } from '@mui/material/styles';
 import * as api from '../lib/commands';
 import type { GraphSettings, GraphNodeDto, GraphEdgeDto, GraphDataDto, ComponentDto, OrphanDto } from '../lib/types';
 
 interface GraphNode extends GraphNodeDto {
   x?: number;
   y?: number;
+  z?: number;
 }
 
-function tagColor(tags: string[]): string {
-  if (tags.length === 0) return '#6b7280';
-  const h = tags[0].split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
-  return `hsl(${h}, 50%, 55%)`;
-}
+// Vibrant palette optimised for dark backgrounds — high saturation, 65-75% lightness
+const NODE_PALETTE = [
+  '#fbbf24', // amber
+  '#60a5fa', // blue
+  '#34d399', // emerald
+  '#f472b6', // pink
+  '#a78bfa', // violet
+  '#fb923c', // orange
+  '#2dd4bf', // teal
+  '#e879f9', // fuchsia
+];
 
-const NODE_R = 5;
-const HIGHLIGHT_R = 8;
+// Visible warm colour for untagged or low-degree nodes (pops against #1a1a2e)
+const UNTAGGED_COLOR = '#d4a574';
+
+function nodeColor(n: GraphNode): string {
+  const fromTags = n.tags.length > 0;
+  if (!fromTags) return UNTAGGED_COLOR;
+  // Pick palette entry by tag hash so the colour is deterministic per tag
+  const idx = n.tags[0].split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % NODE_PALETTE.length;
+  return NODE_PALETTE[idx];
+}
 
 const DEFAULT_SETTINGS: GraphSettings = {
   show_connected: true,
@@ -42,10 +59,14 @@ const DEFAULT_SETTINGS: GraphSettings = {
   link_distance: 40,
   alpha_decay: 0.08,
   velocity_decay: 0.3,
+  link_curvature: 0.15,
 };
 
 export default function GraphPanel() {
   const navigate = useNavigate();
+  const muiTheme = useTheme();
+  const bgColor = muiTheme.palette.background.default;
+  const textColor = muiTheme.palette.text.primary;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const graphRef = useRef<any>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -56,7 +77,6 @@ export default function GraphPanel() {
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'full' | 'component' | 'orphans'>('full');
   const [selectedComponent, setSelectedComponent] = useState<number>(0);
-  const [highlight, setHighlight] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
   const [width, setWidth] = useState(800);
   const [height, setHeight] = useState(600);
@@ -220,48 +240,24 @@ export default function GraphPanel() {
     [navigate],
   );
 
-  const handleNodeHover = useCallback(
-    (node: GraphNode | null) => {
-      if (!node) {
-        setHighlight(new Set());
-        return;
-      }
-      const connected = new Set<string>([node.id]);
-      edges.forEach((e) => {
-        if (e.source === node.id) connected.add(e.target);
-        if (e.target === node.id) connected.add(e.source);
-      });
-      setHighlight(connected);
+  const handleNodeRightClick = useCallback(
+    (node: GraphNode) => {
+      if (!graphRef.current || node.x === undefined || node.y === undefined) return;
+      const cam = graphRef.current.camera();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const controls = graphRef.current.controls() as any;
+      const target = { x: node.x, y: node.y, z: node.z || 0 };
+      const lookAt = controls?.target || { x: 0, y: 0, z: 0 };
+      graphRef.current.cameraPosition(
+        { x: cam.position.x + target.x - lookAt.x, y: cam.position.y + target.y - lookAt.y, z: cam.position.z + target.z - lookAt.z },
+        target,
+        800,
+      );
     },
-    [edges],
+    [],
   );
 
-  const paintNode = useCallback(
-    (node: GraphNode, ctx: CanvasRenderingContext2D) => {
-      const r = highlight.has(node.id) ? HIGHLIGHT_R : NODE_R;
-      const color = tagColor(node.tags);
-      const isDimmed = highlight.size > 0 && !highlight.has(node.id);
 
-      ctx.beginPath();
-      ctx.arc(node.x || 0, node.y || 0, r, 0, 2 * Math.PI);
-      ctx.fillStyle = isDimmed ? `${color}33` : color;
-      ctx.fill();
-      ctx.strokeStyle = isDimmed ? '#99999944' : '#ffffff88';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      if (highlight.has(node.id)) {
-        ctx.font = '10px sans-serif';
-        ctx.fillStyle = '#e5e7eb';
-        ctx.textAlign = 'center';
-        const label = graphSettings.show_tags && node.tags.length > 0
-          ? `${node.title}  [${node.tags.join(', ')}]`
-          : node.title;
-        ctx.fillText(label, node.x || 0, (node.y || 0) - HIGHLIGHT_R - 4);
-      }
-    },
-    [highlight, graphSettings.show_tags],
-  );
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -360,6 +356,7 @@ export default function GraphPanel() {
             <SliderRow label="Link distance" value={graphSettings.link_distance} min={10} max={120} step={5} onChange={v => updateSetting('link_distance', v)} display={`${Math.round(graphSettings.link_distance)}px`} />
             <SliderRow label="Alpha decay" value={graphSettings.alpha_decay} min={0.01} max={0.3} step={0.01} onChange={v => updateSetting('alpha_decay', v)} display={graphSettings.alpha_decay.toFixed(2)} />
             <SliderRow label="Friction" value={graphSettings.velocity_decay} min={0.05} max={0.95} step={0.05} onChange={v => updateSetting('velocity_decay', v)} display={graphSettings.velocity_decay.toFixed(2)} />
+            <SliderRow label="Curvature" value={graphSettings.link_curvature} min={0} max={0.5} step={0.05} onChange={v => updateSetting('link_curvature', v)} display={graphSettings.link_curvature.toFixed(2)} />
           </Box>
         </Box>
       </Collapse>
@@ -388,36 +385,36 @@ export default function GraphPanel() {
                 </Typography>
               </Alert>
             )}
-            <ForceGraph2D
-            ref={graphRef}
-            graphData={graphDataProp}
-            width={width}
-            height={height}
-            nodeLabel={(n: GraphNode) =>
-              `${n.title}\n${n.tags.join(', ') || 'no tags'}`
-            }
-            nodeCanvasObject={(n: GraphNode, ctx: CanvasRenderingContext2D) =>
-              paintNode(n, ctx)
-            }
-            nodePointerAreaPaint={(n: GraphNode, color: string, ctx: CanvasRenderingContext2D) => {
-              ctx.beginPath();
-              ctx.arc(n.x || 0, n.y || 0, HIGHLIGHT_R + 2, 0, 2 * Math.PI);
-              ctx.fillStyle = color;
-              ctx.fill();
-            }}
-            onNodeClick={(n: GraphNode) => handleNodeClick(n)}
-            onNodeHover={(n: GraphNode | null) => handleNodeHover(n)}
-            linkColor={() => '#6b728066'}
-            linkDirectionalArrowLength={3}
-            linkDirectionalArrowRelPos={1}
-            linkWidth={0.5}
-            d3AlphaDecay={graphSettings.alpha_decay}
-            d3VelocityDecay={graphSettings.velocity_decay}
-            enableNodeDrag={true}
-            enableZoomInteraction={true}
-            minZoom={0.2}
-            maxZoom={8}
-          />
+            <ForceGraph3D
+              ref={graphRef}
+              graphData={graphDataProp}
+              width={width}
+              height={height}
+              backgroundColor={bgColor}
+              nodeThreeObject={(n: GraphNode) => {
+                const sprite = new SpriteText(n.title);
+                sprite.textHeight = Math.min(11, 5 + (n.degree || 0) * 0.35);
+                sprite.color = textColor;
+                sprite.backgroundColor = nodeColor(n) + '44';
+                sprite.padding = [3, 7];
+                sprite.fontWeight = 'bold';
+                sprite.borderRadius = 6;
+                return sprite;
+              }}
+              onNodeClick={(n: GraphNode) => handleNodeClick(n)}
+              onNodeRightClick={(n: GraphNode) => handleNodeRightClick(n)}
+              linkColor={() => textColor}
+              linkDirectionalArrowLength={3.5}
+              linkDirectionalArrowRelPos={1}
+              linkWidth={0.5}
+              linkOpacity={0.35}
+              linkCurvature={graphSettings.link_curvature}
+              d3AlphaDecay={graphSettings.alpha_decay}
+              d3VelocityDecay={graphSettings.velocity_decay}
+              enableNodeDrag={true}
+              enableNavigationControls={true}
+              showNavInfo={false}
+            />
           </>)}
         {!loading && !error && nodes.length === 0 && (
           <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
