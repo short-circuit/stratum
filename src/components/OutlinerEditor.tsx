@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCreateBlockNote } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,11 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
+import Popover from '@mui/material/Popover';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
+import { useStore } from '../stores/appStore';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
 import { BlockNoteSchema, defaultBlockSpecs } from '@blocknote/core';
@@ -20,6 +25,7 @@ import AIFormattingToolbar from './AIFormattingToolbar';
 import { createMermaidSpec } from './MermaidBlock';
 import { useMathInline, setupMathDblClick } from '../lib/useMathInline';
 import MathEditorModal from './MathEditorModal';
+import MarkerBadge from './MarkerBadge';
 
 const schema = BlockNoteSchema.create({
   blockSpecs: {
@@ -30,18 +36,34 @@ const schema = BlockNoteSchema.create({
 
 const mermaidBlockRegex = /^```mermaid\n?([\s\S]*?)\n?```\s*$/;
 
+const MARKER_KEYWORDS = ['TODO', 'DOING', 'DONE', 'NOW', 'LATER', 'WAITING', 'CANCELLED'];
+
+function extractTextContent(block: any): string {
+  if (!block.content || !Array.isArray(block.content)) return '';
+  return block.content.map((c: any) => c.text || '').join('');
+}
+
 interface Props {
   pagePath: string;
 }
 
+interface BlockMeta {
+  marker: string | null;
+  priority: string | null;
+  properties: [string, string][];
+}
+
 export default function OutlinerEditor({ pagePath }: Props) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blockMetaRef = useRef<Map<string, BlockMeta>>(new Map());
+  const isProcessingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState('init');
   const [mathEdit, setMathEdit] = useState<{
     latex: string;
     pos: number;
   } | null>(null);
+  const [pageMarkers, setPageMarkers] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const ctrlHeld = useCtrlHeld();
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -55,6 +77,11 @@ export default function OutlinerEditor({ pagePath }: Props) {
   const navigate = useNavigate();
   const navigateRef = useRef(navigate);
   useEffect(() => { navigateRef.current = navigate; }, [navigate]);
+
+  const [deadLinkPopup, setDeadLinkPopup] = useState<{
+    target: string;
+    position: { x: number; y: number };
+  } | null>(null);
 
   const editor = useCreateBlockNote({
     schema,
@@ -76,10 +103,15 @@ export default function OutlinerEditor({ pagePath }: Props) {
           return true;
         }
         if (isWikiLinkHref(href)) {
-          if (!event.ctrlKey && !event.metaKey) return true;
-          api.resolveLinkTarget(extractWikiLinkTarget(href)).then(resolved => {
+          const rect = a.getBoundingClientRect();
+          const pos = { x: rect.left, y: rect.bottom };
+          let target = extractWikiLinkTarget(href);
+          target = target.replace(/[[\]]/g, '').trim().toLowerCase();
+          api.resolveLinkTarget(target).then(resolved => {
             if (resolved.page_path) {
               navigateRef.current('/page/' + encodeURIComponent(resolved.page_path));
+            } else {
+              setDeadLinkPopup({ target, position: pos });
             }
           });
           return true;
@@ -89,16 +121,46 @@ export default function OutlinerEditor({ pagePath }: Props) {
     },
   });
 
+  function setBlockMeta(id: string, meta: Partial<BlockMeta>): void {
+    const existing = blockMetaRef.current.get(id) ?? { marker: null, priority: null, properties: [] };
+    blockMetaRef.current.set(id, { ...existing, ...meta });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function detectAndApplyMarkers(blockNoteBlocks: any[]): void {
+    if (!pagePath.startsWith('journals/')) return;
+
+    for (const b of blockNoteBlocks) {
+      const content = extractTextContent(b);
+      const firstWord = content.trim().split(/\s+/)[0]?.toUpperCase();
+      if (firstWord && MARKER_KEYWORDS.includes(firstWord)) {
+        const existingMeta = blockMetaRef.current.get(b.id);
+        if (existingMeta?.marker) continue;
+
+        setBlockMeta(b.id, { marker: firstWord });
+
+        const rest = content.trim().slice(firstWord.length).trim();
+        if (rest !== content.trim() && Array.isArray(b.content) && b.content.length > 0) {
+          b.content[0].text = rest;
+        }
+      }
+    }
+  }
+
   // Step 1: Load blocks as strings
   useEffect(() => {
     api.getBlocks(pagePath)
       .then(({ blocks }) => {
         try {
+          blockMetaRef.current.clear();
           for (const b of blocks) b.content = normalizeContent(b.content);
-          const bnBlocks = dtoToBlockNote(blocks);
+          const bnBlocks = dtoToBlockNote(blocks, blockMetaRef.current);
           if (bnBlocks.length > 0) {
             editor.replaceBlocks(editor.document, bnBlocks);
           }
+          // Collect unique markers from loaded blocks
+          const markers = [...new Set(blocks.filter(b => b.marker).map(b => b.marker!))];
+          setPageMarkers(markers);
           // onChange not registered yet — no save from load
           setStatus('ready');
         } catch (e) {
@@ -121,19 +183,22 @@ export default function OutlinerEditor({ pagePath }: Props) {
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
         try {
-          const dtos = blockNoteToDto(blockNoteBlocks);
+          // Run marker detection before converting to DTOs
+          detectAndApplyMarkers(blockNoteBlocks);
+          const dtos = blockNoteToDto(blockNoteBlocks, blockMetaRef.current);
           await api.saveBlocks(pagePath, dtos);
         } catch (e) {
           console.error('[OutlinerEditor] save failed:', e);
         }
       }, 500);
     },
-    [pagePath],
+    [pagePath, editor],
   );
 
   useEffect(() => {
     if (!editor || status !== 'ready') return;
     return editor.onChange(() => {
+      if (isProcessingRef.current) return;
       persistBlocks(editor.document);
     });
   }, [editor, persistBlocks, status]);
@@ -149,6 +214,38 @@ export default function OutlinerEditor({ pagePath }: Props) {
       containerRef.current,
       (latex: string, pos: number) => setMathEdit({ latex, pos }),
     );
+  }, [status]);
+
+  // Check pages in the store to mark dead wiki-links without API calls
+  function markDeadLinks(root: HTMLElement) {
+    const anchors = root.querySelectorAll<HTMLAnchorElement>('a[data-inline-content-type="link"][href^="stratum:"]');
+    if (!anchors.length) return;
+    const slugs = new Set(
+      useStore.getState().pages.map(p =>
+        (p.slug || p.path.replace(/\.md$/i, '')).toLowerCase(),
+      ),
+    );
+    for (const a of anchors) {
+      const href = a.getAttribute('href');
+      if (!href || href.startsWith('stratum-tag:')) continue;
+      const target = extractWikiLinkTarget(href).replace(/[[\]]/g, '').trim().toLowerCase();
+      if (!slugs.has(target)) {
+        a.style.color = '#d97706';
+        a.style.textDecoration = 'underline dashed';
+      } else {
+        a.style.color = '';
+        a.style.textDecoration = '';
+      }
+    }
+  }
+
+  // Delayed dead-link scan after editor fully renders
+  useEffect(() => {
+    if (status !== 'ready') return;
+    const el = containerRef.current;
+    if (!el) return;
+    const t = setTimeout(() => markDeadLinks(el), 1000);
+    return () => clearTimeout(t);
   }, [status]);
 
   // Preview popup helpers
@@ -184,7 +281,7 @@ export default function OutlinerEditor({ pagePath }: Props) {
     setPreview(null);
   }, []);
 
-  // Wiki-link hover preview delegation
+  // Wiki-link hover preview delegation + click handling (native click prevents browser navigation)
   useEffect(() => {
     const el = containerRef.current;
     if (!el || status !== 'ready') return;
@@ -211,11 +308,25 @@ export default function OutlinerEditor({ pagePath }: Props) {
       dismissPreview();
     };
 
+    const handleLinkPrevent = (e: MouseEvent) => {
+      // Only prevent browser from following stratum: href — does NOT stop propagation
+      // so ProseMirror's handleClick can still fire the links.onClick callback
+      const a = (e.target as HTMLElement).closest?.('a');
+      if (!a) return;
+      const href = a.getAttribute('href');
+      if (!href || !isWikiLinkHref(href)) return;
+      e.preventDefault();
+    };
+
     el.addEventListener('mouseover', handleMouseOver);
     el.addEventListener('mouseout', handleMouseOut);
+    el.addEventListener('mousedown', handleLinkPrevent, true);
+    el.addEventListener('click', handleLinkPrevent, true);
     return () => {
       el.removeEventListener('mouseover', handleMouseOver);
       el.removeEventListener('mouseout', handleMouseOut);
+      el.removeEventListener('mousedown', handleLinkPrevent, true);
+      el.removeEventListener('click', handleLinkPrevent, true);
     };
   }, [status, showPreview, dismissPreview]);
 
@@ -224,6 +335,21 @@ export default function OutlinerEditor({ pagePath }: Props) {
     const interval = setInterval(check, 100);
     return () => clearInterval(interval);
   }, [ctrlHeld, dismissPreview]);
+
+  // Memoize the editor view so it doesn't re-render on popup state changes (which would reset scroll position)
+  const editorView = useMemo(() => (
+    <BlockNoteView
+      editor={editor}
+      theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
+      style={{ minHeight: '400px', height: '100%' }}
+      slashMenu={false}
+      formattingToolbar={false}
+      linkToolbar={false}
+    >
+      <AISlashMenu pagePath={pagePath} />
+      <AIFormattingToolbar />
+    </BlockNoteView>
+  ), [editor, pagePath]);
 
   if (status === 'init' || status === 'loading') {
     return (
@@ -248,17 +374,14 @@ export default function OutlinerEditor({ pagePath }: Props) {
   }
 
   return (
-    <div ref={containerRef} className="blocknote-editor-container" style={{ height: '100%' }}>
-      <BlockNoteView
-        editor={editor}
-        theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
-        style={{ minHeight: '400px', height: '100%' }}
-        slashMenu={false}
-        formattingToolbar={false}
-      >
-        <AISlashMenu pagePath={pagePath} />
-        <AIFormattingToolbar />
-      </BlockNoteView>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {pageMarkers.length > 0 && (
+        <Box sx={{ px: 2, py: 0.5, display: 'flex', gap: 0.5, flexWrap: 'wrap', borderBottom: 1, borderColor: 'divider', bgcolor: 'action.hover' }}>
+          {pageMarkers.map(m => <MarkerBadge key={m} marker={m} />)}
+        </Box>
+      )}
+      <div ref={containerRef} className="blocknote-editor-container" style={{ flex: 1, minHeight: 0 }}>
+        {editorView}
       {preview && (
         <LinkPreviewPopup
           content={preview.content}
@@ -269,6 +392,42 @@ export default function OutlinerEditor({ pagePath }: Props) {
           onClose={() => setPreview(null)}
         />
       )}
+
+      <Popover
+        open={Boolean(deadLinkPopup)}
+        anchorReference="anchorPosition"
+        anchorPosition={deadLinkPopup ? { left: deadLinkPopup.position.x, top: deadLinkPopup.position.y } : undefined}
+        onClose={() => setDeadLinkPopup(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        disableScrollLock
+        slotProps={{ paper: { sx: { p: 0.5 } } }}
+      >
+        <Tooltip title="Create page">
+          <IconButton
+            size="small"
+            color="primary"
+            onClick={async () => {
+              if (!deadLinkPopup) return;
+              const slug = deadLinkPopup.target;
+              try {
+                await api.createPage(slug);
+              } catch (e) {
+                if (!String(e).includes('already exists')) {
+                  console.error('Failed to create page:', e);
+                  setDeadLinkPopup(null);
+                  return;
+                }
+              }
+              navigate('/page/' + encodeURIComponent(slug));
+              setDeadLinkPopup(null);
+            }}
+          >
+            <AddCircleIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Popover>
+
       {mathEdit && (
         <MathEditorModal
           initialLatex={mathEdit.latex}
@@ -288,11 +447,12 @@ export default function OutlinerEditor({ pagePath }: Props) {
         />
       )}
     </div>
+    </Box>
   );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function dtoToBlockNote(dtos: BlockDto[]): any[] {
+function dtoToBlockNote(dtos: BlockDto[], metaMap: Map<string, BlockMeta>): any[] {
   if (dtos.length === 0) return [];
   const rootBlocks = dtos.filter(d => !d.parent_id);
   rootBlocks.sort((a, b) => {
@@ -322,7 +482,15 @@ function dtoToBlockNote(dtos: BlockDto[]): any[] {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const props: Record<string, any> = {};
     if (dto.heading_level) { type = 'heading'; props.level = dto.heading_level; }
-    else if (dto.marker) { type = 'checkListItem'; }
+    // Store ALL block metadata in blockMetaRef (even without marker, to preserve priority/properties)
+    metaMap.set(dto.id, {
+      marker: dto.marker,
+      priority: dto.priority,
+      properties: dto.properties,
+    });
+    if (dto.marker) {
+      type = 'checkListItem';
+    }
     // Parse inline content (bold, italic, wiki-links, code, strikethrough)
     // before passing to BlockNote, which stores content as InlineContent[] internally
     const content = parseContentToInlineItems(contentStr);
@@ -332,7 +500,7 @@ function dtoToBlockNote(dtos: BlockDto[]): any[] {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function blockNoteToDto(blockNoteBlocks: any[]): BlockDto[] {
+function blockNoteToDto(blockNoteBlocks: any[], metaMap: Map<string, BlockMeta>): BlockDto[] {
   const result: BlockDto[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function walk(blocks: any[], parentId: string | null) {
@@ -354,13 +522,14 @@ function blockNoteToDto(blockNoteBlocks: any[]): BlockDto[] {
         if (typeof b.content === 'string') content = b.content;
         else if (Array.isArray(b.content)) content = inlineItemsToContent(b.content);
       }
+      const meta = metaMap.get(id) ?? { marker: null, priority: null, properties: [] };
       result.push({
         id, content,
         parent_id: parentId,
         left_id: prevId,
-        properties: [],
-        marker: b.type === 'checkListItem' ? 'TODO' : null,
-        priority: null,
+        properties: meta.properties,
+        marker: meta.marker,
+        priority: meta.priority,
         collapsed: false,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         heading_level: b.type === 'heading' ? (b.props as any)?.level ?? null : null,

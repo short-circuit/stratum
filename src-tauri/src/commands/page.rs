@@ -26,6 +26,9 @@ pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto
 
     let mut pages = Vec::new();
     for path in paths {
+        if path.starts_with(".git/") || path.contains("/.git/") {
+            continue;
+        }
         let slug = std::path::Path::new(&path)
             .file_stem()
             .and_then(|s| s.to_str())
@@ -113,6 +116,14 @@ pub fn sync_filesystem_to_db(vault_path: &Path, db_path: &Path) -> Result<usize,
             count += 1;
         }
     }
+
+    for rel in &db_paths {
+        if rel.starts_with(".git/") || rel.contains("/.git/") {
+            let _ = store.delete_page(rel);
+            count += 1;
+        }
+    }
+
     Ok(count)
 }
 
@@ -393,6 +404,7 @@ fn find_md_files(dir: &Path, vault_root: &Path) -> std::io::Result<Vec<String>> 
         let path = entry.path();
         if path.file_name().and_then(|n| n.to_str()) == Some(".pkm")
             || path.file_name().and_then(|n| n.to_str()) == Some("templates")
+            || path.file_name().and_then(|n| n.to_str()) == Some(".git")
         {
             continue;
         }
