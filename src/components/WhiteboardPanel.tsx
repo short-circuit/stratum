@@ -7,15 +7,25 @@ import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardActionArea from '@mui/material/CardActionArea';
+import Checkbox from '@mui/material/Checkbox';
 import Grid from '@mui/material/Grid';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DrawIcon from '@mui/icons-material/Draw';
+import DeleteIcon from '@mui/icons-material/Delete';
 import Chip from '@mui/material/Chip';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 import { useTheme } from '@mui/material/styles';
 import { Excalidraw, MainMenu, restore, restoreLibraryItems, exportToCanvas } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import type { ExcalidrawImperativeAPI, SceneData, LibraryItems } from '@excalidraw/excalidraw/types';
 import * as api from '../lib/commands';
+import { setLatestLibraryJson } from '../lib/libraryStore';
 
 interface Board {
   name: string;
@@ -118,27 +128,24 @@ export default function WhiteboardPanel() {
   const isDarkRef = useRef(muiTheme.palette.mode === 'dark');
   useEffect(() => { isDarkRef.current = muiTheme.palette.mode === 'dark'; }, [muiTheme.palette.mode]);
 
+  // Load library from Rust backend on mount
   useEffect(() => {
     api.listWhiteboards().then(setBoards);
     (async () => {
       try {
         const personal = await api.loadLibrary();
         const extra = await api.loadExtraLibraries();
-        console.log('[library] loaded personal:', personal?.length, 'chars');
-        console.log('[library] loaded extra:', extra?.length, 'chars');
         const personalItems = personal ? JSON.parse(personal) : [];
         const extraItems = extra ? JSON.parse(extra) : [];
         const merged = [...personalItems, ...extraItems];
-        console.log('[library] merged items count:', merged.length);
+        console.log('[library] loaded from disk, items:', merged.length);
         const restored = restoreLibraryItems(merged, 'published');
-        console.log('[library] restored items count:', restored.length);
         setLibraryItems(restored);
       } catch (e) {
         console.error('[library] failed to load libraries:', e);
         setLibraryItems([]);
       }
     })();
-    return () => {};
   }, []);
 
   const doSave = useCallback(async (generatePreview = false) => {
@@ -192,6 +199,17 @@ export default function WhiteboardPanel() {
 
   const loadBoard = useCallback(async (name: string) => {
     try {
+      // Reload library from disk every time a board opens
+      const [personal, extra] = await Promise.all([
+        api.loadLibrary(),
+        api.loadExtraLibraries(),
+      ]);
+      const personalItems = personal ? JSON.parse(personal) : [];
+      const extraItems = extra ? JSON.parse(extra) : [];
+      const merged = [...personalItems, ...extraItems];
+      const restored = restoreLibraryItems(merged, 'published');
+      setLibraryItems(restored);
+
       const content = await api.loadWhiteboard(name);
       if (content) {
         const parsed = JSON.parse(content);
@@ -218,17 +236,26 @@ export default function WhiteboardPanel() {
     loadBoard(newName);
   };
 
-  const handleChange = useCallback(() => {
-    setDirty(true);
+  // Save library to disk and update state
+  const saveLibraryItems = useCallback(async (items: LibraryItems) => {
+    const json = JSON.stringify(items);
+    setLatestLibraryJson(json);
+    setLibraryItems(items);
+    try {
+      await api.saveLibrary(json);
+      console.log('[library] saved', items.length, 'items');
+    } catch (e) {
+      console.error('[library] save failed:', e);
+    }
   }, []);
 
+  // Auto-save whenever Excalidraw's library changes (with empty guard)
   const handleLibraryChange = useCallback((items: LibraryItems) => {
-    const json = JSON.stringify(items);
-    api.saveLibrary(json).then(() => {
-      console.log('[library] save completed successfully');
-    }).catch(e => {
-      console.error('[library] Failed to save library:', e);
-    });
+    console.log('[library] onChange', items.length, 'items');
+    saveLibraryItems(items);
+  }, [saveLibraryItems]);
+  const handleChange = useCallback(() => {
+    setDirty(true);
   }, []);
 
   const boardMeta = boards.map(b => {
