@@ -47,7 +47,6 @@ impl VaultState {
     pub fn set_passphrase(&mut self, passphrase: String) {
         self.passphrase = Some(passphrase);
     }
-
 }
 
 pub type AppState = Mutex<VaultState>;

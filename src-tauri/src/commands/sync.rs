@@ -37,9 +37,7 @@ fn read_config(vault_path: &std::path::Path) -> Result<pkm_core::Config, String>
 }
 
 #[tauri::command]
-pub async fn get_sync_status(
-    state: tauri::State<'_, AppState>,
-) -> Result<SyncStatusDto, String> {
+pub async fn get_sync_status(state: tauri::State<'_, AppState>) -> Result<SyncStatusDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let vault_path = &state.vault_path;
 
@@ -94,16 +92,13 @@ pub async fn get_sync_status(
 }
 
 #[tauri::command]
-pub async fn sync_vault(
-    state: tauri::State<'_, AppState>,
-) -> Result<SyncStatusDto, String> {
+pub async fn sync_vault(state: tauri::State<'_, AppState>) -> Result<SyncStatusDto, String> {
     let vault_path = state.lock().map_err(|e| e.to_string())?.vault_path.clone();
     let passphrase = state.lock().map_err(|e| e.to_string())?.passphrase.clone();
 
     let config = read_config(&vault_path)?;
 
-    let mut engine =
-        pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
+    let mut engine = pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
 
     // Set SSH key path from config
     if let Some(ref key_path) = config.sync.ssh_key_path {
@@ -262,17 +257,18 @@ pub async fn sync_vault_with_passphrase(
 }
 
 #[tauri::command]
-pub async fn start_sync_scheduler(
-    state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn start_sync_scheduler(state: tauri::State<'_, AppState>) -> Result<(), String> {
     let vault_path = state.lock().map_err(|e| e.to_string())?.vault_path.clone();
     let passphrase = state.lock().map_err(|e| e.to_string())?.passphrase.clone();
 
     let config = read_config(&vault_path)?;
-    let ssh_key_path = config.sync.ssh_key_path.clone().map(std::path::PathBuf::from);
+    let ssh_key_path = config
+        .sync
+        .ssh_key_path
+        .clone()
+        .map(std::path::PathBuf::from);
 
-    let mut engine =
-        pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
+    let mut engine = pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
     engine.set_ssh_key_path(ssh_key_path);
     if let Some(ref pp) = passphrase {
         engine.set_passphrase(Some(pp.clone()));
@@ -301,9 +297,7 @@ pub async fn start_sync_scheduler(
 }
 
 #[tauri::command]
-pub async fn stop_sync_scheduler(
-    state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn stop_sync_scheduler(state: tauri::State<'_, AppState>) -> Result<(), String> {
     let mut s = state.lock().map_err(|e| e.to_string())?;
     if let Some(mut scheduler) = s.sync_scheduler.take() {
         scheduler.stop();
@@ -316,8 +310,7 @@ pub async fn get_commit_log(
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<CommitLogEntry>, String> {
     let vault_path = state.lock().map_err(|e| e.to_string())?.vault_path.clone();
-    let engine =
-        pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
+    let engine = pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
     let commits = engine.log(50).map_err(|e| e.to_string())?;
 
     Ok(commits
@@ -337,8 +330,7 @@ pub async fn resolve_conflict_file(
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
     let vault_path = state.lock().map_err(|e| e.to_string())?.vault_path.clone();
-    let engine =
-        pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
+    let engine = pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
     engine.add(&[&path]).map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -346,8 +338,7 @@ pub async fn resolve_conflict_file(
 #[tauri::command]
 pub async fn abort_merge(state: tauri::State<'_, AppState>) -> Result<(), String> {
     let vault_path = state.lock().map_err(|e| e.to_string())?.vault_path.clone();
-    let engine =
-        pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
+    let engine = pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
     let repo = engine.repository();
 
     // Cleanup merge state
