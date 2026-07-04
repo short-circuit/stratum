@@ -3,6 +3,7 @@
 use crate::commands::vault::AppState;
 use pkm_markdown::linker::extract_links;
 use serde::{Deserialize, Serialize};
+use std::cmp::Reverse;
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -281,7 +282,7 @@ pub async fn autocomplete(
                 let slug = std::path::Path::new(&path)
                     .file_stem()
                     .and_then(|s| s.to_str())
-                    .unwrap_or(&path)
+                    .unwrap_or(path)
                     .to_string();
                 slug_to_path.insert(slug, path.clone());
             }
@@ -318,7 +319,7 @@ pub async fn autocomplete(
             }
 
             // Sort by incoming link count descending, take top 10
-            results.sort_by(|a, b| b.0.cmp(&a.0));
+            results.sort_by_key(|b| Reverse(b.0));
             for (_, slug, path) in results.into_iter().take(10) {
                 items.push(AutocompleteItem {
                     text: slug.replace('-', " "),

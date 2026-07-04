@@ -56,8 +56,7 @@ pub async fn get_kanban_blocks(state: tauri::State<'_, AppState>) -> Result<Kanb
             .get_page(&page_path)
             .ok()
             .flatten()
-            .map(|fm| fm.title)
-            .flatten();
+            .and_then(|fm| fm.title);
 
         blocks.push(KanbanBlockDto {
             id: block.id.to_string(),

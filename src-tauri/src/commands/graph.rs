@@ -430,10 +430,10 @@ pub async fn rebuild_graph(state: tauri::State<'_, AppState>) -> Result<String, 
 mod tests {
     use super::*;
     use pkm_block::{Block, BlockStore, Page};
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
     use uuid::Uuid;
 
-    fn insert_test_page(store: &BlockStore, vault_root: &PathBuf, rel_path: &str) {
+    fn insert_test_page(store: &BlockStore, vault_root: &Path, rel_path: &str) {
         let full_path = vault_root.join(rel_path);
         let page = Page::new(full_path, vault_root);
         store.upsert_page(&page).unwrap();
