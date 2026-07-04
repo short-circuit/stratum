@@ -1005,6 +1005,8 @@ impl ProviderFactory {
                 AiProvider::OpenAI => "https://api.openai.com/v1".to_string(),
                 AiProvider::Anthropic => "https://api.anthropic.com".to_string(),
                 AiProvider::Custom => "http://localhost:8080/v1/chat/completions".to_string(),
+                AiProvider::CustomOpenAI => "http://localhost:8080/v1".to_string(),
+                AiProvider::CustomAnthropic => "https://api.anthropic.com".to_string(),
                 AiProvider::Google => {
                     "https://generativelanguage.googleapis.com/v1beta".to_string()
                 }
@@ -1031,6 +1033,18 @@ impl ProviderFactory {
                 endpoint,
                 config.api_key.clone(),
             ))),
+            AiProvider::CustomOpenAI => {
+                let api_key = config.api_key.clone().ok_or_else(|| {
+                    PkmError::Config("CustomOpenAI requires an API key".to_string())
+                })?;
+                Ok(Box::new(OpenAIProvider::new(endpoint, api_key)))
+            }
+            AiProvider::CustomAnthropic => {
+                let api_key = config.api_key.clone().ok_or_else(|| {
+                    PkmError::Config("CustomAnthropic requires an API key".to_string())
+                })?;
+                Ok(Box::new(AnthropicProvider::new(endpoint, api_key)))
+            }
             AiProvider::Google | AiProvider::Zai => Ok(Box::new(CustomProvider::new(
                 endpoint,
                 config.api_key.clone(),
@@ -1217,6 +1231,94 @@ mod tests {
         assert!(ProviderFactory::create(&config).is_ok());
 
         // Custom with no endpoint should default to localhost:8080
+        let config = AiConfig {
+            provider: AiProvider::Custom,
+            endpoint: None,
+            api_key: None,
+            ..Default::default()
+        };
+        assert!(ProviderFactory::create(&config).is_ok());
+
+        // CustomOpenAI with no endpoint should default to localhost:8080/v1
+        let config = AiConfig {
+            provider: AiProvider::CustomOpenAI,
+            endpoint: None,
+            api_key: Some("sk-test".to_string()),
+            ..Default::default()
+        };
+        assert!(ProviderFactory::create(&config).is_ok());
+
+        // CustomAnthropic with no endpoint should default to api.anthropic.com
+        let config = AiConfig {
+            provider: AiProvider::CustomAnthropic,
+            endpoint: None,
+            api_key: Some("sk-ant-test".to_string()),
+            ..Default::default()
+        };
+        assert!(ProviderFactory::create(&config).is_ok());
+    }
+
+    #[test]
+    fn test_factory_creates_custom_openai() {
+        let config = AiConfig {
+            provider: AiProvider::CustomOpenAI,
+            endpoint: Some("http://localhost:8080/v1".to_string()),
+            api_key: Some("sk-custom123".to_string()),
+            ..Default::default()
+        };
+        let provider = ProviderFactory::create(&config);
+        assert!(provider.is_ok(), "CustomOpenAI provider should be created");
+    }
+
+    #[test]
+    fn test_factory_creates_custom_anthropic() {
+        let config = AiConfig {
+            provider: AiProvider::CustomAnthropic,
+            endpoint: Some("https://custom.anthropic.com".to_string()),
+            api_key: Some("sk-ant-custom123".to_string()),
+            ..Default::default()
+        };
+        let provider = ProviderFactory::create(&config);
+        assert!(provider.is_ok(), "CustomAnthropic provider should be created");
+    }
+
+    #[test]
+    fn test_factory_missing_api_key_custom_openai() {
+        let config = AiConfig {
+            provider: AiProvider::CustomOpenAI,
+            endpoint: Some("http://localhost:8080/v1".to_string()),
+            api_key: None,
+            ..Default::default()
+        };
+        let result = ProviderFactory::create(&config);
+        assert!(result.is_err());
+        let err = match result {
+            Err(e) => e,
+            _ => unreachable!(),
+        };
+        assert!(err.to_string().contains("API key"));
+    }
+
+    #[test]
+    fn test_factory_missing_api_key_custom_anthropic() {
+        let config = AiConfig {
+            provider: AiProvider::CustomAnthropic,
+            endpoint: Some("https://custom.anthropic.com".to_string()),
+            api_key: None,
+            ..Default::default()
+        };
+        let result = ProviderFactory::create(&config);
+        assert!(result.is_err());
+        let err = match result {
+            Err(e) => e,
+            _ => unreachable!(),
+        };
+        assert!(err.to_string().contains("API key"));
+    }
+
+    #[test]
+    fn test_factory_backward_compat_custom() {
+        // Old Custom variant still works without api_key
         let config = AiConfig {
             provider: AiProvider::Custom,
             endpoint: None,

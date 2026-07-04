@@ -102,10 +102,35 @@ pub struct SyncConfig {
     pub auto_sync_interval_secs: u64,
     /// GPG key ID for signing commits (optional).
     pub signing_key: Option<String>,
+    /// Path to SSH private key for git authentication.
+    /// If set, used for push/pull via git2::Cred::ssh_key.
+    /// If None, falls back to ssh-agent.
+    pub ssh_key_path: Option<String>,
+    /// Commit message template with placeholders:
+    /// {datetime}, {editedfiles}, {newfiles}, {deletedfiles}, {count}
+    pub commit_template: String,
+}
+
+/// Detect the default SSH private key path.
+/// Checks ~/.ssh/id_ed25519 first, then ~/.ssh/id_rsa.
+/// Returns the path of the first existing key, or None.
+pub fn detect_default_ssh_key() -> Option<String> {
+    let home = dirs::home_dir()?;
+    for candidate in &["id_ed25519", "id_rsa"] {
+        let p = home.join(".ssh").join(candidate);
+        if p.exists() {
+            return Some(p.to_string_lossy().to_string());
+        }
+    }
+    None
 }
 
 impl Default for SyncConfig {
     fn default() -> Self {
+        let default_template = concat!(
+            "stratum({datetime}): ",
+            "{editedfiles} edited, {newfiles} added, {deletedfiles} deleted"
+        );
         Self {
             mode: SyncMode::Manual,
             remote_url: None,
@@ -113,6 +138,8 @@ impl Default for SyncConfig {
             auto_commit_interval_secs: 300,
             auto_sync_interval_secs: 1800,
             signing_key: None,
+            ssh_key_path: detect_default_ssh_key(),
+            commit_template: default_template.to_string(),
         }
     }
 }
@@ -208,6 +235,8 @@ pub enum AiProvider {
     #[serde(rename = "z.ai")]
     Zai,
     Custom,
+    CustomOpenAI,
+    CustomAnthropic,
 }
 
 /// Graph visualization configuration.
@@ -221,6 +250,7 @@ pub struct GraphConfig {
     pub link_distance: f64,
     pub alpha_decay: f64,
     pub velocity_decay: f64,
+    pub link_curvature: f64,
 }
 
 impl Default for GraphConfig {
@@ -233,6 +263,7 @@ impl Default for GraphConfig {
             link_distance: 40.0,
             alpha_decay: 0.08,
             velocity_decay: 0.3,
+            link_curvature: 0.15,
         }
     }
 }
@@ -448,6 +479,23 @@ mod tests {
         let w = WatcherConfig::default();
         assert!(w.enabled);
         assert_eq!(w.debounce_ms, 500);
+    }
+
+    #[test]
+    fn test_graph_config_link_curvature_default() {
+        let cfg = GraphConfig::default();
+        assert_eq!(cfg.link_curvature, 0.15);
+    }
+
+    #[test]
+    fn test_graph_config_serde_round_trip() {
+        let cfg = GraphConfig {
+            link_curvature: 0.3,
+            ..Default::default()
+        };
+        let json = serde_json::to_string(&cfg).unwrap();
+        let deserialized: GraphConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.link_curvature, 0.3);
     }
 
     #[test]
