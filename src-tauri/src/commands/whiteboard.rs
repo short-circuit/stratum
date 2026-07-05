@@ -65,6 +65,42 @@ pub async fn save_whiteboard(
 }
 
 #[tauri::command]
+pub async fn rename_whiteboard(
+    old_name: String,
+    new_name: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let wb_dir = state.vault_path.join("whiteboards");
+    let old_path = wb_dir.join(format!("{}.excalidraw", old_name));
+    let new_path = wb_dir.join(format!("{}.excalidraw", new_name));
+    if !old_path.exists() {
+        return Err("Whiteboard not found".to_string());
+    }
+    if new_path.exists() {
+        return Err("A whiteboard with that name already exists".to_string());
+    }
+    std::fs::rename(&old_path, &new_path).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn delete_whiteboard(
+    name: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let path = state
+        .vault_path
+        .join("whiteboards")
+        .join(format!("{}.excalidraw", name));
+    if path.exists() {
+        std::fs::remove_file(&path).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn load_whiteboard(
     name: String,
     state: tauri::State<'_, AppState>,
