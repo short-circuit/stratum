@@ -595,3 +595,158 @@ Before shipping a mobile change, verify:
 - [ ] App recovers from backgrounding (save + restore)
 - [ ] Orientation changes don't break layout
 - [ ] Safe area insets are respected on notched devices
+
+---
+
+## Vault Storage on Android
+
+On Android, the vault is stored in the app's **private internal storage** at `/data/user/0/app.stratum/StratumVault/`. This is necessary because:
+
+- **SQLite** (`rusqlite`) requires a real filesystem path — it cannot work with Android SAF `content://` URIs
+- **git** (`gix`/gitoxide) also requires a real filesystem path for the `.git/` directory
+- Android's scoped storage (API 30+) blocks raw filesystem writes to `/storage/emulated/0/`
+
+The vault directory contains:
+
+```
+/data/user/0/app.stratum/StratumVault/
+├── .pkm/
+│   ├── blocks.db           # SQLite block store
+│   ├── config.toml         # App configuration
+│   └── search.idx          # Tantivy search index
+├── journals/
+│   └── 2025-01-01.md       # Daily notes
+├── pages/
+│   └── My Note.md          # User pages
+└── .git/                   # Git repository (via gix)
+```
+
+### Why not external/SD storage?
+
+Android's scoped storage (API 30+, ~95% of active devices) prevents apps from writing to arbitrary external storage paths using `std::fs`. The Storage Access Framework (SAF) provides `content://` URIs, but:
+- `rusqlite` cannot open databases from SAF URIs
+- `gix` cannot initialize git repositories on SAF URIs
+
+**Export/import** commands use the `tauri-plugin-android-fs` SAF APIs to let users back up or restore their vault to/from external storage.
+
+### Backup
+
+- **Android Auto Backup**: The vault is automatically backed up to Google Drive (when enabled on the device). This is controlled by `android:allowBackup="true"` in `AndroidManifest.xml`.
+- **Git remote**: Configure a git remote in Settings → Sync to push your vault to GitHub/GitLab. Clone on desktop for full `.md` file access.
+- **Manual export**: Use the export command (planned) to copy vault files to a user-selected SAF location.
+
+---
+
+## Building APKs
+
+### Debug APK (signed, for testing)
+
+```bash
+export ANDROID_HOME="$HOME/Android/Sdk"
+export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.1.12297006"
+export NDK="$ANDROID_NDK_HOME"
+export PATH="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
+
+# Set cross-compilation environment variables for all targets
+export CC_aarch64_linux_android="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang"
+export AR_aarch64_linux_android="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+export CC_x86_64_linux_android="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android21-clang"
+export AR_x86_64_linux_android="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+export CC_armv7_linux_androideabi="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang"
+export AR_armv7_linux_androideabi="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+export CC_i686_linux_android="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android21-clang"
+export AR_i686_linux_android="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+export JAVA_HOME="/usr/lib/jvm/java-21-openjdk"
+
+# Copy frontend assets and Android patches
+cp -r dist/. src-tauri/gen/android/app/src/main/assets/
+cp -r src-tauri/android-patches/app/src/main/* src-tauri/gen/android/app/src/main/
+
+# Build signed debug APK
+npx tauri android build --debug --target aarch64 --apk
+```
+
+The debug APK is output at:
+```
+src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk
+```
+
+**Important**: The debug APK uses `applicationIdSuffix = ".debug"` so it installs as `app.stratum.debug` alongside any release build. It is auto-signed with the debug keystore at `~/.android/debug.keystore`.
+
+### Release APK (unsigned, for distribution)
+
+```bash
+npx tauri android build --target aarch64 --apk
+```
+
+Release APKs are unsigned and must be signed before installation. The CI pipeline signs them using `apksigner` with a keystore from GitHub secrets.
+
+### APK Signing
+
+The CI workflow (`.github/workflows/ci.yml`) signs release APKs with:
+
+```bash
+apksigner sign \
+  --v1-signing-enabled true \
+  --v2-signing-enabled true \
+  --v3-signing-enabled true \
+  --ks "$KEYSTORE_PATH" \
+  --ks-type PKCS12 \
+  --ks-pass "pass:$KEYSTORE_PASSWORD" \
+  --ks-key-alias "$KEY_ALIAS" \
+  --key-pass "pass:$KEY_PASSWORD" \
+  "$APK"
+```
+
+V2 signing is **required** for Android 11+ (API 30+) when `targetSdkVersion >= 30`. V1 provides backward compatibility.
+
+---
+
+## Safe Area Handling
+
+Android's edge-to-edge display mode renders the WebView behind system bars (status bar, navigation bar). Stratum handles this with:
+
+### 1. `MainActivity.kt` — System insets injection
+
+The patched `MainActivity.kt` at `src-tauri/android-patches/`:
+
+- Calls `enableEdgeToEdge()` to draw behind system bars
+- Registers an `OnApplyWindowInsetsListener` that captures system bar and display cutout insets
+- Injects the inset values as CSS custom properties on the `<html>` element:
+  - `--safe-area-inset-top`
+  - `--safe-area-inset-bottom`
+
+### 2. CSS variables (`src/global.css`)
+
+```css
+:root {
+  --safe-area-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-area-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+}
+
+.safe-area-container {
+  padding-top: var(--safe-area-top);
+  padding-bottom: var(--safe-area-bottom);
+}
+```
+
+### 3. React layout classes
+
+- **Desktop layout** (`App.tsx`): Uses `className="safe-area-container"` on the root Box
+- **Mobile layout** (`MobileLayout.tsx`): Also uses `className="safe-area-container"` on the root Box
+
+### 4. `viewport-fit=cover` meta tag
+
+The `index.html` includes `<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />` which tells the WebView to extend into the safe areas.
+
+---
+
+## Troubleshooting
+
+| Problem | Likely Cause | Fix |
+|---------|-------------|-----|
+| `Operation not permitted` writing to vault | Android scoped storage — vault must be in private data dir | Vault auto-creates in `/data/user/0/app.stratum/`. Do NOT use folder picker for vault location. |
+| `package invalid` on APK install | APK is unsigned or uses wrong signature scheme | Build with `--debug` flag, or sign with `apksigner --v2-signing-enabled true` |
+| `INSTALL_FAILED_INVALID_APK` | Architecture mismatch | Build with correct `--target` for your device (`aarch64` for most phones) |
+| App content behind system bars | Missing safe area padding | Ensure `MobileLayout.tsx` has `className="safe-area-container"` |
+| WebView safe area values are 0px | Chromium < 140 has a bug with `env(safe-area-inset-*)` | Rely on Kotlin injection (works on all versions) |

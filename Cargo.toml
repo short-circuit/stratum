@@ -43,14 +43,13 @@ log = "0.4"
 tantivy = "0.22"
 
 # Sync
-git2 = { version = "0.19", features = ["vendored-openssl"] }
-openssl-sys = { version = "0.9", features = ["vendored"] }
+gix = { version = "0.85", features = ["comfort", "blocking-network-client", "credentials", "status", "worktree-mutation", "blob-diff"] }
 
 # Watcher
 notify = { version = "7", features = ["macos_fsevent"] }
 
 # AI
-reqwest = { version = "0.12", features = ["json", "stream"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
 serde_with = "3"
 
 # Plugin

@@ -33,6 +33,11 @@ export async function setVaultPath(path: string): Promise<void> {
 }
 
 export async function pickVaultDirectory(): Promise<VaultInfo> {
+  try {
+    return await invoke('init_default_vault');
+  } catch (_mobileErr) {
+    // Not on Android — fall through to desktop dialog
+  }
   const { open } = await import('@tauri-apps/plugin-dialog');
   const selected = await open({ directory: true, multiple: false });
   if (!selected) throw new Error('No directory selected');

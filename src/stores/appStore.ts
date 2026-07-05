@@ -9,7 +9,7 @@ export interface ThemeConfig {
   fontSize: number;
 }
 
-interface AppState {
+export interface AppState {
   vault: VaultInfo | null;
   pages: PageDto[];
   currentPage: PageDto | null;
