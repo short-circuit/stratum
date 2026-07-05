@@ -54,41 +54,19 @@ fn build_graph_data_from_store(
     vault_path: &str,
 ) -> Result<GraphDataDto, String> {
     let paths = store.list_pages().map_err(|e| e.to_string())?;
-
-    // Build slug → (path, page_frontmatter) and a lookup for link resolution
-    let mut slug_to_path: HashMap<String, String> = HashMap::new();
-    let mut slug_to_title: HashMap<String, String> = HashMap::new();
-    let mut slug_to_tags: HashMap<String, Vec<String>> = HashMap::new();
-    // Map from display title → slug for resolving [[Title]] links
-    let mut title_to_slug: HashMap<String, String> = HashMap::new();
-
-    for path in &paths {
-        let slug = slug_from_path(path);
-        slug_to_path.insert(slug.clone(), path.clone());
-
-        let fm = store.get_page(path).ok().flatten();
-        let title = fm
-            .as_ref()
-            .and_then(|f| f.title.clone())
-            .unwrap_or_else(|| slug.replace('-', " "));
-        slug_to_title.insert(slug.clone(), title.clone());
-        title_to_slug.insert(title.to_lowercase(), slug.clone());
-
-        let tags = fm.map(|f| f.tags).unwrap_or_default();
-        slug_to_tags.insert(slug, tags);
-    }
+    let meta = PageMetaIndex::from_store(store)?;
 
     // Build edges by scanning blocks for [[wiki-links]]
     let mut outgoing: HashMap<String, Vec<GraphEdgeDto>> = HashMap::new();
     let mut degree: HashMap<String, usize> = HashMap::new();
 
-    for (slug, page_path) in &slug_to_path {
+    for (slug, page_path) in &meta.slug_to_path {
         if let Ok(blocks) = store.get_blocks_by_page(page_path) {
             for block in &blocks {
                 let links = pkm_markdown::linker::extract_links(&block.content);
                 for link in links {
                     // Resolve the link target to a slug
-                    let target_slug = resolve_slug(&link.target, &slug_to_path, &title_to_slug);
+                    let target_slug = meta.resolve_slug(&link.target);
                     if let Some(target) = target_slug {
                         // Include all resolved links including self-links
                         outgoing
@@ -114,16 +92,9 @@ fn build_graph_data_from_store(
         .iter()
         .map(|path| {
             let slug = slug_from_path(path);
-            let title = slug_to_title.get(&slug).cloned().unwrap_or_default();
-            let tags = slug_to_tags.get(&slug).cloned().unwrap_or_default();
-            let deg = degree.get(&slug).copied().unwrap_or(0usize);
-            GraphNodeDto {
-                id: slug,
-                title,
-                path: path.clone(),
-                tags,
-                degree: deg,
-            }
+            let mut node = meta.get_node(&slug);
+            node.degree = degree.get(&slug).copied().unwrap_or(0);
+            node
         })
         .collect();
 
@@ -147,34 +118,6 @@ fn slug_from_path(path: &str) -> String {
         .and_then(|s| s.to_str())
         .unwrap_or("untitled")
         .to_string()
-}
-
-/// Resolve a wiki-link target to an existing note slug.
-/// Tries: (1) slugified link target, (2) as-is, (3) title lookup, (4) slugified title.
-fn resolve_slug(
-    target: &str,
-    slug_to_path: &HashMap<String, String>,
-    title_to_slug: &HashMap<String, String>,
-) -> Option<String> {
-    let slugified = target.replace(' ', "-").to_lowercase();
-    // Try slugified version
-    if slug_to_path.contains_key(&slugified) {
-        return Some(slugified);
-    }
-    // Try as-is
-    if slug_to_path.contains_key(target) {
-        return Some(target.to_string());
-    }
-    // Try as title
-    let lower = target.to_lowercase();
-    if let Some(slug) = title_to_slug.get(&lower) {
-        return Some(slug.clone());
-    }
-    // Try as title → slugify
-    if slug_to_path.contains_key(&lower) {
-        return Some(lower);
-    }
-    None
 }
 
 #[tauri::command]
@@ -201,35 +144,16 @@ pub async fn get_graph_data(state: tauri::State<'_, AppState>) -> Result<GraphDa
 fn get_connected_components_from_store(
     store: &pkm_block::BlockStore,
 ) -> Result<Vec<ComponentDto>, String> {
-    let paths = store.list_pages().map_err(|e| e.to_string())?;
-    let mut slug_to_path: HashMap<String, String> = HashMap::new();
-    let mut slug_to_title: HashMap<String, String> = HashMap::new();
-    let mut slug_to_tags: HashMap<String, Vec<String>> = HashMap::new();
-    let mut title_to_slug: HashMap<String, String> = HashMap::new();
-
-    for path in &paths {
-        let slug = slug_from_path(path);
-        slug_to_path.insert(slug.clone(), path.clone());
-        let fm = store.get_page(path).ok().flatten();
-        let title = fm
-            .as_ref()
-            .and_then(|f| f.title.clone())
-            .unwrap_or_else(|| slug.replace('-', " "));
-        slug_to_title.insert(slug.clone(), title.clone());
-        title_to_slug.insert(title.to_lowercase(), slug.clone());
-        let tags = fm.map(|f| f.tags).unwrap_or_default();
-        slug_to_tags.insert(slug, tags);
-    }
+    let meta = PageMetaIndex::from_store(store)?;
 
     // Build adjacency list
     let mut adj: HashMap<String, Vec<String>> = HashMap::new();
-    for (slug, page_path) in &slug_to_path {
+    for (slug, page_path) in &meta.slug_to_path {
         if let Ok(blocks) = store.get_blocks_by_page(page_path) {
             for block in &blocks {
                 let links = pkm_markdown::linker::extract_links(&block.content);
                 for link in links {
-                    if let Some(target) = resolve_slug(&link.target, &slug_to_path, &title_to_slug)
-                    {
+                    if let Some(target) = meta.resolve_slug(&link.target) {
                         // Include all links (self-links in adjacency are harmless for BFS)
                         adj.entry(slug.clone()).or_default().push(target.clone());
                         adj.entry(target).or_default().push(slug.clone());
@@ -243,7 +167,7 @@ fn get_connected_components_from_store(
     let mut visited: HashSet<String> = HashSet::new();
     let mut components: Vec<Vec<String>> = Vec::new();
 
-    for slug in slug_to_path.keys() {
+    for slug in meta.slug_to_path.keys() {
         if visited.contains(slug) {
             continue;
         }
@@ -272,14 +196,9 @@ fn get_connected_components_from_store(
             let nodes: Vec<GraphNodeDto> = group
                 .iter()
                 .map(|slug| {
-                    let degree = adj.get(slug).map(|n| n.len()).unwrap_or(0);
-                    GraphNodeDto {
-                        id: slug.clone(),
-                        title: slug_to_title.get(slug).cloned().unwrap_or_default(),
-                        path: slug_to_path.get(slug).cloned().unwrap_or_default(),
-                        tags: slug_to_tags.get(slug).cloned().unwrap_or_default(),
-                        degree,
-                    }
+                    let mut node = meta.get_node(slug);
+                    node.degree = adj.get(slug).map(|n| n.len()).unwrap_or(0);
+                    node
                 })
                 .collect();
             let size = nodes.len();
@@ -301,33 +220,17 @@ pub async fn get_connected_components(
 }
 
 fn get_orphaned_notes_from_store(store: &pkm_block::BlockStore) -> Result<Vec<OrphanDto>, String> {
-    let paths = store.list_pages().map_err(|e| e.to_string())?;
-    let mut slug_to_path: HashMap<String, String> = HashMap::new();
-    let mut slug_to_title: HashMap<String, String> = HashMap::new();
-    let mut title_to_slug: HashMap<String, String> = HashMap::new();
-
-    for path in &paths {
-        let slug = slug_from_path(path);
-        slug_to_path.insert(slug.clone(), path.clone());
-        let fm = store.get_page(path).ok().flatten();
-        let title = fm
-            .as_ref()
-            .and_then(|f| f.title.clone())
-            .unwrap_or_else(|| slug.replace('-', " "));
-        slug_to_title.insert(slug.clone(), title.clone());
-        title_to_slug.insert(title.to_lowercase(), slug);
-    }
+    let meta = PageMetaIndex::from_store(store)?;
 
     // Track which slugs have any connections
     let mut connected: HashSet<String> = HashSet::new();
 
-    for (slug, page_path) in &slug_to_path {
+    for (slug, page_path) in &meta.slug_to_path {
         if let Ok(blocks) = store.get_blocks_by_page(page_path) {
             for block in &blocks {
                 let links = pkm_markdown::linker::extract_links(&block.content);
                 for link in links {
-                    if let Some(target) = resolve_slug(&link.target, &slug_to_path, &title_to_slug)
-                    {
+                    if let Some(target) = meta.resolve_slug(&link.target) {
                         // Include all links (HashSet insert is idempotent for self-links)
                         connected.insert(slug.clone());
                         connected.insert(target);
@@ -337,13 +240,13 @@ fn get_orphaned_notes_from_store(store: &pkm_block::BlockStore) -> Result<Vec<Or
         }
     }
 
-    let orphans: Vec<OrphanDto> = slug_to_path
-        .keys()
+    let orphans: Vec<OrphanDto> = meta
+        .all_slugs()
         .filter(|slug| !connected.contains(*slug))
         .map(|slug| OrphanDto {
-            slug: slug.clone(),
-            title: slug_to_title.get(slug).cloned().unwrap_or_default(),
-            path: slug_to_path.get(slug).cloned().unwrap_or_default(),
+            slug: slug.to_string(),
+            title: meta.slug_to_title.get(slug).cloned().unwrap_or_default(),
+            path: meta.slug_to_path.get(slug).cloned().unwrap_or_default(),
         })
         .collect();
 
@@ -373,28 +276,12 @@ pub async fn resolve_link_target(
 ) -> Result<LinkTargetDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    let paths = store.list_pages().map_err(|e| e.to_string())?;
+    let meta = PageMetaIndex::from_store(&store)?;
 
-    let mut slug_to_path: HashMap<String, String> = HashMap::new();
-    let mut title_to_slug: HashMap<String, String> = HashMap::new();
-    let mut slug_to_title: HashMap<String, String> = HashMap::new();
-
-    for path in &paths {
-        let slug = slug_from_path(path);
-        slug_to_path.insert(slug.clone(), path.clone());
-        let fm = store.get_page(path).ok().flatten();
-        let title = fm
-            .as_ref()
-            .and_then(|f| f.title.clone())
-            .unwrap_or_else(|| slug.replace('-', " "));
-        slug_to_title.insert(slug.clone(), title.clone());
-        title_to_slug.insert(title.to_lowercase(), slug.clone());
-    }
-
-    let resolved_slug = resolve_slug(&target, &slug_to_path, &title_to_slug);
+    let resolved_slug = meta.resolve_slug(&target);
     let result = resolved_slug.map(|slug| {
-        let page_path = slug_to_path.get(&slug).cloned();
-        let title = slug_to_title.get(&slug).cloned();
+        let page_path = meta.slug_to_path.get(&slug).cloned();
+        let title = meta.slug_to_title.get(&slug).cloned();
         LinkTargetDto {
             page_path,
             slug: Some(slug),
@@ -424,6 +311,86 @@ pub async fn rebuild_graph(state: tauri::State<'_, AppState>) -> Result<String, 
         graph.node_count(),
         graph.edge_count()
     ))
+}
+
+/// Pre-built index of all pages in the vault for fast slug/title/path resolution.
+/// Eliminates duplicated map-building across graph, connected components, orphans, and link resolution.
+struct PageMetaIndex {
+    slug_to_path: HashMap<String, String>,
+    slug_to_title: HashMap<String, String>,
+    slug_to_tags: HashMap<String, Vec<String>>,
+    title_to_slug: HashMap<String, String>,
+}
+
+impl PageMetaIndex {
+    fn from_store(store: &pkm_block::BlockStore) -> Result<Self, String> {
+        let paths = store.list_pages().map_err(|e| e.to_string())?;
+        let mut slug_to_path = HashMap::new();
+        let mut slug_to_title = HashMap::new();
+        let mut slug_to_tags = HashMap::new();
+        let mut title_to_slug = HashMap::new();
+
+        for path in &paths {
+            let slug = slug_from_path(path);
+            slug_to_path.insert(slug.clone(), path.clone());
+
+            let fm = store.get_page(path).ok().flatten();
+            let title = fm
+                .as_ref()
+                .and_then(|f| f.title.clone())
+                .unwrap_or_else(|| slug.replace('-', " "));
+            slug_to_title.insert(slug.clone(), title.clone());
+            title_to_slug.insert(title.to_lowercase(), slug.clone());
+
+            let tags = fm.map(|f| f.tags).unwrap_or_default();
+            slug_to_tags.insert(slug, tags);
+        }
+
+        Ok(Self {
+            slug_to_path,
+            slug_to_title,
+            slug_to_tags,
+            title_to_slug,
+        })
+    }
+
+    fn resolve_slug(&self, target: &str) -> Option<String> {
+        let slugified = target.replace(' ', "-").to_lowercase();
+        if self.slug_to_path.contains_key(&slugified) {
+            return Some(slugified);
+        }
+        if self.slug_to_path.contains_key(target) {
+            return Some(target.to_string());
+        }
+        let lower = target.to_lowercase();
+        if let Some(slug) = self.title_to_slug.get(&lower) {
+            return Some(slug.clone());
+        }
+        if self.slug_to_path.contains_key(&lower) {
+            return Some(lower);
+        }
+        None
+    }
+
+    fn get_node(&self, slug: &str) -> GraphNodeDto {
+        let degree = 0; // placeholder — caller sets degree
+        GraphNodeDto {
+            id: slug.to_string(),
+            title: self.slug_to_title.get(slug).cloned().unwrap_or_default(),
+            path: self.slug_to_path.get(slug).cloned().unwrap_or_default(),
+            tags: self.slug_to_tags.get(slug).cloned().unwrap_or_default(),
+            degree,
+        }
+    }
+
+    fn all_slugs(&self) -> impl Iterator<Item = &str> {
+        self.slug_to_path.keys().map(|s| s.as_str())
+    }
+
+    #[allow(dead_code)]
+    fn is_orphan(&self, slug: &str) -> bool {
+        !self.slug_to_path.contains_key(slug)
+    }
 }
 
 #[cfg(test)]
