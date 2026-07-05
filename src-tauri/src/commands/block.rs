@@ -250,20 +250,23 @@ pub async fn toggle_block_marker(
     let state = state.lock().map_err(|e| e.to_string())?;
     let id = Uuid::parse_str(&block_id).map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    let blocks = store.get_blocks_by_page(&page_path).map_err(|e| e.to_string())?;
+    let blocks = store
+        .get_blocks_by_page(&page_path)
+        .map_err(|e| e.to_string())?;
 
     let mut tree = pkm_block::tree::BlockTree::new();
     for b in &blocks {
         tree.insert(b.clone());
     }
-    let new_marker =
-        pkm_block::ops::toggle_task(&mut tree, id).map_err(|e| e.to_string())?;
+    let new_marker = pkm_block::ops::toggle_task(&mut tree, id).map_err(|e| e.to_string())?;
 
     store
         .delete_blocks_by_page(&page_path)
         .map_err(|e| e.to_string())?;
     for b in tree.all_blocks() {
-        store.insert_block(b, &page_path).map_err(|e| e.to_string())?;
+        store
+            .insert_block(b, &page_path)
+            .map_err(|e| e.to_string())?;
     }
 
     let all_blocks = store
@@ -339,9 +342,9 @@ pub async fn clear_block_marker(
 
 fn extract_title_from_frontmatter(content: &str) -> Option<String> {
     let content = content.trim();
-    if content.starts_with("---") {
-        if let Some(end) = content[3..].find("---") {
-            let frontmatter = &content[3..3 + end];
+    if let Some(rest) = content.strip_prefix("---") {
+        if let Some(end) = rest.find("---") {
+            let frontmatter = &rest[..end];
             for line in frontmatter.lines() {
                 if let Some(val) = line.strip_prefix("title:") {
                     return Some(val.trim().to_string());
