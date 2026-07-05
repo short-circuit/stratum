@@ -3,17 +3,22 @@ package app.stratum
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.View
+import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.activity.enableEdgeToEdge
+import androidx.core.view.OnApplyWindowInsetsListener
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowCompat
 
 class MainActivity : TauriActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
-        WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
+        ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { _, insets ->
+            injectSafeArea(insets)
+            insets
+        }
         scheduleSafeAreaInjection()
     }
 
@@ -21,33 +26,36 @@ class MainActivity : TauriActivity() {
         val handler = Handler(Looper.getMainLooper())
         val inject = object : Runnable {
             override fun run() {
-                injectSafeArea()
+                val insets = ViewCompat.getRootWindowInsets(window.decorView) ?: return
+                injectSafeArea(insets)
             }
         }
         handler.postDelayed(inject, 100)
         handler.postDelayed(inject, 500)
         handler.postDelayed(inject, 1500)
+        handler.postDelayed(inject, 5000)
     }
 
-    private fun findWebView(): WebView? {
-        val content = window.decorView.findViewById<android.view.View>(android.R.id.content)
-        if (content is WebView) return content
-        if (content is android.view.ViewGroup) {
-            for (i in 0 until content.childCount) {
-                val c = content.getChildAt(i)
-                if (c is WebView) return c
+    private fun findWebView(view: View = window.decorView): WebView? {
+        if (view is WebView) return view
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) {
+                val child = view.getChildAt(i)
+                val found = findWebView(child)
+                if (found != null) return found
             }
         }
         return null
     }
 
-    private fun injectSafeArea() {
-        val insets = ViewCompat.getRootWindowInsets(window.decorView) ?: return
+    private fun injectSafeArea(insets: WindowInsetsCompat) {
         val wv = findWebView() ?: return
-        val sb = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+        val sb = insets.getInsets(
+            WindowInsetsCompat.Type.systemBars() or
+            WindowInsetsCompat.Type.displayCutout()
+        )
         val topPx = sb.top
         val bottomPx = sb.bottom
-        if (topPx <= 0 && bottomPx <= 0) return
         val d = resources.displayMetrics.density
         val topDp = topPx / d
         val bottomDp = bottomPx / d

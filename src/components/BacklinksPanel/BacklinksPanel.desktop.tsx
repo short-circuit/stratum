@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Accordion from '@mui/material/Accordion';
@@ -10,72 +10,29 @@ import ListItemButton from '@mui/material/ListItemButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Popover from '@mui/material/Popover';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import * as api from '../lib/commands';
-import type { BacklinkItem } from '../lib/types';
-import { useCtrlHeld } from '../lib/useCtrlHeld';
+import { useCtrlHeld } from '../../lib/useCtrlHeld';
+import type { BacklinkItem } from '../../lib/types';
+import { useBacklinksData, usePreview } from './BacklinksPanel.shared';
+import type { BacklinksPanelProps } from './BacklinksPanel.shared';
 
-interface Props {
-  pagePath: string;
-}
-
-export default function BacklinksPanel({ pagePath }: Props) {
+export default function BacklinksPanelDesktop({ pagePath }: BacklinksPanelProps) {
   const navigate = useNavigate();
-  const [backlinks, setBacklinks] = useState<BacklinkItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { backlinks, loading, linked, unlinked } = useBacklinksData(pagePath);
+  const { preview, showPreview, dismissPreview } = usePreview();
   const ctrlHeld = useCtrlHeld();
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [preview, setPreview] = useState<{
-    content: string;
-    pageTitle: string | null;
-    pagePath: string;
-    anchorEl: HTMLElement | null;
-    loading: boolean;
-  } | null>(null);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true);
-    api.getPageBacklinks(pagePath).then(items => {
-      setBacklinks(items);
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, [pagePath]);
-
-  const linked = backlinks.filter(b => b.is_linked);
-  const unlinked = backlinks.filter(b => !b.is_linked);
 
   const handleMouseEnter = (item: BacklinkItem, e: React.MouseEvent) => {
     const el = e.currentTarget as HTMLElement;
     hoverTimer.current = setTimeout(async () => {
       if (!ctrlHeld.current) return;
-      setPreview({
-        content: item.context,
-        pageTitle: null,
-        pagePath: item.source_page,
-        anchorEl: el,
-        loading: true,
-      });
-      try {
-        const page = await api.openPage(item.source_page);
-        if (ctrlHeld.current) {
-          setPreview(prev => prev ? { ...prev, pageTitle: page.title || null, loading: false } : null);
-        }
-      } catch { setPreview(null); }
+      showPreview(item, el);
     }, 200);
   };
 
   const handleMouseLeave = () => {
     if (hoverTimer.current) { clearTimeout(hoverTimer.current); hoverTimer.current = null; }
   };
-
-  // Dismiss preview when Ctrl is released
-  useEffect(() => {
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Control' || e.key === 'Meta') setPreview(null);
-    };
-    window.addEventListener('keyup', handleKeyUp);
-    return () => window.removeEventListener('keyup', handleKeyUp);
-  }, []);
 
   return (
     <>
@@ -143,7 +100,7 @@ export default function BacklinksPanel({ pagePath }: Props) {
       <Popover
         open={Boolean(preview)}
         anchorEl={preview?.anchorEl}
-        onClose={() => setPreview(null)}
+        onClose={dismissPreview}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
         slotProps={{ paper: { sx: { maxWidth: 280, p: 1.5 } } }}
       >
@@ -155,7 +112,7 @@ export default function BacklinksPanel({ pagePath }: Props) {
               variant="subtitle2"
               color="primary"
               sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' }, mb: 0.5 }}
-              onClick={() => { navigate(`/page/${encodeURIComponent(preview!.pagePath)}`); setPreview(null); }}
+              onClick={() => { navigate(`/page/${encodeURIComponent(preview!.pagePath)}`); dismissPreview(); }}
             >
               {preview?.pageTitle || preview?.pagePath}
             </Typography>

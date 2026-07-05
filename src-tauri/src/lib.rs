@@ -105,6 +105,7 @@ pub fn run() {
             commands::vault::get_vault_info,
             commands::vault::set_vault_path,
             commands::vault::init_vault,
+            commands::vault::init_default_vault,
             #[cfg(desktop)]
             commands::vault::pick_vault_directory,
             // Pages
