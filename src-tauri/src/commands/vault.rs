@@ -255,6 +255,48 @@ pub async fn init_default_vault(
     })
 }
 
+
+/// Pick a directory on Android via SAF, then init vault at that location.
+/// Requires MANAGE_EXTERNAL_STORAGE permission for raw file access.
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn pick_android_directory(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<VaultInfo, String> {
+    use tauri_plugin_android_fs::AndroidFsExt;
+
+    let api = app.android_fs_async();
+    let selected = api
+        .file_picker()
+        .pick_dir(None, false)
+        .await
+        .map_err(|e| format!("Folder picker failed: {}", e))?
+        .ok_or("No folder selected".to_string())?;
+
+    api.file_picker()
+        .persist_uri_permission(&selected)
+        .await
+        .ok();
+
+    // Try MANAGE_EXTERNAL_STORAGE raw path first, fall back to private storage
+    let vault_path = match resolve_picked_path(&selected.uri) {
+        Ok(p) if p.exists() || std::fs::create_dir_all(&p).is_ok() => p,
+        _ => {
+            // Fall back to default private path
+            std::path::PathBuf::from("/data/user/0/app.stratum/StratumVault")
+        }
+    };
+
+    let mut vstate = state.lock().map_err(|e| e.to_string())?;
+    let (_, block_count, page_count) = setup_vault(&vault_path, &mut vstate)?;
+
+    Ok(VaultInfo {
+        path: vault_path.to_string_lossy().to_string(),
+        block_count,
+        page_count,
+    })
+}
 fn setup_vault(
     vault_path: &std::path::Path,
     vstate: &mut VaultState,

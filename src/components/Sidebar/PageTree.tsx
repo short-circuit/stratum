@@ -85,7 +85,7 @@ export default function PageTree({
         )}
 
         <List dense disablePadding>
-          {pages.map(page => (
+          {pages.filter(p => !p.path.startsWith('journals/')).map(page => (
             <ListItemButton
               key={page.path}
               dense
