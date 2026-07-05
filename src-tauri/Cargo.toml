@@ -35,3 +35,4 @@ pulldown-cmark.workspace = true
 reqwest.workspace = true
 gix.workspace = true
 dirs.workspace = true
+tauri-plugin-android-fs = "28"
