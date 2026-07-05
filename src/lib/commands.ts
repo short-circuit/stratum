@@ -177,6 +177,14 @@ export async function loadWhiteboard(name: string): Promise<string> {
   return invoke('load_whiteboard', { name });
 }
 
+export async function renameWhiteboard(oldName: string, newName: string): Promise<void> {
+  return invoke('rename_whiteboard', { oldName, newName });
+}
+
+export async function deleteWhiteboard(name: string): Promise<void> {
+  return invoke('delete_whiteboard', { name });
+}
+
 export async function saveLibrary(content: string): Promise<void> {
   return invoke('save_library', { content });
 }
