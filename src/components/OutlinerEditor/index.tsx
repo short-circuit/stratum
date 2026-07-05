@@ -38,9 +38,11 @@ const schema = BlockNoteSchema.create({
 
 interface Props {
   pagePath: string;
+  autoFocus?: boolean;
+  minHeight?: string;
 }
 
-export default function OutlinerEditor({ pagePath }: Props) {
+export default function OutlinerEditor({ pagePath, autoFocus, minHeight = '400px' }: Props) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blockMetaRef = useRef<Map<string, BlockMeta>>(new Map());
   const isProcessingRef = useRef(false);
@@ -163,6 +165,14 @@ export default function OutlinerEditor({ pagePath }: Props) {
       persistBlocks(editor.document);
     });
   }, [editor, persistBlocks, status]);
+
+  useEffect(() => {
+    if (!editor || status !== 'ready' || !autoFocus) return;
+    requestAnimationFrame(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (editor as any)?.prosemirrorView?.focus();
+    });
+  }, [editor, status, autoFocus]);
 
   // Inline math rendering via ProseMirror decorations
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -302,7 +312,7 @@ export default function OutlinerEditor({ pagePath }: Props) {
     <BlockNoteView
       editor={editor}
       theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
-      style={{ minHeight: '400px', height: '100%' }}
+      style={{ minHeight, height: '100%' }}
       slashMenu={false}
       formattingToolbar={false}
       linkToolbar={false}
@@ -310,7 +320,7 @@ export default function OutlinerEditor({ pagePath }: Props) {
       <AISlashMenu pagePath={pagePath} />
       <AIFormattingToolbar />
     </BlockNoteView>
-  ), [editor, pagePath]);
+  ), [editor, pagePath, minHeight]);
 
   if (status === 'init' || status === 'loading') {
     return (
