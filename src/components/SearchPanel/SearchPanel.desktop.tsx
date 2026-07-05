@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback, startTransition } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
@@ -7,61 +6,11 @@ import Typography from '@mui/material/Typography';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
 import SearchIcon from '@mui/icons-material/Search';
-import * as api from '../lib/commands';
-import type { SearchResultDto } from '../lib/types';
+import { useSearchPanel } from './SearchPanel.shared';
 
-export default function SearchPanel() {
+export default function SearchPanelDesktop() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [query, setQuery] = useState(searchParams.get('q') || '');
-  const [results, setResults] = useState<SearchResultDto[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [indexing, setIndexing] = useState(false);
-  const [indexMsg, setIndexMsg] = useState('');
-
-  const doSearch = useCallback(async (q: string) => {
-    if (!q.trim()) return;
-    setSearching(true);
-    try {
-      if (q.startsWith('#')) {
-        const { results: r } = await api.searchByTag(q.slice(1));
-        setResults(r);
-      } else {
-        const { results: r } = await api.searchBlocks(q, 20);
-        setResults(r);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSearching(false);
-    }
-  }, []);
-
-  // Auto-search when URL has ?q= param on mount or change
-  useEffect(() => {
-    const q = searchParams.get('q');
-    if (q) {
-      startTransition(() => { doSearch(q); });
-    }
-  }, [searchParams, doSearch]);
-
-  const handleSearch = () => {
-    if (!query.trim()) return;
-    setSearchParams(query ? { q: query } : {});
-    doSearch(query);
-  };
-
-  const doReindex = async () => {
-    setIndexing(true);
-    try {
-      const msg = await api.rebuildSearchIndex();
-      setIndexMsg(msg);
-    } catch (e) {
-      setIndexMsg(`Failed: ${e}`);
-    } finally {
-      setIndexing(false);
-    }
-  };
+  const { query, setQuery, results, searching, indexing, indexMsg, handleSearch, doReindex } = useSearchPanel();
 
   return (
     <Box sx={{ p: 3, maxWidth: 700, mx: 'auto' }}>

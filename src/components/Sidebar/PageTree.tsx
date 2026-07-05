@@ -7,7 +7,6 @@ import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
-import Divider from '@mui/material/Divider';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import type { PageDto } from '../../lib/types';
@@ -21,9 +20,10 @@ interface Props {
   onShowNewChange: (v: boolean) => void;
   onNewPathChange: (v: string) => void;
   onNewTitleChange: (v: string) => void;
-  onCreatePage: () => void;
+  onCreatePage: () => Promise<void>;
   onDeletePage: (path: string) => void;
   onNavigate: (path: string) => void;
+  onNavigateHome?: () => void;
 }
 
 export default function PageTree({
@@ -43,11 +43,10 @@ export default function PageTree({
 
   return (
     <>
-      <Divider sx={{ mx: 2, my: 1 }} />
       <Box sx={{ px: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, py: 0.5 }}>
           <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase' }}>
-            Pages
+            Recent
           </Typography>
           <Tooltip title="New page" arrow>
             <IconButton size="small" onClick={() => onShowNewChange(!showNew)} sx={{ color: 'text.secondary' }}>

@@ -5,39 +5,6 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Stratum</title>
-    <script>
-      (function() {
-        if (!/android/i.test(navigator.userAgent || '')) return;
-        function setInsets(top, bottom) {
-          var s = document.documentElement.style;
-          if (top > 0) s.setProperty('--safe-area-inset-top', top + 'px');
-          if (bottom > 0) s.setProperty('--safe-area-inset-bottom', bottom + 'px');
-        }
-        function applySafeArea() {
-          var cs = getComputedStyle(document.documentElement);
-          var pt = parseFloat(cs.getPropertyValue('--safe-area-inset-top'));
-          var pb = parseFloat(cs.getPropertyValue('--safe-area-inset-bottom'));
-          if (pt > 0 || pb > 0) return;
-          if (window.visualViewport) {
-            var vp = window.visualViewport;
-            var top = vp.offsetTop;
-            var bottom = window.innerHeight - vp.height - top;
-            if (top > 0 || bottom > 0) { setInsets(top, bottom); return; }
-          }
-          var d = window.screen.height - window.innerHeight;
-          if (d > 60) { setInsets(Math.round(d * 0.37), Math.round(d - Math.round(d * 0.37))); }
-        }
-        applySafeArea();
-        if (window.visualViewport)
-          window.visualViewport.addEventListener('resize', applySafeArea);
-        window.addEventListener('load', function() {
-          var tries = 0, iv = setInterval(function() {
-            applySafeArea();
-            if (++tries > 15) clearInterval(iv);
-          }, 200);
-        });
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

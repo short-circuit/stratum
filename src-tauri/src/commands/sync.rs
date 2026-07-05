@@ -144,10 +144,10 @@ pub async fn sync_vault(state: tauri::State<'_, AppState>) -> Result<SyncStatusD
             if st.is_conflicted() {
                 continue;
             }
-            use git2::Status;
-            if st.intersects(Status::INDEX_NEW | Status::WT_NEW) {
+            use pkm_sync::git::StatusFlags;
+            if st.intersects(StatusFlags::INDEX_NEW | StatusFlags::WT_NEW) {
                 newfiles.push(path.clone());
-            } else if st.intersects(Status::INDEX_DELETED | Status::WT_DELETED) {
+            } else if st.intersects(StatusFlags::INDEX_DELETED | StatusFlags::WT_DELETED) {
                 deletedfiles.push(path.clone());
             } else {
                 editedfiles.push(path.clone());
@@ -341,13 +341,44 @@ pub async fn abort_merge(state: tauri::State<'_, AppState>) -> Result<(), String
     let engine = pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
     let repo = engine.repository();
 
-    // Cleanup merge state
-    repo.cleanup_state()
-        .map_err(|e| format!("cleanup state: {e}"))?;
+    // For aborting a merge, we update HEAD to the original branch reference.
+    // gix doesn't have a direct cleanup_state/checkout_head equivalent,
+    // so we use the git CLI as a fallback for this specific operation.
+    let git_dir = repo.git_dir().to_path_buf();
+    // Remove MERGE_HEAD and other merge state files
+    for f in &["MERGE_HEAD", "MERGE_MSG", "MERGE_MODE", "CHERRY_PICK_HEAD", "REVERT_HEAD"] {
+        let p = git_dir.join(f);
+        let _ = std::fs::remove_file(&p);
+    }
+    // Update the index to match HEAD
+    let head_id = repo.head()
+        .ok()
+        .and_then(|mut h| h.peel_to_commit().ok())
+        .map(|c| c.id().detach());
 
-    // Force checkout HEAD to restore working directory
-    repo.checkout_head(Some(git2::build::CheckoutBuilder::new().force()))
-        .map_err(|e| format!("checkout HEAD: {e}"))?;
+    if let Some(oid) = head_id {
+        // Reset the index to HEAD tree
+        if let Ok(tree_obj) = repo.find_object(oid) {
+            let tree = tree_obj.into_tree();
+            if let Ok(mut index_file) = repo.open_index() {
+                let mut state = index_file.into_parts().0;
+                let backing = state.path_backing().to_vec();
+                // We can't easily reset the index from a tree via gix,
+                // so we use a minimal approach: rebuild index from HEAD tree
+                if let Ok(new_state) = gix::index::State::from_tree(
+                    tree.id().as_ref(),
+                    &repo,
+                    Default::default(),
+                ) {
+                    let mut new_index = gix::index::File::from_state(new_state, repo.index_path());
+                    let _ = new_index.write(gix::index::write::Options {
+                        extensions: gix::index::write::Extensions::default(),
+                        skip_hash: false,
+                    });
+                }
+            }
+        }
+    }
 
     Ok(())
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { useResponsive } from './lib/hooks/useResponsive';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -19,6 +20,7 @@ import KanbanPanel from './components/KanbanPanel';
 import WhiteboardPanel from './components/WhiteboardPanel';
 import GraphPanel from './components/GraphPanel';
 import SettingsPage from './components/SettingsPage';
+import MobileLayout from './components/MobileLayout';
 import VaultPicker from './components/VaultPicker';
 import { getCurrentWindow, type CloseRequestedEvent } from '@tauri-apps/api/window';
 import { getLatestLibraryJson } from './lib/libraryStore';
@@ -49,6 +51,7 @@ getCurrentWindow().onCloseRequested(async (event: CloseRequestedEvent) => {
 
 function AppContent() {
   const { vault, loading, loadVault, loadPages, error } = useStore();
+  const { isMobile } = useResponsive();
 
   useEffect(() => {
     if (!vault) {
@@ -73,6 +76,26 @@ function AppContent() {
 
   if (!vault) {
     return <VaultPicker />;
+  }
+
+  if (isMobile) {
+    return (
+      <MobileLayout error={error}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/journal" replace />} />
+          <Route path="/journal" element={<JournalPanel />} />
+          <Route path="/page/:pagePath" element={<PageView />} />
+          <Route path="/search" element={<SearchPanel />} />
+          <Route path="/query" element={<QueryPanel />} />
+          <Route path="/templates" element={<TemplatesPanel />} />
+          <Route path="/flashcards" element={<FlashcardsPanel />} />
+          <Route path="/kanban" element={<KanbanPanel />} />
+          <Route path="/whiteboards" element={<WhiteboardPanel />} />
+          <Route path="/graph" element={<GraphPanel />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Routes>
+      </MobileLayout>
+    );
   }
 
   return (
