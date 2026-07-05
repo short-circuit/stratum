@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
-import IconButton from '@mui/material/IconButton';
-import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import Alert from '@mui/material/Alert';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import CircularProgress from '@mui/material/CircularProgress';
+import IconButton from '@mui/material/IconButton';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { useStore } from '../stores/appStore';
 import * as api from '../lib/commands';
+import OutlinerEditor from './OutlinerEditor';
+import JournalCalendar from './JournalCalendar';
 
 function formatDate(d: Date): string {
   const y = d.getFullYear();
@@ -21,146 +21,218 @@ function journalPath(date: string): string {
   return `journals/${date}.md`;
 }
 
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+function formatDisplayDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+  });
+}
 
 export default function JournalPanel() {
   const navigate = useNavigate();
-  const { vault } = useStore();
-  const today = new Date();
-  const [selectedDate, setSelectedDate] = useState(formatDate(today));
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
-  const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const { pages, loadPages } = useStore();
+  const today = formatDate(new Date());
+  const todayPagePath = journalPath(today);
+  const targetDate = searchParams.get('date');
+
+  const [visibleCount, setVisibleCount] = useState(25);
+  const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set());
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarAnchorEl, setCalendarAnchorEl] = useState<HTMLElement | null>(null);
+
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const processedTargetRef = useRef<string | null>(null);
+  const targetDateRef = useRef(targetDate);
+  useEffect(() => { targetDateRef.current = targetDate; }, [targetDate]);
+
+  const allJournalDates = useMemo(() => {
+    return new Set(
+      pages
+        .filter(p => p.path.startsWith('journals/') && p.path.endsWith('.md'))
+        .map(p => p.path.slice(9, -3)),
+    );
+  }, [pages]);
+
+  const pastDates = useMemo(() => {
+    return pages
+      .filter(p => p.path.startsWith('journals/') && p.path.endsWith('.md'))
+      .map(p => p.path.slice(9, -3))
+      .filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d) && d !== today)
+      .sort()
+      .reverse();
+  }, [pages, today]);
+
+  const todayExists = useMemo(
+    () => pages.length > 0 && allJournalDates.has(today),
+    [pages, allJournalDates, today],
+  );
 
   useEffect(() => {
-    if (!vault) return;
-    const today = formatDate(new Date());
-    const path = journalPath(today);
-    api.createPage(path, today)
-      .then(() => console.log('Created journal:', path))
+    if (pages.length === 0 || todayExists) return;
+    api.createPage(todayPagePath, today)
+      .then(() => loadPages())
       .catch(err => {
         if (!String(err).includes('already exists')) {
-          setError(`Failed to create journal: ${err}`);
+          console.error('Failed to create journal:', err);
         }
       });
-  }, [vault]);
+  }, [pages, todayExists, loadPages, today, todayPagePath]);
 
-  const goToJournal = async (date: string) => {
-    setSelectedDate(date);
-    setError(null);
-    if (!vault) {
-      setError('Vault not loaded yet. Please wait...');
+  const getObserver = useCallback(() => {
+    if (!observerRef.current) {
+      observerRef.current = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const date = (entry.target as HTMLElement).dataset.date;
+            if (date) {
+              setVisibleSections(prev => {
+                if (prev.has(date)) return prev;
+                const next = new Set(prev);
+                next.add(date);
+                return next;
+              });
+              observerRef.current?.unobserve(entry.target);
+            }
+          }
+        }
+      }, { rootMargin: '200px' });
+    }
+    return observerRef.current;
+  }, []);
+
+  useEffect(() => {
+    return () => observerRef.current?.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) {
+        setVisibleCount(prev => prev + 25);
+      }
+    }, { rootMargin: '400px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [pastDates.length, visibleCount]);
+
+  const sectionRef = useCallback((date: string) => (el: HTMLDivElement | null) => {
+    if (el) {
+      el.dataset.date = date;
+      getObserver().observe(el);
+      if (date === targetDateRef.current && date !== today) {
+        requestAnimationFrame(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+      }
+    }
+  }, [getObserver, today]);
+
+  useEffect(() => {
+    if (!targetDate) {
+      processedTargetRef.current = null;
+      return;
+    }
+    if (processedTargetRef.current === targetDate) return;
+
+    if (targetDate === today) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      processedTargetRef.current = targetDate;
       return;
     }
 
-    const path = journalPath(date);
-    setCreating(true);
-    try {
-      await api.createPage(path, date);
-    } catch (err) {
-      if (!String(err).includes('already exists')) {
-        setError(`Failed to create page: ${err}`);
-        setCreating(false);
-        return;
+    const idx = pastDates.indexOf(targetDate);
+    if (idx === -1) return;
+
+    requestAnimationFrame(() => {
+      if (idx >= visibleCount) {
+        setVisibleCount(idx + 10);
+      }
+      setVisibleSections(prev => {
+        if (prev.has(targetDate)) return prev;
+        const next = new Set(prev);
+        next.add(targetDate);
+        return next;
+      });
+    });
+
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-date="${targetDate}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        processedTargetRef.current = targetDate;
+      }
+    });
+  }, [targetDate, pastDates, today, visibleCount]);
+
+  const handleDateSelect = async (date: string) => {
+    if (!allJournalDates.has(date)) {
+      try {
+        await api.createPage(journalPath(date), date);
+        await loadPages();
+      } catch (err) {
+        if (!String(err).includes('already exists')) {
+          console.error('Failed to create journal:', err);
+          return;
+        }
       }
     }
-    setCreating(false);
-    navigate(`/page/${encodeURIComponent(path)}`);
-  };
-
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
-
-  const prevMonth = () => {
-    if (viewMonth === 0) {
-      setViewMonth(11);
-      setViewYear(viewYear - 1);
-    } else {
-      setViewMonth(viewMonth - 1);
-    }
-  };
-
-  const nextMonth = () => {
-    if (viewMonth === 11) {
-      setViewMonth(0);
-      setViewYear(viewYear + 1);
-    } else {
-      setViewMonth(viewMonth + 1);
-    }
+    navigate(`/journal?date=${date}`);
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 400, mx: 'auto' }}>
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, mb: 0.5 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+          {formatDisplayDate(today)}
+        </Typography>
+        <IconButton
+          size="small"
+          onClick={(e) => { setCalendarAnchorEl(e.currentTarget); setCalendarOpen(o => !o); }}
+          aria-label="Calendar"
+        >
+          <CalendarMonthIcon fontSize="small" />
+        </IconButton>
+      </Box>
+
+      <JournalCalendar
+        open={calendarOpen}
+        onClose={() => { setCalendarOpen(false); setCalendarAnchorEl(null); }}
+        onDateSelect={handleDateSelect}
+        anchorEl={calendarAnchorEl}
+        journalDates={allJournalDates}
+      />
+
+      {todayExists ? (
+        <OutlinerEditor pagePath={todayPagePath} minHeight="0" />
+      ) : (
+        <CircularProgress size={20} sx={{ display: 'block', mx: 'auto', my: 4 }} />
       )}
 
-      {/* Month navigation */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <IconButton size="small" onClick={prevMonth}>
-          <ChevronLeftIcon />
-        </IconButton>
-        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-          {MONTHS[viewMonth]} {viewYear}
-        </Typography>
-        <IconButton size="small" onClick={nextMonth}>
-          <ChevronRightIcon />
-        </IconButton>
-      </Box>
+      {pastDates.slice(0, visibleCount).map((date) => {
+        const path = journalPath(date);
+        const isVisible = visibleSections.has(date);
 
-      {/* Day headers */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.25, textAlign: 'center', mb: 0.5 }}>
-        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-          <Typography key={d} variant="caption" color="text.disabled" sx={{ py: 0.5 }}>{d}</Typography>
-        ))}
-      </Box>
-
-      {/* Calendar grid */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.25 }}>
-        {Array.from({ length: firstDay }).map((_, i) => (
-          <Box key={`empty-${i}`} />
-        ))}
-        {Array.from({ length: daysInMonth }).map((_, i) => {
-          const day = i + 1;
-          const date = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-          const isToday = date === formatDate(today);
-          const isSelected = date === selectedDate;
-
-          return (
-            <Button
-              key={day}
-              size="small"
-              onClick={() => goToJournal(date)}
-              sx={{
-                minWidth: 0, p: 0.75, fontSize: '0.75rem', borderRadius: 1,
-                fontWeight: isToday ? 700 : 400,
-                bgcolor: isToday ? 'primary.light' : isSelected ? 'action.selected' : 'transparent',
-                color: isToday ? 'primary.contrastText' : undefined,
-                '&:hover': { bgcolor: isToday ? 'primary.light' : 'action.hover' },
-              }}
+        return (
+          <Box key={date} ref={sectionRef(date)}>
+            <Typography
+              variant="subtitle2"
+              sx={{ pt: 1.5, pb: 0.5, px: 1, fontWeight: 600, color: 'text.secondary' }}
             >
-              {day}
-            </Button>
-          );
-        })}
-      </Box>
+              {formatDisplayDate(date)}
+            </Typography>
+            {isVisible ? (
+              <OutlinerEditor pagePath={path} autoFocus={date === targetDate} minHeight="0" />
+            ) : (
+              <CircularProgress size={14} sx={{ display: 'block', mx: 'auto', my: 2 }} />
+            )}
+          </Box>
+        );
+      })}
 
-      {/* Today button */}
-      <Button
-        variant="contained"
-        fullWidth
-        onClick={() => goToJournal(formatDate(today))}
-        disabled={creating}
-        sx={{ mt: 2 }}
-      >
-        {creating ? 'Creating...' : `Today: ${formatDate(today)}`}
-      </Button>
+      {visibleCount < pastDates.length && <div ref={sentinelRef} />}
     </Box>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
@@ -11,7 +11,6 @@ import { createMuiTheme } from './lib/muiTheme';
 import Sidebar from './components/Sidebar';
 import PageView from './components/PageView';
 import JournalPanel from './components/JournalPanel';
-import PagesHome from './components/PagesHome';
 import SearchPanel from './components/SearchPanel';
 import QueryPanel from './components/QueryPanel';
 import TemplatesPanel from './components/TemplatesPanel';
@@ -84,7 +83,7 @@ function AppContent() {
           <Alert severity="error" sx={{ borderRadius: 0 }}>{error}</Alert>
         )}
         <Routes>
-          <Route path="/" element={<PagesHome />} />
+          <Route path="/" element={<Navigate to="/journal" replace />} />
           <Route path="/journal" element={<JournalPanel />} />
           <Route path="/page/:pagePath" element={<PageView />} />
           <Route path="/search" element={<SearchPanel />} />
