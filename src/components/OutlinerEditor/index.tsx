@@ -25,9 +25,11 @@ import { createMermaidSpec } from '../MermaidBlock';
 import { useMathInline, setupMathDblClick } from '../../lib/useMathInline';
 import MathEditorModal from '../MathEditorModal';
 import MarkerBadge from '../MarkerBadge';
+import MarkerSuggestMenu from './MarkerSuggestMenu';
 import { dtoToBlockNote, blockNoteToDto } from './dtoConverters';
 import type { BlockMeta } from './dtoConverters';
 import { detectAndApplyMarkers } from './markerDetection';
+import { useMarkerDecorations, refreshMarkerDecorations } from '../../lib/useMarkerDecorations';
 
 const schema = BlockNoteSchema.create({
   blockSpecs: {
@@ -150,13 +152,45 @@ export default function OutlinerEditor({ pagePath, autoFocus, minHeight = '400px
           detectAndApplyMarkers(blockNoteBlocks, pagePath, blockMetaRef.current);
           const dtos = blockNoteToDto(blockNoteBlocks, blockMetaRef.current);
           await api.saveBlocks(pagePath, dtos);
+          const markers = [...new Set(dtos.filter(d => d.marker).map(d => d.marker!))];
+          setPageMarkers(markers);
+          refreshMarkerDecorations(editor);
         } catch (e) {
           console.error('[OutlinerEditor] save failed:', e);
         }
       }, 500);
     },
-    [pagePath],
+    [pagePath, editor],
   );
+
+  const handleToggleMarker = useCallback(async (blockId: string) => {
+    try {
+      const newMarker = await api.toggleBlockMarker(pagePath, blockId);
+      const existing = blockMetaRef.current.get(blockId) ?? { marker: null, priority: null, properties: [] };
+      blockMetaRef.current.set(blockId, { ...existing, marker: newMarker });
+      refreshMarkerDecorations(editor);
+    } catch (e) {
+      console.error('[Marker] toggle failed:', e);
+    }
+  }, [pagePath, editor]);
+
+  const handleClearMarker = useCallback(async (blockId: string) => {
+    try {
+      await api.clearBlockMarker(pagePath, blockId);
+      const existing = blockMetaRef.current.get(blockId);
+      if (existing) {
+        blockMetaRef.current.set(blockId, { ...existing, marker: null, priority: null });
+      }
+      refreshMarkerDecorations(editor);
+    } catch (e) {
+      console.error('[Marker] clear failed:', e);
+    }
+  }, [pagePath, editor]);
+
+  const handleMarkerSelect = useCallback(() => {
+    refreshMarkerDecorations(editor);
+    persistBlocks(editor.document);
+  }, [editor, persistBlocks]);
 
   useEffect(() => {
     if (!editor || status !== 'ready') return;
@@ -177,6 +211,15 @@ export default function OutlinerEditor({ pagePath, autoFocus, minHeight = '400px
   // Inline math rendering via ProseMirror decorations
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   useMathInline(editor as any, status === 'ready');
+
+  useMarkerDecorations(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    editor as any,
+    status === 'ready',
+    blockMetaRef,
+    handleToggleMarker,
+    handleClearMarker,
+  );
 
   // Double-click on rendered math to open editor
   useEffect(() => {
@@ -319,8 +362,9 @@ export default function OutlinerEditor({ pagePath, autoFocus, minHeight = '400px
     >
       <AISlashMenu pagePath={pagePath} />
       <AIFormattingToolbar />
+      <MarkerSuggestMenu blockMetaRef={blockMetaRef} onSelect={handleMarkerSelect} />
     </BlockNoteView>
-  ), [editor, pagePath, minHeight]);
+  ), [editor, pagePath, minHeight, handleMarkerSelect]);
 
   if (status === 'init' || status === 'loading') {
     return (
