@@ -1,15 +1,12 @@
 import { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useBlockNoteEditor, useComponentsContext } from '@blocknote/react';
 import {
   FormattingToolbarController,
   FormattingToolbar,
   getFormattingToolbarItems,
 } from '@blocknote/react';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import CircularProgress from '@mui/material/CircularProgress';
 import * as api from '../lib/commands';
+import AILoadingOverlay from './ui/AILoadingOverlay';
 
 export default function AIFormattingToolbar() {
   const editor = useBlockNoteEditor();
@@ -52,15 +49,7 @@ export default function AIFormattingToolbar() {
 
   return (
     <>
-      {busy && createPortal(
-        <Box sx={{ position: 'fixed', inset: 0, zIndex: 9999, bgcolor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Box sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 2, boxShadow: 8, px: 4, py: 3, display: 'flex', alignItems: 'center', gap: 2, minWidth: 200, justifyContent: 'center' }}>
-            <CircularProgress size={20} />
-            <Typography variant="body1" color="text.secondary">AI {busy}...</Typography>
-          </Box>
-        </Box>,
-        document.body,
-      )}
+      <AILoadingOverlay loading={!!busy} message={busy ? `AI ${busy}...` : undefined} />
       <FormattingToolbarController
         formattingToolbar={({ blockTypeSelectItems }) => (
           <FormattingToolbar>

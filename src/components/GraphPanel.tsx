@@ -21,6 +21,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import { useTheme } from '@mui/material/styles';
 import * as api from '../lib/commands';
 import type { GraphSettings, GraphNodeDto, GraphEdgeDto, GraphDataDto, ComponentDto, OrphanDto } from '../lib/types';
+import SliderRow from './ui/SliderRow';
 
 interface GraphNode extends GraphNodeDto {
   x?: number;
@@ -445,28 +446,3 @@ export default function GraphPanel() {
   );
 }
 
-function SliderRow({ label, value, min, max, step, onChange, display }: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (v: number) => void;
-  display: string;
-}) {
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-      <Typography variant="caption" sx={{ width: 100, textAlign: 'right', color: 'text.secondary', flexShrink: 0 }}>{label}</Typography>
-      <Slider
-        size="small"
-        value={value}
-        min={min}
-        max={max}
-        step={step}
-        onChange={(_, v) => onChange(v as number)}
-        sx={{ flex: 1 }}
-      />
-      <Typography variant="caption" sx={{ width: 48, textAlign: 'left', color: 'text.disabled', fontFamily: 'monospace', fontSize: '0.7rem' }}>{display}</Typography>
-    </Box>
-  );
-}

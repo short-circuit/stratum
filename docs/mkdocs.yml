@@ -106,4 +106,5 @@ nav:
     - advanced/plugins.md
   - Contributing: contributing.md
   - Development:
+    - development/frontend-guide.md
     - development/mobile-guide.md
