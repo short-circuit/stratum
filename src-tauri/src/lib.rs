@@ -166,6 +166,8 @@ pub fn run() {
             commands::whiteboard::list_whiteboards,
             commands::whiteboard::save_whiteboard,
             commands::whiteboard::load_whiteboard,
+            commands::whiteboard::rename_whiteboard,
+            commands::whiteboard::delete_whiteboard,
             commands::whiteboard::save_library,
             commands::whiteboard::load_library,
             commands::whiteboard::load_extra_libraries,
