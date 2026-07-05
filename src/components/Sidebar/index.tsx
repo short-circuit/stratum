@@ -24,7 +24,7 @@ export default function Sidebar() {
   const [showNew, setShowNew] = useState(false);
   const [newPath, setNewPath] = useState('');
   const [newTitle, setNewTitle] = useState('');
-  const [activeTab, setActiveTab] = useState<TabId>('pages');
+  const [activeTab, setActiveTab] = useState<TabId>('journal');
   const [exporting, setExporting] = useState(false);
 
   const handleExport = async () => {
@@ -110,8 +110,15 @@ export default function Sidebar() {
         </IconButton>
       </Box>
 
-      <List dense sx={{ flex: 1, overflow: 'auto', py: 0.5 }}>
-        <NavItemList collapsed={collapsed} activeTab={activeTab} onNavigate={navigateTab} />
+      <Box sx={{ overflow: 'auto', flex: '0 0 auto' }}>
+        <List dense sx={{ py: 0.5 }}>
+          <NavItemList collapsed={collapsed} activeTab={activeTab} onNavigate={navigateTab} />
+        </List>
+      </Box>
+
+      <Box sx={{ borderTop: 1, borderColor: 'divider', mx: 2 }} />
+
+      <Box sx={{ overflow: 'auto', flex: 1 }}>
         <PageTree
           pages={pages}
           collapsed={collapsed}
@@ -124,8 +131,9 @@ export default function Sidebar() {
           onCreatePage={handleCreate}
           onDeletePage={path => deletePage(path)}
           onNavigate={navigate}
+          onNavigateHome={() => navigate('/')}
         />
-      </List>
+      </Box>
 
       <SidebarFooter collapsed={collapsed} exporting={exporting} onRefresh={loadPages} onExport={handleExport} />
     </Drawer>
