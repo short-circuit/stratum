@@ -153,8 +153,7 @@ fn get_connected_components_from_store(
             for block in &blocks {
                 let links = pkm_markdown::linker::extract_links(&block.content);
                 for link in links {
-                    if let Some(target) = meta.resolve_slug(&link.target)
-                    {
+                    if let Some(target) = meta.resolve_slug(&link.target) {
                         // Include all links (self-links in adjacency are harmless for BFS)
                         adj.entry(slug.clone()).or_default().push(target.clone());
                         adj.entry(target).or_default().push(slug.clone());
@@ -231,8 +230,7 @@ fn get_orphaned_notes_from_store(store: &pkm_block::BlockStore) -> Result<Vec<Or
             for block in &blocks {
                 let links = pkm_markdown::linker::extract_links(&block.content);
                 for link in links {
-                    if let Some(target) = meta.resolve_slug(&link.target)
-                    {
+                    if let Some(target) = meta.resolve_slug(&link.target) {
                         // Include all links (HashSet insert is idempotent for self-links)
                         connected.insert(slug.clone());
                         connected.insert(target);
@@ -348,7 +346,12 @@ impl PageMetaIndex {
             slug_to_tags.insert(slug, tags);
         }
 
-        Ok(Self { slug_to_path, slug_to_title, slug_to_tags, title_to_slug })
+        Ok(Self {
+            slug_to_path,
+            slug_to_title,
+            slug_to_tags,
+            title_to_slug,
+        })
     }
 
     fn resolve_slug(&self, target: &str) -> Option<String> {
