@@ -27,7 +27,7 @@ import MathEditorModal from '../MathEditorModal';
 import MarkerBadge from '../MarkerBadge';
 import { dtoToBlockNote, blockNoteToDto } from './dtoConverters';
 import type { BlockMeta } from './dtoConverters';
-import { MARKER_KEYWORDS, detectAndApplyMarkers } from './markerDetection';
+import { detectAndApplyMarkers } from './markerDetection';
 
 const schema = BlockNoteSchema.create({
   blockSpecs: {
@@ -107,11 +107,6 @@ export default function OutlinerEditor({ pagePath }: Props) {
       },
     },
   });
-
-  function setBlockMeta(id: string, meta: Partial<BlockMeta>): void {
-    const existing = blockMetaRef.current.get(id) ?? { marker: null, priority: null, properties: [] };
-    blockMetaRef.current.set(id, { ...existing, ...meta });
-  }
 
   // Step 1: Load blocks as strings
   useEffect(() => {

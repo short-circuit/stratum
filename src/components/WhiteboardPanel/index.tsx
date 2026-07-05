@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import Box from '@mui/material/Box';
 import { useTheme } from '@mui/material/styles';
 import { restore, restoreLibraryItems } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
@@ -7,7 +6,8 @@ import type { SceneData, LibraryItems, ExcalidrawImperativeAPI } from '@excalidr
 import * as api from '../../lib/commands';
 import { setLatestLibraryJson } from '../../lib/libraryStore';
 import BoardGallery from './BoardGallery';
-import BoardEditor, { generateThumbnail } from './BoardEditor';
+import BoardEditor from './BoardEditor';
+import { generateThumbnail } from './editorUtils';
 import type { Board } from './BoardGallery';
 
 const emptyScene = { elements: [], appState: { viewBackgroundColor: '#ffffff' } };

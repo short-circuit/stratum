@@ -12,7 +12,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import KanbanCard from './KanbanCard';
-import { COLUMN_CONFIG, type ColumnId } from './index';
+import { COLUMN_CONFIG, type ColumnId } from './constants';
 import type { KanbanBlockDto } from '../../lib/types';
 
 interface KanbanColumnProps {

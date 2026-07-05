@@ -231,7 +231,6 @@ export default function SettingsPage() {
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const toggleModelCapability = (modelName: string, cap: string) => {
     const models = [...(ai.models || [])];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

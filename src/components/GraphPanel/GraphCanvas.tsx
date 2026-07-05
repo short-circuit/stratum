@@ -43,6 +43,7 @@ function nodeColor(n: GraphNode): string {
   return NODE_PALETTE[idx];
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const DEFAULT_SETTINGS: GraphSettings = {
   show_connected: true,
   show_orphaned: true,
