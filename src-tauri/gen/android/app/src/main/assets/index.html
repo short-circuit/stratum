@@ -5,7 +5,36 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Stratum</title>
-    <script type="module" crossorigin src="/assets/index-C6g3AWsd.js"></script>
+    <script>
+      (function(){
+        var s = document.documentElement.style;
+        function setInset(top, bottom) {
+          if (top > 0) s.setProperty('--safe-area-inset-top', top+'px');
+          if (bottom > 0) s.setProperty('--safe-area-inset-bottom', bottom+'px');
+        }
+        // Check if already set by Kotlin injection
+        var cs = getComputedStyle(document.documentElement);
+        var existingTop = parseFloat(cs.getPropertyValue('--safe-area-inset-top'));
+        var existingBottom = parseFloat(cs.getPropertyValue('--safe-area-inset-bottom'));
+        if (existingTop > 0 || existingBottom > 0) return;
+        // Compute from visualViewport (works on all Android WebView versions)
+        if (window.visualViewport) {
+          var vv = window.visualViewport;
+          var top = vv.offsetTop;
+          var bottom = window.innerHeight - vv.height - top;
+          if (top > 0 || bottom > 0) { setInset(top, bottom); return; }
+          vv.addEventListener('resize', function() {
+            var t = vv.offsetTop;
+            var b = window.innerHeight - vv.height - t;
+            if (t > 0 || b > 0) setInset(t, b);
+          });
+        }
+        // Fallback: measure difference between screen and window
+        var d = window.screen.height - window.innerHeight;
+        if (d > 40) setInset(Math.round(d*0.35), Math.round(d*0.65));
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-Cg6IVvUw.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-6KndmJbk.js">
     <link rel="modulepreload" crossorigin href="/assets/mermaid-BWMM2YNX.js">
     <link rel="modulepreload" crossorigin href="/assets/excalidraw-DfoYHrQ2.js">
