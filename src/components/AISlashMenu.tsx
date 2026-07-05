@@ -1,17 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useBlockNoteEditor } from '@blocknote/react';
 import {
   getDefaultReactSlashMenuItems,
   SuggestionMenuController,
   type DefaultReactSuggestionItem,
 } from '@blocknote/react';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import CircularProgress from '@mui/material/CircularProgress';
 import { filterSuggestionItems } from '@blocknote/core';
 import * as api from '../lib/commands';
 import type { AiAction } from '../lib/types';
+import AILoadingOverlay from './ui/AILoadingOverlay';
 import MathEditorModal from './MathEditorModal';
 
 interface Props {
@@ -292,15 +289,7 @@ export default function AISlashMenu({ pagePath }: Props) {
 
   return (
     <>
-      {loading && createPortal(
-        <Box sx={{ position: 'fixed', inset: 0, zIndex: 9999, bgcolor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Box sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 2, boxShadow: 8, px: 4, py: 3, display: 'flex', alignItems: 'center', gap: 2, minWidth: 200, justifyContent: 'center' }}>
-            <CircularProgress size={20} />
-            <Typography variant="body1" color="text.secondary">{loading}...</Typography>
-          </Box>
-        </Box>,
-        document.body,
-      )}
+      <AILoadingOverlay loading={!!loading} message={loading ? `${loading}...` : undefined} />
       {mathModal && (
         <MathEditorModal
           initialLatex=""
