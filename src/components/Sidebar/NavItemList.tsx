@@ -2,7 +2,6 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import ArticleIcon from '@mui/icons-material/Article';
 import HubIcon from '@mui/icons-material/Hub';
 import SearchIcon from '@mui/icons-material/Search';
 import CodeIcon from '@mui/icons-material/Code';
@@ -14,7 +13,6 @@ import SettingsIcon from '@mui/icons-material/Settings';
 
 const NAV_ITEMS = [
   { id: 'journal', label: 'Journal', path: '/journal', icon: <CalendarMonthIcon /> },
-  { id: 'pages', label: 'Pages', path: '/' as const, icon: <ArticleIcon /> },
   { id: 'graph', label: 'Graph', path: '/graph', icon: <HubIcon /> },
   { id: 'kanban', label: 'Kanban', path: '/kanban', icon: <ChecklistIcon /> },
   { id: 'search', label: 'Search', path: '/search', icon: <SearchIcon /> },
