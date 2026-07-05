@@ -101,8 +101,7 @@ export default function PageView() {
         </Menu>
       </Box>
 
-      {/* Editor + Backlinks */}
-      <Box sx={{ flex: 1, overflow: 'auto', bgcolor: 'action.hover' }}>
+      <Box sx={{ flex: 1, overflow: 'auto' }}>
         <OutlinerEditor key={editorKey} pagePath={currentPage.path} />
       </Box>
 
