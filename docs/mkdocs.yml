@@ -107,4 +107,5 @@ nav:
   - Contributing: contributing.md
   - Development:
     - development/frontend-guide.md
+    - development/rust-guide.md
     - development/mobile-guide.md

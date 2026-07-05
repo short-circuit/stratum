@@ -11,21 +11,23 @@ import Popover from '@mui/material/Popover';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
-import { useStore } from '../stores/appStore';
+import { useStore } from '../../stores/appStore';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
 import { BlockNoteSchema, defaultBlockSpecs } from '@blocknote/core';
-import type { BlockDto } from '../lib/types';
-import * as api from '../lib/commands';
-import { parseContentToInlineItems, inlineItemsToContent, isWikiLinkHref, extractWikiLinkTarget, isTagHref, extractTagTarget, normalizeContent } from '../lib/wikiLinks';
-import { useCtrlHeld } from '../lib/useCtrlHeld';
-import LinkPreviewPopup from './LinkPreviewPopup';
-import AISlashMenu from './AISlashMenu';
-import AIFormattingToolbar from './AIFormattingToolbar';
-import { createMermaidSpec } from './MermaidBlock';
-import { useMathInline, setupMathDblClick } from '../lib/useMathInline';
-import MathEditorModal from './MathEditorModal';
-import MarkerBadge from './MarkerBadge';
+import * as api from '../../lib/commands';
+import { normalizeContent, isWikiLinkHref, extractWikiLinkTarget, isTagHref, extractTagTarget } from '../../lib/wikiLinks';
+import { useCtrlHeld } from '../../lib/useCtrlHeld';
+import LinkPreviewPopup from '../LinkPreviewPopup';
+import AISlashMenu from '../AISlashMenu';
+import AIFormattingToolbar from '../AIFormattingToolbar';
+import { createMermaidSpec } from '../MermaidBlock';
+import { useMathInline, setupMathDblClick } from '../../lib/useMathInline';
+import MathEditorModal from '../MathEditorModal';
+import MarkerBadge from '../MarkerBadge';
+import { dtoToBlockNote, blockNoteToDto } from './dtoConverters';
+import type { BlockMeta } from './dtoConverters';
+import { MARKER_KEYWORDS, detectAndApplyMarkers } from './markerDetection';
 
 const schema = BlockNoteSchema.create({
   blockSpecs: {
@@ -34,25 +36,8 @@ const schema = BlockNoteSchema.create({
   },
 });
 
-const mermaidBlockRegex = /^```mermaid\n?([\s\S]*?)\n?```\s*$/;
-
-const MARKER_KEYWORDS = ['TODO', 'DOING', 'DONE', 'NOW', 'LATER', 'WAITING', 'CANCELLED'];
-
-interface InlineContentItem { text?: string; type?: string; }
-
-function extractTextContent(block: { content?: InlineContentItem[] }): string {
-  if (!block.content || !Array.isArray(block.content)) return '';
-  return block.content.map((c: InlineContentItem) => c.text || '').join('');
-}
-
 interface Props {
   pagePath: string;
-}
-
-interface BlockMeta {
-  marker: string | null;
-  priority: string | null;
-  properties: [string, string][];
 }
 
 export default function OutlinerEditor({ pagePath }: Props) {
@@ -161,28 +146,11 @@ export default function OutlinerEditor({ pagePath }: Props) {
   const persistBlocks = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (blockNoteBlocks: any[]) => {
-      function detectAndApplyMarkers(blocks: typeof blockNoteBlocks): void {
-        if (!pagePath.startsWith('journals/')) return;
-        for (const b of blocks) {
-          const content = extractTextContent(b);
-          const firstWord = content.trim().split(/\s+/)[0]?.toUpperCase();
-          if (firstWord && MARKER_KEYWORDS.includes(firstWord)) {
-            const existingMeta = blockMetaRef.current.get(b.id);
-            if (existingMeta?.marker) continue;
-            setBlockMeta(b.id, { marker: firstWord });
-            const rest = content.trim().slice(firstWord.length).trim();
-            if (rest !== content.trim() && Array.isArray(b.content) && b.content.length > 0) {
-              b.content[0].text = rest;
-            }
-          }
-        }
-      }
-
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
         try {
           // Run marker detection before converting to DTOs
-          detectAndApplyMarkers(blockNoteBlocks);
+          detectAndApplyMarkers(blockNoteBlocks, pagePath, blockMetaRef.current);
           const dtos = blockNoteToDto(blockNoteBlocks, blockMetaRef.current);
           await api.saveBlocks(pagePath, dtos);
         } catch (e) {
@@ -447,95 +415,4 @@ export default function OutlinerEditor({ pagePath }: Props) {
     </div>
     </Box>
   );
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function dtoToBlockNote(dtos: BlockDto[], metaMap: Map<string, BlockMeta>): any[] {
-  if (dtos.length === 0) return [];
-  const rootBlocks = dtos.filter(d => !d.parent_id);
-  rootBlocks.sort((a, b) => {
-    if (!a.left_id) return -1;
-    if (a.left_id === b.id) return 1;
-    return 0;
-  });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function convert(dto: BlockDto): any {
-    const children = dtos.filter(b => b.parent_id === dto.id);
-    children.sort((a, b) => {
-      if (!a.left_id) return -1;
-      if (a.left_id === b.id) return 1;
-      return 0;
-    });
-    const contentStr = dto.content || '';
-    const mermaidMatch = contentStr.match(mermaidBlockRegex);
-    if (mermaidMatch) {
-      return {
-        type: 'mermaid',
-        props: { language: 'mermaid' },
-        content: [{ type: 'text' as const, text: mermaidMatch[1].trimEnd(), styles: {} }],
-        children: children.map(convert),
-      };
-    }
-    let type = 'paragraph';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const props: Record<string, any> = {};
-    if (dto.heading_level) { type = 'heading'; props.level = dto.heading_level; }
-    // Store ALL block metadata in blockMetaRef (even without marker, to preserve priority/properties)
-    metaMap.set(dto.id, {
-      marker: dto.marker,
-      priority: dto.priority,
-      properties: dto.properties,
-    });
-    if (dto.marker) {
-      type = 'checkListItem';
-    }
-    // Parse inline content (bold, italic, wiki-links, code, strikethrough)
-    // before passing to BlockNote, which stores content as InlineContent[] internally
-    const content = parseContentToInlineItems(contentStr);
-    return { type, content, props, children: children.map(convert) };
-  }
-  return rootBlocks.map(convert);
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function blockNoteToDto(blockNoteBlocks: any[], metaMap: Map<string, BlockMeta>): BlockDto[] {
-  const result: BlockDto[] = [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function walk(blocks: any[], parentId: string | null) {
-    let prevId: string | null = null;
-    for (const b of blocks) {
-      const id = b.id || crypto.randomUUID();
-      let content = '';
-      if (b.type === 'mermaid') {
-        let code = '';
-        if (typeof b.content === 'string') code = b.content;
-        else if (Array.isArray(b.content)) code = b.content.map((c: { text?: string }) => c?.text || '').join('');
-        content = '```mermaid\n' + code + '\n```';
-      } else if (b.type === 'codeBlock' && b.props?.language === 'mermaid') {
-        let code = '';
-        if (typeof b.content === 'string') code = b.content;
-        else if (Array.isArray(b.content)) code = b.content.map((c: { text?: string }) => c?.text || '').join('');
-        content = '```mermaid\n' + code + '\n```';
-      } else if (b.content) {
-        if (typeof b.content === 'string') content = b.content;
-        else if (Array.isArray(b.content)) content = inlineItemsToContent(b.content);
-      }
-      const meta = metaMap.get(id) ?? { marker: null, priority: null, properties: [] };
-      result.push({
-        id, content,
-        parent_id: parentId,
-        left_id: prevId,
-        properties: meta.properties,
-        marker: meta.marker,
-        priority: meta.priority,
-        collapsed: false,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        heading_level: b.type === 'heading' ? (b.props as any)?.level ?? null : null,
-      });
-      if (b.children?.length) walk(b.children, id);
-      prevId = id;
-    }
-  }
-  walk(blockNoteBlocks, null);
-  return result;
 }

@@ -97,6 +97,10 @@ stratum/
 │   │   │   ├── ConflictModal.tsx
 │   │   │   └── index.ts
 │   │   ├── Sidebar/
+│   │   │   ├── index.tsx
+│   │   │   ├── NavItemList.tsx
+│   │   │   ├── PageTree.tsx
+│   │   │   └── SidebarFooter.tsx
 │   │   ├── PageView/
 │   │   ├── OutlinerEditor/
 │   │   ├── GraphPanel/
@@ -254,7 +258,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 
 | Component | Parent | Purpose |
 |-----------|--------|---------|
-| `OutlinerEditor` | `PageView` | BlockNote-based outliner with auto-save, markers, wiki-links |
+| `OutlinerEditor` | `PageView` | BlockNote-based outliner with auto-save, markers, wiki-links — decomposed into `index.tsx` + `dtoConverters.ts` + `markerDetection.ts` |
 | `BacklinksPanel` | `PageView` | Linked references + unlinked mentions + hover preview |
 | `SuggestedConnectionsPanel` | `PageView` | AI-suggested wiki-link connections |
 | `MermaidBlock` | `OutlinerEditor` | Custom BlockNote block for Mermaid diagrams |
@@ -271,7 +275,10 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 
 | Component | Purpose |
 |-----------|---------|
-| `Sidebar` | Collapsible navigation + page tree + create/delete/export |
+| `Sidebar` (`index.tsx`) | Drawer wrapper with collapse state, vault info, header |
+| `NavItemList` | Navigation items list (Journal, Pages, Graph, etc.) |
+| `PageTree` | Page list with create/delete and new-page form |
+| `SidebarFooter` | Refresh/export/version footer |
 | `VaultPicker` | Landing page when no vault is configured |
 | `StratumIcon` | App icon SVG renderer |
 | `PagesHome` | Home route: page list with block counts |
