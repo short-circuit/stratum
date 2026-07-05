@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { getPlatform } from './platform';
 import type {
   VaultInfo,
   PageDto,
@@ -33,16 +34,12 @@ export async function setVaultPath(path: string): Promise<void> {
 }
 
 export async function pickVaultDirectory(): Promise<VaultInfo> {
-  // On Android: try SAF folder picker first, fall back to auto-init
-  try {
-    return await invoke('pick_android_directory');
-  } catch (_noAndroid) {
-    // Not on Android or no SAF — try auto-init, then desktop dialog
-  }
-  try {
-    return await invoke('init_default_vault');
-  } catch (_noInit) {
-    // Fall through to desktop dialog
+  if (getPlatform().isMobile) {
+    try {
+      return await invoke('pick_android_directory');
+    } catch (_err) {
+      return await invoke('init_default_vault');
+    }
   }
   const { open } = await import('@tauri-apps/plugin-dialog');
   const selected = await open({ directory: true, multiple: false });
