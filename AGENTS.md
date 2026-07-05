@@ -67,51 +67,124 @@ stratum/
 │   ├── pkm-plugin/             # WASM plugin runtime
 │   └── pkm-cli/                # CLI binary (cargo run -p pkm-cli)
 ├── src/                        # React + TypeScript frontend
-│   ├── main.tsx
-│   ├── App.tsx
+│   ├── main.tsx                # App bootstrap, settings load
+│   ├── App.tsx                 # Root layout, routes, close handler
+│   ├── global.css              # CSS variables, safe-area, overrides
 │   ├── lib/
-│   │   ├── types.ts            # TypeScript DTOs
-│   │   └── commands.ts         # Tauri invoke() wrappers
+│   │   ├── types.ts            # TypeScript DTOs (matching Rust structs)
+│   │   ├── commands.ts         # 64 Tauri invoke() wrappers
+│   │   ├── theme.ts            # CSS variable generation (--primary-* shades)
+│   │   ├── muiTheme.ts         # MUI theme creation from config
+│   │   ├── wikiLinks.ts        # Wiki-link parsing/serialization
+│   │   ├── libraryStore.ts     # Module-level library JSON cache
+│   │   ├── useCtrlHeld.ts      # Hook: Ctrl/Meta key tracking
+│   │   ├── useMathInline.tsx   # Hook: ProseMirror inline KaTeX plugin
+│   │   └── hooks/              # # Custom hooks (useAsyncData, useDebounce, etc.)
 │   ├── stores/
-│   │   └── appStore.ts         # Zustand store
-│   └── components/
-│       ├── Sidebar.tsx
-│       ├── PageView.tsx
-│       ├── BlockEditor.tsx
-│       ├── GraphPanel.tsx      # Force-directed graph (d3-force)
-│       ├── BacklinksPanel.tsx
-│       ├── SearchPanel.tsx
-│       ├── QueryPanel.tsx
-│       ├── TemplatesPanel.tsx
-│       ├── FlashcardsPanel.tsx
-│       ├── WhiteboardPanel.tsx
-│       ├── JournalPanel.tsx
-│       ├── PagesHome.tsx
-│       └── SettingsPage.tsx
+│   │   ├── appStore.ts         # Core Zustand store (vault, pages, currentPage)
+│   │   ├── settingsStore.ts    # Settings + theme state
+│   │   ├── graphStore.ts       # Graph data + settings
+│   │   └── syncStore.ts        # Sync status + commits
+│   ├── components/
+│   │   ├── ui/                 # Atomic reusable UI primitives
+│   │   │   ├── LoadingOverlay.tsx
+│   │   │   ├── ErrorAlert.tsx
+│   │   │   ├── EmptyState.tsx
+│   │   │   ├── PageHeader.tsx
+│   │   │   ├── ConfirmDialog.tsx
+│   │   │   ├── SliderRow.tsx
+│   │   │   ├── PassphraseModal.tsx
+│   │   │   ├── ConflictModal.tsx
+│   │   │   └── index.ts
+│   │   ├── Sidebar/
+│   │   ├── PageView/
+│   │   ├── OutlinerEditor/
+│   │   ├── GraphPanel/
+│   │   ├── BacklinksPanel/
+│   │   ├── SearchPanel/
+│   │   ├── QueryPanel/
+│   │   ├── JournalPanel/
+│   │   ├── PagesHome/
+│   │   ├── TemplatesPanel/
+│   │   ├── FlashcardsPanel/
+│   │   ├── KanbanPanel/
+│   │   ├── WhiteboardPanel/
+│   │   ├── SettingsPage/
+│   │   ├── AISlashMenu.tsx
+│   │   ├── AIFormattingToolbar.tsx
+│   │   ├── AutocompletePopup.tsx
+│   │   ├── LinkPreviewPopup.tsx
+│   │   ├── MathEditorModal.tsx
+│   │   ├── MathSymbolPalette.tsx
+│   │   ├── MermaidBlock.tsx
+│   │   ├── MarkerBadge.tsx
+│   │   ├── StratumIcon.tsx
+│   │   ├── SuggestedConnectionsPanel.tsx
+│   │   ├── KanbanEditDialog.tsx
+│   │   └── VaultPicker.tsx
+│   └── test/
 ├── src-tauri/                  # Tauri v2 shell
 │   ├── Cargo.toml
 │   ├── tauri.conf.json
 │   ├── src/
-│   │   ├── lib.rs              # App setup, command registration
+│   │   ├── lib.rs              # App setup, 70+ command registrations
 │   │   └── commands/
 │   │       ├── mod.rs
-│   │       ├── vault.rs        # VaultState + IndexEngine
-│   │       ├── page.rs         # Page CRUD
+│   │       ├── vault.rs        # VaultState + IndexEngine + init
+│   │       ├── page.rs         # Page CRUD + filesystem sync
 │   │       ├── block.rs        # Block CRUD
-│   │       ├── graph.rs        # Graph data commands
-│   │       ├── search.rs       # Full-text + backlinks
+│   │       ├── graph.rs        # Graph data + components + orphans
+│   │       ├── search.rs       # Full-text + backlinks + autocomplete
 │   │       ├── query.rs        # Datalog query
 │   │       ├── sync.rs         # Git sync
 │   │       ├── template.rs     # Templates
 │   │       ├── export.rs       # HTML/JSON export
 │   │       ├── flashcards.rs   # SRS flashcards
-│  │       ├── whiteboard.rs   # Excalidraw whiteboards
-│   │       └── settings.rs     # App settings
+│   │       ├── whiteboard.rs   # Excalidraw whiteboards + library
+│   │       ├── settings.rs     # App settings + AI model fetch
+│   │       ├── ai.rs           # AI transform + research + interlink
+│   │       └── kanban.rs       # Kanban block queries
 │   └── capabilities/
 ├── docs/
-│   ├── architecture.md
-│   ├── contributing.md
-│   └── master-plan.md
+│   ├── index.md                # MkDocs home page
+│   ├── mkdocs.yml              # MkDocs configuration
+│   ├── requirements.txt        # mkdocs-material
+│   ├── getting-started/
+│   │   ├── installation.md
+│   │   ├── quickstart.md
+│   │   └── configuration.md
+│   ├── guide/                  # 18 user guides (one per feature)
+│   │   ├── vault-management.md
+│   │   ├── block-editor.md
+│   │   ├── linking-and-backlinks.md
+│   │   ├── tags.md
+│   │   ├── tasks.md
+│   │   ├── graph-view.md
+│   │   ├── search.md
+│   │   ├── datalog-queries.md
+│   │   ├── journal.md
+│   │   ├── templates.md
+│   │   ├── flashcards.md
+│   │   ├── kanban.md           # Kanban board guide
+│   │   ├── whiteboards.md
+│   │   ├── math-equations.md
+│   │   ├── diagrams.md
+│   │   ├── ai-features.md
+│   │   ├── web-research.md
+│   │   ├── git-sync.md
+│   │   └── export.md
+│   ├── cli/
+│   │   └── command-reference.md
+│   ├── advanced/
+│   │   ├── file-format.md
+│   │   ├── plugins.md
+│   │   └── component-architecture.md  # Frontend component hierarchy
+│   └── development/             # Developer documentation
+│       ├── frontend-guide.md    # Component patterns, hooks, state mgmt
+│       ├── rust-guide.md        # Crate organization, comment standards
+│       └── mobile-guide.md     # Build targets, responsive patterns
+├── .sisyphus/
+│   └── refactoring-plan.md     # Long-term refactoring roadmap
 ├── package.json
 ├── tsconfig.json
 ├── vite.config.ts
@@ -121,17 +194,20 @@ stratum/
 ## Crate Dependency Graph
 
 ```
-pkm-cli       →  pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
-src-tauri     →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm-sync, pkm-watcher
-pkm-markdown  →  pkm-core
-pkm-index     →  pkm-core, pkm-markdown, pkm-block
-pkm-block     →  pkm-core
-pkm-query     →  pkm-core, pkm-block
-pkm-sync      →  pkm-core, pkm-markdown
-pkm-watcher   →  pkm-core, pkm-markdown, pkm-index
-pkm-ai        →  pkm-core, pkm-index
-pkm-plugin    →  pkm-core
+pkm-core       →  (standalone foundation)
+pkm-block      →  pkm-core
+pkm-markdown   →  pkm-core, pkm-block
+pkm-index      →  pkm-core, pkm-markdown, pkm-block
+pkm-query      →  pkm-block
+pkm-sync       →  pkm-core, pkm-markdown
+pkm-watcher    →  pkm-core, pkm-markdown, pkm-index
+pkm-ai         →  pkm-core, pkm-index
+pkm-plugin     →  pkm-core
+pkm-cli        →  pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
+src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm-sync, pkm-watcher, pkm-ai
 ```
+
+**NOTE**: `src-tauri` does NOT currently depend on `pkm-plugin`. The CLI does NOT depend on `pkm-block` or `pkm-query`.
 
 ## Core Principles
 
@@ -141,29 +217,122 @@ pkm-plugin    →  pkm-core
 4. **Rust core** — all data processing, parsing, indexing, git operations in Rust
 5. **Performance** — sub-100ms search at 10k notes, <80MB idle memory
 6. **Block-based** — Logseq-style outliner: every paragraph is an addressable block with UUID
+7. **Minimal reusable components** — no component > 400 lines, no file > 500 lines
+8. **Documentation is code** — every feature change requires a corresponding docs update
+9. **Platform-aware** — mobile and desktop share logic, differ in presentation
 
 ## State Management
 
-React app uses **Zustand** for state (single store in `src/stores/appStore.ts`):
+React app uses **Zustand** for state. Domain-specific stores in `src/stores/`:
 
-- **vault / pages / currentPage** — loaded from Rust backend via `invoke()`
-- **loading / error** — global loading and error states
-- All data operations go through `src/lib/commands.ts` → Tauri IPC → Rust commands
+- **appStore** — vault, pages, currentPage, loading, error (the core)
+- **settingsStore** — theme, AI, research, sync configuration
+- **graphStore** — graph data, connected components, orphans, graph settings
+- **syncStore** — sync status, commit log, conflict state
+
+All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rust command → crate logic.
 
 ## Frontend Components
 
+### Panel Components (route-mapped, app-level)
+
+| Component | Route | Purpose | Guide |
+|-----------|-------|---------|-------|
+| `PagesHome` | `/` | Page list with block counts | — |
+| `JournalPanel` | `/journal` | Calendar + daily journal creation | `docs/guide/journal.md` |
+| `PageView` | `/page/:pagePath` | Block editor + backlinks + connections | `docs/guide/block-editor.md` |
+| `SearchPanel` | `/search` | Full-text + tag search | `docs/guide/search.md` |
+| `QueryPanel` | `/query` | Datalog query input + results table | `docs/guide/datalog-queries.md` |
+| `GraphPanel` | `/graph` | 3D force-directed graph | `docs/guide/graph-view.md` |
+| `TemplatesPanel` | `/templates` | Template list + apply with variables | `docs/guide/templates.md` |
+| `FlashcardsPanel` | `/flashcards` | SRS card review (SM-2) | `docs/guide/flashcards.md` |
+| `KanbanPanel` | `/kanban` | Drag-and-drop Kanban board | `docs/guide/kanban.md` |
+| `WhiteboardPanel` | `/whiteboards` | Excalidraw spatial canvas | `docs/guide/whiteboards.md` |
+| `SettingsPage` | `/settings` | 6-tab app configuration | `docs/getting-started/configuration.md` |
+
+### Editor Sub-components
+
+| Component | Parent | Purpose |
+|-----------|--------|---------|
+| `OutlinerEditor` | `PageView` | BlockNote-based outliner with auto-save, markers, wiki-links |
+| `BacklinksPanel` | `PageView` | Linked references + unlinked mentions + hover preview |
+| `SuggestedConnectionsPanel` | `PageView` | AI-suggested wiki-link connections |
+| `MermaidBlock` | `OutlinerEditor` | Custom BlockNote block for Mermaid diagrams |
+| `AISlashMenu` | `OutlinerEditor` | Slash menu with AI actions (rewrite, summarize, etc.) |
+| `AIFormattingToolbar` | `OutlinerEditor` | Formatting toolbar with AI buttons |
+| `AutocompletePopup` | `OutlinerEditor` | Popover for wiki-link autocomplete |
+| `LinkPreviewPopup` | `OutlinerEditor` | Hover preview for wiki-links |
+| `MathEditorModal` | `OutlinerEditor` | LaTeX editor with live KaTeX preview |
+| `MathSymbolPalette` | `MathEditorModal` | Tabbed symbol palette (Greek, Operators, etc.) |
+| `MarkerBadge` | `OutlinerEditor` | Colored chip for task markers (TODO/DOING/DONE) |
+| `KanbanEditDialog` | `KanbanPanel` | Edit card content, marker, priority |
+
+### Navigation & Utility
+
 | Component | Purpose |
 |-----------|---------|
-| `Sidebar` | Navigation (Journal, Pages, Graph, Search, Query, Templates, Flashcards, Whiteboards, Settings) + page tree |
-| `PageView` | Block editor + BacklinksPanel + PropertiesPanel |
-| `BlockEditor` | Inline block editing with indent/outdent, task markers, drag reorder |
-| `GraphPanel` | Force-directed graph visualization (d3-force via react-force-graph-2d): node sizing by degree, tag coloring, hover highlights, search filter, component/orphan views, click to navigate |
-| `BacklinksPanel` | Linked references and unlinked mentions for current page |
-| `SearchPanel` | Full-text block search via Tantivy |
-| `QueryPanel` | Datalog query input with result table |
-| `WhiteboardPanel` | Excalidraw spatial canvas |
-| `FlashcardsPanel` | Spaced-repetition card review |
-| `SettingsPage` | App configuration (vault path, theme, AI, sync, graph settings) |
+| `Sidebar` | Collapsible navigation + page tree + create/delete/export |
+| `VaultPicker` | Landing page when no vault is configured |
+| `StratumIcon` | App icon SVG renderer |
+| `PagesHome` | Home route: page list with block counts |
+
+### UI Primitives (`src/components/ui/`)
+
+| Component | Purpose | Origin |
+|-----------|---------|--------|
+| `LoadingOverlay` | Centered spinner with optional message | Shared pattern |
+| `ErrorAlert` | Dismissable error Alert | Shared pattern |
+| `EmptyState` | Centered empty state with icon + message + action | Shared pattern |
+| `PageHeader` | Consistent header bar (title + actions + back) | Shared pattern |
+| `ConfirmDialog` | Reusable confirmation dialog | Shared pattern |
+| `SliderRow` | Label + slider + display value | Extracted from GraphPanel |
+| `PassphraseModal` | SSH key passphrase input dialog | Extracted from SettingsPage |
+| `ConflictModal` | Git conflict resolution dialog | Extracted from SettingsPage |
+
+### Custom Hooks (`src/lib/hooks/`)
+
+| Hook | Purpose | Used By |
+|------|---------|---------|
+| `useAsyncData` | Generic async fetch (loading/error/data/refresh) | All panels |
+| `useDebounce` | Debounce a value or callback | SearchPanel, OutlinerEditor |
+| `useAutoSave` | Debounced auto-save with dirty tracking | OutlinerEditor, WhiteboardPanel |
+| `useResponsive` | Breakpoint detection (mobile vs desktop) | Layout components |
+| `useCtrlHeld` | Track Ctrl/Meta key held state | OutlinerEditor, BacklinksPanel |
+| `useMathInline` | ProseMirror plugin for inline KaTeX | OutlinerEditor |
+
+### Component Sizing Rules
+
+| Metric | Limit | Action |
+|--------|-------|--------|
+| File lines | < 500 | Split into sub-modules |
+| Component JSX | < 50 lines | Extract sub-components |
+| Inline function | < 20 lines | Extract to module-level |
+| Same logic in 2+ files | 0 duplicates | Extract to `src/lib/` or `hooks/` |
+| Props interface | Required at top | Every component must define `interface Props` |
+
+### Desktop + Mobile Component Pattern
+
+Components that need platform-specific implementations follow this folder convention:
+
+```
+src/components/FeaturePanel/
+├── index.tsx              # Desktop/web implementation (imports .shared)
+├── FeaturePanel.mobile.tsx  # Mobile variant (imports .shared)
+├── FeaturePanel.shared.tsx  # Shared logic/hooks/types
+└── FeaturePanel.test.tsx    # Tests
+```
+
+The `index.tsx` uses a `useResponsive` hook to conditionally render mobile or desktop:
+
+```typescript
+export default function FeaturePanel() {
+  const { isMobile } = useResponsive();
+  if (isMobile) return <FeaturePanelMobile />;
+  return <FeaturePanelDesktop />;
+}
+```
+
+This keeps mobile-specific code from bloating the desktop bundle.
 
 ## Graph Engine
 
@@ -184,6 +353,47 @@ The graph engine (`src-tauri/src/commands/graph.rs`) builds data directly from t
 | Auto-commit | On file save → staged → committed (configurable interval) |
 | Auto-sync | Auto-commit + periodic push/pull on a timer |
 | Background | Runs as a system service / daemon |
+
+## Rust Coding Standards
+
+### Comment Requirements
+
+Every Rust source file MUST have:
+
+```rust
+//! Module-level doc explaining purpose, what this module provides, how to use it.
+
+/// Doc comment on every public function — what it does, arguments, return, errors, panics.
+
+// Inline comments on:
+// - Complex algorithms (state invariants, why this approach)
+// - Non-obvious transformations (why this mapping)
+// - Workarounds (which issue/limitation is being worked around)
+```
+
+Files in `pkm-index/src/` (graph, search, rebuild, tags) are currently under-commented and need prioritized attention.
+
+### Error Handling
+
+Use `PkmError` (from `pkm-core`) as the single error type across all crates. Use `#[from]` derives to convert crate-specific errors. Do NOT define new error types in individual crates — extend `PkmError` variants instead.
+
+### Testing
+
+- Unit tests in `#[cfg(test)]` modules alongside implementation
+- Integration tests for command handlers (especially `src-tauri/src/commands/`)
+- Use `tempfile` for filesystem tests
+- Target: every public function has at least one test
+
+### Module Organization
+
+Command handlers (`src-tauri/src/commands/`) must be **thin glue layers**. Business logic belongs in the appropriate crate:
+
+| Command Handler | Logic Lives In |
+|----------------|---------------|
+| `graph.rs` | `pkm-block` (graph building) |
+| `settings.rs` | `pkm-core::Config` (DTO mapping) |
+| `search.rs` | `pkm-index` (search/backlinks) |
+| `sync.rs` | `pkm-sync` (git operations) |
 
 ## Build Commands
 
@@ -208,7 +418,10 @@ cargo run -p pkm-cli -- --help
 npm install                      # Install dependencies
 npm run dev                      # Vite dev server (port 5173)
 npm run build                    # Production build
-npm run lint                     # ESLint
+npm run lint                     # ESLint (no Prettier — formatting is Rust-only)
+
+# Run frontend tests
+npm run test
 
 # Tauri desktop app
 cargo tauri dev                  # Dev mode (Rust + Vite)
@@ -243,3 +456,59 @@ When in doubt, flag the dependency for review before adding it.
 | Memory (idle, desktop) | < 80MB |
 | Memory (10k notes, desktop) | < 200MB |
 | Bundle size (desktop, compressed) | < 20MB |
+
+## Documentation Sync Rules
+
+**These rules are MANDATORY for every code change.** Every agent and contributor must follow them:
+
+| Trigger | Required Action |
+|---------|----------------|
+| New component added | Add to `Frontend Components` table above; add `docs/guide/` entry if user-facing |
+| Component renamed | Update table above; update all user docs |
+| Component > 400 lines | Must split into sub-components (file a refactoring task) |
+| New hook/utility | Add to `Custom Hooks` table above; update `docs/development/frontend-guide.md` |
+| Rust API changed | Update doc comments; update `docs/development/rust-guide.md` |
+| New Rust crate/module | Add to `Crate Dependency Graph` and `Workspace Layout` above; add module docs |
+| New feature added | Add `docs/guide/` entry; update contributing.md if dev workflow changes |
+| Behavior change | Update relevant `docs/guide/` entry |
+| UI changed | Verify screenshots in docs still match; update if needed |
+| Mobile platform change | Update `docs/development/mobile-guide.md` |
+| New dependency added | Verify AGPL-3.0 compatibility per `License & Dependency Policy` |
+| Cargo.toml changed | Verify `Crate Dependency Graph` table above matches actual deps |
+
+### CI Enforcement (planned)
+
+A CI check should verify:
+1. Component count in AGENTS.md matches actual files in `src/components/` (minus `ui/` primitives if those are documented separately)
+2. All `docs/guide/` entries referenced in the component table exist
+3. All `.md` files in `docs/guide/` have a corresponding component documented
+
+## Dependency Consistency
+
+### TypeScript ↔ Rust Type Alignment
+
+`src/lib/types.ts` defines DTOs that must match Rust `#[derive(Serialize)]` structs in `src-tauri/src/commands/`. When either changes, the other MUST be updated in the same PR.
+
+**Currently manual** — planned: ts-rs crate for auto-generation.
+
+### Command API Alignment
+
+`src/lib/commands.ts` wrappers must match Tauri command signatures in `src-tauri/src/commands/`. Every `#[tauri::command]` needs a corresponding typed wrapper in `commands.ts`.
+
+### Code ↔ Docs Alignment
+
+| Artifact | Must Match | Check Frequency |
+|----------|-----------|-----------------|
+| AGENTS.md component table | Actual files in `src/components/` | Every PR |
+| AGENTS.md crate table | Actual crates in `Cargo.toml` workspace | Every PR |
+| docs/guide/* | Features actually implemented in code | On feature add |
+| contributing.md | Actual CI workflow | On CI change |
+| Rust doc comments | Actual Rust API | Every commit |
+
+## Refactoring Roadmap
+
+See `.sisyphus/refactoring-plan.md` for the full phased plan covering:
+
+1. **Frontend**: Shared hooks → UI primitives → decompose 6 monolithic components → store decomposition → mobile patterns
+2. **Rust**: Comment audit → eliminate critical duplication → error type unification → test expansion → cross-crate cleanup → fix stub implementations
+3. **Docs**: AGENTS.md accuracy → development guides → component architecture docs → screenshot gaps
