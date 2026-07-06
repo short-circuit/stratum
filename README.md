@@ -1,13 +1,14 @@
 # Stratum
-
 <p align="center">
   <img src="src-tauri/icons/app-icon.svg" alt="Stratum" width="128">
 </p>
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/S8Y722P093)
 [![CI](https://github.com/short-circuit/stratum/actions/workflows/ci.yml/badge.svg)](https://github.com/short-circuit/stratum/actions/workflows/ci.yml)
 [![Docs](https://github.com/short-circuit/stratum/actions/workflows/docs.yml/badge.svg)](https://github.com/short-circuit/stratum/actions/workflows/docs.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-mkdocs--material-orange)](https://short-circuit.github.io/stratum/docs/)
+
 
 **Your second brain. No strings attached.**
 
