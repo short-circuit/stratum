@@ -218,6 +218,17 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
+    env:
+      # Debug keystore (checked in, used by default for CI signing)
+      ANDROID_KEYSTORE: src-tauri/android-patches/debug.keystore
+      ANDROID_KEYSTORE_PASSWORD: android
+      ANDROID_KEY_ALIAS: stratum-debug
+      ANDROID_KEY_PASSWORD: android
+      # ── Production signing (set these secrets for release) ──
+      # Override ANDROID_KEYSTORE, ANDROID_KEYSTORE_PASSWORD,
+      # ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD with production values.
+      # Generate keystore: keytool -genkey -v -keystore release.keystore ...
+
     steps:
       - uses: actions/checkout@v4
 
@@ -263,9 +274,18 @@ jobs:
 
       - name: Install NDK
         run: |
-          sdkmanager --install "ndk;27.0.12077973" "cmake;3.22.1" 2>/dev/null || true
-          NDK_PATH="$ANDROID_HOME/ndk/27.0.12077973"
-          [ ! -d "$NDK_PATH" ] && NDK_PATH="$ANDROID_HOME/ndk/29.0.14206865"
+          # Try NDK 27.1 first (our local pinned version), fall back to 27.0
+          for NDK_VER in "27.1.12297006" "27.0.12077973"; do
+            if sdkmanager --install "ndk;${NDK_VER}" 2>/dev/null; then
+              NDK_PATH="$ANDROID_HOME/ndk/${NDK_VER}"
+              break
+            fi
+          done
+          : "${NDK_PATH:=$ANDROID_HOME/ndk/27.1.12297006}"
+          if [ ! -d "$NDK_PATH" ]; then
+            echo "::warning::NDK not installed, trying fallback"
+            NDK_PATH=$(ls -d $ANDROID_HOME/ndk/* 2>/dev/null | sort -V | tail -1)
+          fi
           TOOLCHAIN="$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64"
           echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
           echo "CC_aarch64_linux_android=$TOOLCHAIN/bin/aarch64-linux-android21-clang" >> $GITHUB_ENV
@@ -317,51 +337,18 @@ jobs:
       - name: Apply Android patches
         run: |
           cp -r src-tauri/android-patches/app/src/main/* src-tauri/gen/android/app/src/main/
+          # Override generated build.gradle.kts with patched version (signing config, etc.)
+          cp src-tauri/android-patches/app/build.gradle.kts src-tauri/gen/android/app/build.gradle.kts
+          # Copy debug keystore into the Android project for signing
+          cp src-tauri/android-patches/debug.keystore src-tauri/gen/android/app/debug.keystore
 
-      - name: Decode keystore
-        run: |
-          if [ -n "${{ secrets.ANDROID_KEYSTORE }}" ]; then
-            echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > ${{ runner.temp }}/android.keystore
-            echo "ANDROID_KEYSTORE_PATH=${{ runner.temp }}/android.keystore" >> $GITHUB_ENV
-          fi
-
-      - name: Build Android app
+      - name: Build Android APK (aarch64)
         shell: bash
         run: npx tauri android build --target aarch64 --apk 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
-        env:
-          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
-      - name: Sign APK with apksigner
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          if [ -z "$ANDROID_KEYSTORE_PATH" ] || [ ! -f "$ANDROID_KEYSTORE_PATH" ]; then
-            echo "No keystore found, skipping APK signing"
-            exit 0
-          fi
-          APK=$(find src-tauri/gen/android -name '*.apk' -type f | head -1)
-          if [ -n "$APK" ]; then
-            echo "Signing $APK..."
-            APKSIGNER=$(ls $ANDROID_SDK_ROOT/build-tools/*/apksigner | sort -V | tail -1)
-            "$APKSIGNER" sign \
-              --v1-signing-enabled true \
-              --v2-signing-enabled true \
-              --v3-signing-enabled true \
-              --ks "$ANDROID_KEYSTORE_PATH" \
-              --ks-type PKCS12 \
-              --ks-pass "pass:$ANDROID_KEYSTORE_PASSWORD" \
-              --ks-key-alias "$ANDROID_KEY_ALIAS" \
-              --key-pass "pass:$ANDROID_KEY_PASSWORD" \
-              "$APK"
-            echo "Signed APK: $APK"
-          else
-            echo "No APK found to sign"
-          fi
+      - name: Build Android AAB (aarch64)
+        shell: bash
+        run: npx tauri android build --target aarch64 --aab 2>&1 | tee -a ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
