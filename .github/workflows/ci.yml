@@ -22,6 +22,7 @@ jobs:
   test:
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -33,17 +34,7 @@ jobs:
           cache: false
 
       - name: Cache Rust dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/debug/.fingerprint
-            target/debug/build
-            target/debug/deps
-            target/debug/incremental
-            target/debug/.cargo-lock
-          key: ${{ runner.os }}-cargo-debug-${{ hashFiles('Cargo.lock') }}
+        uses: Swatinem/rust-cache@v2
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -52,16 +43,7 @@ jobs:
           cache: npm
 
       - name: Install Linux dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libgtk-3-dev \
-            libsoup-3.0-dev \
-            libjavascriptcoregtk-4.1-dev \
-            librsvg2-dev \
-            libssl-dev \
-            pkg-config
+        uses: ./.github/actions/install-linux-deps
 
       - name: Install frontend dependencies
         run: npm ci
@@ -81,8 +63,31 @@ jobs:
       - name: Run linter
         run: npm run lint
 
+  # ── Frontend build (tag only, decoupled from test for parallelism) ──
+  frontend:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Linux dependencies
+        uses: ./.github/actions/install-linux-deps
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
       - name: Upload frontend build for release
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
@@ -91,7 +96,7 @@ jobs:
 
   # ── Desktop builds (tag only) ──────────────────────────────────────
   desktop:
-    needs: [test]
+    needs: [frontend]
     if: startsWith(github.ref, 'refs/tags/v')
     strategy:
       fail-fast: false
@@ -108,6 +113,7 @@ jobs:
             artifact_name: windows-x86_64
 
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -119,16 +125,7 @@ jobs:
           cache: false
 
       - name: Cache Rust dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/release/.fingerprint
-            target/release/build
-            target/release/deps
-            target/release/.cargo-lock
-          key: ${{ runner.os }}-cargo-release-${{ hashFiles('Cargo.lock') }}
+        uses: Swatinem/rust-cache@v2
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -138,16 +135,7 @@ jobs:
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libgtk-3-dev \
-            libsoup-3.0-dev \
-            libjavascriptcoregtk-4.1-dev \
-            librsvg2-dev \
-            libssl-dev \
-            pkg-config
+        uses: ./.github/actions/install-linux-deps
 
       - name: Install frontend dependencies
         run: npm ci
@@ -203,6 +191,7 @@ jobs:
             target/release/bundle/macos/*.zip
             target/release/stratum-tauri.exe
           if-no-files-found: warn
+          retention-days: 7
 
       - name: Upload build log
         if: failure()
@@ -214,13 +203,14 @@ jobs:
 
   # ── Android build (tag only) ───────────────────────────────────────
   android:
-    needs: [test]
+    needs: [frontend]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     env:
-      # Debug keystore (checked in, used by default for CI signing)
-      ANDROID_KEYSTORE: src-tauri/android-patches/debug.keystore
+      # Debug keystore (checked into src-tauri/android-patches/)
+      ANDROID_KEYSTORE: debug.keystore
       ANDROID_KEYSTORE_PASSWORD: android
       ANDROID_KEY_ALIAS: stratum-debug
       ANDROID_KEY_PASSWORD: android
@@ -238,16 +228,7 @@ jobs:
           cache: false
 
       - name: Cache Rust dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/release/.fingerprint
-            target/release/build
-            target/release/deps
-            target/release/.cargo-lock
-          key: ${{ runner.os }}-cargo-release-${{ hashFiles('Cargo.lock') }}
+        uses: Swatinem/rust-cache@v2
 
       - name: Add Android targets
         run: |
@@ -302,16 +283,7 @@ jobs:
           echo "RANLIB_i686_linux_android=$TOOLCHAIN/bin/llvm-ranlib" >> $GITHUB_ENV
 
       - name: Install Linux dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libgtk-3-dev \
-            libsoup-3.0-dev \
-            libjavascriptcoregtk-4.1-dev \
-            librsvg2-dev \
-            libssl-dev \
-            pkg-config
+        uses: ./.github/actions/install-linux-deps
 
       - name: Install frontend dependencies
         run: npm ci
@@ -341,16 +313,12 @@ jobs:
           cp src-tauri/android-patches/app/build.gradle.kts src-tauri/gen/android/app/build.gradle.kts
           # Copy proguard rules for Tauri WebView bridge
           cp src-tauri/android-patches/app/proguard-rules.pro src-tauri/gen/android/app/proguard-rules.pro 2>/dev/null || true
-          # Copy debug keystore into the Android project for signing
+          # Copy checked-in debug keystore for APK signing
           cp src-tauri/android-patches/debug.keystore src-tauri/gen/android/app/debug.keystore
 
-      - name: Build Android APK (aarch64)
+      - name: Build Android APK + AAB (aarch64)
         shell: bash
-        run: npx tauri android build --target aarch64 --apk 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
-
-      - name: Build Android AAB (aarch64)
-        shell: bash
-        run: npx tauri android build --target aarch64 --aab 2>&1 | tee -a ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
+        run: npx tauri android build --target aarch64 --apk --aab 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
@@ -360,6 +328,7 @@ jobs:
             src-tauri/gen/android/**/*.apk
             src-tauri/gen/android/**/*.aab
           if-no-files-found: warn
+          retention-days: 7
 
       - name: Upload build log
         if: failure()
@@ -370,9 +339,10 @@ jobs:
           if-no-files-found: warn
 
   # ── iOS build (tag only) ───────────────────────────────────────────
+  # SKIPPED: requires macOS runner + provisioning certs; revisit when ready for iOS distribution
   ios:
     needs: [test]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: false  # disabled per https://github.com/short-circuit/stratum/issues/…
     runs-on: macos-latest
 
     steps:
@@ -462,9 +432,10 @@ jobs:
 
   # ── GitHub Release (tag only, after all builds) ────────────────────
   release:
-    needs: [desktop, android, ios]
-    if: startsWith(github.ref, 'refs/tags/')
+    needs: [desktop, android]
+    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/') && (needs.desktop.result == 'success' || needs.android.result == 'success') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
 
@@ -501,10 +472,6 @@ jobs:
           AAB=$(find android -name '*.aab' -type f 2>/dev/null | head -1)
           if [ -n "$AAB" ]; then
             cp "$AAB" assets/stratum-pkm-android.aab
-          fi
-
-          if [ -f ios/stratum.zip ]; then
-            cp ios/stratum.zip assets/stratum-pkm-ios.zip
           fi
 
           ls -la assets/
