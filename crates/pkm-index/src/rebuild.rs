@@ -1,5 +1,6 @@
+use pkm_core::fs_util::MdCollector;
 use pkm_core::{Note, PkmError, PkmResult, ProgressCallback};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::block_search::BlockIndex;
 use crate::graph::Graph;
@@ -16,7 +17,9 @@ pub fn rebuild_all(
     tags: &mut TagAggregator,
     progress: Option<ProgressCallback>,
 ) -> PkmResult<Vec<Note>> {
-    let md_files = collect_md_files(vault_path)?;
+    let md_files = MdCollector::new()
+        .skip_hidden_dirs(true)
+        .collect(vault_path)?;
     let total = md_files.len();
 
     tracing::info!(
@@ -123,54 +126,7 @@ pub fn rebuild_all(
     Ok(indexed_notes)
 }
 
-/// Collect all .md files recursively from a directory.
-fn collect_md_files(dir: &Path) -> PkmResult<Vec<PathBuf>> {
-    let mut files = Vec::new();
 
-    if !dir.exists() {
-        return Err(PkmError::NotFound(format!(
-            "Directory not found: {}",
-            dir.display()
-        )));
-    }
-
-    collect_md_files_recursive(dir, &mut files)?;
-
-    files.sort();
-    Ok(files)
-}
-
-fn collect_md_files_recursive(dir: &Path, files: &mut Vec<PathBuf>) -> PkmResult<()> {
-    let read_dir = std::fs::read_dir(dir).map_err(|e| {
-        PkmError::Io(std::io::Error::new(
-            e.kind(),
-            format!("{}: {}", dir.display(), e),
-        ))
-    })?;
-
-    for entry in read_dir {
-        let entry = entry.map_err(PkmError::Io)?;
-        let path = entry.path();
-
-        if path.is_dir() {
-            // Skip hidden directories (like .pkm, .git)
-            if let Some(name) = path.file_name().and_then(|s| s.to_str()) {
-                if name.starts_with('.') {
-                    continue;
-                }
-            }
-            collect_md_files_recursive(&path, files)?;
-        } else if path.is_file() {
-            if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
-                if ext.eq_ignore_ascii_case("md") || ext.eq_ignore_ascii_case("markdown") {
-                    files.push(path);
-                }
-            }
-        }
-    }
-
-    Ok(())
-}
 
 #[cfg(test)]
 mod tests {
@@ -212,7 +168,10 @@ mod tests {
         let dir = TempDir::new().unwrap();
         create_test_vault(dir.path());
 
-        let files = collect_md_files(dir.path()).unwrap();
+        let files = MdCollector::new()
+            .skip_hidden_dirs(true)
+            .collect(dir.path())
+            .unwrap();
         assert_eq!(files.len(), 3); // 3 .md files, no txt, no hidden
 
         let filenames: Vec<String> = files
@@ -315,7 +274,7 @@ mod tests {
         let mut tags = TagAggregator::new();
 
         let result = rebuild_all(
-            &PathBuf::from("/nonexistent/path"),
+            &std::path::PathBuf::from("/nonexistent/path"),
             &mut block_index,
             &mut graph,
             &mut tags,

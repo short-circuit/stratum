@@ -277,85 +277,21 @@ pub async fn ai_interlink_notes(
     });
     eprintln!("[ai] interlink current_slug={:?}", current_slug);
 
-    // Step 1: ensure Tantivy index is built, then search
-    let mut related_titles: Vec<String> = Vec::new();
+    // Step 1: find related pages via Tantivy + keyword supplement
+    let split_pred = |c: char| c.is_whitespace() || c == '#' || c == '*' || c == '[' || c == ']';
 
-    // Build index from block store, then search
-    if let Ok(store) = pkm_block::BlockStore::open(&db_path) {
-        if let Ok(pages) = store.list_pages() {
-            if let Ok(mut idx) = pkm_index::block_search::BlockIndex::create(&index_path) {
-                for path in &pages {
-                    if let Ok(blocks) = store.get_blocks_by_page(path) {
-                        for b in &blocks {
-                            let _ = idx.index_block(b, path);
-                        }
-                    }
-                }
-                let _ = idx.flush();
-            }
-            // Search using Tantivy full-text
-            let query_words: Vec<&str> = text
-                .split(|c: char| c.is_whitespace() || c == '#' || c == '*' || c == '[' || c == ']')
-                .filter(|w| w.len() > 3)
-                .collect();
-            let query = query_words.join(" ");
-
-            if let Ok(idx) = pkm_index::block_search::BlockIndex::create(&index_path) {
-                if let Ok(results) = idx.search(&query, 20) {
-                    let mut seen = std::collections::HashSet::new();
-                    for r in &results {
-                        let page = r.page_path.trim_end_matches(".md");
-                        let slug = std::path::Path::new(page)
-                            .file_stem()
-                            .and_then(|s| s.to_str())
-                            .unwrap_or("");
-                        if let Some(ref cur) = current_slug {
-                            if slug == cur {
-                                continue;
-                            }
-                        }
-                        if seen.insert(page.to_string()) {
-                            related_titles.push(slug.replace('-', " "));
-                        }
-                    }
-                }
-            }
-
-            // Step 2: supplement with keyword matching for any remaining pages
-            let keywords: std::collections::HashSet<String> =
-                query_words.iter().map(|w| w.to_lowercase()).collect();
-
-            let found: std::collections::HashSet<_> = related_titles.iter().cloned().collect();
-            for path in &pages {
-                let slug = std::path::Path::new(path)
-                    .file_stem()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or(path);
-                if let Some(ref cur) = current_slug {
-                    if slug == cur {
-                        continue;
-                    }
-                }
-                let title = slug.replace('-', " ");
-                if found.contains(&title) {
-                    continue;
-                }
-
-                let title_lower = title.to_lowercase();
-                let mut score: usize =
-                    keywords.iter().filter(|k| title_lower.contains(*k)).count() * 3;
-                if let Ok(blocks) = store.get_blocks_by_page(path) {
-                    for b in &blocks {
-                        let block_lower = b.content.to_lowercase();
-                        score += keywords.iter().filter(|k| block_lower.contains(*k)).count();
-                    }
-                }
-                if score > 0 {
-                    related_titles.push(title);
-                }
-            }
-        }
-    }
+    let related_titles: Vec<String> = pkm_block::BlockStore::open(&db_path)
+        .ok()
+        .and_then(|store| {
+            pkm_index::related::RelatedFinder::new()
+                .split_predicate(split_pred)
+                .find_related(&store, &index_path, &text, current_slug.as_deref())
+                .ok()
+        })
+        .unwrap_or_default()
+        .into_iter()
+        .map(|r| r.title)
+        .collect();
 
     eprintln!("[ai] found {} related pages", related_titles.len());
 
