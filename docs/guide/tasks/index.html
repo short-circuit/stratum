@@ -893,6 +893,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#interactive-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interactive Features
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Interactive Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#autocomplete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Autocomplete
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inline-badge-chips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inline Badge Chips
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#toggling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Toggling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#finding-tasks" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1778,6 +1828,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#interactive-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interactive Features
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Interactive Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#autocomplete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Autocomplete
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inline-badge-chips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inline Badge Chips
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#toggling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Toggling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#finding-tasks" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1861,7 +1961,7 @@
 <h1 id="tasks">Tasks<a class="headerlink" href="#tasks" title="Permanent link">&para;</a></h1>
 <p>Stratum supports block-level task markers for simple task management.</p>
 <h2 id="task-markers">Task Markers<a class="headerlink" href="#task-markers" title="Permanent link">&para;</a></h2>
-<p>Three task states are supported, typed directly at the start of a block:</p>
+<p>Seven task states are supported, typed directly at the start of a block:</p>
 <table>
 <thead>
 <tr>
@@ -1886,12 +1986,35 @@
 <td>Completed</td>
 <td><code>DONE Fix memory leak</code></td>
 </tr>
+<tr>
+<td><code>NOW</code></td>
+<td>Active focus</td>
+<td><code>NOW Draft project proposal</code></td>
+</tr>
+<tr>
+<td><code>LATER</code></td>
+<td>Backlog</td>
+<td><code>LATER Research database options</code></td>
+</tr>
+<tr>
+<td><code>WAITING</code></td>
+<td>Blocked</td>
+<td><code>WAITING Get feedback from design</code></td>
+</tr>
+<tr>
+<td><code>CANCELLED</code></td>
+<td>Abandoned</td>
+<td><code>CANCELLED Old feature experiment</code></td>
+</tr>
 </tbody>
 </table>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>TODO Set up CI/CD pipeline
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>DOING Implement authentication
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>DONE Refactor database layer
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>TODO Review API design
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>NOW Deploy staging environment
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>LATER Research migration options
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>WAITING Review API contract
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>CANCELLED Experimental v1 feature
 </code></pre></div>
 <h2 id="priority-markers">Priority Markers<a class="headerlink" href="#priority-markers" title="Permanent link">&para;</a></h2>
 <p>Blocks can also have priority markers: <code>A</code>, <code>B</code>, or <code>C</code>.</p>
@@ -1899,9 +2022,36 @@
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>B TODO Add input validation
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>C TODO Update README
 </code></pre></div>
+<h2 id="interactive-features">Interactive Features<a class="headerlink" href="#interactive-features" title="Permanent link">&para;</a></h2>
+<h3 id="autocomplete">Autocomplete<a class="headerlink" href="#autocomplete" title="Permanent link">&para;</a></h3>
+<p>Typing a marker prefix (like <code>TOD</code> or <code>DON</code>) triggers an autocomplete popup with all available marker and priority options. Select one from the menu to insert it at the cursor. Priority markers <code>A</code>, <code>B</code>, and <code>C</code> are also available here.</p>
+<!-- SCREENSHOT: [marker-autocomplete] Autocomplete popup showing marker and priority options -->
+
+<h3 id="inline-badge-chips">Inline Badge Chips<a class="headerlink" href="#inline-badge-chips" title="Permanent link">&para;</a></h3>
+<p>Markers render as colored badge chips directly in the editor:</p>
+<ul>
+<li><strong>TODO</strong> — gray outline chip</li>
+<li><strong>DOING</strong> — blue chip</li>
+<li><strong>DONE</strong> — green chip with strikethrough</li>
+<li><strong>NOW</strong> — cyan chip</li>
+<li><strong>LATER</strong> — gray chip</li>
+<li><strong>WAITING</strong> — amber chip</li>
+<li><strong>CANCELLED</strong> — red chip with strikethrough</li>
+</ul>
+<p>Priority markers also appear as inline chips:</p>
+<ul>
+<li><strong>A</strong> — red chip</li>
+<li><strong>B</strong> — amber chip</li>
+<li><strong>C</strong> — blue chip</li>
+</ul>
+<p>A block can show both a marker chip and a priority chip side by side, like <code>A TODO</code> or <code>C LATER</code>.</p>
+<!-- SCREENSHOT: [marker-badge-chips] Colored badge chips for markers and priorities in the editor -->
+
+<h3 id="toggling">Toggling<a class="headerlink" href="#toggling" title="Permanent link">&para;</a></h3>
+<p>Click any marker badge to clear it from the block. This gives you a quick way to advance a task — click the <code>DONE</code> badge off, then type a new marker, or click <code>DOING</code> off when you are ready to move on.</p>
 <h2 id="finding-tasks">Finding Tasks<a class="headerlink" href="#finding-tasks" title="Permanent link">&para;</a></h2>
 <h3 id="via-search">Via Search<a class="headerlink" href="#via-search" title="Permanent link">&para;</a></h3>
-<p>Open <strong>Search</strong> and search for <code>TODO</code>, <code>DOING</code>, or <code>DONE</code> to find all task blocks.</p>
+<p>Open <strong>Search</strong> and search for any marker name (<code>TODO</code>, <code>DOING</code>, <code>NOW</code>, <code>LATER</code>, etc.) to find all task blocks with that status.</p>
 <h3 id="via-datalog-queries">Via Datalog Queries<a class="headerlink" href="#via-datalog-queries" title="Permanent link">&para;</a></h3>
 <p>The most powerful way to manage tasks is through Datalog queries:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span><span class="ss">:query</span><span class="w"> </span><span class="p">[</span><span class="ss">:find</span><span class="w"> </span><span class="nv">?block</span><span class="w"> </span><span class="nv">?content</span>

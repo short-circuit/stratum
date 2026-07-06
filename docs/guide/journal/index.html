@@ -1005,6 +1005,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#calendar-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Calendar Navigation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#creating-journal-entries" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1800,6 +1811,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#calendar-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Calendar Navigation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#creating-journal-entries" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1904,17 +1926,31 @@
 
 <h1 id="journal-daily-notes">Journal / Daily Notes<a class="headerlink" href="#journal-daily-notes" title="Permanent link">&para;</a></h1>
 <p>The Journal provides daily notes — automatically created pages for each day.</p>
-<!-- SCREENSHOT: [journal-panel] Journal panel showing the current day's note -->
+<!-- SCREENSHOT: [journal-panel] Journal panel showing stacked daily entries with calendar popup -->
 
 <h2 id="opening-the-journal">Opening the Journal<a class="headerlink" href="#opening-the-journal" title="Permanent link">&para;</a></h2>
 <p>Click <strong><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 10v2H7v-2zm4 0v2h-2v-2zm4 0v2h-2v-2zm2-7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h1V1h2v2h8V1h2v2zm0 16V8H5v11zM9 14v2H7v-2zm4 0v2h-2v-2zm4 0v2h-2v-2z"/></svg></span> Journal</strong> in the sidebar or navigate to <code>/journal</code>.</p>
+<p>At the top of the panel you'll find the date header with Previous/Next day arrows for quick navigation between entries. Click the date text to open a calendar popup for jumping to any specific date.</p>
 <h2 id="how-it-works">How it Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Each day gets its own page at <code>journals/YYYY-MM-DD.md</code></li>
 <li>The journal auto-opens to today's date</li>
-<li>Yesterday's journal is still accessible via the page list</li>
+<li>Multiple recent days are shown as stacked editors — scroll down to see previous entries, each loaded lazily as you scroll</li>
+<li>Use the Previous/Next day arrows at the top of the panel to jump between dates</li>
+<li>Click the date header to open the calendar popup for direct date navigation</li>
 <li>Journal pages are normal <code>.md</code> files — they appear in search, graph, and backlinks</li>
 </ul>
+<h2 id="calendar-navigation">Calendar Navigation<a class="headerlink" href="#calendar-navigation" title="Permanent link">&para;</a></h2>
+<!-- SCREENSHOT: [journal-calendar] Calendar popup showing highlighted dates with journal entries -->
+
+<p>The calendar popup gives you a visual overview of your journal activity. To open it, click the date text or calendar icon in the panel header.</p>
+<ul>
+<li><strong>Dates with entries</strong> are highlighted, so you can see at a glance which days have notes</li>
+<li><strong>Click any date</strong> to navigate directly to that day's journal</li>
+<li><strong>Previous/Next month</strong> arrows let you browse across months</li>
+<li><strong>Close the popup</strong> by clicking outside it or pressing Escape</li>
+</ul>
+<p>The calendar works alongside the stacked editor view — opening a date scrolls the stack to show that entry, or creates a new one if it doesn't exist yet.</p>
 <h2 id="creating-journal-entries">Creating Journal Entries<a class="headerlink" href="#creating-journal-entries" title="Permanent link">&para;</a></h2>
 <p>Journal pages are just block editors like any other page. Start typing to write:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gh"># Standup</span>
