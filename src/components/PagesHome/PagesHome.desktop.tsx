@@ -4,12 +4,10 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
-import { useNavigate } from 'react-router-dom';
-import { useStore } from '../stores/appStore';
+import { usePagesHomeData } from './PagesHome.shared';
 
-export default function PagesHome() {
-  const { pages, vault } = useStore();
-  const navigate = useNavigate();
+export default function PagesHomeDesktop() {
+  const { pages, vault, navigateToPage } = usePagesHomeData();
 
   return (
     <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
@@ -25,7 +23,7 @@ export default function PagesHome() {
           {pages.map(page => (
             <ListItemButton
               key={page.path}
-              onClick={() => navigate(`/page/${encodeURIComponent(page.path)}`)}
+              onClick={() => navigateToPage(page.path)}
               sx={{ borderRadius: 1, mb: 0.25 }}
             >
               <ListItemText

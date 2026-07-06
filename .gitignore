@@ -36,6 +36,11 @@ result/
 # === Android ===
 *.keystore
 *.b64
+# Allow checked-in debug keystore used for CI signing
+!src-tauri/android-patches/debug.keystore
+# Generated Android Vite assets (hash-named, change every build)
+/src-tauri/gen/android/app/src/main/assets/assets/*.js
+/src-tauri/gen/android/app/src/main/assets/assets/*.css
 
 # === MkDocs ===
 site/
@@ -48,5 +53,4 @@ docs/site/
 .cache/
 *.pyc
 __pycache__/
-gen/android/
 .sisyphus/

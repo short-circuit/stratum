@@ -10,7 +10,7 @@ serde_json.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 chrono.workspace = true
-git2.workspace = true
+gix.workspace = true
 pkm-core = { path = "../pkm-core" }
 pkm-markdown = { path = "../pkm-markdown" }
 

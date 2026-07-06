@@ -13,6 +13,7 @@ import StratumIcon from '../StratumIcon';
 import NavItemList, { type TabId } from './NavItemList';
 import PageTree from './PageTree';
 import SidebarFooter from './SidebarFooter';
+import { useResponsive } from '../../lib/hooks/useResponsive';
 
 const DRAWER_WIDTH = 224;
 const DRAWER_COLLAPSED = 52;
@@ -26,6 +27,9 @@ export default function Sidebar() {
   const [newTitle, setNewTitle] = useState('');
   const [activeTab, setActiveTab] = useState<TabId>('journal');
   const [exporting, setExporting] = useState(false);
+
+  const { isMobile } = useResponsive();
+  if (isMobile) return null;
 
   const handleExport = async () => {
     setExporting(true);
