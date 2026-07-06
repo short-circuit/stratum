@@ -50,7 +50,7 @@ export default function MobileLayout({ error, children }: MobileLayoutProps) {
       )}
 
       {/* Main content — Routes passed as children */}
-      <Box sx={{ flex: 1, overflow: 'auto', pb: '56px' }} className="safe-area-main">
+      <Box sx={{ flex: 1, overflow: 'auto', pb: 'calc(56px + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)))' }} className="safe-area-main">
         {children}
       </Box>
 
