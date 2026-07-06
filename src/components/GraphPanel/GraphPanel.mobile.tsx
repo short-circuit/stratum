@@ -23,7 +23,6 @@ import SearchIcon from '@mui/icons-material/Search';
 import { useTheme } from '@mui/material/styles';
 import { useGraphPanel } from './GraphPanel.shared';
 import GraphCanvas from './GraphCanvas';
-import type { GraphNode } from './GraphCanvas';
 
 function SliderSetting({ label, value, min, max, step, display, onChange }: {
   label: string;
