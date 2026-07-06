@@ -21,22 +21,9 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import SettingsIcon from '@mui/icons-material/Settings';
 import SearchIcon from '@mui/icons-material/Search';
 import { useTheme } from '@mui/material/styles';
-import ForceGraph2D from 'react-force-graph-2d';
 import { useGraphPanel } from './GraphPanel.shared';
+import GraphCanvas from './GraphCanvas';
 import type { GraphNode } from './GraphCanvas';
-
-const NODE_PALETTE = [
-  '#fbbf24', '#60a5fa', '#34d399', '#f472b6',
-  '#a78bfa', '#fb923c', '#2dd4bf', '#e879f9',
-];
-const UNTAGGED_COLOR = '#d4a574';
-
-/** Deterministic colour per node based on first tag — mirrors GraphCanvas logic. */
-function nodeColor(n: GraphNode): string {
-  if (n.tags.length === 0) return UNTAGGED_COLOR;
-  const idx = n.tags[0].split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % NODE_PALETTE.length;
-  return NODE_PALETTE[idx];
-}
 
 function SliderSetting({ label, value, min, max, step, display, onChange }: {
   label: string;
@@ -66,7 +53,7 @@ export default function GraphPanelMobile() {
     state: { graphData, components, loading, error, viewMode,
             selectedComponent, search, graphSettings, saveStatus, graphRef },
     setViewMode, setSelectedComponent, setSearch, loadData,
-    handleNodeClick, updateSetting,
+    handleNodeClick, handleNodeRightClick, updateSetting,
     filteredNodes,
     graphDataProp,
   } = useGraphPanel();
@@ -196,26 +183,20 @@ export default function GraphPanelMobile() {
         )}
 
         {filteredNodes.length > 0 ? (
-          <ForceGraph2D
-            ref={graphRef}
-            graphData={graphDataProp}
+          <GraphCanvas
+            graphDataProp={graphDataProp}
             width={width}
             height={height}
-            backgroundColor={muiTheme.palette.background.default}
-            nodeLabel="title"
-            nodeColor={(n: GraphNode) => nodeColor(n)}
-            nodeRelSize={6}
-            linkColor={() => muiTheme.palette.text.primary}
-            linkDirectionalArrowLength={3}
-            linkDirectionalArrowRelPos={1}
-            linkWidth={0.5}
-            linkCurvature={graphSettings.link_curvature}
-            d3AlphaDecay={graphSettings.alpha_decay}
-            d3VelocityDecay={graphSettings.velocity_decay}
-            onNodeClick={(n: GraphNode) => handleNodeClick(n)}
-            enableNodeDrag={true}
-            enableZoomInteraction={true}
-            enablePanInteraction={true}
+            bgColor={muiTheme.palette.background.default}
+            textColor={muiTheme.palette.text.primary}
+            handleNodeClick={handleNodeClick}
+            handleNodeRightClick={handleNodeRightClick}
+            loading={loading}
+            error={error}
+            nodes={filteredNodes}
+            graphData={graphData}
+            graphSettings={graphSettings}
+            graphRef={graphRef}
           />
         ) : (
           !loading && !error && (
