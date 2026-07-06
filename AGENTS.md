@@ -250,7 +250,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `PageView` | `/page/:pagePath` | Block editor + backlinks + connections | `docs/guide/block-editor.md` |
 | `SearchPanel` | `/search` | Full-text + tag search | `docs/guide/search.md` |
 | `QueryPanel` | `/query` | Datalog query input + results table | `docs/guide/datalog-queries.md` |
-| `GraphPanel` | `/graph` | 3D force-directed graph | `docs/guide/graph-view.md` |
+| `GraphPanel` | `/graph` | 3D/2D force-directed graph (desktop/mobile) | `docs/guide/graph-view.md` |
 | `TemplatesPanel` | `/templates` | Template list + apply with variables | `docs/guide/templates.md` |
 | `FlashcardsPanel` | `/flashcards` | SRS card review (SM-2) | `docs/guide/flashcards.md` |
 | `KanbanPanel` | `/kanban` | Drag-and-drop Kanban board | `docs/guide/kanban.md` |
@@ -361,7 +361,7 @@ The graph engine (`src-tauri/src/commands/graph.rs`) builds data directly from t
 - **Orphaned notes** detection (notes with zero incoming/outgoing connections)
 - **Slug resolution**: resolves `[[Title]]` links to note slugs via title lookup
 - **Tauri commands**: `get_graph_data`, `get_connected_components`, `get_orphaned_notes`, `rebuild_graph`
-- **Frontend**: `GraphPanel` renders force-directed layout (d3-force via `react-force-graph-2d`), with interactive settings panel for d3-force parameters (repulsion, link distance, alpha/friction decay), visibility toggles (connected/orphaned/tags), node search filter, component/orphan view modes, and click-to-navigate
+- **Frontend**: `GraphPanel` renders force-directed layout (d3-force via `react-force-graph-2d` on mobile, `react-force-graph-3d` on desktop), with interactive settings panel for d3-force parameters (repulsion, link distance, alpha/friction decay), visibility toggles (connected/orphaned/tags), node search filter, component/orphan view modes, and click-to-navigate
 
 ## Sync Modes
 

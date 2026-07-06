@@ -22,7 +22,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import SearchIcon from '@mui/icons-material/Search';
 import { useTheme } from '@mui/material/styles';
 import { useGraphPanel } from './GraphPanel.shared';
-import GraphCanvas from './GraphCanvas';
+import GraphCanvas2D from './GraphCanvas2D';
 
 function SliderSetting({ label, value, min, max, step, display, onChange }: {
   label: string;
@@ -52,7 +52,7 @@ export default function GraphPanelMobile() {
     state: { graphData, components, loading, error, viewMode,
             selectedComponent, search, graphSettings, saveStatus, graphRef },
     setViewMode, setSelectedComponent, setSearch, loadData,
-    handleNodeClick, handleNodeRightClick, updateSetting,
+    handleNodeClick, updateSetting,
     filteredNodes,
     graphDataProp,
   } = useGraphPanel();
@@ -182,14 +182,12 @@ export default function GraphPanelMobile() {
         )}
 
         {filteredNodes.length > 0 ? (
-          <GraphCanvas
+          <GraphCanvas2D
             graphDataProp={graphDataProp}
             width={width}
             height={height}
-            bgColor={muiTheme.palette.background.default}
             textColor={muiTheme.palette.text.primary}
             handleNodeClick={handleNodeClick}
-            handleNodeRightClick={handleNodeRightClick}
             loading={loading}
             error={error}
             nodes={filteredNodes}
