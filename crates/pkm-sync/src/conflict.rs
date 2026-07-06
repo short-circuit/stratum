@@ -29,7 +29,10 @@ pub fn detect_conflicts(repo: &GitEngine) -> Result<Vec<ConflictFile>, PkmError>
     };
 
     let state: &gix::index::State = &index;
-    let has_conflicts = state.entries().iter().any(|e| e.stage() != gix::index::entry::Stage::Unconflicted);
+    let has_conflicts = state
+        .entries()
+        .iter()
+        .any(|e| e.stage() != gix::index::entry::Stage::Unconflicted);
 
     if !has_conflicts {
         return Ok(Vec::new());
@@ -43,7 +46,11 @@ pub fn detect_conflicts(repo: &GitEngine) -> Result<Vec<ConflictFile>, PkmError>
         .filter_map(|e| {
             let path = e.path_in(state.path_backing());
             let path_str = path.to_string();
-            if path_str.is_empty() { None } else { Some(path_str) }
+            if path_str.is_empty() {
+                None
+            } else {
+                Some(path_str)
+            }
         })
         .collect();
     conflict_paths.sort();
@@ -272,6 +279,9 @@ second theirs
         // find no conflicts. The test verifies it doesn't crash.
         let conflicts = detect_conflicts(&engine).unwrap();
         // At minimum we should not crash or error
-        assert!(conflicts.is_empty(), "expected no index conflicts (gix limitation)");
+        assert!(
+            conflicts.is_empty(),
+            "expected no index conflicts (gix limitation)"
+        );
     }
 }
