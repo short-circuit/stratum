@@ -84,7 +84,7 @@ export default function AISlashMenu({ pagePath }: Props) {
                 editor.pasteMarkdown(content);
               }
             } else {
-              const doc = (editor as any).document;
+              const doc = editor.document;
               const allText = (doc as unknown[])
                 .map((b: unknown) => extractText(b))
                 .filter(Boolean)
@@ -92,9 +92,9 @@ export default function AISlashMenu({ pagePath }: Props) {
               if (!allText.trim()) return;
               const { content } = await api.aiTransformBlock(allText, action, pagePath);
               if (content.trim()) {
-                const blocks = (editor as any).tryParseMarkdownToBlocks(content);
+                const blocks = editor.tryParseMarkdownToBlocks(content);
                 if (blocks.length > 0) {
-                  (editor as any).replaceBlocks(doc, blocks);
+                  editor.replaceBlocks(doc, blocks);
                 }
               }
             }
@@ -124,7 +124,7 @@ export default function AISlashMenu({ pagePath }: Props) {
       onItemClick: async () => {
         setLoading('Researching...');
         try {
-          const doc = (editor as any).document;
+          const doc = editor.document;
           const allText = (doc as unknown[])
             .map((b: unknown) => extractText(b))
             .filter(Boolean)
@@ -135,9 +135,9 @@ export default function AISlashMenu({ pagePath }: Props) {
           if (!query.trim()) return;
           const result = await api.aiResearch(query);
           if (result.findings.trim()) {
-            const blocks = (editor as any).tryParseMarkdownToBlocks(result.findings);
+            const blocks = editor.tryParseMarkdownToBlocks(result.findings);
             if (blocks.length > 0) {
-              (editor as any).replaceBlocks(doc, blocks);
+              editor.replaceBlocks(doc, blocks);
             } else {
               editor.pasteMarkdown(result.findings);
             }
@@ -165,13 +165,13 @@ export default function AISlashMenu({ pagePath }: Props) {
         onItemClick: async () => {
           setLoading('Interlinking...');
           try {
-            const md = (editor as any).blocksToMarkdownLossy();
+            const md = editor.blocksToMarkdownLossy();
             if (!md.trim()) return;
             const { content } = await api.aiInterlinkNotes(md, pagePath);
             if (content.trim()) {
-              const blocks = (editor as any).tryParseMarkdownToBlocks(content);
+              const blocks = editor.tryParseMarkdownToBlocks(content);
               if (blocks.length > 0) {
-                (editor as any).replaceBlocks((editor as any).document, blocks);
+                editor.replaceBlocks(editor.document, blocks);
               } else {
                 editor.pasteMarkdown(content);
               }
@@ -197,13 +197,13 @@ export default function AISlashMenu({ pagePath }: Props) {
         onItemClick: async () => {
           setLoading('Interlinking...');
           try {
-            const md = (editor as any).blocksToMarkdownLossy();
+            const md = editor.blocksToMarkdownLossy();
             if (!md.trim()) return;
             const { content } = await api.aiInterlinkNotes(md, pagePath);
             if (content.trim()) {
-              const blocks = (editor as any).tryParseMarkdownToBlocks(content);
+              const blocks = editor.tryParseMarkdownToBlocks(content);
               if (blocks.length > 0) {
-                (editor as any).replaceBlocks((editor as any).document, blocks);
+                editor.replaceBlocks(editor.document, blocks);
               } else {
                 editor.pasteMarkdown(content);
               }
@@ -253,8 +253,8 @@ export default function AISlashMenu({ pagePath }: Props) {
           const code = await api.generateMermaid(prompt);
           if (code.trim()) {
             const pos = editor.getTextCursorPosition();
-            (editor as any).insertBlocks(
-              [{ type: 'mermaid', props: { language: 'mermaid' }, content: [{ type: 'text', text: code, styles: {} }] }],
+            editor.insertBlocks(
+              [{ type: 'mermaid' as any, props: { language: 'mermaid' }, content: [{ type: 'text', text: code, styles: {} }] }],
               pos.block,
               'after',
             );

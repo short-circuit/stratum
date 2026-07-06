@@ -227,10 +227,10 @@ export const createMermaidSpec = createBlockSpec(
       const pre = document.createElement('pre');
       const codeEl = document.createElement('code');
       codeEl.className = 'language-mermaid';
-      const content = (block as any).content;
+      const content = block.content;
       let text = '';
       if (typeof content === 'string') text = content;
-      else if (Array.isArray(content)) text = content.map((c: { text?: string }) => c?.text || '').join('');
+      else if (Array.isArray(content)) text = content.map((c: any) => c?.text || '').join('');
       codeEl.textContent = text;
       pre.appendChild(codeEl);
       wrapper.appendChild(pre);

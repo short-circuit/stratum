@@ -59,7 +59,7 @@ export default function MarkerSuggestMenu({ blockMetaRef, onSelect }: Props) {
         onItemClick: () => {
           try {
             const pos = editor.getTextCursorPosition();
-            const blockId = (pos.block as any).id as string;
+            const blockId = pos.block.id;
             if (!blockId) return;
             const existing = blockMetaRef.current.get(blockId) ?? { marker: null, priority: null, properties: [] as [string, string][] };
             blockMetaRef.current.set(blockId, { ...existing, marker: m });
@@ -100,7 +100,7 @@ export default function MarkerSuggestMenu({ blockMetaRef, onSelect }: Props) {
         onItemClick: () => {
           try {
             const pos = editor.getTextCursorPosition();
-            const blockId = (pos.block as any).id as string;
+            const blockId = pos.block.id;
             if (!blockId) return;
             // eslint-disable-next-line react-hooks/refs
             const existing = blockMetaRef.current.get(blockId) ?? { marker: null, priority: null, properties: [] as [string, string][] };
@@ -122,7 +122,7 @@ export default function MarkerSuggestMenu({ blockMetaRef, onSelect }: Props) {
       try {
         const pos = editor.getTextCursorPosition();
         // offset=1 means : was the first character (now consumed)
-        if ((pos as any).offset > 1) return [];
+        if ((pos as unknown as { offset: number }).offset > 1) return [];
       } catch {
         return [];
       }
