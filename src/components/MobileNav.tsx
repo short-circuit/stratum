@@ -60,7 +60,7 @@ export default function MobileNav() {
   };
 
   return (
-    <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1200 }} elevation={3}>
+    <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1200, paddingBottom: 'var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))', bgcolor: 'background.paper' }} elevation={3}>
       <BottomNavigation
         value={activeValue}
         onChange={handleTabChange}
