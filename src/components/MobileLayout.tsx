@@ -31,7 +31,7 @@ export default function MobileLayout({ error, children }: MobileLayoutProps) {
   else if (location.pathname.startsWith('/settings')) title = 'Settings';
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: 'background.default' }} className="safe-area-container">
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', maxWidth: '100vw', bgcolor: 'background.default', overflow: 'hidden' }} className="safe-area-container">
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', px: 1, minHeight: 48, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
         {showBack && (
