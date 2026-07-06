@@ -56,13 +56,17 @@ export function dtoToBlockNote(dtos: BlockDto[], metaMap: Map<string, BlockMeta>
       priority: dto.priority,
       properties: dto.properties,
     });
-    if (dto.marker) {
-      type = 'checkListItem';
-    }
     // Parse inline content (bold, italic, wiki-links, code, strikethrough)
     // before passing to BlockNote, which stores content as InlineContent[] internally
     const content = parseContentToInlineItems(contentStr);
-    return { type, content, props, children: children.map(convert) };
+    if (dto.marker === 'DONE' || dto.marker === 'CANCELLED') {
+      for (const item of content) {
+        if (item.type === 'text' && !item.styles?.strike) {
+          item.styles = { ...item.styles, strike: true };
+        }
+      }
+    }
+    return { id: dto.id, type, content, props, children: children.map(convert) };
   }
   return rootBlocks.map(convert);
 }

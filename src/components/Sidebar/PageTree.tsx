@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import List from '@mui/material/List';
@@ -8,8 +9,10 @@ import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import AddIcon from '@mui/icons-material/Add';
+import ArticleIcon from '@mui/icons-material/Article';
 import DeleteIcon from '@mui/icons-material/Delete';
 import type { PageDto } from '../../lib/types';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 interface Props {
   pages: PageDto[];
@@ -38,16 +41,28 @@ export default function PageTree({
   onCreatePage,
   onDeletePage,
   onNavigate,
+  onNavigateHome,
 }: Props) {
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
   if (collapsed) return null;
+
+  const recentPages = pages.filter(p => !p.path.startsWith('journals/'));
 
   return (
     <>
-      <Box sx={{ px: 1 }}>
+      <Box sx={{ px: 1, pt: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, py: 0.5 }}>
-          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase' }}>
-            Recent
-          </Typography>
+          <Box
+            component="span"
+            onClick={onNavigateHome}
+            sx={{ display: 'flex', alignItems: 'center', gap: 0.5, cursor: onNavigateHome ? 'pointer' : undefined, '&:hover': onNavigateHome ? { color: 'primary.main' } : undefined }}
+          >
+            <ArticleIcon fontSize="inherit" sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
+            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase' }}>
+              Recent
+            </Typography>
+          </Box>
           <Tooltip title="New page" arrow>
             <IconButton size="small" onClick={() => onShowNewChange(!showNew)} sx={{ color: 'text.secondary' }}>
               <AddIcon fontSize="small" />
@@ -85,7 +100,7 @@ export default function PageTree({
         )}
 
         <List dense disablePadding>
-          {pages.filter(p => !p.path.startsWith('journals/')).map(page => (
+          {recentPages.map(page => (
             <ListItemButton
               key={page.path}
               dense
@@ -112,20 +127,33 @@ export default function PageTree({
                 }}
                 onClick={e => {
                   e.stopPropagation();
-                  if (confirm(`Delete ${page.path}?`)) onDeletePage(page.path);
+                  setDeleteTarget(page.path);
                 }}
               >
                 <DeleteIcon fontSize="inherit" />
               </IconButton>
             </ListItemButton>
           ))}
-          {pages.length === 0 && (
+          {recentPages.length === 0 && (
             <Typography variant="caption" color="text.disabled" sx={{ display: 'block', textAlign: 'center', py: 2 }}>
               No pages yet.
             </Typography>
           )}
         </List>
       </Box>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete page"
+        message={`Delete ${deleteTarget ?? ''}? This cannot be undone.`}
+        confirmLabel="Delete"
+        confirmColor="error"
+        onConfirm={() => {
+          if (deleteTarget) onDeletePage(deleteTarget);
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </>
   );
 }
