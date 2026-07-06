@@ -25,13 +25,13 @@ fn resolve_default_vault_path(_app: &tauri::AppHandle) -> PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default()
-        .plugin(tauri_plugin_dialog::init());
+    let builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init());
 
     #[cfg(target_os = "android")]
     let builder = builder.plugin(tauri_plugin_android_fs::init());
 
-    builder.setup(|app| {
+    builder
+        .setup(|app| {
             let vault_path = resolve_default_vault_path(app.handle());
 
             let _ = std::fs::create_dir_all(&vault_path);

@@ -12,9 +12,9 @@ pub use watcher::*;
 
 #[cfg(target_os = "android")]
 pub mod watcher {
+    use pkm_core::FileEvent;
     use std::path::PathBuf;
     use std::time::SystemTime;
-    use pkm_core::FileEvent;
 
     #[derive(Debug, Clone)]
     pub struct FileChangeEvent {
