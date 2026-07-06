@@ -125,6 +125,9 @@ stratum/
 │   │   ├── StratumIcon.tsx
 │   │   ├── SuggestedConnectionsPanel.tsx
 │   │   ├── KanbanEditDialog.tsx
+│   │   ├── MobileLayout.tsx
+│   │   ├── MobileNav.tsx
+│   │   ├── JournalCalendar.tsx
 │   │   └── VaultPicker.tsx
 │   └── test/
 ├── src-tauri/                  # Tauri v2 shell
@@ -157,7 +160,7 @@ stratum/
 │   │   ├── installation.md
 │   │   ├── quickstart.md
 │   │   └── configuration.md
-│   ├── guide/                  # 18 user guides (one per feature)
+│   ├── guide/                  # 19 user guides (one per feature)
 │   │   ├── vault-management.md
 │   │   ├── block-editor.md
 │   │   ├── linking-and-backlinks.md
@@ -269,6 +272,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `MathEditorModal` | `OutlinerEditor` | LaTeX editor with live KaTeX preview |
 | `MathSymbolPalette` | `MathEditorModal` | Tabbed symbol palette (Greek, Operators, etc.) |
 | `MarkerBadge` | `OutlinerEditor` | Colored chip for task markers (TODO/DOING/DONE) |
+| `MarkerSuggestMenu` | `OutlinerEditor` | Autocomplete popup for markers and priorities |
 | `KanbanEditDialog` | `KanbanPanel` | Edit card content, marker, priority |
 
 ### Navigation & Utility
@@ -276,12 +280,15 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | Component | Purpose |
 |-----------|---------|
 | `Sidebar` (`index.tsx`) | Drawer wrapper with collapse state, vault info, header |
-| `NavItemList` | Navigation items list (Journal, Pages, Graph, etc.) |
+| `NavItemList` | Navigation items list (Journal, Graph, Kanban, etc.) |
 | `PageTree` | Page list with create/delete and new-page form |
 | `SidebarFooter` | Refresh/export/version footer |
 | `VaultPicker` | Landing page when no vault is configured |
 | `StratumIcon` | App icon SVG renderer |
 | `PagesHome` | Home route: page list with block counts |
+| `MobileLayout` | Root mobile wrapper with bottom navigation |
+| `MobileNav` | Bottom navigation bar for mobile |
+| `JournalCalendar` | Calendar popup for date navigation |
 
 ### UI Primitives (`src/components/ui/`)
 
@@ -295,6 +302,8 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `SliderRow` | Label + slider + display value | Extracted from GraphPanel |
 | `PassphraseModal` | SSH key passphrase input dialog | Extracted from SettingsPage |
 | `ConflictModal` | Git conflict resolution dialog | Extracted from SettingsPage |
+| `ResponsiveDialog` | Full-screen dialog on mobile, normal on desktop | Shared pattern |
+| `AILoadingOverlay` | Loading overlay with AI-specific styling | AI features |
 
 ### Custom Hooks (`src/lib/hooks/`)
 
@@ -306,6 +315,8 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `useResponsive` | Breakpoint detection (mobile vs desktop) | Layout components |
 | `useCtrlHeld` | Track Ctrl/Meta key held state | OutlinerEditor, BacklinksPanel |
 | `useMathInline` | ProseMirror plugin for inline KaTeX | OutlinerEditor |
+| `useLongPress` | Detect long-press gestures | MobileNav, MobileLayout |
+| `useMarkerDecorations` | ProseMirror decorations for inline marker/priority badges | OutlinerEditor |
 
 ### Component Sizing Rules
 
