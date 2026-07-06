@@ -129,6 +129,8 @@ pub fn run() {
             commands::block::update_block,
             commands::block::delete_block,
             commands::block::insert_block,
+            commands::block::toggle_block_marker,
+            commands::block::clear_block_marker,
             // Search
             commands::search::search_blocks,
             commands::search::search_by_tag,
