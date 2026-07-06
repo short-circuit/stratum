@@ -360,14 +360,12 @@ pub async fn abort_merge(state: tauri::State<'_, AppState>) -> Result<(), String
         // Reset the index to HEAD tree
         if let Ok(tree_obj) = repo.find_object(oid) {
             let tree = tree_obj.into_tree();
-            if let Ok(mut index_file) = repo.open_index() {
-                let mut state = index_file.into_parts().0;
-                let backing = state.path_backing().to_vec();
-                // We can't easily reset the index from a tree via gix,
-                // so we use a minimal approach: rebuild index from HEAD tree
+            if let Ok(index_file) = repo.open_index() {
+                let state = index_file.into_parts().0;
+                let _backing = state.path_backing().to_vec();
                 if let Ok(new_state) = gix::index::State::from_tree(
                     tree.id().as_ref(),
-                    &repo,
+                    repo,
                     Default::default(),
                 ) {
                     let mut new_index = gix::index::File::from_state(new_state, repo.index_path());

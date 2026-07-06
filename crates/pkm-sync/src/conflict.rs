@@ -28,7 +28,7 @@ pub fn detect_conflicts(repo: &GitEngine) -> Result<Vec<ConflictFile>, PkmError>
         Err(_) => return Ok(Vec::new()),
     };
 
-    let state: &gix::index::State = &*index;
+    let state: &gix::index::State = &index;
     let has_conflicts = state.entries().iter().any(|e| e.stage() != gix::index::entry::Stage::Unconflicted);
 
     if !has_conflicts {
