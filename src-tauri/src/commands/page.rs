@@ -3,6 +3,7 @@
 use crate::commands::vault::AppState;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use tauri::Emitter;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PageDto {
@@ -130,20 +131,42 @@ pub fn sync_filesystem_to_db(vault_path: &Path, db_path: &Path) -> Result<usize,
 /// Re-sync every .md file from disk into SQLite. Useful after importing a new dataset
 /// or recovering from a corrupted/inconsistent blocks.db.
 #[tauri::command]
-pub async fn reindex_vault(state: tauri::State<'_, AppState>) -> Result<usize, String> {
+pub async fn reindex_vault(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<usize, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     let md_files =
         find_md_files(&state.vault_path, &state.vault_path).map_err(|e| e.to_string())?;
 
+    let total = md_files.len();
     let index_path = state.vault_path.join(".pkm").join("search");
     let mut count = 0;
-    for rel in &md_files {
+    for (i, rel) in md_files.iter().enumerate() {
+        let _ = app.emit(
+            "reindex-progress",
+            super::ProgressEventPayload {
+                message: format!("Reindexing {}/{}", i + 1, total),
+                percent: if total > 0 {
+                    (i as f32 + 1.0) / total as f32
+                } else {
+                    1.0
+                },
+            },
+        );
         if sync_page_from_disk(&store, rel, &state.vault_path, Some(&index_path))? {
             count += 1;
         }
     }
 
+    let _ = app.emit(
+        "reindex-progress",
+        super::ProgressEventPayload {
+            message: format!("Reindexed {} pages from filesystem", count),
+            percent: 1.0,
+        },
+    );
     eprintln!("[stratum] Reindexed {} pages from filesystem", count);
     Ok(count)
 }
