@@ -7,10 +7,16 @@
     <title>Stratum</title>
     <script>
       (function(){
+        // Only run safe area detection on touch devices — on desktop the
+        // visualViewport vs window.innerHeight difference is browser chrome,
+        // not a system bar safe area.
+        if (!('ontouchstart' in window) && !navigator.maxTouchPoints) return;
+
         var s = document.documentElement.style;
         function setInset(top, bottom) {
-          if (top > 0) s.setProperty('--safe-area-inset-top', top+'px');
-          if (bottom > 0) s.setProperty('--safe-area-inset-bottom', bottom+'px');
+          // Cap to sane values — real system bars are never > 60 CSS px
+          if (top > 0 && top < 60) s.setProperty('--safe-area-inset-top', top+'px');
+          if (bottom > 0 && bottom < 60) s.setProperty('--safe-area-inset-bottom', bottom+'px');
         }
         // Check if already set by Kotlin injection
         var cs = getComputedStyle(document.documentElement);

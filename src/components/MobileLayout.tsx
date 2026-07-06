@@ -31,35 +31,29 @@ export default function MobileLayout({ error, children }: MobileLayoutProps) {
   else if (location.pathname.startsWith('/settings')) title = 'Settings';
 
   return (
-    <Box sx={{ position: 'relative', height: '100vh', width: '100%', maxWidth: '100vw', bgcolor: 'background.default', overflow: 'hidden' }}>
-      {/* Header — fixed at top */}
-      <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 48, display: 'flex', alignItems: 'center', px: 1, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper', zIndex: 1100 }}>
+    <div style={{ position: 'relative', height: '100vh', width: '100%', maxWidth: '100vw', backgroundColor: 'inherit', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 48, display: 'flex', alignItems: 'center', paddingLeft: 8, paddingRight: 8, borderBottom: '1px solid', borderColor: 'divider', backgroundColor: 'inherit', zIndex: 1100 }}>
         {showBack && (
-          <IconButton size="small" onClick={() => navigate(-1)} sx={{ mr: 0.5 }}>
-            <ArrowBackIcon fontSize="small" />
-          </IconButton>
+          <button onClick={() => navigate(-1)} style={{ marginRight: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+            ←
+          </button>
         )}
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 16 }}>
           {title}
-        </Typography>
-      </Box>
+        </span>
+      </div>
 
-      {/* Error banner — below header */}
       {error && (
-        <Box sx={{ position: 'absolute', top: 48, left: 0, right: 0, zIndex: 1090 }}>
-          <Alert severity="error" sx={{ borderRadius: 0 }}>{error}</Alert>
-        </Box>
+        <div style={{ position: 'absolute', top: 48, left: 0, right: 0, zIndex: 1090 }}>
+          <div style={{ padding: '8px 16px', backgroundColor: '#fdeded', color: '#5f2120', borderRadius: 0, fontSize: 14 }}>{error}</div>
+        </div>
       )}
 
-      {/* Main content — between header and nav, scrollable */}
-      <Box sx={{ position: 'absolute', top: error ? 88 : 48, bottom: 56, left: 0, right: 0, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
-        <Box sx={{ flex: 1, minHeight: '100%' }}>
-          {children}
-        </Box>
-      </Box>
+      <div style={{ position: 'absolute', top: error ? 88 : 48, bottom: 56, left: 0, right: 0, overflow: 'auto' }}>
+        {children}
+      </div>
 
-      {/* Bottom tab navigation — fixed at very bottom */}
       <MobileNav />
-    </Box>
+    </div>
   );
 }
