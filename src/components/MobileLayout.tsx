@@ -31,9 +31,9 @@ export default function MobileLayout({ error, children }: MobileLayoutProps) {
   else if (location.pathname.startsWith('/settings')) title = 'Settings';
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', maxWidth: '100vw', bgcolor: 'background.default', overflow: 'hidden' }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', px: 1, minHeight: 48, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
+    <Box sx={{ position: 'relative', height: '100vh', width: '100%', maxWidth: '100vw', bgcolor: 'background.default', overflow: 'hidden' }}>
+      {/* Header — fixed at top */}
+      <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 48, display: 'flex', alignItems: 'center', px: 1, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper', zIndex: 1100 }}>
         {showBack && (
           <IconButton size="small" onClick={() => navigate(-1)} sx={{ mr: 0.5 }}>
             <ArrowBackIcon fontSize="small" />
@@ -44,17 +44,21 @@ export default function MobileLayout({ error, children }: MobileLayoutProps) {
         </Typography>
       </Box>
 
-      {/* Error banner */}
+      {/* Error banner — below header */}
       {error && (
-        <Alert severity="error" sx={{ borderRadius: 0 }}>{error}</Alert>
+        <Box sx={{ position: 'absolute', top: 48, left: 0, right: 0, zIndex: 1090 }}>
+          <Alert severity="error" sx={{ borderRadius: 0 }}>{error}</Alert>
+        </Box>
       )}
 
-      {/* Main content — Routes passed as children */}
-      <Box sx={{ flex: 1, overflow: 'auto', pb: '56px' }}>
-        {children}
+      {/* Main content — between header and nav, scrollable */}
+      <Box sx={{ position: 'absolute', top: error ? 88 : 48, bottom: 56, left: 0, right: 0, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ flex: 1, minHeight: '100%' }}>
+          {children}
+        </Box>
       </Box>
 
-      {/* Bottom tab navigation */}
+      {/* Bottom tab navigation — fixed at very bottom */}
       <MobileNav />
     </Box>
   );
