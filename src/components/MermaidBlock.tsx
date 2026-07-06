@@ -227,7 +227,6 @@ export const createMermaidSpec = createBlockSpec(
       const pre = document.createElement('pre');
       const codeEl = document.createElement('code');
       codeEl.className = 'language-mermaid';
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const content = (block as any).content;
       let text = '';
       if (typeof content === 'string') text = content;

@@ -19,7 +19,6 @@ export function extractTextContent(block: { content?: InlineContentItem[] }): st
   return block.content.map((c: InlineContentItem) => c.text || '').join('');
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function dtoToBlockNote(dtos: BlockDto[], metaMap: Map<string, BlockMeta>): any[] {
   if (dtos.length === 0) return [];
   const rootBlocks = dtos.filter(d => !d.parent_id);
@@ -28,7 +27,6 @@ export function dtoToBlockNote(dtos: BlockDto[], metaMap: Map<string, BlockMeta>
     if (a.left_id === b.id) return 1;
     return 0;
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function convert(dto: BlockDto): any {
     const children = dtos.filter(b => b.parent_id === dto.id);
     children.sort((a, b) => {
@@ -47,7 +45,6 @@ export function dtoToBlockNote(dtos: BlockDto[], metaMap: Map<string, BlockMeta>
       };
     }
     let type = 'paragraph';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const props: Record<string, any> = {};
     if (dto.heading_level) { type = 'heading'; props.level = dto.heading_level; }
     // Store ALL block metadata in blockMetaRef (even without marker, to preserve priority/properties)
@@ -71,10 +68,8 @@ export function dtoToBlockNote(dtos: BlockDto[], metaMap: Map<string, BlockMeta>
   return rootBlocks.map(convert);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function blockNoteToDto(blockNoteBlocks: any[], metaMap: Map<string, BlockMeta>): BlockDto[] {
   const result: BlockDto[] = [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function walk(blocks: any[], parentId: string | null) {
     let prevId: string | null = null;
     for (const b of blocks) {
@@ -103,7 +98,6 @@ export function blockNoteToDto(blockNoteBlocks: any[], metaMap: Map<string, Bloc
         marker: meta.marker,
         priority: meta.priority,
         collapsed: false,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         heading_level: b.type === 'heading' ? (b.props as any)?.level ?? null : null,
       });
       if (b.children?.length) walk(b.children, id);

@@ -63,7 +63,6 @@ export function useMathInline(editor: unknown, enabled: boolean) {
     if (!enabled || !editor) return;
 
     const tryAdd = setInterval(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const te = (editor as any)._tiptapEditor as
         | { registerPlugin?: (p: Plugin) => void; isDestroyed?: boolean; state: unknown }
         | undefined;

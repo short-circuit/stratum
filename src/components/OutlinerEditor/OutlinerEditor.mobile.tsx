@@ -115,7 +115,6 @@ export default function OutlinerEditorMobile(props: Props) {
     (type: string, level?: number) => {
       setInsertAnchor(null);
       if (!editor) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ed = editor as any;
       const block = ed.createBlock();
       if (type === 'heading') {
@@ -135,7 +134,6 @@ export default function OutlinerEditorMobile(props: Props) {
   const insertMath = useCallback(() => {
     setInsertAnchor(null);
     if (!editor) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const view = (editor as any)?.prosemirrorView;
     if (view) {
       const pos = view.state.selection.from;
@@ -150,7 +148,6 @@ export default function OutlinerEditorMobile(props: Props) {
     (marker: string) => {
       setMarkerAnchor(null);
       if (!editor) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ed = editor as any;
       const sel = ed.getSelection();
       if (!sel) return;
@@ -173,7 +170,6 @@ export default function OutlinerEditorMobile(props: Props) {
       if (!contextMenu || !editor) return;
       const { blockId } = contextMenu;
       setContextMenu(null);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ed = editor as any;
       switch (action) {
         case 'delete':
@@ -512,7 +508,6 @@ export default function OutlinerEditorMobile(props: Props) {
             const pos = mathEdit.pos;
             setMathEdit(null);
             if (!latex.trim()) return;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const view = (
               editor as any
             )?.prosemirrorView as import('prosemirror-view').EditorView | undefined;

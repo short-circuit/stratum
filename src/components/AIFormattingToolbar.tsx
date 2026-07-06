@@ -93,9 +93,7 @@ export default function AIFormattingToolbar() {
                 try {
                   const code = await api.generateMermaid(text);
                   if (code.trim()) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const pos = (editor as any).getTextCursorPosition();
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     (editor as any).insertBlocks(
                       [{ type: 'mermaid', props: { language: 'mermaid' }, content: [{ type: 'text', text: code, styles: {} }] }],
                       pos.block,
