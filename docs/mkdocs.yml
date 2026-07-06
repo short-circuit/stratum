@@ -72,7 +72,7 @@ extra:
       link: https://github.com/short-circuit/stratum
   generator: false
 
-copyright: Copyright &copy; 2026 Stratum Contributors — AGPL-3.0
+copyright: Copyright &copy; 2026 Davide Del Popolo — AGPL-3.0
 
 nav:
   - Home: index.md
