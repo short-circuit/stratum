@@ -5,6 +5,7 @@ use pkm_markdown::linker::extract_links;
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 use std::collections::HashMap;
+use tauri::Emitter;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SearchResultDto {
@@ -21,7 +22,10 @@ pub struct SearchResultsDto {
 }
 
 #[tauri::command]
-pub async fn rebuild_search_index(state: tauri::State<'_, AppState>) -> Result<String, String> {
+pub async fn rebuild_search_index(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<String, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     let pages = store.list_pages().map_err(|e| e.to_string())?;
@@ -30,8 +34,21 @@ pub async fn rebuild_search_index(state: tauri::State<'_, AppState>) -> Result<S
     let mut block_index =
         pkm_index::block_search::BlockIndex::create(&index_path).map_err(|e| e.to_string())?;
 
+    let total = pages.len();
     let mut count = 0usize;
-    for page_path in &pages {
+    for (i, page_path) in pages.iter().enumerate() {
+        let _ = app.emit(
+            "reindex-progress",
+            super::ProgressEventPayload {
+                message: format!("Indexing page {}/{}", i + 1, total),
+                percent: if total > 0 {
+                    (i as f32 + 1.0) / total as f32
+                } else {
+                    1.0
+                },
+            },
+        );
+
         let blocks = store
             .get_blocks_by_page(page_path)
             .map_err(|e| e.to_string())?;
@@ -42,6 +59,13 @@ pub async fn rebuild_search_index(state: tauri::State<'_, AppState>) -> Result<S
     }
 
     block_index.flush().map_err(|e| e.to_string())?;
+    let _ = app.emit(
+        "reindex-progress",
+        super::ProgressEventPayload {
+            message: format!("Indexed {} blocks from {} pages", count, total),
+            percent: 1.0,
+        },
+    );
     Ok(format!(
         "Indexed {} blocks from {} pages",
         count,

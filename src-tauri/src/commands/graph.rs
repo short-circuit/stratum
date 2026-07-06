@@ -297,12 +297,16 @@ pub async fn resolve_link_target(
 }
 
 #[tauri::command]
-pub async fn rebuild_graph(state: tauri::State<'_, AppState>) -> Result<String, String> {
+pub async fn rebuild_graph(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<String, String> {
     let mut vault = state.lock().map_err(|e| e.to_string())?;
     let engine = vault.ensure_index()?;
 
+    let progress = super::make_progress_callback(app);
     let _notes = engine
-        .rebuild_all(None)
+        .rebuild_all(Some(progress))
         .map_err(|e| format!("Graph rebuild failed: {}", e))?;
 
     let graph = engine.get_graph();
