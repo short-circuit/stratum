@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as api from '../../lib/commands';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface TemplateDto {
   name: string;
   description?: string;

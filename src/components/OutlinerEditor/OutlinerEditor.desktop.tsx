@@ -169,7 +169,6 @@ export default function OutlinerEditor({
 
   // Step 2: onChange — debounced save
   const persistBlocks = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (blockNoteBlocks: any[]) => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
@@ -201,13 +200,11 @@ export default function OutlinerEditor({
   useEffect(() => {
     if (!editor || status !== 'ready' || !autoFocus) return;
     requestAnimationFrame(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (editor as any)?.prosemirrorView?.focus();
     });
   }, [editor, status, autoFocus]);
 
   // Inline math rendering via ProseMirror decorations
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   useMathInline(editor as any, status === 'ready');
 
   // Double-click on rendered math to open editor
@@ -540,7 +537,6 @@ export default function OutlinerEditor({
               const pos = mathEdit.pos;
               setMathEdit(null);
               if (!latex.trim()) return;
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const view = (
                 editor as any
               )?.prosemirrorView as import('prosemirror-view').EditorView | undefined;

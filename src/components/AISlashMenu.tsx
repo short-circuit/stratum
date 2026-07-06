@@ -84,7 +84,6 @@ export default function AISlashMenu({ pagePath }: Props) {
                 editor.pasteMarkdown(content);
               }
             } else {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const doc = (editor as any).document;
               const allText = (doc as unknown[])
                 .map((b: unknown) => extractText(b))
@@ -93,10 +92,8 @@ export default function AISlashMenu({ pagePath }: Props) {
               if (!allText.trim()) return;
               const { content } = await api.aiTransformBlock(allText, action, pagePath);
               if (content.trim()) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const blocks = (editor as any).tryParseMarkdownToBlocks(content);
                 if (blocks.length > 0) {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   (editor as any).replaceBlocks(doc, blocks);
                 }
               }
@@ -127,7 +124,6 @@ export default function AISlashMenu({ pagePath }: Props) {
       onItemClick: async () => {
         setLoading('Researching...');
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const doc = (editor as any).document;
           const allText = (doc as unknown[])
             .map((b: unknown) => extractText(b))
@@ -139,10 +135,8 @@ export default function AISlashMenu({ pagePath }: Props) {
           if (!query.trim()) return;
           const result = await api.aiResearch(query);
           if (result.findings.trim()) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const blocks = (editor as any).tryParseMarkdownToBlocks(result.findings);
             if (blocks.length > 0) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               (editor as any).replaceBlocks(doc, blocks);
             } else {
               editor.pasteMarkdown(result.findings);
@@ -171,15 +165,12 @@ export default function AISlashMenu({ pagePath }: Props) {
         onItemClick: async () => {
           setLoading('Interlinking...');
           try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const md = (editor as any).blocksToMarkdownLossy();
             if (!md.trim()) return;
             const { content } = await api.aiInterlinkNotes(md, pagePath);
             if (content.trim()) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const blocks = (editor as any).tryParseMarkdownToBlocks(content);
               if (blocks.length > 0) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (editor as any).replaceBlocks((editor as any).document, blocks);
               } else {
                 editor.pasteMarkdown(content);
@@ -206,15 +197,12 @@ export default function AISlashMenu({ pagePath }: Props) {
         onItemClick: async () => {
           setLoading('Interlinking...');
           try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const md = (editor as any).blocksToMarkdownLossy();
             if (!md.trim()) return;
             const { content } = await api.aiInterlinkNotes(md, pagePath);
             if (content.trim()) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const blocks = (editor as any).tryParseMarkdownToBlocks(content);
               if (blocks.length > 0) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (editor as any).replaceBlocks((editor as any).document, blocks);
               } else {
                 editor.pasteMarkdown(content);
@@ -265,7 +253,6 @@ export default function AISlashMenu({ pagePath }: Props) {
           const code = await api.generateMermaid(prompt);
           if (code.trim()) {
             const pos = editor.getTextCursorPosition();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (editor as any).insertBlocks(
               [{ type: 'mermaid', props: { language: 'mermaid' }, content: [{ type: 'text', text: code, styles: {} }] }],
               pos.block,
@@ -306,7 +293,6 @@ export default function AISlashMenu({ pagePath }: Props) {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractText(block: any): string {
   let text = '';
   if (block.content) {

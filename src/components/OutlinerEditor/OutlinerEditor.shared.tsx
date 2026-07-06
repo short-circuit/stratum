@@ -82,14 +82,12 @@ export interface EditorData {
   setPreview: React.Dispatch<React.SetStateAction<PreviewState>>;
   deadLinkPopup: DeadLinkPopupState;
   setDeadLinkPopup: React.Dispatch<React.SetStateAction<DeadLinkPopupState>>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   markDeadLinks: (root: HTMLElement) => void;
   showPreview: (href: string, x: number, y: number) => void;
   dismissPreview: () => void;
   navigateRef: React.MutableRefObject<(path: string) => void>;
   pagePath: string;
   minHeight: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   persistBlocks: (blockNoteBlocks: any[]) => void;
 }
 
@@ -217,7 +215,6 @@ export function useEditorData(
   // Step 2: Debounced auto-save on document change
   // -----------------------------------------------------------------------
   const persistBlocks = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (blockNoteBlocks: any[]) => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
@@ -251,7 +248,6 @@ export function useEditorData(
   useEffect(() => {
     if (!editor || status !== 'ready' || !autoFocus) return;
     requestAnimationFrame(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (editor as any)?.prosemirrorView?.focus();
     });
   }, [editor, status, autoFocus]);
@@ -259,7 +255,6 @@ export function useEditorData(
   // -----------------------------------------------------------------------
   // Inline KaTeX rendering via ProseMirror decorations
   // -----------------------------------------------------------------------
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   useMathInline(editor as any, status === 'ready');
 
   // Double-click on rendered math to open the editor modal

@@ -45,7 +45,6 @@ export interface SettingsData {
 
 export function useSettingsPage() {
   const { pickVaultDirectory, setThemeConfig } = useStore();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [settings, setSettings] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [fetching, setFetching] = useState(false);
@@ -140,14 +139,10 @@ export function useSettingsPage() {
       'stratum({datetime}): {editedfiles} edited, {newfiles} added, {deletedfiles} deleted',
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateAi = (patch: any) => setSettings({ ...settings, ai: { ...ai, ...patch } });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateVault = (patch: any) => setSettings({ ...settings, ...patch });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateResearch = (patch: any) =>
     setSettings({ ...settings, research: { ...research, ...patch } });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateTheme = (patch: any) => {
     const newTheme = { ...theme, ...patch };
     setSettings({ ...settings, theme: newTheme });
@@ -159,7 +154,6 @@ export function useSettingsPage() {
       newTheme.font_size || 16
     );
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateSync = (patch: any) =>
     setSettings({ ...settings, sync: { ...syncSettings, ...patch } });
 
@@ -247,7 +241,6 @@ export function useSettingsPage() {
 
   const toggleModelCapability = (modelName: string, cap: string) => {
     const models = [...(ai.models || [])];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const existing = models.find((m: any) => m.name === modelName);
     if (existing) {
       existing.capabilities = existing.capabilities.includes(cap)
@@ -256,7 +249,6 @@ export function useSettingsPage() {
     } else {
       models.push({ name: modelName, capabilities: [cap] });
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateAi({ models: models.filter((m: any) => m.capabilities.length > 0) });
   };
 

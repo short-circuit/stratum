@@ -236,7 +236,6 @@ export function useGraphPanel(): UseGraphPanelReturn {
     (node: GraphNode) => {
       if (!graphRef.current || node.x === undefined || node.y === undefined) return;
       const cam = graphRef.current.camera();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const controls = graphRef.current.controls() as any;
       const target = { x: node.x, y: node.y, z: node.z || 0 };
       const lookAt = controls?.target || { x: 0, y: 0, z: 0 };
