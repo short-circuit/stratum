@@ -2,18 +2,35 @@
 
 The Journal provides daily notes — automatically created pages for each day.
 
-<!-- SCREENSHOT: [journal-panel] Journal panel showing the current day's note -->
+<!-- SCREENSHOT: [journal-panel] Journal panel showing stacked daily entries with calendar popup -->
 
 ## Opening the Journal
 
 Click **:material-calendar-month: Journal** in the sidebar or navigate to `/journal`.
 
+At the top of the panel you'll find the date header with Previous/Next day arrows for quick navigation between entries. Click the date text to open a calendar popup for jumping to any specific date.
+
 ## How it Works
 
 - Each day gets its own page at `journals/YYYY-MM-DD.md`
 - The journal auto-opens to today's date
-- Yesterday's journal is still accessible via the page list
+- Multiple recent days are shown as stacked editors — scroll down to see previous entries, each loaded lazily as you scroll
+- Use the Previous/Next day arrows at the top of the panel to jump between dates
+- Click the date header to open the calendar popup for direct date navigation
 - Journal pages are normal `.md` files — they appear in search, graph, and backlinks
+
+## Calendar Navigation
+
+<!-- SCREENSHOT: [journal-calendar] Calendar popup showing highlighted dates with journal entries -->
+
+The calendar popup gives you a visual overview of your journal activity. To open it, click the date text or calendar icon in the panel header.
+
+- **Dates with entries** are highlighted, so you can see at a glance which days have notes
+- **Click any date** to navigate directly to that day's journal
+- **Previous/Next month** arrows let you browse across months
+- **Close the popup** by clicking outside it or pressing Escape
+
+The calendar works alongside the stacked editor view — opening a date scrolls the stack to show that entry, or creates a new one if it doesn't exist yet.
 
 ## Creating Journal Entries
 
