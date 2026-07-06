@@ -179,7 +179,7 @@ export default function OutlinerEditorMobile(props: Props) {
         case 'delete':
           ed.removeBlocks([blockId]);
           break;
-        case 'copy':
+        case 'copy': {
           // BlockNote doesn't expose native copy for a single block;
           // fall back to copying the text content
           const doc = ed.document;
@@ -191,7 +191,8 @@ export default function OutlinerEditorMobile(props: Props) {
             if (text) await navigator.clipboard.writeText(text);
           }
           break;
-        case 'cut':
+        }
+        case 'cut': {
           const doc2 = ed.document;
           const block2 = doc2.find((b: { id: string }) => b.id === blockId);
           if (block2) {
@@ -202,6 +203,7 @@ export default function OutlinerEditorMobile(props: Props) {
           }
           ed.removeBlocks([blockId]);
           break;
+        }
       }
     },
     [contextMenu, editor],

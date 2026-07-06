@@ -18,5 +18,11 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // Allow `any` type — we use it for dynamic plugin data
+      '@typescript-eslint/no-explicit-any': 'off',
+      // setState in useEffect is our standard data-fetching pattern
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
 ])
