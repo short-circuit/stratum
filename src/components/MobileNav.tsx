@@ -10,7 +10,6 @@ import ListItemText from '@mui/material/ListItemText';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import HubIcon from '@mui/icons-material/Hub';
 import SearchIcon from '@mui/icons-material/Search';
-import ArticleIcon from '@mui/icons-material/Article';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import CodeIcon from '@mui/icons-material/Code';
@@ -23,7 +22,6 @@ const PRIMARY_TABS = [
   { label: 'Journal', value: 'journal', path: '/journal', icon: <CalendarMonthIcon /> },
   { label: 'Search', value: 'search', path: '/search', icon: <SearchIcon /> },
   { label: 'Graph', value: 'graph', path: '/graph', icon: <HubIcon /> },
-  { label: 'Pages', value: 'pages', path: '/', icon: <ArticleIcon /> },
   { label: 'More', value: 'more', path: null, icon: <MoreHorizIcon /> },
 ] as const;
 
@@ -46,7 +44,6 @@ export default function MobileNav() {
     if (currentPath.startsWith('/journal')) return 'journal';
     if (currentPath.startsWith('/search')) return 'search';
     if (currentPath.startsWith('/graph')) return 'graph';
-    if (currentPath === '/' || currentPath.startsWith('/page/')) return 'pages';
     return 'more';
   };
   const activeValue = getActiveValue();
