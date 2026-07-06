@@ -31,7 +31,7 @@ export default function MobileLayout({ error, children }: MobileLayoutProps) {
   else if (location.pathname.startsWith('/settings')) title = 'Settings';
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', maxWidth: '100vw', bgcolor: 'background.default', overflow: 'hidden' }} className="safe-area-container">
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', maxWidth: '100vw', bgcolor: 'background.default', overflow: 'hidden' }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', px: 1, minHeight: 48, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
         {showBack && (
@@ -50,7 +50,7 @@ export default function MobileLayout({ error, children }: MobileLayoutProps) {
       )}
 
       {/* Main content — Routes passed as children */}
-      <Box sx={{ flex: 1, overflow: 'auto', pb: 'calc(56px + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)))' }} className="safe-area-main">
+      <Box sx={{ flex: 1, overflow: 'auto', pb: '56px' }}>
         {children}
       </Box>
 
