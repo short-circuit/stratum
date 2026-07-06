@@ -24,10 +24,12 @@ export function useBacklinksData(pagePath: string) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
+    let cancelled = false;
+    if (!cancelled) setLoading(true);
     api.getPageBacklinks(pagePath)
-      .then(items => { setBacklinks(items); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then(items => { if (!cancelled) { setBacklinks(items); setLoading(false); } })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [pagePath]);
 
   const linked = backlinks.filter(b => b.is_linked);
