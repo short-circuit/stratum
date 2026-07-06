@@ -346,12 +346,19 @@ pub async fn abort_merge(state: tauri::State<'_, AppState>) -> Result<(), String
     // so we use the git CLI as a fallback for this specific operation.
     let git_dir = repo.git_dir().to_path_buf();
     // Remove MERGE_HEAD and other merge state files
-    for f in &["MERGE_HEAD", "MERGE_MSG", "MERGE_MODE", "CHERRY_PICK_HEAD", "REVERT_HEAD"] {
+    for f in &[
+        "MERGE_HEAD",
+        "MERGE_MSG",
+        "MERGE_MODE",
+        "CHERRY_PICK_HEAD",
+        "REVERT_HEAD",
+    ] {
         let p = git_dir.join(f);
         let _ = std::fs::remove_file(&p);
     }
     // Update the index to match HEAD
-    let head_id = repo.head()
+    let head_id = repo
+        .head()
         .ok()
         .and_then(|mut h| h.peel_to_commit().ok())
         .map(|c| c.id().detach());
@@ -363,11 +370,9 @@ pub async fn abort_merge(state: tauri::State<'_, AppState>) -> Result<(), String
             if let Ok(index_file) = repo.open_index() {
                 let state = index_file.into_parts().0;
                 let _backing = state.path_backing().to_vec();
-                if let Ok(new_state) = gix::index::State::from_tree(
-                    tree.id().as_ref(),
-                    repo,
-                    Default::default(),
-                ) {
+                if let Ok(new_state) =
+                    gix::index::State::from_tree(tree.id().as_ref(), repo, Default::default())
+                {
                     let mut new_index = gix::index::File::from_state(new_state, repo.index_path());
                     let _ = new_index.write(gix::index::write::Options {
                         extensions: gix::index::write::Extensions::default(),

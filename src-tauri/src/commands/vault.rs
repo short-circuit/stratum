@@ -98,9 +98,13 @@ mod tests {
 
     #[test]
     fn test_resolve_saf_primary_storage() {
-        let uri = "content://com.android.externalstorage.documents/tree/primary%3ADocuments%2FMyVault";
+        let uri =
+            "content://com.android.externalstorage.documents/tree/primary%3ADocuments%2FMyVault";
         let result = resolve_saf_content_uri(uri).unwrap();
-        assert_eq!(result, PathBuf::from("/storage/emulated/0/Documents/MyVault"));
+        assert_eq!(
+            result,
+            PathBuf::from("/storage/emulated/0/Documents/MyVault")
+        );
     }
 
     #[test]
@@ -114,7 +118,10 @@ mod tests {
     fn test_resolve_saf_deeply_nested() {
         let uri = "content://com.android.externalstorage.documents/tree/primary%3ADocuments%2FProjects%2FStratum%2Fvault";
         let result = resolve_saf_content_uri(uri).unwrap();
-        assert_eq!(result, PathBuf::from("/storage/emulated/0/Documents/Projects/Stratum/vault"));
+        assert_eq!(
+            result,
+            PathBuf::from("/storage/emulated/0/Documents/Projects/Stratum/vault")
+        );
     }
 
     #[test]
@@ -122,7 +129,9 @@ mod tests {
         let uri = "content://com.android.something/not-a-tree-uri";
         let result = resolve_saf_content_uri(uri);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Could not parse Android content URI"));
+        assert!(result
+            .unwrap_err()
+            .contains("Could not parse Android content URI"));
     }
 
     #[test]
@@ -256,7 +265,6 @@ pub async fn init_default_vault(
         page_count,
     })
 }
-
 
 /// Pick a directory on Android via SAF, then init vault at that location.
 /// Requires MANAGE_EXTERNAL_STORAGE permission for raw file access.

@@ -72,7 +72,11 @@ impl GitEngine {
         } else {
             gix::init(path).map_err(|e| PkmError::Git(format!("init repo: {e}")))?
         };
-        Ok(Self { repo, ssh_key_path: None, passphrase: None })
+        Ok(Self {
+            repo,
+            ssh_key_path: None,
+            passphrase: None,
+        })
     }
 
     pub fn clone<P: AsRef<Path>>(url: &str, path: P) -> PkmResult<Self> {
@@ -84,28 +88,42 @@ impl GitEngine {
         let (repo, _) = prep_co
             .main_worktree(gix::progress::Discard, &AtomicBool::new(false))
             .map_err(|e| PkmError::Git(format!("clone checkout: {e}")))?;
-        Ok(Self { repo, ssh_key_path: None, passphrase: None })
+        Ok(Self {
+            repo,
+            ssh_key_path: None,
+            passphrase: None,
+        })
     }
 
     pub fn add(&self, paths: &[&str]) -> PkmResult<()> {
-        let workdir = self.repo.workdir()
+        let workdir = self
+            .repo
+            .workdir()
             .ok_or_else(|| PkmError::Git("no working directory".into()))?
             .to_path_buf();
 
-        let index_file = self.repo.open_index()
-            .or_else(|_| Ok(gix::index::File::from_state(
-                gix::index::State::new(self.repo.object_hash()),
-                self.repo.index_path(),
-            )))
-            .map_err(|e: gix::index::file::init::Error| PkmError::Git(format!("open index: {e}")))?;
+        let index_file = self
+            .repo
+            .open_index()
+            .or_else(|_| {
+                Ok(gix::index::File::from_state(
+                    gix::index::State::new(self.repo.object_hash()),
+                    self.repo.index_path(),
+                ))
+            })
+            .map_err(|e: gix::index::file::init::Error| {
+                PkmError::Git(format!("open index: {e}"))
+            })?;
 
         let mut state = index_file.into_parts().0;
 
         for p in paths {
             let full_path = workdir.join(p);
-            let content = std::fs::read(&full_path)
-                .map_err(|e| PkmError::Git(format!("read {p}: {e}")))?;
-            let blob_id = self.repo.write_blob(&content)
+            let content =
+                std::fs::read(&full_path).map_err(|e| PkmError::Git(format!("read {p}: {e}")))?;
+            let blob_id = self
+                .repo
+                .write_blob(&content)
                 .map_err(|e| PkmError::Git(format!("write blob {p}: {e}")))?;
 
             let meta = std::fs::metadata(&full_path)
@@ -117,7 +135,8 @@ impl GitEngine {
                 gix::index::entry::Mode::FILE
             };
 
-            let (mtime_secs, mtime_nsecs) = meta.modified()
+            let (mtime_secs, mtime_nsecs) = meta
+                .modified()
                 .ok()
                 .map(|t| {
                     let d = t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default();
@@ -127,9 +146,15 @@ impl GitEngine {
 
             state.dangerously_push_entry(
                 gix::index::entry::Stat {
-                    mtime: gix::index::entry::stat::Time { secs: mtime_secs, nsecs: mtime_nsecs },
+                    mtime: gix::index::entry::stat::Time {
+                        secs: mtime_secs,
+                        nsecs: mtime_nsecs,
+                    },
                     ctime: gix::index::entry::stat::Time::default(),
-                    dev: 0, ino: 0, uid: 0, gid: 0,
+                    dev: 0,
+                    ino: 0,
+                    uid: 0,
+                    gid: 0,
                     size: meta.len() as u32,
                 },
                 blob_id.detach(),
@@ -142,19 +167,25 @@ impl GitEngine {
         state.sort_entries();
 
         let mut new_index = gix::index::File::from_state(state, self.repo.index_path());
-        new_index.write(gix::index::write::Options {
-            extensions: gix::index::write::Extensions::default(),
-            skip_hash: false,
-        }).map_err(|e| PkmError::Git(format!("write index: {e}")))?;
+        new_index
+            .write(gix::index::write::Options {
+                extensions: gix::index::write::Extensions::default(),
+                skip_hash: false,
+            })
+            .map_err(|e| PkmError::Git(format!("write index: {e}")))?;
 
         Ok(())
     }
 
     pub fn commit(&self, message: &str, author: &str) -> PkmResult<String> {
-        let tree_id = self.write_tree_from_index()
+        let tree_id = self
+            .write_tree_from_index()
             .map_err(|e| PkmError::Git(format!("build tree: {e}")))?;
 
-        let parents: Vec<gix::ObjectId> = self.repo.head().ok()
+        let parents: Vec<gix::ObjectId> = self
+            .repo
+            .head()
+            .ok()
             .and_then(|mut h| h.peel_to_commit().ok())
             .map(|c| c.id().detach())
             .into_iter()
@@ -168,15 +199,18 @@ impl GitEngine {
         let mut time_buf = gix::date::parse::TimeBuf::default();
         let sig_ref = sig.to_ref(&mut time_buf);
 
-        let commit_id = self.repo.commit_as(
-            sig_ref, sig_ref, "HEAD", message, tree_id, parents,
-        ).map_err(|e| PkmError::Git(format!("commit: {e}")))?;
+        let commit_id = self
+            .repo
+            .commit_as(sig_ref, sig_ref, "HEAD", message, tree_id, parents)
+            .map_err(|e| PkmError::Git(format!("commit: {e}")))?;
 
         Ok(commit_id.to_string())
     }
 
     fn write_tree_from_index(&self) -> PkmResult<gix::ObjectId> {
-        let index_file = self.repo.open_index()
+        let index_file = self
+            .repo
+            .open_index()
             .map_err(|e| PkmError::Git(format!("open index: {e}")))?;
         let state: &gix::index::State = &index_file;
 
@@ -192,8 +226,9 @@ impl GitEngine {
                 let mode_val: u32 = entry.mode.bits();
                 let file_mode = 0o100644u32;
                 gix::objs::tree::Entry {
-                    mode: gix::objs::tree::EntryMode::try_from(mode_val)
-                        .unwrap_or_else(|_| gix::objs::tree::EntryMode::try_from(file_mode).unwrap()),
+                    mode: gix::objs::tree::EntryMode::try_from(mode_val).unwrap_or_else(|_| {
+                        gix::objs::tree::EntryMode::try_from(file_mode).unwrap()
+                    }),
                     filename: entry.path_in(backing).to_owned(),
                     oid: entry.id,
                 }
@@ -203,7 +238,9 @@ impl GitEngine {
         entries.sort_by(|a, b| a.filename.cmp(&b.filename));
 
         let tree = gix::objs::Tree { entries };
-        let tree_id = self.repo.write_object(&tree)
+        let tree_id = self
+            .repo
+            .write_object(&tree)
             .map_err(|e| PkmError::Git(format!("write tree: {e}")))?;
         Ok(tree_id.detach())
     }
@@ -217,17 +254,23 @@ impl GitEngine {
 
     pub fn pull(&self, remote: &str, _branch: &str) -> PkmResult<PullResult> {
         if self.get_remote_url(remote).is_none() {
-            return Ok(PullResult { success: true, conflicts: vec![] });
+            return Ok(PullResult {
+                success: true,
+                conflicts: vec![],
+            });
         }
         Err(PkmError::Git("pull not yet implemented via gix".into()))
     }
 
     pub fn status(&self) -> PkmResult<Vec<(String, StatusFlags)>> {
         let mut out = Vec::new();
-        let platform = self.repo.status(gix::progress::Discard)
+        let platform = self
+            .repo
+            .status(gix::progress::Discard)
             .map_err(|e| PkmError::Git(format!("status init: {e}")))?;
 
-        let iter = platform.into_index_worktree_iter(Vec::<gix::bstr::BString>::new())
+        let iter = platform
+            .into_index_worktree_iter(Vec::<gix::bstr::BString>::new())
             .map_err(|e| PkmError::Git(format!("status iter: {e}")))?;
 
         for item_res in iter {
@@ -244,12 +287,11 @@ impl GitEngine {
                         EntryStatus::Change(change) => {
                             use gix::status::plumbing::index_as_worktree::Change;
                             match change {
-                                Change::Modification { .. } | Change::SubmoduleModification(_) =>
-                                    flags = flags | StatusFlags::WT_MODIFIED,
-                                Change::Removed =>
-                                    flags = flags | StatusFlags::WT_DELETED,
-                                Change::Type { .. } =>
-                                    flags = flags | StatusFlags::WT_TYPECHANGE,
+                                Change::Modification { .. } | Change::SubmoduleModification(_) => {
+                                    flags = flags | StatusFlags::WT_MODIFIED
+                                }
+                                Change::Removed => flags = flags | StatusFlags::WT_DELETED,
+                                Change::Type { .. } => flags = flags | StatusFlags::WT_TYPECHANGE,
                             }
                         }
                         _ => {}
@@ -271,7 +313,12 @@ impl GitEngine {
     }
 
     pub fn log(&self, max_count: usize) -> PkmResult<Vec<CommitInfo>> {
-        let head_commit = match self.repo.head().ok().and_then(|mut h| h.peel_to_commit().ok()) {
+        let head_commit = match self
+            .repo
+            .head()
+            .ok()
+            .and_then(|mut h| h.peel_to_commit().ok())
+        {
             Some(c) => c,
             None => return Ok(Vec::new()),
         };
@@ -290,17 +337,17 @@ impl GitEngine {
             let oid = gix::ObjectId::from(id);
             if let Ok(commit_obj) = self.repo.find_object(oid) {
                 let commit = commit_obj.into_commit();
-                let ts_secs = commit.committer()
-                    .map(|s| s.seconds())
-                    .unwrap_or_default();
+                let ts_secs = commit.committer().map(|s| s.seconds()).unwrap_or_default();
                 let timestamp = DateTime::from_timestamp(ts_secs, 0).unwrap_or_default();
 
                 commits.push(CommitInfo {
                     hash: oid.to_string(),
-                    author: commit.author()
+                    author: commit
+                        .author()
                         .map(|s| s.name.as_bstr().to_string())
                         .unwrap_or_default(),
-                    message: commit.message()
+                    message: commit
+                        .message()
                         .map(|m| m.title.to_string())
                         .unwrap_or_else(|_| String::new()),
                     timestamp,
@@ -313,23 +360,31 @@ impl GitEngine {
 
     pub fn diff(&self, path: &str) -> PkmResult<String> {
         let mut output = String::new();
-        let head_tree_id = self.repo.head().ok()
+        let head_tree_id = self
+            .repo
+            .head()
+            .ok()
             .and_then(|mut h| h.peel_to_commit().ok())
             .and_then(|c| c.tree_id().ok());
 
         if let Some(tree_id) = head_tree_id {
             if let Ok(old_tree_obj) = self.repo.find_object(tree_id) {
                 let old_tree = old_tree_obj.into_tree();
-                let workdir = self.repo.workdir()
+                let workdir = self
+                    .repo
+                    .workdir()
                     .ok_or_else(|| PkmError::Git("no workdir".into()))?;
                 let full_path = workdir.join(path);
 
                 let old_content = find_blob_in_tree(&old_tree, path, &self.repo);
                 let new_content = std::fs::read(&full_path).ok();
 
-                let old_lines: Vec<&str> = old_content.as_deref().unwrap_or("").split('\n').collect();
-                let new_text = new_content.as_ref()
-                    .map(|c| std::str::from_utf8(c).unwrap_or("")).unwrap_or("");
+                let old_lines: Vec<&str> =
+                    old_content.as_deref().unwrap_or("").split('\n').collect();
+                let new_text = new_content
+                    .as_ref()
+                    .map(|c| std::str::from_utf8(c).unwrap_or(""))
+                    .unwrap_or("");
                 let new_lines: Vec<&str> = new_text.split('\n').collect();
 
                 output.push_str(&format!("--- a/{path}\n+++ b/{path}\n"));
@@ -337,8 +392,12 @@ impl GitEngine {
                     let o = old_lines.get(i).copied().unwrap_or("");
                     let n = new_lines.get(i).copied().unwrap_or("");
                     if o != n {
-                        if i < old_lines.len() { output.push_str(&format!("-{o}\n")); }
-                        if i < new_lines.len() { output.push_str(&format!("+{n}\n")); }
+                        if i < old_lines.len() {
+                            output.push_str(&format!("-{o}\n"));
+                        }
+                        if i < new_lines.len() {
+                            output.push_str(&format!("+{n}\n"));
+                        }
                     } else {
                         output.push_str(&format!(" {o}\n"));
                     }
@@ -360,8 +419,7 @@ impl GitEngine {
         let content = std::fs::read_to_string(&config_path).ok()?;
         let pattern = format!("[remote \"{remote}\"]");
         let pattern2 = format!("[remote '{remote}']");
-        let section_start = content.find(&pattern)
-            .or_else(|| content.find(&pattern2))?;
+        let section_start = content.find(&pattern).or_else(|| content.find(&pattern2))?;
         let after_section = &content[section_start..];
         for line in after_section.lines() {
             if line.trim_start().starts_with("url =") {
@@ -370,7 +428,8 @@ impl GitEngine {
                     return Some(url.to_string());
                 }
             }
-            if line.starts_with('[') && !line.starts_with(&pattern) && !line.starts_with(&pattern2) {
+            if line.starts_with('[') && !line.starts_with(&pattern) && !line.starts_with(&pattern2)
+            {
                 break;
             }
         }
@@ -436,23 +495,32 @@ impl GitEngine {
     #[allow(clippy::result_large_err)]
     pub fn credentials_callback(
         &self,
-    ) -> impl FnMut(gix::credentials::helper::Action) -> gix::credentials::protocol::Result + Clone + 'static {
+    ) -> impl FnMut(gix::credentials::helper::Action) -> gix::credentials::protocol::Result
+           + Clone
+           + 'static {
         let _key_path = self.ssh_key_path.clone();
         let _passphrase = self.passphrase.clone();
-        move |action: gix::credentials::helper::Action| {
-            gix::credentials::builtin(action)
-        }
+        move |action: gix::credentials::helper::Action| gix::credentials::builtin(action)
     }
 
     pub fn get_current_branch(&self) -> Option<String> {
-        self.repo.head().ok()
+        self.repo
+            .head()
+            .ok()
             .and_then(|h| h.try_into_referent())
             .map(|r| r.name().as_bstr().to_string())
-            .map(|name| name.strip_prefix("refs/heads/").unwrap_or(&name).to_string())
+            .map(|name| {
+                name.strip_prefix("refs/heads/")
+                    .unwrap_or(&name)
+                    .to_string()
+            })
     }
 
     pub fn ahead_behind(&self, remote_branch: &str) -> PkmResult<(usize, usize)> {
-        let head_commit = self.repo.head().ok()
+        let head_commit = self
+            .repo
+            .head()
+            .ok()
             .and_then(|mut h| h.peel_to_commit().ok())
             .ok_or_else(|| PkmError::Git("no local HEAD commit".into()))?;
         let local_oid = head_commit.id().detach();
@@ -484,7 +552,11 @@ impl GitEngine {
     }
 }
 
-fn walk_count(repo: &gix::Repository, tip: gix::ObjectId, stop: impl Fn(&gix::hash::oid) -> bool) -> usize {
+fn walk_count(
+    repo: &gix::Repository,
+    tip: gix::ObjectId,
+    stop: impl Fn(&gix::hash::oid) -> bool,
+) -> usize {
     let revwalk = repo.rev_walk([tip]);
     let mut count = 0;
     let _ = revwalk.selected(|id| {
@@ -569,7 +641,8 @@ mod tests {
         let file_path = _td.path().join("new.md");
         fs::write(&file_path, "content").unwrap();
         let statuses = engine.status().unwrap();
-        let untracked = statuses.iter()
+        let untracked = statuses
+            .iter()
             .any(|(p, s)| p == "new.md" && s.contains(StatusFlags::WT_NEW));
         assert!(untracked, "expected new.md to be untracked");
     }
@@ -606,7 +679,9 @@ mod tests {
     fn test_remote_url() {
         let (_td, engine) = init_repo();
         assert!(engine.get_remote_url("origin").is_none());
-        engine.set_remote("origin", "https://example.com/repo.git").unwrap();
+        engine
+            .set_remote("origin", "https://example.com/repo.git")
+            .unwrap();
         let url = engine.get_remote_url("origin");
         assert_eq!(url.as_deref(), Some("https://example.com/repo.git"));
     }
