@@ -203,6 +203,19 @@ impl BlockIndex {
         self.search(&format!("marker:{}", marker), limit)
     }
 
+    pub fn delete_blocks_by_page(&mut self, page_path: &str) -> PkmResult<()> {
+        let page_field = self.field("page_path");
+        let writer = self
+            .writer
+            .as_mut()
+            .ok_or_else(|| PkmError::Index("Block writer not available".to_string()))?;
+
+        let term = tantivy::Term::from_field_text(page_field, page_path);
+        writer.delete_term(term);
+
+        Ok(())
+    }
+
     pub fn flush(&mut self) -> PkmResult<()> {
         if let Some(ref mut writer) = self.writer {
             writer

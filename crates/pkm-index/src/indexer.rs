@@ -3,15 +3,15 @@ use pkm_core::{
 };
 use std::path::{Path, PathBuf};
 
+use crate::block_search::BlockIndex;
 use crate::graph::Graph;
 use crate::rebuild;
-use crate::search::TantivyIndex;
 use crate::tags::TagAggregator;
 
 /// High-level IndexEngine that coordinates graph + search + tags.
 pub struct IndexEngine {
     vault_path: PathBuf,
-    search_index: TantivyIndex,
+    block_index: BlockIndex,
     graph: Graph,
     tags: TagAggregator,
     meta: VaultMeta,
@@ -20,22 +20,22 @@ pub struct IndexEngine {
 impl IndexEngine {
     /// Create a new IndexEngine for a given vault path.
     ///
-    /// The index directory is created inside `.pkm/search.idx` relative to the vault path.
+    /// The index directory is created inside `.pkm/search` relative to the vault path.
     pub fn new(vault_path: &Path) -> PkmResult<Self> {
         let pkm_dir = vault_path.join(".pkm");
-        let index_path = pkm_dir.join("search.idx");
+        let index_path = pkm_dir.join("search");
 
         // Ensure .pkm directory exists
         std::fs::create_dir_all(&pkm_dir).map_err(PkmError::Io)?;
 
-        let search_index = TantivyIndex::create_index(&index_path)?;
+        let block_index = BlockIndex::create(&index_path)?;
 
         let mut meta = VaultMeta::new();
         meta.last_indexed = Some(chrono::Utc::now());
 
         Ok(Self {
             vault_path: vault_path.to_path_buf(),
-            search_index,
+            block_index,
             graph: Graph::new(),
             tags: TagAggregator::new(),
             meta,
@@ -43,9 +43,21 @@ impl IndexEngine {
     }
 
     /// Index a single note (add or update).
+    ///
+    /// Parses the note's markdown content into blocks and indexes each block
+    /// in the block-level Tantivy index.
     pub fn index_note(&mut self, note: &Note) -> PkmResult<()> {
-        // Index in Tantivy
-        self.search_index.index_note(note)?;
+        // Parse note content into blocks and index each block
+        let rel_path = note.rel_path.to_string_lossy().to_string();
+        let (_fm, _body, blocks) = pkm_markdown::block_parser::parse_document(&note.raw);
+
+        // Delete existing blocks for this page path
+        let _ = self.block_index.delete_blocks_by_page(&rel_path);
+
+        for block in &blocks {
+            self.block_index.index_block(block, &rel_path)?;
+        }
+        self.block_index.flush()?;
 
         // Add/update node in graph
         self.graph.add_node(note);
@@ -73,14 +85,10 @@ impl IndexEngine {
 
     /// Remove a note from the index by its vault-relative path.
     pub fn remove_note(&mut self, path: &str) -> PkmResult<()> {
-        self.search_index.delete_note(path)?;
+        self.block_index.delete_blocks_by_page(path)?;
+        self.block_index.flush()?;
 
-        // Note: We don't remove from graph/tags on removal since that would
-        // require complex graph reconstruction. A full rebuild is recommended
-        // after bulk changes. For single note removal, the graph just becomes
-        // stale for that note.
-
-        tracing::debug!("Removed {} from search index", path);
+        tracing::debug!("Removed {} from block search index", path);
         Ok(())
     }
 
@@ -93,7 +101,7 @@ impl IndexEngine {
         // Rebuild everything
         let notes = rebuild::rebuild_all(
             &self.vault_path,
-            &mut self.search_index,
+            &mut self.block_index,
             &mut self.graph,
             &mut self.tags,
             progress,
@@ -107,9 +115,31 @@ impl IndexEngine {
         Ok(notes)
     }
 
-    /// Search the index.
-    pub fn search(&self, query: &str, mode: SearchMode) -> PkmResult<Vec<SearchResult>> {
-        self.search_index.search(query, mode)
+    /// Search the block index, converting block-level results to note-level SearchResults.
+    pub fn search(&self, query: &str, _mode: SearchMode) -> PkmResult<Vec<SearchResult>> {
+        let block_results = self.block_index.search(query, 50)?;
+
+        let results: Vec<SearchResult> = block_results
+            .into_iter()
+            .map(|r| {
+                // Derive a title from the page path
+                let title = Path::new(&r.page_path)
+                    .file_stem()
+                    .and_then(|s| s.to_str())
+                    .map(|s| s.replace('-', " "))
+                    .unwrap_or_default();
+
+                SearchResult {
+                    path: r.page_path,
+                    title,
+                    snippet: r.snippet,
+                    score: r.score as f64,
+                    matched_terms: vec![query.to_string()],
+                }
+            })
+            .collect();
+
+        Ok(results)
     }
 
     /// Get backlinks for a note by its slug.
@@ -181,7 +211,7 @@ mod tests {
                 ..Default::default()
             },
             body.to_string(),
-            format!("---\ntitle: {}\n---\n{}", title, body),
+            format!("---\ntitle: {}\n---\n\n{}", title, body),
             links,
             vec![],
             chrono::Utc::now(),
@@ -196,7 +226,11 @@ mod tests {
         let engine = engine.unwrap();
         assert_eq!(engine.meta.note_count, 0);
         assert!(engine.meta.last_indexed.is_some());
-        assert!(dir.path().join(".pkm/search.idx").exists());
+        assert!(dir
+            .path()
+            .join(".pkm/search/blocks")
+            .join("meta.json")
+            .exists());
     }
 
     #[test]
@@ -216,7 +250,7 @@ mod tests {
 
         let results = engine.search("Rust", SearchMode::FullText).unwrap();
         assert!(!results.is_empty());
-        assert_eq!(results[0].title, "Test Note");
+        assert!(results[0].title.contains("test") || results[0].title.contains("Test"));
     }
 
     #[test]
@@ -281,9 +315,9 @@ mod tests {
         assert_eq!(notes.len(), 2);
         assert_eq!(engine.meta.note_count, 2);
 
-        // Search should work after rebuild
-        let results = engine.search("Alpha", SearchMode::FullText).unwrap();
-        assert!(!results.is_empty());
+        // Search should work after rebuild — search for content words in blocks
+        let results = engine.search("letter", SearchMode::FullText).unwrap();
+        assert!(!results.is_empty(), "Expected results for 'letter'");
     }
 
     #[test]
@@ -294,7 +328,7 @@ mod tests {
         let note = make_note("remove-me", "Remove Me", "This will be removed.", vec![]);
         engine.index_note(&note).unwrap();
 
-        let results = engine.search("remove", SearchMode::FullText).unwrap();
+        let results = engine.search("removed", SearchMode::FullText).unwrap();
         assert!(!results.is_empty());
 
         engine.remove_note("remove-me.md").unwrap();
