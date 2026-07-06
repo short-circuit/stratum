@@ -11,7 +11,6 @@ export function invertHexColor(hex: string): string {
   return `#${r}${g}${b}`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function adaptElementsTheme(elements: readonly any[], toDark: boolean): any[] {
   return elements.map(el => {
     if (!el || typeof el !== 'object') return el;
@@ -34,9 +33,7 @@ export function adaptElementsTheme(elements: readonly any[], toDark: boolean): a
 }
 
 export async function generateThumbnail(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   elements: readonly any[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   appState: any,
   isDark: boolean,
 ): Promise<{ dataUrl: string; theme: 'dark' | 'light' } | null> {

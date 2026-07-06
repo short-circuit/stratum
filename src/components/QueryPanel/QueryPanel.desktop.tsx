@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
@@ -9,28 +8,10 @@ import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
-import * as api from '../lib/commands';
+import { useDatalogQuery } from './QueryPanel.shared';
 
-export default function QueryPanel() {
-  const [datalog, setDatalog] = useState(
-    '{:query [:find ?b ?content :where [?b :block/marker "TODO"] [?b :block/content ?content]]}'
-  );
-  const [result, setResult] = useState<{ columns: string[]; rows: string[][] } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [running, setRunning] = useState(false);
-
-  const doQuery = async () => {
-    setRunning(true);
-    setError(null);
-    try {
-      const res = await api.runQuery(datalog);
-      setResult(res);
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setRunning(false);
-    }
-  };
+export default function QueryPanelDesktop() {
+  const { datalog, setDatalog, result, error, running, doQuery, resetQuery } = useDatalogQuery();
 
   return (
     <Box sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
@@ -50,10 +31,7 @@ export default function QueryPanel() {
         <Button variant="contained" onClick={doQuery} disabled={running}>
           {running ? 'Running...' : 'Run Query'}
         </Button>
-        <Button
-          variant="text"
-          onClick={() => setDatalog('{:query [:find ?b :where [?b :block/marker "TODO"]]}')}
-        >
+        <Button variant="text" onClick={resetQuery}>
           Reset
         </Button>
       </Box>

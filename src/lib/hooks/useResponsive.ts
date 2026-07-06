@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getPlatform } from '../platform';
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -10,6 +11,14 @@ export function useResponsive() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  const platform = getPlatform();
+
+  // On Tauri mobile (Android/iOS), isMobile is always true
+  // regardless of window width (WebView viewport may report desktop width)
+  if (platform.isMobile) {
+    return { isMobile: true, isDesktop: false, width };
+  }
 
   return {
     isMobile: width < MOBILE_BREAKPOINT,

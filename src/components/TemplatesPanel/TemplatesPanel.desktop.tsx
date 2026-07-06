@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
@@ -7,69 +6,55 @@ import Alert from '@mui/material/Alert';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import AddIcon from '@mui/icons-material/Add';
-import * as api from '../lib/commands';
+import { useTemplates } from './TemplatesPanel.shared';
 
-export default function TemplatesPanel() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [targetPath, setTargetPath] = useState('');
-  const [variables, setVariables] = useState<[string, string][]>([['', '']]);
-  const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    api.listTemplates().then(setTemplates).catch(console.error);
-  }, []);
-
-  const apply = async (name: string) => {
-    if (!targetPath) return;
-    try {
-      const vars = variables.filter(([k]) => k.trim());
-      await api.applyTemplate(name, targetPath, vars);
-      setMessage(`Created: ${targetPath}`);
-      setTargetPath('');
-    } catch (e) {
-      setMessage(`Error: ${e}`);
-    }
-  };
+export default function TemplatesPanelDesktop() {
+  const {
+    templates,
+    targetPath,
+    setTargetPath,
+    variables,
+    message,
+    apply,
+    addVariableRow,
+    updateVariableKey,
+    updateVariableValue,
+  } = useTemplates();
 
   return (
     <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
-      <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>Templates</Typography>
+      <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
+        Templates
+      </Typography>
 
       <TextField
         label="Target page path"
         placeholder="pages/my-new-page.md"
         value={targetPath}
-        onChange={e => setTargetPath(e.target.value)}
+        onChange={(e) => setTargetPath(e.target.value)}
         fullWidth
         size="small"
         sx={{ mb: 2 }}
       />
 
       <Box sx={{ mb: 2 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>Variables</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+          Variables
+        </Typography>
         {variables.map(([k, v], i) => (
           <Box key={i} sx={{ display: 'flex', gap: 0.5, mb: 0.5 }}>
             <TextField
               size="small"
               placeholder="key"
               value={k}
-              onChange={e => {
-                const next = [...variables];
-                next[i] = [e.target.value, v];
-                setVariables(next);
-              }}
+              onChange={(e) => updateVariableKey(i, e.target.value)}
               sx={{ flex: 1, '& .MuiInputBase-input': { fontSize: '0.75rem', py: 0.75 } }}
             />
             <TextField
               size="small"
               placeholder="value"
               value={v}
-              onChange={e => {
-                const next = [...variables];
-                next[i] = [k, e.target.value];
-                setVariables(next);
-              }}
+              onChange={(e) => updateVariableValue(i, e.target.value)}
               sx={{ flex: 1, '& .MuiInputBase-input': { fontSize: '0.75rem', py: 0.75 } }}
             />
           </Box>
@@ -77,7 +62,7 @@ export default function TemplatesPanel() {
         <Button
           size="small"
           startIcon={<AddIcon />}
-          onClick={() => setVariables([...variables, ['', '']])}
+          onClick={addVariableRow}
           sx={{ textTransform: 'none', fontSize: '0.75rem' }}
         >
           Add variable
@@ -91,17 +76,36 @@ export default function TemplatesPanel() {
       )}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        {templates.map(t => (
-          <Card key={t.name} variant="outlined" sx={{ '&:hover': { borderColor: 'primary.light' } }}>
+        {templates.map((t) => (
+          <Card
+            key={t.name}
+            variant="outlined"
+            sx={{ '&:hover': { borderColor: 'primary.light' } }}
+          >
             <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>{t.name}</Typography>
-                <Button size="small" variant="contained" onClick={() => apply(t.name)}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  mb: 0.5,
+                }}
+              >
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  {t.name}
+                </Typography>
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={() => apply(t.name)}
+                >
                   Apply
                 </Button>
               </Box>
               {t.description && (
-                <Typography variant="caption" color="text.secondary">{t.description}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {t.description}
+                </Typography>
               )}
             </CardContent>
           </Card>

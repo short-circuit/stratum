@@ -23,7 +23,7 @@ interface Props {
   onShowNewChange: (v: boolean) => void;
   onNewPathChange: (v: string) => void;
   onNewTitleChange: (v: string) => void;
-  onCreatePage: () => void;
+  onCreatePage: () => Promise<void>;
   onDeletePage: (path: string) => void;
   onNavigate: (path: string) => void;
   onNavigateHome?: () => void;

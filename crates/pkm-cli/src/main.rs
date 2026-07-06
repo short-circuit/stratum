@@ -406,7 +406,7 @@ fn cmd_sync(vault: &Path, action: &SyncAction) -> PkmResult<()> {
             if vault.join(".git").exists() {
                 let engine = pkm_sync::git::GitEngine::init(vault)?;
                 let status = engine.status()?;
-                let has_changes = status.iter().any(|(_, s)| *s != git2::Status::CURRENT);
+                let has_changes = status.iter().any(|(_, s)| !s.is_current());
                 println!("Git repository: active");
                 println!("Branch: {}", get_branch_name(&engine));
                 println!("Modified files: {}", status.len());

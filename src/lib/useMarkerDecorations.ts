@@ -199,7 +199,6 @@ function createPlugin(
  */
 export function refreshMarkerDecorations(editor: unknown): void {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const te = (editor as any)._tiptapEditor as
       | { view?: { dispatch?: (tr: import('prosemirror-state').Transaction) => void }; state?: import('prosemirror-state').EditorState; isDestroyed?: boolean }
       | undefined;
@@ -227,7 +226,6 @@ export function useMarkerDecorations(
 
     const tryAdd = setInterval(() => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const te = (editor as any)._tiptapEditor as
           | { registerPlugin?: (p: Plugin) => void; isDestroyed?: boolean; state: import('prosemirror-state').EditorState }
           | undefined;

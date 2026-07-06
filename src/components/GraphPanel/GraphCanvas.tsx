@@ -16,7 +16,6 @@ export interface GraphNode extends GraphNodeDto {
 
 interface GraphDataProp {
   nodes: GraphNode[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   links: any[];
 }
 
@@ -68,7 +67,6 @@ interface GraphCanvasProps {
   nodes: GraphNode[];
   graphData: GraphDataDto | null;
   graphSettings: GraphSettings;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   graphRef: React.MutableRefObject<any>;
 }
 

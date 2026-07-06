@@ -14,7 +14,12 @@
     "tauri": "tauri",
     "tauri:dev": "WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 tauri dev",
     "tauri:dev:x11": "WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 GDK_BACKEND=x11 tauri dev",
-    "tauri:build": "WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 tauri build"
+    "tauri:android:build": "cargo tauri android build --target aarch64 --apk",
+    "tauri:android:dev": "cargo tauri android dev",
+    "tauri:android:dev:x86": "cargo tauri android dev --target x86_64",
+    "tauri:build": "WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 tauri build",
+    "tauri:ios:build": "cargo tauri ios build",
+    "tauri:ios:dev": "cargo tauri ios dev"
   },
   "dependencies": {
     "@blocknote/core": "^0.51.4",

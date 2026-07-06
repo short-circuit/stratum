@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { getPlatform } from './platform';
 import type {
   VaultInfo,
   PageDto,
@@ -33,6 +34,13 @@ export async function setVaultPath(path: string): Promise<void> {
 }
 
 export async function pickVaultDirectory(): Promise<VaultInfo> {
+  if (getPlatform().isMobile) {
+    try {
+      return await invoke('pick_android_directory');
+    } catch {
+      return await invoke('init_default_vault');
+    }
+  }
   const { open } = await import('@tauri-apps/plugin-dialog');
   const selected = await open({ directory: true, multiple: false });
   if (!selected) throw new Error('No directory selected');

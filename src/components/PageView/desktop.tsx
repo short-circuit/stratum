@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
@@ -9,51 +8,16 @@ import MenuItem from '@mui/material/MenuItem';
 import ListSubheader from '@mui/material/ListSubheader';
 import Divider from '@mui/material/Divider';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import { useStore } from '../stores/appStore';
-import * as api from '../lib/commands';
-import OutlinerEditor from './OutlinerEditor';
-import BacklinksPanel from './BacklinksPanel';
-import SuggestedConnectionsPanel from './SuggestedConnectionsPanel';
+import OutlinerEditor from '../OutlinerEditor';
+import BacklinksPanel from '../BacklinksPanel';
+import SuggestedConnectionsPanel from '../SuggestedConnectionsPanel';
+import { usePageView } from './shared';
 
-export default function PageView() {
-  const { pagePath } = useParams<{ pagePath: string }>();
-  const { currentPage, openPage, deletePage } = useStore();
-  const [editorKey, setEditorKey] = useState(0);
+export default function PageViewDesktop() {
+  const { pagePath, currentPage, editorKey, reindexing, handleReindex, handleDelete } = usePageView();
   const [noteMenuAnchor, setNoteMenuAnchor] = useState<HTMLElement | null>(null);
-  const [reindexing, setReindexing] = useState(false);
 
-  useEffect(() => {
-    if (pagePath) {
-      openPage(decodeURIComponent(pagePath));
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setEditorKey(k => k + 1);
-    }
-  }, [pagePath, openPage]);
-
-  const handleReindex = async () => {
-    if (!currentPage) return;
-    setReindexing(true);
-    try {
-      await api.reindexPage(currentPage.path);
-      setEditorKey(k => k + 1);
-    } catch (e) {
-      console.error('Reindex failed:', e);
-    } finally {
-      setReindexing(false);
-      setNoteMenuAnchor(null);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!currentPage) return;
-    if (!confirm(`Delete "${currentPage.title || currentPage.slug}"?`)) return;
-    try {
-      await deletePage(currentPage.path);
-      setNoteMenuAnchor(null);
-    } catch (e) {
-      console.error('Delete failed:', e);
-    }
-  };
+  const closeMenu = () => setNoteMenuAnchor(null);
 
   if (!pagePath) {
     return (
@@ -72,7 +36,6 @@ export default function PageView() {
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Page header */}
       <Box sx={{ px: 3, py: 1.5, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.1rem' }}>
           {currentPage.title || currentPage.slug}
@@ -92,12 +55,12 @@ export default function PageView() {
         <Menu
           anchorEl={noteMenuAnchor}
           open={Boolean(noteMenuAnchor)}
-          onClose={() => setNoteMenuAnchor(null)}
+          onClose={closeMenu}
         >
           <ListSubheader sx={{ lineHeight: '28px', fontSize: '0.7rem', color: 'text.disabled' }}>Actions</ListSubheader>
-          <MenuItem onClick={handleReindex} disabled={reindexing} dense>Reindex Note</MenuItem>
+          <MenuItem onClick={() => { handleReindex(); closeMenu(); }} disabled={reindexing} dense>Reindex Note</MenuItem>
           <Divider />
-          <MenuItem onClick={handleDelete} dense sx={{ color: 'error.main' }}>Delete Page</MenuItem>
+          <MenuItem onClick={() => { handleDelete(); closeMenu(); }} dense sx={{ color: 'error.main' }}>Delete Page</MenuItem>
         </Menu>
       </Box>
 
@@ -105,10 +68,7 @@ export default function PageView() {
         <OutlinerEditor key={editorKey} pagePath={currentPage.path} />
       </Box>
 
-      {/* Backlinks dock */}
       <BacklinksPanel pagePath={currentPage.path} />
-
-      {/* Suggested connections */}
       <SuggestedConnectionsPanel pagePath={currentPage.path} />
     </Box>
   );

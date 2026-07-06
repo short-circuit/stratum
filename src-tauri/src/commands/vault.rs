@@ -72,6 +72,86 @@ pub async fn get_vault_info(state: tauri::State<'_, AppState>) -> Result<VaultIn
     })
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_percent_decode_simple() {
+        assert_eq!(percent_decode("hello%20world"), "hello world");
+    }
+
+    #[test]
+    fn test_percent_decode_no_encoding() {
+        assert_eq!(percent_decode("plaintext"), "plaintext");
+    }
+
+    #[test]
+    fn test_percent_decode_multiple() {
+        assert_eq!(percent_decode("%46%6F%6F"), "Foo");
+    }
+
+    #[test]
+    fn test_percent_decode_empty() {
+        assert_eq!(percent_decode(""), "");
+    }
+
+    #[test]
+    fn test_resolve_saf_primary_storage() {
+        let uri =
+            "content://com.android.externalstorage.documents/tree/primary%3ADocuments%2FMyVault";
+        let result = resolve_saf_content_uri(uri).unwrap();
+        assert_eq!(
+            result,
+            PathBuf::from("/storage/emulated/0/Documents/MyVault")
+        );
+    }
+
+    #[test]
+    fn test_resolve_saf_secondary_volume() {
+        let uri = "content://com.android.externalstorage.documents/tree/1234-5678%3AMyVault";
+        let result = resolve_saf_content_uri(uri).unwrap();
+        assert_eq!(result, PathBuf::from("/storage/1234-5678/MyVault"));
+    }
+
+    #[test]
+    fn test_resolve_saf_deeply_nested() {
+        let uri = "content://com.android.externalstorage.documents/tree/primary%3ADocuments%2FProjects%2FStratum%2Fvault";
+        let result = resolve_saf_content_uri(uri).unwrap();
+        assert_eq!(
+            result,
+            PathBuf::from("/storage/emulated/0/Documents/Projects/Stratum/vault")
+        );
+    }
+
+    #[test]
+    fn test_resolve_saf_invalid_uri() {
+        let uri = "content://com.android.something/not-a-tree-uri";
+        let result = resolve_saf_content_uri(uri);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .contains("Could not parse Android content URI"));
+    }
+
+    #[test]
+    fn test_resolve_picked_path_non_android() {
+        #[cfg(not(target_os = "android"))]
+        {
+            let result = resolve_picked_path("/home/user/vault").unwrap();
+            assert_eq!(result, PathBuf::from("/home/user/vault"));
+        }
+    }
+
+    #[test]
+    fn test_resolve_saf_with_document_suffix() {
+        // Some SAF implementations append /document/primary:... after the tree root
+        let uri = "content://com.android.externalstorage.documents/tree/primary%3AStratumVault/document/primary%3AStratumVault";
+        let result = resolve_saf_content_uri(uri).unwrap();
+        assert_eq!(result, PathBuf::from("/storage/emulated/0/StratumVault"));
+    }
+}
+
 #[tauri::command]
 pub async fn set_vault_path(path: String, state: tauri::State<'_, AppState>) -> Result<(), String> {
     let vault_path = PathBuf::from(&path);
@@ -88,10 +168,29 @@ pub async fn set_vault_path(path: String, state: tauri::State<'_, AppState>) -> 
 /// On Android, converts SAF content URI to a real path.
 #[cfg(target_os = "android")]
 fn resolve_picked_path(picked: &str) -> Result<PathBuf, String> {
+    resolve_saf_content_uri(picked)
+}
+
+#[cfg(not(target_os = "android"))]
+fn resolve_picked_path(picked: &str) -> Result<PathBuf, String> {
+    Ok(PathBuf::from(picked))
+}
+
+/// Parse an Android SAF content URI of the form:
+/// `content://.../tree/primary:Documents%2FMyFolder` and resolve it to a
+/// real filesystem path like `/storage/emulated/0/Documents/MyFolder`.
+/// Also handles URIs with a `/document/` suffix segment which Android's
+/// `ACTION_OPEN_DOCUMENT_TREE` may append after the tree root.
+#[allow(dead_code)]
+fn resolve_saf_content_uri(picked: &str) -> Result<PathBuf, String> {
+    // Extract the encoded path after "/tree/" — drop any "/document/" suffix
     let path_encoded = picked
         .split("/tree/")
         .nth(1)
-        .ok_or_else(|| format!("Could not parse Android content URI: {}", picked))?;
+        .ok_or_else(|| format!("Could not parse Android content URI: {}", picked))?
+        .split("/document/")
+        .next()
+        .unwrap_or("");
     let path_decoded = percent_decode(path_encoded);
 
     if let Some(subpath) = path_decoded.strip_prefix("primary:") {
@@ -103,12 +202,7 @@ fn resolve_picked_path(picked: &str) -> Result<PathBuf, String> {
     }
 }
 
-#[cfg(not(target_os = "android"))]
-fn resolve_picked_path(picked: &str) -> Result<PathBuf, String> {
-    Ok(PathBuf::from(picked))
-}
-
-#[cfg(target_os = "android")]
+#[allow(dead_code)]
 fn percent_decode(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     let mut chars = s.chars();
@@ -152,6 +246,67 @@ pub async fn init_vault(
     })
 }
 
+/// Initialize vault at the application's default data directory
+/// (app-private storage on Android, ~/StratumVault on desktop).
+/// This is the command called on mobile instead of the folder picker.
+#[tauri::command]
+pub async fn init_default_vault(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<VaultInfo, String> {
+    let vault_path = crate::resolve_default_vault_path(&app);
+    std::fs::create_dir_all(&vault_path)
+        .map_err(|e| format!("Failed to create vault directory: {}", e))?;
+    let mut vstate = state.lock().map_err(|e| e.to_string())?;
+    let (_, block_count, page_count) = setup_vault(&vault_path, &mut vstate)?;
+    Ok(VaultInfo {
+        path: vault_path.to_string_lossy().to_string(),
+        block_count,
+        page_count,
+    })
+}
+
+/// Pick a directory on Android via SAF, then init vault at that location.
+/// Requires MANAGE_EXTERNAL_STORAGE permission for raw file access.
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn pick_android_directory(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<VaultInfo, String> {
+    use tauri_plugin_android_fs::AndroidFsExt;
+
+    let api = app.android_fs_async();
+    let selected = api
+        .file_picker()
+        .pick_dir(None, false)
+        .await
+        .map_err(|e| format!("Folder picker failed: {}", e))?
+        .ok_or("No folder selected".to_string())?;
+
+    api.file_picker()
+        .persist_uri_permission(&selected)
+        .await
+        .ok();
+
+    // Try MANAGE_EXTERNAL_STORAGE raw path first, fall back to private storage
+    let vault_path = match resolve_picked_path(&selected.uri) {
+        Ok(p) if p.exists() || std::fs::create_dir_all(&p).is_ok() => p,
+        _ => {
+            // Fall back to default private path
+            std::path::PathBuf::from("/data/user/0/app.stratum/StratumVault")
+        }
+    };
+
+    let mut vstate = state.lock().map_err(|e| e.to_string())?;
+    let (_, block_count, page_count) = setup_vault(&vault_path, &mut vstate)?;
+
+    Ok(VaultInfo {
+        path: vault_path.to_string_lossy().to_string(),
+        block_count,
+        page_count,
+    })
+}
 fn setup_vault(
     vault_path: &std::path::Path,
     vstate: &mut VaultState,
