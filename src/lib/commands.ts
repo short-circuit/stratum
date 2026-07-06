@@ -37,7 +37,7 @@ export async function pickVaultDirectory(): Promise<VaultInfo> {
   if (getPlatform().isMobile) {
     try {
       return await invoke('pick_android_directory');
-    } catch (_err) {
+    } catch {
       return await invoke('init_default_vault');
     }
   }

@@ -26,7 +26,9 @@ export function useLongPress({
 
   // Keep callbacks in refs to avoid stale closures without recreating handlers.
   const callbacksRef = useRef({ onLongPress, onClick });
-  callbacksRef.current = { onLongPress, onClick };
+  useEffect(() => {
+    callbacksRef.current = { onLongPress, onClick };
+  }, [onLongPress, onClick]);
 
   const startTimer = useCallback((e: React.TouchEvent | React.MouseEvent) => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -53,7 +55,7 @@ export function useLongPress({
 
   const onTouchStart = useCallback((e: React.TouchEvent) => startTimer(e), [startTimer]);
   const onTouchEnd = useCallback((e: React.TouchEvent) => cancelTimer(e), [cancelTimer]);
-  const onTouchMove = useCallback((_e: React.TouchEvent) => {
+  const onTouchMove = useCallback(() => {
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
   }, []);
   const onMouseDown = useCallback((e: React.MouseEvent) => startTimer(e), [startTimer]);
