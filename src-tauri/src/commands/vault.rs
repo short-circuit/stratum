@@ -284,10 +284,7 @@ pub async fn pick_android_directory(
         .map_err(|e| format!("Folder picker failed: {}", e))?
         .ok_or("No folder selected".to_string())?;
 
-    api.picker()
-        .persist_uri_permission(&selected)
-        .await
-        .ok();
+    api.picker().persist_uri_permission(&selected).await.ok();
 
     // Try MANAGE_EXTERNAL_STORAGE raw path first, fall back to private storage
     let vault_path = match resolve_picked_path(&selected.uri) {
