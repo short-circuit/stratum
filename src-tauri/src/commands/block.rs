@@ -240,3 +240,117 @@ pub async fn insert_block(
         heading_level: None,
     })
 }
+
+#[tauri::command]
+pub async fn toggle_block_marker(
+    page_path: String,
+    block_id: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<Option<String>, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let id = Uuid::parse_str(&block_id).map_err(|e| e.to_string())?;
+    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let blocks = store
+        .get_blocks_by_page(&page_path)
+        .map_err(|e| e.to_string())?;
+
+    let mut tree = pkm_block::tree::BlockTree::new();
+    for b in &blocks {
+        tree.insert(b.clone());
+    }
+    let new_marker = pkm_block::ops::toggle_task(&mut tree, id).map_err(|e| e.to_string())?;
+
+    store
+        .delete_blocks_by_page(&page_path)
+        .map_err(|e| e.to_string())?;
+    for b in tree.all_blocks() {
+        store
+            .insert_block(b, &page_path)
+            .map_err(|e| e.to_string())?;
+    }
+
+    let all_blocks = store
+        .get_blocks_by_page(&page_path)
+        .map_err(|e| e.to_string())?;
+    let body = pkm_markdown::block_parser::serialize_blocks(&all_blocks);
+    let full_path = state.vault_path.join(&page_path);
+    let existing = std::fs::read_to_string(&full_path).unwrap_or_default();
+    let title = extract_title_from_frontmatter(&existing);
+
+    let final_md = if let Some(t) = &title {
+        format!("---\ntitle: {t}\n---\n\n{body}")
+    } else {
+        body
+    };
+    std::fs::write(&full_path, &final_md).map_err(|e| e.to_string())?;
+
+    if let Ok(mut block_index) =
+        pkm_index::block_search::BlockIndex::create(&state.vault_path.join(".pkm").join("search"))
+    {
+        for b in &all_blocks {
+            let _ = block_index.index_block(b, &page_path);
+        }
+        let _ = block_index.flush();
+    }
+
+    Ok(new_marker.map(|m| m.as_str().to_string()))
+}
+
+#[tauri::command]
+pub async fn clear_block_marker(
+    page_path: String,
+    block_id: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let id = Uuid::parse_str(&block_id).map_err(|e| e.to_string())?;
+    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let mut blocks = store
+        .get_blocks_by_page(&page_path)
+        .map_err(|e| e.to_string())?;
+
+    if let Some(block) = blocks.iter_mut().find(|b| b.id == id) {
+        block.marker = None;
+        store
+            .insert_block(block, &page_path)
+            .map_err(|e| e.to_string())?;
+    }
+
+    let body = pkm_markdown::block_parser::serialize_blocks(&blocks);
+    let full_path = state.vault_path.join(&page_path);
+    let existing = std::fs::read_to_string(&full_path).unwrap_or_default();
+    let title = extract_title_from_frontmatter(&existing);
+
+    let final_md = if let Some(t) = &title {
+        format!("---\ntitle: {t}\n---\n\n{body}")
+    } else {
+        body
+    };
+    std::fs::write(&full_path, &final_md).map_err(|e| e.to_string())?;
+
+    if let Ok(mut block_index) =
+        pkm_index::block_search::BlockIndex::create(&state.vault_path.join(".pkm").join("search"))
+    {
+        for b in &blocks {
+            let _ = block_index.index_block(b, &page_path);
+        }
+        let _ = block_index.flush();
+    }
+
+    Ok(())
+}
+
+fn extract_title_from_frontmatter(content: &str) -> Option<String> {
+    let content = content.trim();
+    if let Some(rest) = content.strip_prefix("---") {
+        if let Some(end) = rest.find("---") {
+            let frontmatter = &rest[..end];
+            for line in frontmatter.lines() {
+                if let Some(val) = line.strip_prefix("title:") {
+                    return Some(val.trim().to_string());
+                }
+            }
+        }
+    }
+    None
+}

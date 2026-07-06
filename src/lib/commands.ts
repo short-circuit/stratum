@@ -114,6 +114,14 @@ export async function searchByTag(tag: string): Promise<SearchResultsDto> {
   return invoke('search_by_tag', { tag });
 }
 
+export async function toggleBlockMarker(pagePath: string, blockId: string): Promise<string | null> {
+  return invoke('toggle_block_marker', { pagePath, blockId });
+}
+
+export async function clearBlockMarker(pagePath: string, blockId: string): Promise<void> {
+  return invoke('clear_block_marker', { pagePath, blockId });
+}
+
 export async function rebuildSearchIndex(): Promise<string> {
   return invoke('rebuild_search_index');
 }
