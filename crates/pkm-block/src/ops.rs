@@ -1,28 +1,8 @@
 use crate::block::{Block, BlockId, TaskMarker};
 use crate::tree::BlockTree;
 use chrono::Utc;
+use pkm_core::PkmError;
 use uuid::Uuid;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum OpError {
-    BlockNotFound(BlockId),
-    ParentNotFound(BlockId),
-    WouldCreateCycle,
-    InvalidPosition,
-}
-
-impl std::fmt::Display for OpError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::BlockNotFound(id) => write!(f, "Block not found: {}", id),
-            Self::ParentNotFound(id) => write!(f, "Parent block not found: {}", id),
-            Self::WouldCreateCycle => write!(f, "Operation would create a cycle"),
-            Self::InvalidPosition => write!(f, "Invalid position for insertion"),
-        }
-    }
-}
-
-impl std::error::Error for OpError {}
 
 /// Create a new block and append it after `after_id` (None = first child of parent, or first root).
 pub fn create_block(
@@ -30,15 +10,15 @@ pub fn create_block(
     parent_id: Option<BlockId>,
     after_id: Option<BlockId>,
     content: String,
-) -> Result<BlockId, OpError> {
+) -> Result<BlockId, PkmError> {
     if let Some(pid) = parent_id {
         if !tree.contains(pid) {
-            return Err(OpError::ParentNotFound(pid));
+            return Err(PkmError::NotFound(format!("Parent block not found: {pid}")));
         }
     }
     if let Some(aid) = after_id {
         if !tree.contains(aid) {
-            return Err(OpError::BlockNotFound(aid));
+            return Err(PkmError::BlockNotFound(aid.to_string()));
         }
     }
 
@@ -75,9 +55,9 @@ pub fn insert_block(tree: &mut BlockTree, block: Block) {
 }
 
 /// Delete a block and all its descendants.
-pub fn delete_block(tree: &mut BlockTree, block_id: BlockId) -> Result<Vec<BlockId>, OpError> {
+pub fn delete_block(tree: &mut BlockTree, block_id: BlockId) -> Result<Vec<BlockId>, PkmError> {
     if !tree.contains(block_id) {
-        return Err(OpError::BlockNotFound(block_id));
+        return Err(PkmError::BlockNotFound(block_id.to_string()));
     }
 
     let block = tree.get(block_id).unwrap();
@@ -108,32 +88,32 @@ pub fn move_block(
     block_id: BlockId,
     new_parent_id: Option<BlockId>,
     new_left_id: Option<BlockId>,
-) -> Result<(), OpError> {
+) -> Result<(), PkmError> {
     if !tree.contains(block_id) {
-        return Err(OpError::BlockNotFound(block_id));
+        return Err(PkmError::BlockNotFound(block_id.to_string()));
     }
     if let Some(pid) = new_parent_id {
         if !tree.contains(pid) {
-            return Err(OpError::ParentNotFound(pid));
+            return Err(PkmError::NotFound(format!("Parent block not found: {pid}")));
         }
     }
     if let Some(lid) = new_left_id {
         if !tree.contains(lid) {
-            return Err(OpError::BlockNotFound(lid));
+            return Err(PkmError::BlockNotFound(lid.to_string()));
         }
     }
 
     // Check for cycles: can't move a block under itself
     if let Some(pid) = new_parent_id {
         if tree.ancestors(pid).iter().any(|b| b.id == block_id) {
-            return Err(OpError::WouldCreateCycle);
+            return Err(PkmError::CycleDetected("Operation would create a cycle".to_string()));
         }
     }
     if block_id == new_left_id.unwrap_or_default() || block_id == new_parent_id.unwrap_or_default()
     {
         // Moving to self as parent
         if new_parent_id == Some(block_id) {
-            return Err(OpError::WouldCreateCycle);
+            return Err(PkmError::CycleDetected("Operation would create a cycle".to_string()));
         }
     }
 
@@ -166,15 +146,15 @@ pub fn move_block(
 }
 
 /// Indent a block (make it a child of the previous sibling).
-pub fn indent_block(tree: &mut BlockTree, block_id: BlockId) -> Result<(), OpError> {
+pub fn indent_block(tree: &mut BlockTree, block_id: BlockId) -> Result<(), PkmError> {
     if !tree.contains(block_id) {
-        return Err(OpError::BlockNotFound(block_id));
+        return Err(PkmError::BlockNotFound(block_id.to_string()));
     }
 
     let left_id = tree.get(block_id).and_then(|b| b.left_id);
     let new_parent = match left_id {
         Some(left) => left,
-        None => return Err(OpError::InvalidPosition), // Can't indent first child
+        None => return Err(PkmError::Internal("Invalid position for insertion".to_string())), // Can't indent first child
     };
 
     // Find the last child of the new parent (to place after it)
@@ -185,15 +165,15 @@ pub fn indent_block(tree: &mut BlockTree, block_id: BlockId) -> Result<(), OpErr
 }
 
 /// Outdent a block (promote it to its parent's level, after its parent).
-pub fn outdent_block(tree: &mut BlockTree, block_id: BlockId) -> Result<(), OpError> {
+pub fn outdent_block(tree: &mut BlockTree, block_id: BlockId) -> Result<(), PkmError> {
     if !tree.contains(block_id) {
-        return Err(OpError::BlockNotFound(block_id));
+        return Err(PkmError::BlockNotFound(block_id.to_string()));
     }
 
     let parent_id = tree.get(block_id).and_then(|b| b.parent_id);
     let grandparent_id = match parent_id {
         Some(pid) => tree.get(pid).and_then(|b| b.parent_id),
-        None => return Err(OpError::InvalidPosition), // Root can't outdent
+        None => return Err(PkmError::Internal("Invalid position for insertion".to_string())), // Root can't outdent
     };
 
     move_block(tree, block_id, grandparent_id, parent_id)
@@ -204,8 +184,8 @@ pub fn split_block(
     tree: &mut BlockTree,
     block_id: BlockId,
     split_pos: usize,
-) -> Result<BlockId, OpError> {
-    let block = tree.get(block_id).ok_or(OpError::BlockNotFound(block_id))?;
+) -> Result<BlockId, PkmError> {
+    let block = tree.get(block_id).ok_or(PkmError::BlockNotFound(block_id.to_string()))?;
     let original = block.content.clone();
     let parent = block.parent_id;
 
@@ -227,15 +207,15 @@ pub fn split_block(
 }
 
 /// Merge a block with its previous sibling.
-pub fn merge_with_previous(tree: &mut BlockTree, block_id: BlockId) -> Result<(), OpError> {
+pub fn merge_with_previous(tree: &mut BlockTree, block_id: BlockId) -> Result<(), PkmError> {
     if !tree.contains(block_id) {
-        return Err(OpError::BlockNotFound(block_id));
+        return Err(PkmError::BlockNotFound(block_id.to_string()));
     }
 
     let prev_id = tree.prev_sibling(block_id);
     let prev_id = match prev_id {
         Some(id) => id,
-        None => return Err(OpError::InvalidPosition), // No previous sibling
+        None => return Err(PkmError::Internal("Invalid position for insertion".to_string())), // No previous sibling
     };
 
     let block_content = tree.get(block_id).unwrap().content.clone();
@@ -262,10 +242,10 @@ pub fn merge_with_previous(tree: &mut BlockTree, block_id: BlockId) -> Result<()
 }
 
 /// Cycle a block's task marker through TODO → DOING → DONE → (clear).
-pub fn toggle_task(tree: &mut BlockTree, block_id: BlockId) -> Result<Option<TaskMarker>, OpError> {
+pub fn toggle_task(tree: &mut BlockTree, block_id: BlockId) -> Result<Option<TaskMarker>, PkmError> {
     let block = tree
         .get_mut(block_id)
-        .ok_or(OpError::BlockNotFound(block_id))?;
+        .ok_or(PkmError::BlockNotFound(block_id.to_string()))?;
     let new_marker = match block.marker {
         None => Some(TaskMarker::Todo),
         Some(TaskMarker::Todo) => Some(TaskMarker::Doing),
@@ -279,10 +259,10 @@ pub fn toggle_task(tree: &mut BlockTree, block_id: BlockId) -> Result<Option<Tas
 }
 
 /// Toggle collapse state of a block (if it has children).
-pub fn toggle_collapsed(tree: &mut BlockTree, block_id: BlockId) -> Result<bool, OpError> {
+pub fn toggle_collapsed(tree: &mut BlockTree, block_id: BlockId) -> Result<bool, PkmError> {
     let block = tree
         .get_mut(block_id)
-        .ok_or(OpError::BlockNotFound(block_id))?;
+        .ok_or(PkmError::BlockNotFound(block_id.to_string()))?;
     block.meta.collapsed = !block.meta.collapsed;
     block.modified_at = Utc::now();
     Ok(block.meta.collapsed)
@@ -293,10 +273,10 @@ pub fn update_content(
     tree: &mut BlockTree,
     block_id: BlockId,
     content: String,
-) -> Result<(), OpError> {
+) -> Result<(), PkmError> {
     let block = tree
         .get_mut(block_id)
-        .ok_or(OpError::BlockNotFound(block_id))?;
+        .ok_or(PkmError::BlockNotFound(block_id.to_string()))?;
     block.content = content;
     block.modified_at = Utc::now();
     Ok(())
@@ -308,20 +288,20 @@ pub fn set_property(
     block_id: BlockId,
     key: &str,
     value: &str,
-) -> Result<(), OpError> {
+) -> Result<(), PkmError> {
     let block = tree
         .get_mut(block_id)
-        .ok_or(OpError::BlockNotFound(block_id))?;
+        .ok_or(PkmError::BlockNotFound(block_id.to_string()))?;
     block.properties.insert(key.to_string(), value.to_string());
     block.modified_at = Utc::now();
     Ok(())
 }
 
 /// Remove a property from a block.
-pub fn remove_property(tree: &mut BlockTree, block_id: BlockId, key: &str) -> Result<(), OpError> {
+pub fn remove_property(tree: &mut BlockTree, block_id: BlockId, key: &str) -> Result<(), PkmError> {
     let block = tree
         .get_mut(block_id)
-        .ok_or(OpError::BlockNotFound(block_id))?;
+        .ok_or(PkmError::BlockNotFound(block_id.to_string()))?;
     block.properties.remove(key);
     block.modified_at = Utc::now();
     Ok(())
