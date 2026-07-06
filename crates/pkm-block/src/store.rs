@@ -105,7 +105,17 @@ impl BlockStore {
             CREATE INDEX IF NOT EXISTS idx_links_target_block ON links(target_block);
             ",
         )?;
-        self.conn.execute("PRAGMA foreign_keys = ON", [])?;
+        self.conn.execute_batch(
+            "
+            PRAGMA foreign_keys = ON;
+            PRAGMA journal_mode = WAL;
+            PRAGMA synchronous = NORMAL;
+            PRAGMA cache_size = -64000;
+            PRAGMA temp_store = MEMORY;
+            PRAGMA mmap_size = 268435456;
+            PRAGMA busy_timeout = 5000;
+            ",
+        )?;
         Ok(())
     }
 
