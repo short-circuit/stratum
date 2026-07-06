@@ -339,6 +339,8 @@ jobs:
           cp -r src-tauri/android-patches/app/src/main/* src-tauri/gen/android/app/src/main/
           # Override generated build.gradle.kts with patched version (signing config, etc.)
           cp src-tauri/android-patches/app/build.gradle.kts src-tauri/gen/android/app/build.gradle.kts
+          # Copy proguard rules for Tauri WebView bridge
+          cp src-tauri/android-patches/app/proguard-rules.pro src-tauri/gen/android/app/proguard-rules.pro 2>/dev/null || true
           # Copy debug keystore into the Android project for signing
           cp src-tauri/android-patches/debug.keystore src-tauri/gen/android/app/debug.keystore
 
