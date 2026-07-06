@@ -2,6 +2,7 @@ use crate::commands::vault::AppState;
 use pkm_ai::provider::{ChatConfig, ChatMessage, ProviderFactory};
 use pkm_ai::research::ResearchEngine;
 use serde::{Deserialize, Serialize};
+use tracing::{debug, error, info, warn};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AiTransformResult {
@@ -73,8 +74,8 @@ pub async fn ai_transform_block(
     page_path: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<AiTransformResult, String> {
-    eprintln!(
-        "[ai] transform_block action={:?} text_len={} page={:?}",
+    info!(
+        "transform_block action={:?} text_len={} page={:?}",
         &action,
         text.len(),
         &page_path
@@ -109,8 +110,8 @@ pub async fn ai_transform_block(
 
     let full_system = format!("{}{}", system_prompt, context_suffix);
 
-    eprintln!(
-        "[ai] calling provider={:?} model={}",
+    debug!(
+        "calling provider={:?} model={}",
         config.ai.provider, config.ai.model
     );
 
@@ -121,11 +122,11 @@ pub async fn ai_transform_block(
     let messages = vec![ChatMessage::user(&text)];
 
     let response = provider.chat(&messages, &chat_config).await.map_err(|e| {
-        eprintln!("[ai] provider error: {}", e);
+        error!("provider error: {}", e);
         e.to_string()
     })?;
 
-    eprintln!("[ai] response len={}", response.content.len());
+    debug!("response len={}", response.content.len());
 
     Ok(AiTransformResult {
         content: response.content,
@@ -150,7 +151,7 @@ pub async fn ai_research(
     query: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<ResearchResultDto, String> {
-    eprintln!("[ai] research query={}", query);
+    info!("research query={}", query);
 
     let config_path = {
         let s = state.lock().map_err(|e| e.to_string())?;
@@ -163,8 +164,8 @@ pub async fn ai_research(
         return Err("AI not configured. Please configure AI provider in Settings.".into());
     };
 
-    eprintln!(
-        "[ai] research searxng={} max_results={} max_depth={}",
+    debug!(
+        "research searxng={} max_results={} max_depth={}",
         config.research.searxng_endpoint, config.research.max_results, config.research.max_depth
     );
 
@@ -181,8 +182,8 @@ pub async fn ai_research(
         .await
         .map_err(|e| format!("Research failed: {e}"))?;
 
-    eprintln!(
-        "[ai] research done, findings_len={} sources={}",
+    debug!(
+        "research done, findings_len={} sources={}",
         result.findings.len(),
         result.sources.len()
     );
@@ -206,7 +207,7 @@ pub async fn generate_mermaid(
     prompt: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<AiTransformResult, String> {
-    eprintln!("[ai] generate_mermaid prompt_len={}", prompt.len());
+    info!("generate_mermaid prompt_len={}", prompt.len());
 
     let config_path = {
         let s = state.lock().map_err(|e| e.to_string())?;
@@ -230,11 +231,11 @@ pub async fn generate_mermaid(
     let messages = vec![ChatMessage::user(&prompt)];
 
     let response = provider.chat(&messages, &chat_config).await.map_err(|e| {
-        eprintln!("[ai] provider error: {}", e);
+        error!("provider error: {}", e);
         e.to_string()
     })?;
 
-    eprintln!("[ai] mermaid response len={}", response.content.len());
+    debug!("mermaid response len={}", response.content.len());
 
     Ok(AiTransformResult {
         content: response.content,
@@ -247,8 +248,8 @@ pub async fn ai_interlink_notes(
     page_path: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<AiTransformResult, String> {
-    eprintln!(
-        "[ai] interlink text_len={} page={:?}",
+    info!(
+        "interlink text_len={} page={:?}",
         text.len(),
         page_path
     );
@@ -275,7 +276,7 @@ pub async fn ai_interlink_notes(
             .and_then(|s| s.to_str())
             .map(|s| s.to_string())
     });
-    eprintln!("[ai] interlink current_slug={:?}", current_slug);
+    debug!("interlink current_slug={:?}", current_slug);
 
     // Step 1: ensure Tantivy index is built, then search
     let mut related_titles: Vec<String> = Vec::new();
@@ -357,10 +358,10 @@ pub async fn ai_interlink_notes(
         }
     }
 
-    eprintln!("[ai] found {} related pages", related_titles.len());
+    debug!("found {} related pages", related_titles.len());
 
     if related_titles.is_empty() {
-        eprintln!("[ai] no related pages found, returning original text");
+        warn!("no related pages found, returning original text");
         return Ok(AiTransformResult { content: text });
     }
 
@@ -397,7 +398,7 @@ pub async fn ai_interlink_notes(
         .await
         .map_err(|e| e.to_string())?;
 
-    eprintln!("[ai] interlink response len={}", response.content.len());
+    debug!("interlink response len={}", response.content.len());
 
     // Post-process: strip self-links
     let mut result = response.content;
@@ -409,7 +410,7 @@ pub async fn ai_interlink_notes(
             let before = &result[..pos];
             let after = &result[end..];
             result = format!("{}{}{}", before, slug, after);
-            eprintln!("[ai] stripped self-link from response");
+            debug!("stripped self-link from response");
         }
         // Also handle piped links like [[homelab|something]]
         let piped = format!("[[{}|", slug);
@@ -423,7 +424,7 @@ pub async fn ai_interlink_notes(
             // Extract display text after the pipe
             let inner = &result[pos + piped.len()..close - 2];
             result = format!("{}{}{}", before, inner, after);
-            eprintln!("[ai] stripped piped self-link from response");
+            debug!("stripped piped self-link from response");
         }
     }
 
