@@ -278,13 +278,13 @@ pub async fn pick_android_directory(
 
     let api = app.android_fs_async();
     let selected = api
-        .file_picker()
+        .picker()
         .pick_dir(None, false)
         .await
         .map_err(|e| format!("Folder picker failed: {}", e))?
         .ok_or("No folder selected".to_string())?;
 
-    api.file_picker()
+    api.picker()
         .persist_uri_permission(&selected)
         .await
         .ok();
