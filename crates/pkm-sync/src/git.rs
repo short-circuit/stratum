@@ -178,7 +178,7 @@ impl GitEngine {
     fn write_tree_from_index(&self) -> PkmResult<gix::ObjectId> {
         let index_file = self.repo.open_index()
             .map_err(|e| PkmError::Git(format!("open index: {e}")))?;
-        let state: &gix::index::State = &*index_file;
+        let state: &gix::index::State = &index_file;
 
         if state.entries().is_empty() {
             return Ok(gix::ObjectId::empty_tree(self.repo.object_hash()));
@@ -433,6 +433,7 @@ impl GitEngine {
         self.passphrase.as_deref()
     }
 
+    #[allow(clippy::result_large_err)]
     pub fn credentials_callback(
         &self,
     ) -> impl FnMut(gix::credentials::helper::Action) -> gix::credentials::protocol::Result + Clone + 'static {

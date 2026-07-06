@@ -172,6 +172,7 @@ fn resolve_picked_path(picked: &str) -> Result<PathBuf, String> {
 /// real filesystem path like `/storage/emulated/0/Documents/MyFolder`.
 /// Also handles URIs with a `/document/` suffix segment which Android's
 /// `ACTION_OPEN_DOCUMENT_TREE` may append after the tree root.
+#[allow(dead_code)]
 fn resolve_saf_content_uri(picked: &str) -> Result<PathBuf, String> {
     // Extract the encoded path after "/tree/" — drop any "/document/" suffix
     let path_encoded = picked
@@ -192,6 +193,7 @@ fn resolve_saf_content_uri(picked: &str) -> Result<PathBuf, String> {
     }
 }
 
+#[allow(dead_code)]
 fn percent_decode(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     let mut chars = s.chars();
