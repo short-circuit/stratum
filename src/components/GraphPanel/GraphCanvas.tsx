@@ -231,6 +231,7 @@ export default function GraphCanvas({
             </Alert>
           )}
           <ForceGraph3D
+            key={`graph-${graphData?.node_count ?? 0}-${graphData?.edge_count ?? 0}`}
             ref={graphRef}
             graphData={graphDataProp}
             width={width}
