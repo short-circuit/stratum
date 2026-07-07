@@ -1,5 +1,6 @@
 //! Vault management commands.
 
+use pkm_index::block_search::BlockIndex;
 use pkm_index::indexer::IndexEngine;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -12,6 +13,7 @@ pub struct VaultState {
     pub vault_path: PathBuf,
     pub db_path: PathBuf,
     pub index_engine: Option<IndexEngine>,
+    pub block_index: Option<BlockIndex>,
     pub sync_scheduler: Option<pkm_sync::SyncScheduler>,
     pub auto_commit_engine: Option<pkm_sync::AutoCommitEngine>,
     pub passphrase: Option<String>,
@@ -29,6 +31,7 @@ impl VaultState {
             vault_path,
             db_path,
             index_engine,
+            block_index: None,
             sync_scheduler: None,
             auto_commit_engine: None,
             passphrase: None,
@@ -46,6 +49,29 @@ impl VaultState {
         self.index_engine
             .as_mut()
             .ok_or_else(|| "IndexEngine not available".to_string())
+    }
+
+    pub fn ensure_block_index(&mut self) -> Result<&mut BlockIndex, String> {
+        if self.block_index.is_none() {
+            let index_path = self.vault_path.join(".pkm").join("search");
+            self.block_index = Some(
+                BlockIndex::create(&index_path)
+                    .map_err(|e| format!("Failed to create BlockIndex: {}", e))?,
+            );
+        }
+        self.block_index
+            .as_mut()
+            .ok_or_else(|| "BlockIndex not available".to_string())
+    }
+
+    #[allow(dead_code)]
+    pub fn flush_block_index(&mut self) -> Result<(), String> {
+        if let Some(ref mut block_index) = self.block_index {
+            block_index
+                .flush()
+                .map_err(|e| format!("Failed to flush block index: {}", e))?;
+        }
+        Ok(())
     }
 
     pub fn set_passphrase(&mut self, passphrase: String) {

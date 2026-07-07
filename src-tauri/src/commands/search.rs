@@ -1,6 +1,7 @@
 //! Search and query commands.
 
 use crate::commands::vault::{AppState, IndexingGuard};
+use pkm_index::block_search::BlockIndex;
 use pkm_markdown::linker::extract_links;
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
@@ -32,9 +33,9 @@ pub async fn rebuild_search_index(
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     let pages = store.list_pages().map_err(|e| e.to_string())?;
 
-    let index_path = state.vault_path.join(".pkm").join("search");
-    let mut block_index =
-        pkm_index::block_search::BlockIndex::create(&index_path).map_err(|e| e.to_string())?;
+    // Create a local BlockIndex for rebuild (IndexingGuard prevents state mutation)
+    let mut block_index = BlockIndex::create(&state.vault_path.join(".pkm").join("search"))
+        .map_err(|e| e.to_string())?;
 
     let total = pages.len();
     let mut count = 0usize;
@@ -81,12 +82,10 @@ pub async fn search_blocks(
     limit: Option<usize>,
     state: tauri::State<'_, AppState>,
 ) -> Result<SearchResultsDto, String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
+    let mut state = state.lock().map_err(|e| e.to_string())?;
     let limit = limit.unwrap_or(20);
 
-    let index_path = state.vault_path.join(".pkm").join("search");
-    let block_index =
-        pkm_index::block_search::BlockIndex::create(&index_path).map_err(|e| e.to_string())?;
+    let block_index = state.ensure_block_index()?;
 
     let results = block_index
         .search(&query, limit)
