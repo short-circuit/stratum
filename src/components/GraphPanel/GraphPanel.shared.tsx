@@ -54,6 +54,8 @@ export interface UseGraphPanelReturn {
   progressiveLoading: boolean;
   /** Progress of the progressive render: {current, total} nodes revealed so far. */
   progress: { current: number; total: number };
+  /** Counter incremented on every explicit loadData() call — used as ForceGraph3D key. */
+  refreshKey: number;
 }
 
 /**
@@ -86,6 +88,10 @@ export function useGraphPanel(): UseGraphPanelReturn {
 
   /** How many chunks of CHUNK_SIZE nodes have been revealed so far. */
   const [displayBatch, setDisplayBatch] = useState(1);
+
+  /** Counter incremented on every explicit loadData() call — used as ForceGraph3D key to
+   *  work around the known bug where links don't render on first mount with data. */
+  const [refreshKey, setRefreshKey] = useState(0);
 
   /** Pre-computed layout positions from the Web Worker, keyed by node id. */
   const [layoutPositions, setLayoutPositions] = useState<Map<string, { x: number; y: number; z: number }>>(new Map());
@@ -127,6 +133,7 @@ export function useGraphPanel(): UseGraphPanelReturn {
     setLoading(true);
     setError(null);
     try {
+      setRefreshKey((prev) => prev + 1);
       const [data, comps, orphs] = await Promise.all([
         api.getGraphData(),
         api.getConnectedComponents(),
@@ -398,5 +405,6 @@ export function useGraphPanel(): UseGraphPanelReturn {
     preCapNodeCount,
     progressiveLoading,
     progress,
+    refreshKey,
   };
 }
