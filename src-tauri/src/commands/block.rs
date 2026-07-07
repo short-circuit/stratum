@@ -122,6 +122,8 @@ pub async fn save_blocks(
             .map_err(|e| e.to_string())?;
     }
     block_index.flush().map_err(|e| e.to_string())?;
+    // Drop BlockIndex writer before IndexEngine acquires its own (same Tantivy dir)
+    drop(state.block_index.take());
 
     // Keep IndexEngine in sync with the written file
     let vault_path = state.vault_path.clone();
@@ -306,6 +308,8 @@ pub async fn toggle_block_marker(
             .map_err(|e| e.to_string())?;
     }
     block_index.flush().map_err(|e| e.to_string())?;
+    // Drop BlockIndex writer before IndexEngine acquires its own (same Tantivy dir)
+    drop(state.block_index.take());
 
     // Keep IndexEngine in sync with the written file
     let vault_path = state.vault_path.clone();
@@ -356,6 +360,8 @@ pub async fn clear_block_marker(
             .map_err(|e| e.to_string())?;
     }
     block_index.flush().map_err(|e| e.to_string())?;
+    // Drop BlockIndex writer before IndexEngine acquires its own (same Tantivy dir)
+    drop(state.block_index.take());
 
     // Keep IndexEngine in sync with the written file
     let vault_path = state.vault_path.clone();
