@@ -97,7 +97,8 @@ export default function BoardGallery({
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
       <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>Whiteboards</Typography>
 
       <Box sx={{ display: 'flex', gap: 1, mb: 3, alignItems: 'center' }}>
@@ -261,6 +262,7 @@ export default function BoardGallery({
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 }
