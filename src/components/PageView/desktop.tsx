@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
@@ -12,10 +12,23 @@ import OutlinerEditor from '../OutlinerEditor';
 import BacklinksPanel from '../BacklinksPanel';
 import SuggestedConnectionsPanel from '../SuggestedConnectionsPanel';
 import { usePageView } from './shared';
+import * as api from '../../lib/commands';
+import { useStore } from '../../stores/appStore';
 
 export default function PageViewDesktop() {
   const { pagePath, currentPage, editorKey, reindexing, handleReindex, handleDelete } = usePageView();
   const [noteMenuAnchor, setNoteMenuAnchor] = useState<HTMLElement | null>(null);
+
+  const handleNormalizeFile = useCallback(async () => {
+    if (!currentPage) return;
+    try {
+      await api.normalizeFile(currentPage.path);
+      console.log('File normalized:', currentPage.path);
+    } catch (e) {
+      console.error('Normalize failed:', e);
+      useStore.setState({ error: String(e) });
+    }
+  }, [currentPage]);
 
   const closeMenu = () => setNoteMenuAnchor(null);
 
@@ -59,6 +72,7 @@ export default function PageViewDesktop() {
         >
           <ListSubheader sx={{ lineHeight: '28px', fontSize: '0.7rem', color: 'text.disabled' }}>Actions</ListSubheader>
           <MenuItem onClick={() => { handleReindex(); closeMenu(); }} disabled={reindexing} dense>Reindex Note</MenuItem>
+          <MenuItem onClick={() => { handleNormalizeFile(); closeMenu(); }} dense>Normalize File</MenuItem>
           <Divider />
           <MenuItem onClick={() => { handleDelete(); closeMenu(); }} dense sx={{ color: 'error.main' }}>Delete Page</MenuItem>
         </Menu>

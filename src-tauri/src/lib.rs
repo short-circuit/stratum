@@ -122,6 +122,8 @@ pub fn run() {
             commands::page::delete_page,
             commands::page::reindex_vault,
             commands::page::reindex_page,
+            commands::page::normalize_file,
+            commands::page::normalize_all_files,
             // Blocks
             commands::block::get_blocks,
             commands::block::build_markdown,

@@ -123,6 +123,13 @@ pub async fn save_blocks(
     }
     block_index.flush().map_err(|e| e.to_string())?;
 
+    // Keep IndexEngine in sync with the written file
+    let vault_path = state.vault_path.clone();
+    state
+        .ensure_index()?
+        .refresh_page(&page_path, &vault_path)
+        .map_err(|e| format!("Index refresh failed: {}", e))?;
+
     let mut page = pkm_block::Page::new(full_path, &state.vault_path);
     if let Some(t) = title {
         page.frontmatter.title = Some(t);
@@ -241,6 +248,14 @@ pub async fn insert_block(
     })
 }
 
+// ── SQLite-only operations ──────────────────────────────────
+// update_block, delete_block, and insert_block operate solely on SQLite and
+// do NOT write to disk or trigger IndexEngine refresh.  The next save_blocks
+// call (which always follows these operations in the editing flow) will
+// re-serialize the full page to disk and call refresh_page, keeping
+// everything consistent.
+// ─────────────────────────────────────────────────────────────
+
 #[tauri::command]
 pub async fn toggle_block_marker(
     page_path: String,
@@ -292,6 +307,13 @@ pub async fn toggle_block_marker(
     }
     block_index.flush().map_err(|e| e.to_string())?;
 
+    // Keep IndexEngine in sync with the written file
+    let vault_path = state.vault_path.clone();
+    state
+        .ensure_index()?
+        .refresh_page(&page_path, &vault_path)
+        .map_err(|e| format!("Index refresh failed: {}", e))?;
+
     Ok(new_marker.map(|m| m.as_str().to_string()))
 }
 
@@ -334,6 +356,13 @@ pub async fn clear_block_marker(
             .map_err(|e| e.to_string())?;
     }
     block_index.flush().map_err(|e| e.to_string())?;
+
+    // Keep IndexEngine in sync with the written file
+    let vault_path = state.vault_path.clone();
+    state
+        .ensure_index()?
+        .refresh_page(&page_path, &vault_path)
+        .map_err(|e| format!("Index refresh failed: {}", e))?;
 
     Ok(())
 }
