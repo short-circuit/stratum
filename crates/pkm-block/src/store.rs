@@ -74,7 +74,7 @@ impl BlockStore {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 source_block TEXT NOT NULL,
                 link_type TEXT NOT NULL,
-                target_page TEXT,
+                target_page TEXT COLLATE NOCASE,
                 target_block TEXT,
                 FOREIGN KEY (source_block) REFERENCES blocks(id) ON DELETE CASCADE
             );
@@ -374,7 +374,7 @@ impl BlockStore {
     pub fn get_backlinks_for_page(&self, target_page: &str) -> StoreResult<Vec<String>> {
         let mut stmt = self
             .conn
-            .prepare("SELECT source_block FROM links WHERE LOWER(target_page) = LOWER(?1)")
+            .prepare("SELECT source_block FROM links WHERE target_page = ?1")
             .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         let sources: Vec<String> = stmt
             .query_map(params![target_page], |row| row.get(0))
