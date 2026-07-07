@@ -75,9 +75,11 @@ impl Page {
         self.block_tree.roots()
     }
 
-    pub fn is_journal(&self) -> bool {
+    pub fn is_journal(&self, journals_dir: &str) -> bool {
         let path_str = self.rel_path.to_string_lossy();
-        path_str.starts_with("journals/") || path_str.starts_with("journals\\")
+        let prefix = format!("{}/", journals_dir);
+        let backslash_prefix = format!("{}\\", journals_dir);
+        path_str.starts_with(&prefix) || path_str.starts_with(&backslash_prefix)
     }
 
     pub fn is_page(&self) -> bool {
@@ -111,7 +113,7 @@ mod tests {
         assert_eq!(page.display_name(), "my note");
         assert_eq!(page.block_count(), 0);
         assert!(page.is_page());
-        assert!(!page.is_journal());
+        assert!(!page.is_journal("journals"));
     }
 
     #[test]
@@ -120,7 +122,7 @@ mod tests {
             PathBuf::from("/vault/journals/2026-06-22.md"),
             std::path::Path::new("/vault"),
         );
-        assert!(page.is_journal());
+        assert!(page.is_journal("journals"));
         assert!(!page.is_page());
     }
 
