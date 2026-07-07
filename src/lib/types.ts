@@ -132,6 +132,8 @@ export interface GraphSettings {
   alpha_decay: number;
   velocity_decay: number;
   link_curvature: number;
+  /** Maximum nodes to render before capping. 0 = unlimited. */
+  node_cap: number;
 }
 
 // --- Connection suggestions ---

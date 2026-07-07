@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ForceGraph3D from 'react-force-graph-3d';
 import SpriteText from 'three-spritetext';
@@ -47,11 +48,12 @@ export const DEFAULT_SETTINGS: GraphSettings = {
   show_connected: true,
   show_orphaned: true,
   show_tags: true,
-  charge_strength: -8,
+  charge_strength: -4,
   link_distance: 40,
-  alpha_decay: 0.08,
-  velocity_decay: 0.3,
+  alpha_decay: 0.15,
+  velocity_decay: 0.4,
   link_curvature: 0.15,
+  node_cap: 0,
 };
 
 interface GraphCanvasProps {
@@ -70,6 +72,11 @@ interface GraphCanvasProps {
   graphRef: React.MutableRefObject<any>;
 }
 
+interface GraphStats {
+  fps: number;
+  frameTime: number;
+}
+
 export default function GraphCanvas({
   graphDataProp,
   width,
@@ -86,6 +93,30 @@ export default function GraphCanvas({
   graphRef,
 }: GraphCanvasProps) {
   const navigate = useNavigate();
+
+  const [graphStats, setGraphStats] = useState<GraphStats>({ fps: 0, frameTime: 0 });
+  const fpsRef = useRef({ frameCount: 0, lastSampleTime: 0 });
+
+  useEffect(() => {
+    const r = fpsRef.current;
+    r.lastSampleTime = performance.now();
+    let rafId: number;
+    const tick = (now: number) => {
+      r.frameCount++;
+      const elapsed = now - r.lastSampleTime;
+      if (elapsed >= 500) {
+        const fps = Math.round((r.frameCount / elapsed) * 1000);
+        setGraphStats({ fps, frameTime: Math.round(elapsed / r.frameCount) });
+        r.frameCount = 0;
+        r.lastSampleTime = now;
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
+
+  const edgeCount = graphDataProp?.links?.length ?? 0;
 
   return (
     <Box sx={{ flex: 1, position: 'relative', bgcolor: 'background.default' }}>
@@ -130,8 +161,8 @@ export default function GraphCanvas({
             onNodeClick={(n: GraphNode) => handleNodeClick(n)}
             onNodeRightClick={(n: GraphNode) => handleNodeRightClick(n)}
             linkColor={() => textColor}
-            linkDirectionalArrowLength={3.5}
-            linkDirectionalArrowRelPos={1}
+            linkDirectionalArrowLength={nodes.length > 500 ? 0 : 3.5}
+            linkDirectionalArrowRelPos={nodes.length > 500 ? 0 : 1}
             linkWidth={0.5}
             linkOpacity={0.35}
             linkCurvature={graphSettings.link_curvature}
@@ -166,6 +197,31 @@ export default function GraphCanvas({
           </Box>
         </Box>
       )}
+
+      {/* Stats overlay — always visible */}
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: 8,
+          right: 8,
+          zIndex: 20,
+          bgcolor: 'rgba(0,0,0,0.6)',
+          borderRadius: 1,
+          px: 1.5,
+          py: 0.75,
+          fontFamily: 'monospace',
+          fontSize: '0.7rem',
+          color: '#ccc',
+          lineHeight: 1.6,
+          pointerEvents: 'none',
+          userSelect: 'none',
+        }}
+      >
+        <div>FPS: {graphStats.fps}</div>
+        <div>Frame: {graphStats.frameTime}ms</div>
+        <div>Nodes: {nodes.length}</div>
+        <div>Edges: {edgeCount}</div>
+      </Box>
     </Box>
   );
 }
