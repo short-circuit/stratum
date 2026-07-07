@@ -334,6 +334,30 @@ pub async fn toggle_block_marker(
     // Drop BlockIndex writer before IndexEngine acquires its own (same Tantivy dir)
     drop(state.block_index.take());
 
+    // Upsert page with frontmatter preservation so tags/aliases are not lost
+    let mut page = pkm_block::Page::new(full_path, &state.vault_path);
+    if let Some(t) = title {
+        page.frontmatter.title = Some(t);
+    }
+    if let Ok(Some(existing_fm)) = store.get_page(&page.rel_path.to_string_lossy()) {
+        if !existing_fm.tags.is_empty() {
+            page.frontmatter.tags = existing_fm.tags;
+        }
+        if !existing_fm.aliases.is_empty() {
+            page.frontmatter.aliases = existing_fm.aliases;
+        }
+        if existing_fm.created.is_some() {
+            page.frontmatter.created = existing_fm.created;
+        }
+        if existing_fm.modified.is_some() {
+            page.frontmatter.modified = existing_fm.modified;
+        }
+        if !existing_fm.extra.is_empty() {
+            page.frontmatter.extra = existing_fm.extra;
+        }
+    }
+    store.upsert_page(&page).map_err(|e| e.to_string())?;
+
     // Keep IndexEngine in sync with the written file
     let vault_path = state.vault_path.clone();
     state
@@ -385,6 +409,30 @@ pub async fn clear_block_marker(
     block_index.flush().map_err(|e| e.to_string())?;
     // Drop BlockIndex writer before IndexEngine acquires its own (same Tantivy dir)
     drop(state.block_index.take());
+
+    // Upsert page with frontmatter preservation so tags/aliases are not lost
+    let mut page = pkm_block::Page::new(full_path, &state.vault_path);
+    if let Some(t) = title {
+        page.frontmatter.title = Some(t);
+    }
+    if let Ok(Some(existing_fm)) = store.get_page(&page.rel_path.to_string_lossy()) {
+        if !existing_fm.tags.is_empty() {
+            page.frontmatter.tags = existing_fm.tags;
+        }
+        if !existing_fm.aliases.is_empty() {
+            page.frontmatter.aliases = existing_fm.aliases;
+        }
+        if existing_fm.created.is_some() {
+            page.frontmatter.created = existing_fm.created;
+        }
+        if existing_fm.modified.is_some() {
+            page.frontmatter.modified = existing_fm.modified;
+        }
+        if !existing_fm.extra.is_empty() {
+            page.frontmatter.extra = existing_fm.extra;
+        }
+    }
+    store.upsert_page(&page).map_err(|e| e.to_string())?;
 
     // Keep IndexEngine in sync with the written file
     let vault_path = state.vault_path.clone();
