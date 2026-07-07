@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use pkm_core::fs_util::MdCollector;
 use pkm_core::PkmResult;
 use std::path::Path;
 
@@ -138,7 +139,7 @@ fn cmd_init(vault: &Path) -> PkmResult<()> {
 }
 
 fn cmd_list(vault: &Path, tag: Option<&str>) -> PkmResult<()> {
-    let notes = collect_md_files(vault)?;
+    let notes = MdCollector::new().max_depth(8).collect(vault)?;
     let filtered: Vec<_> = if let Some(t) = tag {
         notes
             .into_iter()
@@ -243,7 +244,7 @@ fn cmd_create(vault: &Path, path: &str, title: Option<&str>) -> PkmResult<()> {
 }
 
 fn cmd_search(vault: &Path, query: &str) -> PkmResult<()> {
-    let notes = collect_md_files(vault)?;
+    let notes = MdCollector::new().max_depth(8).collect(vault)?;
     let q = query.to_lowercase();
     let mut results = Vec::new();
 
@@ -289,7 +290,7 @@ fn cmd_search(vault: &Path, query: &str) -> PkmResult<()> {
 }
 
 fn cmd_stats(vault: &Path) -> PkmResult<()> {
-    let notes = collect_md_files(vault)?;
+    let notes = MdCollector::new().max_depth(8).collect(vault)?;
     let mut total_bytes = 0u64;
     let mut total_links = 0usize;
     let mut tags = std::collections::HashSet::new();
@@ -317,7 +318,7 @@ fn cmd_stats(vault: &Path) -> PkmResult<()> {
 }
 
 fn cmd_graph(vault: &Path) -> PkmResult<()> {
-    let notes = collect_md_files(vault)?;
+    let notes = MdCollector::new().max_depth(8).collect(vault)?;
     let mut edges = Vec::new();
     let mut nodes = std::collections::HashSet::new();
 
@@ -369,7 +370,7 @@ fn cmd_graph(vault: &Path) -> PkmResult<()> {
 }
 
 fn cmd_tags(vault: &Path) -> PkmResult<()> {
-    let notes = collect_md_files(vault)?;
+    let notes = MdCollector::new().max_depth(8).collect(vault)?;
     let mut counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
 
     for path in &notes {
@@ -448,7 +449,7 @@ fn get_branch_name(engine: &pkm_sync::git::GitEngine) -> String {
 }
 
 fn cmd_export(vault: &Path, format: &str) -> PkmResult<()> {
-    let notes = collect_md_files(vault)?;
+    let notes = MdCollector::new().max_depth(8).collect(vault)?;
     match format {
         "json" => {
             let mut exports = Vec::new();
@@ -527,38 +528,6 @@ fn cmd_config(vault: &Path) -> PkmResult<()> {
 }
 
 // ── Helpers ──
-
-fn collect_md_files(dir: &Path) -> std::io::Result<Vec<std::path::PathBuf>> {
-    let mut files = Vec::new();
-    if dir.is_dir() {
-        collect_md_recursive(dir, &mut files, 0)?;
-    }
-    files.sort();
-    Ok(files)
-}
-
-fn collect_md_recursive(
-    dir: &Path,
-    files: &mut Vec<std::path::PathBuf>,
-    depth: usize,
-) -> std::io::Result<()> {
-    if depth > 8 {
-        return Ok(());
-    }
-    for entry in std::fs::read_dir(dir)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            if path.file_name().and_then(|s| s.to_str()) == Some(".pkm") {
-                continue;
-            }
-            collect_md_recursive(&path, files, depth + 1)?;
-        } else if path.extension().and_then(|s| s.to_str()) == Some("md") {
-            files.push(path);
-        }
-    }
-    Ok(())
-}
 
 fn format_size(bytes: u64) -> String {
     const UNITS: &[&str] = &["B", "KB", "MB", "GB"];

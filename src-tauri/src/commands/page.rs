@@ -1,6 +1,7 @@
 //! Page management commands.
 
 use crate::commands::vault::AppState;
+use pkm_core::fs_util::MdCollector;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tauri::Emitter;
@@ -102,7 +103,11 @@ fn sync_page_from_disk(
 pub fn sync_filesystem_to_db(vault_path: &Path, db_path: &Path) -> Result<usize, String> {
     let store = pkm_block::BlockStore::open(db_path).map_err(|e| e.to_string())?;
     let db_paths = store.list_pages().map_err(|e| e.to_string())?;
-    let md_files = find_md_files(vault_path, vault_path).map_err(|e| e.to_string())?;
+    let md_files = MdCollector::new()
+        .include_extensionless(true)
+        .skip_dirs(vec![".pkm", "templates", ".git"])
+        .collect_relative(vault_path, vault_path)
+        .map_err(|e| e.to_string())?;
     let index_path = vault_path.join(".pkm").join("search");
 
     let mut count = 0;
@@ -138,8 +143,11 @@ pub async fn reindex_vault(
 ) -> Result<usize, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    let md_files =
-        find_md_files(&state.vault_path, &state.vault_path).map_err(|e| e.to_string())?;
+    let md_files = MdCollector::new()
+        .include_extensionless(true)
+        .skip_dirs(vec![".pkm", "templates", ".git"])
+        .collect_relative(&state.vault_path, &state.vault_path)
+        .map_err(|e| e.to_string())?;
 
     let total = md_files.len();
     let index_path = state.vault_path.join(".pkm").join("search");
@@ -415,35 +423,4 @@ pub async fn delete_page(path: String, state: tauri::State<'_, AppState>) -> Res
     store.delete_page(&path).map_err(|e| e.to_string())?;
 
     Ok(())
-}
-
-/// Walk a directory recursively, returning vault-relative paths of .md files.
-fn find_md_files(dir: &Path, vault_root: &Path) -> std::io::Result<Vec<String>> {
-    let mut result = Vec::new();
-    if !dir.exists() {
-        return Ok(result);
-    }
-    for entry in std::fs::read_dir(dir)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.file_name().and_then(|n| n.to_str()) == Some(".pkm")
-            || path.file_name().and_then(|n| n.to_str()) == Some("templates")
-            || path.file_name().and_then(|n| n.to_str()) == Some(".git")
-        {
-            continue;
-        }
-        if path.is_dir() {
-            result.extend(find_md_files(&path, vault_root)?);
-        } else if path.extension().and_then(|e| e.to_str()) == Some("md")
-            || path.extension().is_none()
-        {
-            let rel = path
-                .strip_prefix(vault_root)
-                .unwrap_or(&path)
-                .to_string_lossy()
-                .to_string();
-            result.push(rel);
-        }
-    }
-    Ok(result)
 }
