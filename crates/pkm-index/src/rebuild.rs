@@ -126,8 +126,6 @@ pub fn rebuild_all(
     Ok(indexed_notes)
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;

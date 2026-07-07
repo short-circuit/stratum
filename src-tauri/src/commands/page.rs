@@ -142,12 +142,11 @@ pub async fn reindex_vault(
 ) -> Result<usize, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    let md_files =
-        MdCollector::new()
-            .include_extensionless(true)
-            .skip_dirs(vec![".pkm", "templates", ".git"])
-            .collect_relative(&state.vault_path, &state.vault_path)
-            .map_err(|e| e.to_string())?;
+    let md_files = MdCollector::new()
+        .include_extensionless(true)
+        .skip_dirs(vec![".pkm", "templates", ".git"])
+        .collect_relative(&state.vault_path, &state.vault_path)
+        .map_err(|e| e.to_string())?;
 
     let total = md_files.len();
     let index_path = state.vault_path.join(".pkm").join("search");
@@ -424,5 +423,3 @@ pub async fn delete_page(path: String, state: tauri::State<'_, AppState>) -> Res
 
     Ok(())
 }
-
-

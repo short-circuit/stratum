@@ -534,5 +534,3 @@ pub async fn search_by_tag(
 
     Ok(SearchResultsDto { results })
 }
-
-
