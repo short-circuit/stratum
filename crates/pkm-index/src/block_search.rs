@@ -63,6 +63,42 @@ impl BlockIndex {
         })
     }
 
+    /// Open an existing block index for read-only access (no writer).
+    ///
+    /// Useful when the index is maintained externally (e.g., by `IndexEngine`)
+    /// and we only need to search without acquiring a directory lock.
+    /// Returns `None` if the index directory does not exist or cannot be opened.
+    pub fn open_readonly(path: &Path) -> Option<Self> {
+        let mut schema_builder = Schema::builder();
+
+        schema_builder.add_text_field("id", STRING | STORED);
+        schema_builder.add_text_field("content", TEXT);
+        schema_builder.add_text_field("page_path", STRING | STORED);
+        schema_builder.add_text_field("marker", STRING);
+        schema_builder.add_text_field("priority", STRING);
+        schema_builder.add_text_field("properties", TEXT);
+
+        let schema = Arc::new(schema_builder.build());
+
+        let dir = path.join("blocks");
+        if !dir.join("meta.json").exists() {
+            info!("No existing block index at {:?}, skipping", dir);
+            return None;
+        }
+
+        let index = Index::open_in_dir(&dir)
+            .map_err(|e| {
+                tracing::warn!("Failed to open block index at {:?}: {}", dir, e);
+            })
+            .ok()?;
+
+        Some(Self {
+            index,
+            schema,
+            writer: None,
+        })
+    }
+
     fn field(&self, name: &str) -> Field {
         self.schema
             .get_field(name)
