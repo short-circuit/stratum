@@ -93,9 +93,9 @@ export default function AIFormattingToolbar() {
                 try {
                   const code = await api.generateMermaid(text);
                   if (code.trim()) {
-                    const pos = (editor as any).getTextCursorPosition();
-                    (editor as any).insertBlocks(
-                      [{ type: 'mermaid', props: { language: 'mermaid' }, content: [{ type: 'text', text: code, styles: {} }] }],
+                    const pos = editor.getTextCursorPosition();
+                    editor.insertBlocks(
+                      [{ type: 'mermaid' as any, props: { language: 'mermaid' }, content: [{ type: 'text', text: code, styles: {} }] }],
                       pos.block,
                       'after',
                     );
