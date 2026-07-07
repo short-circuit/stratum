@@ -136,6 +136,29 @@ pub async fn save_blocks(
     if let Some(t) = title {
         page.frontmatter.title = Some(t);
     }
+
+    // Preserve frontmatter fields (tags, aliases, created, modified, extra)
+    // that would otherwise be lost when upserting a Page with default frontmatter.
+    // Page::new() creates PageFrontmatter::default() with empty Vecs and None fields,
+    // so on every block save the existing SQLite frontmatter was silently overwritten.
+    if let Ok(Some(existing_fm)) = store.get_page(&page.rel_path.to_string_lossy()) {
+        if !existing_fm.tags.is_empty() {
+            page.frontmatter.tags = existing_fm.tags;
+        }
+        if !existing_fm.aliases.is_empty() {
+            page.frontmatter.aliases = existing_fm.aliases;
+        }
+        if existing_fm.created.is_some() {
+            page.frontmatter.created = existing_fm.created;
+        }
+        if existing_fm.modified.is_some() {
+            page.frontmatter.modified = existing_fm.modified;
+        }
+        if !existing_fm.extra.is_empty() {
+            page.frontmatter.extra = existing_fm.extra;
+        }
+    }
+
     store.upsert_page(&page).map_err(|e| e.to_string())?;
 
     Ok(())
