@@ -155,7 +155,7 @@ pub async fn get_page_backlinks(
     for other_page in &all_pages {
         if let Ok(blocks) = store.get_blocks_by_page(other_page) {
             for block in &blocks {
-                let links = pkm_markdown::linker::extract_links(&block.content);
+                let links = extract_links(&block.content);
                 let is_linked = links.iter().any(|l| {
                     let t = l.target.trim().to_lowercase();
                     page_identifiers.iter().any(|id| id.to_lowercase() == t)
@@ -313,20 +313,14 @@ pub async fn autocomplete(
                 slug_to_path.insert(slug, path.clone());
             }
 
-            // Count incoming links per page by scanning all blocks
+            // Count incoming links per page using indexed SQL query
+            let link_counts = store.get_backlink_counts().map_err(|e| e.to_string())?;
             let mut incoming_count: HashMap<String, usize> = HashMap::new();
-            for path in &pages {
-                if let Ok(blocks) = store.get_blocks_by_page(path) {
-                    for block in &blocks {
-                        let links = extract_links(&block.content);
-                        for link in &links {
-                            let target_slug = link.target.replace(' ', "-").to_lowercase();
-                            // Only count links to pages that actually exist
-                            if slug_to_path.contains_key(&target_slug) {
-                                *incoming_count.entry(target_slug).or_default() += 1;
-                            }
-                        }
-                    }
+            for (target_page, cnt) in link_counts {
+                let target_slug = target_page.replace(' ', "-").to_lowercase();
+                // Only count links to pages that actually exist
+                if slug_to_path.contains_key(&target_slug) {
+                    *incoming_count.entry(target_slug).or_default() += cnt as usize;
                 }
             }
 

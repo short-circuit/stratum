@@ -393,11 +393,26 @@ pub async fn create_page(
     }
     std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
 
-    // Also upsert in SQLite so the page appears in list_pages
+    // Parse content into blocks and upsert in SQLite so the page appears in list_pages
+    let (_fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     let mut page = pkm_block::Page::new(full_path, &state.vault_path);
     page.frontmatter.title = title.clone();
+    for block in &blocks {
+        store
+            .insert_block(block, &path)
+            .map_err(|e| e.to_string())?;
+    }
     store.upsert_page(&page).map_err(|e| e.to_string())?;
+
+    // Index blocks in Tantivy for full-text search
+    let index_path = state.vault_path.join(".pkm").join("search");
+    if let Ok(mut block_index) = pkm_index::block_search::BlockIndex::create(&index_path) {
+        for block in &blocks {
+            let _ = block_index.index_block(block, &path);
+        }
+        let _ = block_index.flush();
+    }
 
     Ok(PageDto {
         path: path.clone(),
@@ -407,7 +422,7 @@ pub async fn create_page(
             .unwrap_or("untitled")
             .to_string(),
         title,
-        block_count: 0,
+        block_count: blocks.len(),
         modified_at: chrono::Utc::now().to_rfc3339(),
     })
 }

@@ -1,7 +1,53 @@
 //! Git sync commands.
 
 use crate::commands::vault::AppState;
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+
+/// Sync state persisted to disk after each sync operation.
+/// Stored in `.pkm/sync_state.json`.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct SyncState {
+    last_sync_time: Option<String>,
+    last_sync_success: Option<bool>,
+}
+
+fn sync_state_path(vault_path: &std::path::Path) -> PathBuf {
+    vault_path.join(".pkm").join("sync_state.json")
+}
+
+fn read_sync_state(vault_path: &std::path::Path) -> SyncState {
+    let path = sync_state_path(vault_path);
+    if path.exists() {
+        std::fs::read_to_string(&path)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or(SyncState {
+                last_sync_time: None,
+                last_sync_success: None,
+            })
+    } else {
+        SyncState {
+            last_sync_time: None,
+            last_sync_success: None,
+        }
+    }
+}
+
+fn write_sync_state(vault_path: &std::path::Path, success: bool) {
+    let state = SyncState {
+        last_sync_time: Some(Utc::now().to_rfc3339()),
+        last_sync_success: Some(success),
+    };
+    let path = sync_state_path(vault_path);
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Ok(json) = serde_json::to_string(&state) {
+        let _ = std::fs::write(&path, json);
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SyncStatusDto {
@@ -63,6 +109,8 @@ pub async fn get_sync_status(state: tauri::State<'_, AppState>) -> Result<SyncSt
 
             let (ahead, behind) = ahead_behind.unwrap_or((0, 0));
 
+            let sync_state = read_sync_state(vault_path);
+
             Ok(SyncStatusDto {
                 status: if conflicts.is_empty() {
                     "ok".into()
@@ -73,8 +121,8 @@ pub async fn get_sync_status(state: tauri::State<'_, AppState>) -> Result<SyncSt
                 ahead,
                 behind,
                 conflicts,
-                last_sync_time: None,
-                last_sync_success: None,
+                last_sync_time: sync_state.last_sync_time,
+                last_sync_success: sync_state.last_sync_success,
                 pending_commits,
             })
         }
@@ -121,13 +169,14 @@ pub async fn sync_vault(state: tauri::State<'_, AppState>) -> Result<SyncStatusD
         .collect();
 
     if !conflicts.is_empty() {
+        write_sync_state(&vault_path, false);
         return Ok(SyncStatusDto {
             status: "conflicts".into(),
             branch: engine.get_current_branch(),
             ahead: 0,
             behind: 0,
             conflicts,
-            last_sync_time: None,
+            last_sync_time: Some(Utc::now().to_rfc3339()),
             last_sync_success: Some(false),
             pending_commits: statuses.len(),
         });
@@ -202,13 +251,14 @@ pub async fn sync_vault(state: tauri::State<'_, AppState>) -> Result<SyncStatusD
             .map(|(p, _)| p.clone())
             .collect();
         if !conflicts.is_empty() {
+            write_sync_state(&vault_path, false);
             return Ok(SyncStatusDto {
                 status: "conflicts".into(),
                 branch: engine.get_current_branch(),
                 ahead: 0,
                 behind: 0,
                 conflicts,
-                last_sync_time: None,
+                last_sync_time: Some(Utc::now().to_rfc3339()),
                 last_sync_success: Some(false),
                 pending_commits: statuses.len(),
             });
@@ -226,6 +276,8 @@ pub async fn sync_vault(state: tauri::State<'_, AppState>) -> Result<SyncStatusD
         .collect();
     let conflicts_ok = final_conflicts.is_empty();
 
+    write_sync_state(&vault_path, conflicts_ok);
+
     Ok(SyncStatusDto {
         status: if conflicts_ok {
             "ok".into()
@@ -236,7 +288,7 @@ pub async fn sync_vault(state: tauri::State<'_, AppState>) -> Result<SyncStatusD
         ahead: 0,
         behind: 0,
         conflicts: final_conflicts,
-        last_sync_time: None,
+        last_sync_time: Some(Utc::now().to_rfc3339()),
         last_sync_success: Some(conflicts_ok),
         pending_commits: final_statuses.len(),
     })
