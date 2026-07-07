@@ -38,6 +38,8 @@ export default function SettingsPageDesktop() {
     handleSave,
     handleFetchModels,
     handleReindex,
+    handleNormalizeAll,
+    reindexProgress,
     handleSyncNow,
     toggleModelCapability,
     handleToggleCommits,
@@ -118,7 +120,7 @@ export default function SettingsPageDesktop() {
           <ResearchTab research={research} onResearchChange={updateResearch} />
         )}
         {tab === 'developer' && (
-          <DeveloperTab fetching={fetching} onReindex={handleReindex} />
+          <DeveloperTab fetching={fetching} onReindex={handleReindex} onNormalizeAll={handleNormalizeAll} reindexProgress={reindexProgress} />
         )}
         {tab === 'sync' && (
           <SyncTab

@@ -53,3 +53,6 @@ docs/site/
 *.pyc
 __pycache__/
 .sisyphus/
+.hermes/
+.opencode/
+Developer

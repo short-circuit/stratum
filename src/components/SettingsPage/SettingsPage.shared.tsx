@@ -53,6 +53,7 @@ export function useSettingsPage() {
   const [msgSeverity, setMsgSeverity] = useState<'success' | 'error'>('success');
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [tab, setTab] = useState<SettingsTab>('vault');
+  const [reindexProgress, setReindexProgress] = useState<{ message: string; percent: number } | null>(null);
   const savedThemeRef = useRef<{
     primary: string;
     secondary: string;
@@ -115,6 +116,17 @@ export function useSettingsPage() {
       if (muiSyncTimer.current) clearTimeout(muiSyncTimer.current);
     };
   }, [setThemeConfig]);
+
+  // Listen for reindex progress events
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    import('@tauri-apps/api/event').then(({ listen }) => {
+      listen<{ message: string; percent: number }>('reindex-progress', (event) => {
+        setReindexProgress(event.payload);
+      }).then((fn) => { unlisten = fn; });
+    });
+    return () => { unlisten?.(); };
+  }, []);
 
   // Derived settings slices with defaults
   const ai = settings?.ai;
@@ -201,8 +213,14 @@ export function useSettingsPage() {
     setMsg('');
     setMsgSeverity('success');
     try {
-      const count = await api.reindexVault();
-      setMsg(`Reindexed ${count} pages.`);
+      const result = await api.reindexVault();
+      if (result.failed > 0) {
+        setMsg(`Reindexed: ${result.succeeded} ok, ${result.failed} failed out of ${result.processed}`);
+        setMsgSeverity('error');
+        console.warn('Reindex errors:', result.errors);
+      } else {
+        setMsg(`Reindexed ${result.succeeded} pages.`);
+      }
     } catch (e) {
       setMsg(`Reindex failed: ${e}`);
       setMsgSeverity('error');
@@ -210,6 +228,21 @@ export function useSettingsPage() {
       setFetching(false);
     }
   };
+
+  const handleNormalizeAll = useCallback(async () => {
+    setFetching(true);
+    setMsg('');
+    setMsgSeverity('success');
+    try {
+      const count = await api.normalizeAllFiles();
+      setMsg(`Normalized ${count} files.`);
+    } catch (e) {
+      setMsg(`Normalize failed: ${e}`);
+      setMsgSeverity('error');
+    } finally {
+      setFetching(false);
+    }
+  }, []);
 
   const handleSyncNow = async () => {
     setMsg('');
@@ -318,6 +351,9 @@ export function useSettingsPage() {
     handleSave,
     handleFetchModels,
     handleReindex,
+    handleNormalizeAll,
+    reindexProgress,
+    setReindexProgress,
     handleSyncNow,
     toggleModelCapability,
     handleToggleCommits,
