@@ -7,37 +7,13 @@
 use crate::block::{Block, BlockId, BlockMeta, Priority, TaskMarker};
 use crate::page::{Page, PageFrontmatter};
 use chrono::{DateTime, Utc};
+use pkm_core::PkmError;
 use rusqlite::{params, params_from_iter, Connection};
 use std::collections::BTreeMap;
 use std::path::Path;
 use uuid::Uuid;
 
-#[derive(Debug)]
-pub enum StoreError {
-    Sqlite(rusqlite::Error),
-    NotFound(String),
-    Serialization(String),
-}
-
-impl std::fmt::Display for StoreError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Sqlite(e) => write!(f, "SQLite error: {}", e),
-            Self::NotFound(s) => write!(f, "Not found: {}", s),
-            Self::Serialization(s) => write!(f, "Serialization error: {}", s),
-        }
-    }
-}
-
-impl std::error::Error for StoreError {}
-
-impl From<rusqlite::Error> for StoreError {
-    fn from(e: rusqlite::Error) -> Self {
-        Self::Sqlite(e)
-    }
-}
-
-pub type StoreResult<T> = Result<T, StoreError>;
+pub type StoreResult<T> = Result<T, PkmError>;
 
 pub struct BlockStore {
     conn: Connection,
@@ -46,7 +22,8 @@ pub struct BlockStore {
 impl BlockStore {
     /// Open or create the block store at the given path.
     pub fn open(path: &Path) -> StoreResult<Self> {
-        let conn = Connection::open(path)?;
+        let conn =
+            Connection::open(path).map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         let store = Self { conn };
         store.init_schema()?;
         Ok(store)
@@ -54,15 +31,17 @@ impl BlockStore {
 
     /// Open an in-memory store (for testing).
     pub fn open_in_memory() -> StoreResult<Self> {
-        let conn = Connection::open_in_memory()?;
+        let conn = Connection::open_in_memory()
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         let store = Self { conn };
         store.init_schema()?;
         Ok(store)
     }
 
     fn init_schema(&self) -> StoreResult<()> {
-        self.conn.execute_batch(
-            "
+        self.conn
+            .execute_batch(
+                "
             CREATE TABLE IF NOT EXISTS blocks (
                 id TEXT PRIMARY KEY,
                 page_path TEXT NOT NULL,
@@ -104,9 +83,11 @@ impl BlockStore {
             CREATE INDEX IF NOT EXISTS idx_links_target_page ON links(target_page);
             CREATE INDEX IF NOT EXISTS idx_links_target_block ON links(target_block);
             ",
-        )?;
-        self.conn.execute_batch(
-            "
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+        self.conn
+            .execute_batch(
+                "
             PRAGMA foreign_keys = ON;
             PRAGMA journal_mode = WAL;
             PRAGMA synchronous = NORMAL;
@@ -115,7 +96,8 @@ impl BlockStore {
             PRAGMA mmap_size = 268435456;
             PRAGMA busy_timeout = 5000;
             ",
-        )?;
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(())
     }
 
@@ -123,8 +105,7 @@ impl BlockStore {
 
     pub fn insert_block(&self, block: &Block, page_path: &str) -> StoreResult<()> {
         let id = block.id.to_string();
-        let properties = serde_json::to_string(&block.properties)
-            .map_err(|e| StoreError::Serialization(e.to_string()))?;
+        let properties = serde_json::to_string(&block.properties)?;
         let marker = block.marker.map(|m| m.as_str().to_string());
         let priority = block.priority.map(|p| p.as_str().to_string());
         let parent_id = block.parent_id.map(|p| p.to_string());
@@ -132,25 +113,27 @@ impl BlockStore {
         let created_at = block.created_at.to_rfc3339();
         let modified_at = block.modified_at.to_rfc3339();
 
-        self.conn.execute(
-            "INSERT OR REPLACE INTO blocks (id, page_path, content, parent_id, left_id,
+        self.conn
+            .execute(
+                "INSERT OR REPLACE INTO blocks (id, page_path, content, parent_id, left_id,
              properties, marker, priority, collapsed, heading_level, created_at, modified_at)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-            params![
-                id,
-                page_path,
-                block.content,
-                parent_id,
-                left_id,
-                properties,
-                marker,
-                priority,
-                block.meta.collapsed as i32,
-                block.meta.heading_level,
-                created_at,
-                modified_at,
-            ],
-        )?;
+                params![
+                    id,
+                    page_path,
+                    block.content,
+                    parent_id,
+                    left_id,
+                    properties,
+                    marker,
+                    priority,
+                    block.meta.collapsed as i32,
+                    block.meta.heading_level,
+                    created_at,
+                    modified_at,
+                ],
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(())
     }
 
@@ -203,19 +186,19 @@ impl BlockStore {
                 },
             )
             .map_err(|e| match e {
-                rusqlite::Error::QueryReturnedNoRows => {
-                    StoreError::NotFound(format!("Block not found: {}", id))
-                }
-                other => StoreError::Sqlite(other),
+                rusqlite::Error::QueryReturnedNoRows => PkmError::BlockNotFound(format!("{}", id)),
+                other => PkmError::Internal(format!("SQLite error: {other}")),
             })
     }
 
     pub fn get_blocks_by_page(&self, page_path: &str) -> StoreResult<Vec<Block>> {
         let mut stmt = self
             .conn
-            .prepare("SELECT id FROM blocks WHERE page_path = ?1 ORDER BY rowid")?;
+            .prepare("SELECT id FROM blocks WHERE page_path = ?1 ORDER BY rowid")
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         let ids: Vec<String> = stmt
-            .query_map(params![page_path], |row| row.get(0))?
+            .query_map(params![page_path], |row| row.get(0))
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?
             .filter_map(|r| r.ok())
             .collect();
 
@@ -232,32 +215,33 @@ impl BlockStore {
 
     pub fn update_block(&self, block: &Block) -> StoreResult<()> {
         let id = block.id.to_string();
-        let properties = serde_json::to_string(&block.properties)
-            .map_err(|e| StoreError::Serialization(e.to_string()))?;
+        let properties = serde_json::to_string(&block.properties)?;
         let marker = block.marker.map(|m| m.as_str().to_string());
         let priority = block.priority.map(|p| p.as_str().to_string());
         let parent_id = block.parent_id.map(|p| p.to_string());
         let left_id = block.left_id.map(|l| l.to_string());
         let modified_at = block.modified_at.to_rfc3339();
 
-        self.conn.execute(
-            "UPDATE blocks SET content = ?2, parent_id = ?3, left_id = ?4,
+        self.conn
+            .execute(
+                "UPDATE blocks SET content = ?2, parent_id = ?3, left_id = ?4,
              properties = ?5, marker = ?6, priority = ?7, collapsed = ?8,
              heading_level = ?9, modified_at = ?10
              WHERE id = ?1",
-            params![
-                id,
-                block.content,
-                parent_id,
-                left_id,
-                properties,
-                marker,
-                priority,
-                block.meta.collapsed as i32,
-                block.meta.heading_level,
-                modified_at,
-            ],
-        )?;
+                params![
+                    id,
+                    block.content,
+                    parent_id,
+                    left_id,
+                    properties,
+                    marker,
+                    priority,
+                    block.meta.collapsed as i32,
+                    block.meta.heading_level,
+                    modified_at,
+                ],
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(())
     }
 
@@ -265,18 +249,22 @@ impl BlockStore {
         let id_str = id.to_string();
         let affected = self
             .conn
-            .execute("DELETE FROM blocks WHERE id = ?1", params![id_str])?;
+            .execute("DELETE FROM blocks WHERE id = ?1", params![id_str])
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         if affected == 0 {
-            return Err(StoreError::NotFound(format!("Block not found: {}", id)));
+            return Err(PkmError::BlockNotFound(format!("{}", id)));
         }
         Ok(())
     }
 
     pub fn delete_blocks_by_page(&self, page_path: &str) -> StoreResult<usize> {
-        let count = self.conn.execute(
-            "DELETE FROM blocks WHERE page_path = ?1",
-            params![page_path],
-        )?;
+        let count = self
+            .conn
+            .execute(
+                "DELETE FROM blocks WHERE page_path = ?1",
+                params![page_path],
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(count)
     }
 
@@ -285,8 +273,7 @@ impl BlockStore {
     pub fn upsert_page(&self, page: &Page) -> StoreResult<()> {
         let path = page.rel_path.to_string_lossy().to_string();
         let title = page.frontmatter.title.clone();
-        let frontmatter = serde_json::to_string(&page.frontmatter)
-            .map_err(|e| StoreError::Serialization(e.to_string()))?;
+        let frontmatter = serde_json::to_string(&page.frontmatter)?;
         let created_at = page.modified_at.to_rfc3339();
         let modified_at = page.modified_at.to_rfc3339();
 
@@ -301,7 +288,8 @@ impl BlockStore {
                 created_at,
                 modified_at,
             ],
-        )?;
+        )
+        .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(())
     }
 
@@ -318,20 +306,22 @@ impl BlockStore {
         match result {
             Ok(fm_str) => {
                 let fm: PageFrontmatter = serde_json::from_str(&fm_str)
-                    .map_err(|e| StoreError::Serialization(e.to_string()))?;
+                    .map_err(|e| PkmError::Serialization(e.to_string()))?;
                 Ok(Some(fm))
             }
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(StoreError::Sqlite(e)),
+            Err(e) => Err(PkmError::Internal(format!("SQLite error: {e}"))),
         }
     }
 
     pub fn list_pages(&self) -> StoreResult<Vec<String>> {
         let mut stmt = self
             .conn
-            .prepare("SELECT path FROM pages ORDER BY modified_at DESC")?;
+            .prepare("SELECT path FROM pages ORDER BY modified_at DESC")
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         let paths: Vec<String> = stmt
-            .query_map([], |row| row.get(0))?
+            .query_map([], |row| row.get(0))
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?
             .filter_map(|r| r.ok())
             .collect();
         Ok(paths)
@@ -340,7 +330,8 @@ impl BlockStore {
     pub fn delete_page(&self, path: &str) -> StoreResult<()> {
         self.delete_blocks_by_page(path)?;
         self.conn
-            .execute("DELETE FROM pages WHERE path = ?1", params![path])?;
+            .execute("DELETE FROM pages WHERE path = ?1", params![path])
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(())
     }
 
@@ -356,11 +347,13 @@ impl BlockStore {
         let source = source_block.to_string();
         let target_b = target_block.map(|b| b.to_string());
 
-        self.conn.execute(
-            "INSERT INTO links (source_block, link_type, target_page, target_block)
+        self.conn
+            .execute(
+                "INSERT INTO links (source_block, link_type, target_page, target_block)
              VALUES (?1, ?2, ?3, ?4)",
-            params![source, link_type, target_page, target_b],
-        )?;
+                params![source, link_type, target_page, target_b],
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(())
     }
 
@@ -368,9 +361,11 @@ impl BlockStore {
         let target_str = target.to_string();
         let mut stmt = self
             .conn
-            .prepare("SELECT source_block FROM links WHERE target_block = ?1")?;
+            .prepare("SELECT source_block FROM links WHERE target_block = ?1")
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         let sources: Vec<String> = stmt
-            .query_map(params![target_str], |row| row.get(0))?
+            .query_map(params![target_str], |row| row.get(0))
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?
             .filter_map(|r| r.ok())
             .collect();
         Ok(sources)
@@ -379,9 +374,11 @@ impl BlockStore {
     pub fn get_backlinks_for_page(&self, target_page: &str) -> StoreResult<Vec<String>> {
         let mut stmt = self
             .conn
-            .prepare("SELECT source_block FROM links WHERE LOWER(target_page) = LOWER(?1)")?;
+            .prepare("SELECT source_block FROM links WHERE LOWER(target_page) = LOWER(?1)")
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         let sources: Vec<String> = stmt
-            .query_map(params![target_page], |row| row.get(0))?
+            .query_map(params![target_page], |row| row.get(0))
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?
             .filter_map(|r| r.ok())
             .collect();
         Ok(sources)
@@ -389,10 +386,12 @@ impl BlockStore {
 
     pub fn delete_links_for_block(&self, block_id: BlockId) -> StoreResult<()> {
         let id = block_id.to_string();
-        self.conn.execute(
-            "DELETE FROM links WHERE source_block = ?1 OR target_block = ?1",
-            params![id],
-        )?;
+        self.conn
+            .execute(
+                "DELETE FROM links WHERE source_block = ?1 OR target_block = ?1",
+                params![id],
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(())
     }
 
@@ -401,9 +400,11 @@ impl BlockStore {
     pub fn find_blocks_by_marker(&self, marker: &str) -> StoreResult<Vec<Block>> {
         let mut stmt = self
             .conn
-            .prepare("SELECT id FROM blocks WHERE LOWER(marker) = LOWER(?1)")?;
+            .prepare("SELECT id FROM blocks WHERE LOWER(marker) = LOWER(?1)")
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         let ids: Vec<String> = stmt
-            .query_map(params![marker], |row| row.get(0))?
+            .query_map(params![marker], |row| row.get(0))
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?
             .filter_map(|r| r.ok())
             .collect();
 
@@ -431,13 +432,17 @@ impl BlockStore {
             placeholders.join(", ")
         );
 
-        let mut stmt = self.conn.prepare(&sql)?;
+        let mut stmt = self
+            .conn
+            .prepare(&sql)
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         let params: Vec<String> = markers.iter().map(|m| m.to_lowercase()).collect();
 
         let rows: Vec<(String, String)> = stmt
             .query_map(params_from_iter(params.iter()), |row| {
                 Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-            })?
+            })
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?
             .filter_map(|r| r.ok())
             .collect();
 
@@ -455,14 +460,16 @@ impl BlockStore {
     pub fn block_count(&self) -> StoreResult<usize> {
         let count: i64 = self
             .conn
-            .query_row("SELECT COUNT(*) FROM blocks", [], |row| row.get(0))?;
+            .query_row("SELECT COUNT(*) FROM blocks", [], |row| row.get(0))
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(count as usize)
     }
 
     pub fn page_count(&self) -> StoreResult<usize> {
         let count: i64 = self
             .conn
-            .query_row("SELECT COUNT(*) FROM pages", [], |row| row.get(0))?;
+            .query_row("SELECT COUNT(*) FROM pages", [], |row| row.get(0))
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(count as usize)
     }
 }
