@@ -146,7 +146,7 @@ pub async fn reindex_vault(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<usize, String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
+    let mut state = state.lock().map_err(|e| e.to_string())?;
     let _guard = IndexingGuard::new(&state)?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     let md_files = MdCollector::new()
@@ -179,6 +179,15 @@ pub async fn reindex_vault(
     }
     local_block_index.flush().map_err(|e| e.to_string())?;
 
+    // Drop indexing guard before accessing IndexEngine (&mut self)
+    drop(_guard);
+
+    // Rebuild IndexEngine so graph data stays current
+    state
+        .ensure_index()?
+        .rebuild_all(None)
+        .map_err(|e| e.to_string())?;
+
     let _ = app.emit(
         "reindex-progress",
         super::ProgressEventPayload {
@@ -190,47 +199,8 @@ pub async fn reindex_vault(
     Ok(count)
 }
 
-/// Strip Stratum block property lines from content that was previously saved in block format.
-/// Removes `.id:`, `.marker:`, `.priority:` lines. For `.heading-level: N` lines, rewrites
-/// the preceding block line with ATX heading markers (e.g., `## `) to preserve heading level.
-fn strip_block_properties(content: &str) -> String {
-    let lines: Vec<&str> = content.lines().collect();
-    let mut out: Vec<String> = Vec::new();
-    let mut last_content_idx: Option<usize> = None;
-
-    for line in &lines {
-        let trimmed = line.trim_start();
-
-        if trimmed.starts_with(".id: ")
-            || trimmed.starts_with(".marker: ")
-            || trimmed.starts_with(".priority: ")
-        {
-            continue;
-        }
-
-        if let Some(hl_val) = trimmed.strip_prefix(".heading-level: ") {
-            if let Ok(hl @ 1..=6) = hl_val.trim().parse::<u8>() {
-                if let Some(idx) = last_content_idx {
-                    let marker = "#".repeat(hl as usize);
-                    let prev = out[idx]
-                        .trim_start()
-                        .strip_prefix("- ")
-                        .unwrap_or(&out[idx]);
-                    out[idx] = format!("{} {}", marker, prev);
-                }
-            }
-            continue;
-        }
-
-        last_content_idx = Some(out.len());
-        out.push(line.to_string());
-    }
-
-    out.join("\n")
-}
-
-/// Re-read a single .md file from disk and re-parse it using the plain-text converter,
-/// ignoring any `- ` block syntax. This is the "Reindex Note" operation.
+/// Re-read a single .md file from disk and re-parse it, preserving block syntax,
+/// UUIDs, markers, priorities, and heading levels. This is the "Reindex Note" operation.
 fn reparse_page_from_disk(
     store: &pkm_block::BlockStore,
     rel: &str,
@@ -239,9 +209,7 @@ fn reparse_page_from_disk(
 ) -> Result<bool, String> {
     let full = vault_path.join(rel);
     let content = std::fs::read_to_string(&full).map_err(|e| e.to_string())?;
-    // Strip block property lines before conversion to avoid .id: uuid appearing as paragraph blocks
-    let cleaned = strip_block_properties(&content);
-    let (fm, _, blocks) = pkm_markdown::block_parser::parse_document_as_plain_markdown(&cleaned);
+    let (fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
 
     let mut page = pkm_block::Page::new(full, vault_path);
     page.frontmatter = pkm_block::PageFrontmatter {
@@ -278,13 +246,13 @@ pub async fn reindex_page(
     path: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<usize, String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
+    let mut state = state.lock().map_err(|e| e.to_string())?;
     let _guard = IndexingGuard::new(&state)?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     // Create a local BlockIndex for this operation (IndexingGuard prevents state mutation)
     let mut local_block_index = BlockIndex::create(&state.vault_path.join(".pkm").join("search"))
         .map_err(|e| e.to_string())?;
-    if reparse_page_from_disk(
+    let result = if reparse_page_from_disk(
         &store,
         &path,
         &state.vault_path,
@@ -295,7 +263,18 @@ pub async fn reindex_page(
         Ok(blocks.len())
     } else {
         Ok(0)
-    }
+    };
+
+    // Drop indexing guard before accessing IndexEngine (&mut self)
+    drop(_guard);
+
+    // Rebuild IndexEngine so graph data stays current
+    state
+        .ensure_index()?
+        .rebuild_all(None)
+        .map_err(|e| e.to_string())?;
+
+    result
 }
 
 #[tauri::command]
