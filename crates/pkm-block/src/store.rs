@@ -472,6 +472,31 @@ impl BlockStore {
             .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(count as usize)
     }
+
+    /// Get counts of incoming links per target page, ordered by count descending.
+    /// Returns (target_page, count) pairs.
+    pub fn get_backlink_counts(&self) -> StoreResult<Vec<(String, i64)>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT target_page, COUNT(*) as cnt \
+                 FROM links \
+                 WHERE target_page IS NOT NULL \
+                 GROUP BY target_page \
+                 ORDER BY cnt DESC",
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+            })
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+        let mut results = Vec::new();
+        for row in rows {
+            results.push(row.map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?);
+        }
+        Ok(results)
+    }
 }
 
 #[cfg(test)]
