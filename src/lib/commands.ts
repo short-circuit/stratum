@@ -64,6 +64,10 @@ export async function createPage(path: string, title?: string): Promise<PageDto>
   return invoke('create_page', { path, title });
 }
 
+export async function ensureTodayJournal(): Promise<PageDto> {
+  return invoke('ensure_today_journal');
+}
+
 export async function deletePage(path: string): Promise<void> {
   return invoke('delete_page', { path });
 }

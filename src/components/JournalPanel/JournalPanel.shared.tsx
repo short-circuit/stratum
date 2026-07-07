@@ -41,6 +41,8 @@ export function useJournalPanel() {
   const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set());
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [calendarAnchorEl, setCalendarAnchorEl] = useState<HTMLElement | null>(null);
+  const [journalLoading, setJournalLoading] = useState(false);
+  const [journalError, setJournalError] = useState<string | null>(null);
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -72,17 +74,46 @@ export function useJournalPanel() {
     [pages, allJournalDates, today],
   );
 
-  useEffect(() => {
-    if (pages.length === 0 || todayExists) return;
+  // Atomic ensure — replaces createPage+loadPages which caused infinite spinner (#12)
+  const ensureJournal = useCallback(() => {
+    if (pages.length === 0) return;
+    if (todayExists) {
+      setJournalLoading(false);
+      setJournalError(null);
+      return;
+    }
+    setJournalLoading(true);
+    setJournalError(null);
     api
-      .createPage(todayPagePath, today)
-      .then(() => loadPages())
+      .ensureTodayJournal()
+      .then(() => {
+        setJournalLoading(false);
+        loadPages();
+      })
       .catch((err) => {
-        if (!String(err).includes('already exists')) {
-          console.error('Failed to create journal:', err);
-        }
+        setJournalError(String(err));
+        setJournalLoading(false);
       });
-  }, [pages, todayExists, loadPages, today, todayPagePath]);
+  }, [pages.length, todayExists, loadPages]);
+
+  useEffect(() => {
+    ensureJournal();
+  }, [ensureJournal]);
+
+  const retryJournal = useCallback(() => {
+    setJournalError(null);
+    setJournalLoading(true);
+    api
+      .ensureTodayJournal()
+      .then(() => {
+        setJournalLoading(false);
+        loadPages();
+      })
+      .catch((err) => {
+        setJournalError(String(err));
+        setJournalLoading(false);
+      });
+  }, [loadPages]);
 
   const getObserver = useCallback(() => {
     if (!observerRef.current) {
@@ -206,6 +237,9 @@ export function useJournalPanel() {
     today,
     todayPagePath,
     todayExists,
+    journalLoading,
+    journalError,
+    retryJournal,
     targetDate,
     allJournalDates,
     pastDates,
