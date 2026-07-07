@@ -22,7 +22,8 @@ export default function TemplatesPanelDesktop() {
   } = useTemplates();
 
   return (
-    <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Box sx={{ flex: 1, overflow: 'auto', p: 3, maxWidth: 600, mx: 'auto' }}>
       <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
         Templates
       </Typography>
@@ -115,6 +116,7 @@ export default function TemplatesPanelDesktop() {
             No templates yet. Save a page as template to get started.
           </Typography>
         )}
+      </Box>
       </Box>
     </Box>
   );

@@ -13,7 +13,8 @@ export default function SearchPanelDesktop() {
   const { query, setQuery, results, searching, indexing, indexMsg, handleSearch, doReindex } = useSearchPanel();
 
   return (
-    <Box sx={{ p: 3, maxWidth: 700, mx: 'auto' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Box sx={{ flex: 1, overflow: 'auto', p: 3, maxWidth: 700, mx: 'auto' }}>
       <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
         <TextField
           size="small"
@@ -52,6 +53,7 @@ export default function SearchPanelDesktop() {
           <Typography variant="body2" color="text.secondary">No results found.</Typography>
         )}
       </List>
+      </Box>
     </Box>
   );
 }

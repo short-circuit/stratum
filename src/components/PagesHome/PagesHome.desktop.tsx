@@ -10,7 +10,8 @@ export default function PagesHomeDesktop() {
   const { pages, vault, navigateToPage } = usePagesHomeData();
 
   return (
-    <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Box sx={{ flex: 1, overflow: 'auto', p: 3, maxWidth: 600, mx: 'auto' }}>
       <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>Pages</Typography>
       {vault && (
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
@@ -46,6 +47,7 @@ export default function PagesHomeDesktop() {
           </Typography>
         </Box>
       )}
+      </Box>
     </Box>
   );
 }
