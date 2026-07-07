@@ -3,6 +3,7 @@ import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import Typography from '@mui/material/Typography';
+import LinearProgress from '@mui/material/LinearProgress';
 import { useGraphPanel } from './GraphPanel.shared';
 import GraphToolbar from './GraphToolbar';
 import GraphSettingsPanel from './GraphSettings';
@@ -20,6 +21,7 @@ export default function GraphPanelDesktop() {
     handleNodeClick, handleNodeRightClick, updateSetting,
     filteredNodes, filteredEdges, graphDataProp,
     nodeCapActive, preCapNodeCount,
+    progressiveLoading, progress,
   } = useGraphPanel();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -73,6 +75,19 @@ export default function GraphPanelDesktop() {
           <Typography variant="caption">
             Showing {filteredNodes.length} of {preCapNodeCount} nodes (cap: {graphSettings.node_cap})
           </Typography>
+        </Alert>
+      )}
+
+      {progressiveLoading && (
+        <Alert severity="info" icon={false} sx={{ mx: 1, mt: 0.5, py: 0, '& .MuiAlert-message': { py: 0.5 } }}>
+          <Typography variant="caption" sx={{ mb: 0.25, display: 'block' }}>
+            Rendering {progress.current}/{progress.total} nodes...
+          </Typography>
+          <LinearProgress
+            variant="determinate"
+            value={(progress.current / progress.total) * 100}
+            sx={{ height: 4, borderRadius: 2 }}
+          />
         </Alert>
       )}
 

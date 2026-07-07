@@ -94,6 +94,10 @@ export interface GraphNodeDto {
   path: string;
   tags: string[];
   degree: number;
+  /** Pre-computed layout position (set by Web Worker for progressive rendering). */
+  x?: number;
+  y?: number;
+  z?: number;
 }
 
 export interface GraphEdgeDto {
