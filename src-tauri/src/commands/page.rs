@@ -147,6 +147,8 @@ pub async fn reindex_vault(
     state: tauri::State<'_, AppState>,
 ) -> Result<super::ReindexResult, String> {
     let mut state = state.lock().map_err(|e| e.to_string())?;
+    // Drop cached BlockIndex to release its Tantivy lockfile before creating a local one
+    drop(state.block_index.take());
     let _guard = IndexingGuard::new(&state)?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     let md_files = MdCollector::new()
@@ -272,6 +274,8 @@ pub async fn reindex_page(
     state: tauri::State<'_, AppState>,
 ) -> Result<super::ReindexResult, String> {
     let mut state = state.lock().map_err(|e| e.to_string())?;
+    // Drop cached BlockIndex to release its Tantivy lockfile before creating a local one
+    drop(state.block_index.take());
     let _guard = IndexingGuard::new(&state)?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     let mut local_block_index = BlockIndex::create(&state.vault_path.join(".pkm").join("search"))

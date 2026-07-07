@@ -297,6 +297,8 @@ pub async fn rebuild_graph(
     state: tauri::State<'_, AppState>,
 ) -> Result<String, String> {
     let mut vault = state.lock().map_err(|e| e.to_string())?;
+    // Drop cached BlockIndex to release its Tantivy lockfile before IndexEngine opens its own
+    drop(vault.block_index.take());
     let _guard = crate::commands::vault::IndexingGuard::new(&vault)?;
 
     let progress = super::make_progress_callback(app);
