@@ -5,13 +5,15 @@ import {
   FormattingToolbar,
   getFormattingToolbarItems,
 } from '@blocknote/react';
-import * as api from '../lib/commands';
+import { useAbortableInvoke } from '../lib/hooks/useAbortableInvoke';
+import type { AiTransformResult, ResearchResult } from '../lib/types';
 import AILoadingOverlay from './ui/AILoadingOverlay';
 
 export default function AIFormattingToolbar() {
   const editor = useBlockNoteEditor();
   const Components = useComponentsContext();
   const [busy, setBusy] = useState<string | null>(null);
+  const { abortableInvoke } = useAbortableInvoke();
 
   const runAiTransform = async (
     ed: { prosemirrorView: { state: { selection: { from: number; to: number }; doc: { textBetween: (f: number, t: number) => string } } }; pasteMarkdown: (md: string) => void },
@@ -26,10 +28,10 @@ export default function AIFormattingToolbar() {
     try {
       let output = '';
       if (action === 'research') {
-        const r = await api.aiResearch(text);
+        const r = await abortableInvoke<ResearchResult>('ai_research', { query: text });
         output = r.findings;
       } else {
-        const r = await api.aiTransformBlock(text, action as 'rewrite' | 'format' | 'summarize');
+        const r = await abortableInvoke<AiTransformResult>('ai_transform_block', { text, action });
         output = r.content;
       }
       if (!output.trim()) return;
@@ -91,7 +93,8 @@ export default function AIFormattingToolbar() {
                 if (!text.trim()) return;
                 setBusy('mermaid');
                 try {
-                  const code = await api.generateMermaid(text);
+                  const result = await abortableInvoke<AiTransformResult>('generate_mermaid', { prompt: text });
+                  const code = result.content;
                   if (code.trim()) {
                     const pos = editor.getTextCursorPosition();
                     editor.insertBlocks(
