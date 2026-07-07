@@ -11,19 +11,22 @@ export default function FlashcardsPanelDesktop() {
 
   if (cards.length === 0) {
     return (
-      <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
+      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Box sx={{ flex: 1, overflow: 'auto', p: 3, maxWidth: 600, mx: 'auto' }}>
         <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>Flashcards</Typography>
         <Typography variant="body2" color="text.secondary">
           No flashcards found. Create blocks with <Box component="code" sx={{ bgcolor: 'action.hover', px: 0.5, borderRadius: 0.5 }}>question::</Box> and
           {' '}<Box component="code" sx={{ bgcolor: 'action.hover', px: 0.5, borderRadius: 0.5 }}>answer::</Box> properties to generate cards.
         </Typography>
       </Box>
+      </Box>
     );
   }
 
   if (current >= cards.length) {
     return (
-      <Box sx={{ p: 3, maxWidth: 600, mx: 'auto', textAlign: 'center' }}>
+      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Box sx={{ flex: 1, overflow: 'auto', p: 3, maxWidth: 600, mx: 'auto', textAlign: 'center' }}>
         <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>Session Complete!</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Reviewed {cards.length} card{cards.length !== 1 ? 's' : ''}.
@@ -32,11 +35,13 @@ export default function FlashcardsPanelDesktop() {
           Start Again
         </Button>
       </Box>
+      </Box>
     );
   }
 
   return (
-    <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Box sx={{ flex: 1, overflow: 'auto', p: 3, maxWidth: 600, mx: 'auto' }}>
       <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>Flashcards</Typography>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
         Card {current + 1} of {cards.length}
@@ -81,6 +86,7 @@ export default function FlashcardsPanelDesktop() {
           ))}
         </Stack>
       )}
+      </Box>
     </Box>
   );
 }
