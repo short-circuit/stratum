@@ -16,8 +16,6 @@ import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ConflictModal from '../ui/ConflictModal';
-import PassphraseModal from '../ui/PassphraseModal';
 import { useSettingsPage } from './SettingsPage.shared';
 
 const PRIMARY_SWATCHES = [
@@ -50,14 +48,10 @@ export default function SettingsPageMobile() {
     msgSeverity,
     syncing,
     syncStatus,
-    conflictModalOpen,
-    conflictFiles,
-    passphraseModalOpen,
     ai,
     research,
     theme,
     setMsg,
-    setPassphraseModalOpen,
     updateAi,
     updateVault,
     updateResearch,
@@ -65,10 +59,6 @@ export default function SettingsPageMobile() {
     handleSave,
     handleReindex,
     handleSyncNow,
-    handlePassphraseSubmit,
-    handleResolveConflict,
-    handleResolveAllConflicts,
-    handleAbortMerge,
     pickVaultDirectory,
   } = useSettingsPage();
 
@@ -371,21 +361,6 @@ export default function SettingsPageMobile() {
         )}
       </Box>
 
-      {/* Modals */}
-      {passphraseModalOpen && (
-        <PassphraseModal
-          onClose={() => setPassphraseModalOpen(false)}
-          onSubmit={handlePassphraseSubmit}
-        />
-      )}
-      {conflictModalOpen && (
-        <ConflictModal
-          files={conflictFiles}
-          onResolve={handleResolveConflict}
-          onResolveAll={handleResolveAllConflicts}
-          onAbort={handleAbortMerge}
-        />
-      )}
     </Box>
   );
 }
