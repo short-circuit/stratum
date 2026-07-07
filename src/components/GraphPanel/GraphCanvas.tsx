@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ForceGraph3D from 'react-force-graph-3d';
-import SpriteText from 'three-spritetext';
+import * as THREE from 'three';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -96,6 +96,7 @@ export default function GraphCanvas({
 
   const [graphStats, setGraphStats] = useState<GraphStats>({ fps: 0, frameTime: 0 });
   const fpsRef = useRef({ frameCount: 0, lastSampleTime: 0 });
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const r = fpsRef.current;
@@ -115,6 +116,80 @@ export default function GraphCanvas({
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
   }, []);
+
+  // Sync canvas bitmap size with container dimensions
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.width = width;
+    canvas.height = height;
+  }, [width, height]);
+
+  // Canvas 2D label overlay — projects node positions every frame
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const vec = new THREE.Vector3();
+    let rafId: number;
+
+    const render = () => {
+      const fg = graphRef.current;
+      if (!fg || !canvas) {
+        rafId = requestAnimationFrame(render);
+        return;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const camera = fg.camera();
+      if (!camera) {
+        rafId = requestAnimationFrame(render);
+        return;
+      }
+
+      const fgNodes: GraphNode[] = fg.graphData().nodes || [];
+      if (fgNodes.length === 0) {
+        rafId = requestAnimationFrame(render);
+        return;
+      }
+
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.font = 'bold 11px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      for (let i = 0; i < fgNodes.length; i++) {
+        const n = fgNodes[i];
+        if (n.x === undefined || n.y === undefined || n.z === undefined) continue;
+
+        vec.set(n.x, n.y, n.z);
+        vec.project(camera);
+
+        // Skip nodes behind the camera
+        if (vec.z > 1) continue;
+
+        const sx = (vec.x * 0.5 + 0.5) * w;
+        const sy = (-vec.y * 0.5 + 0.5) * h;
+
+        // Skip off-screen nodes (with generous margin)
+        if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) continue;
+
+        ctx.fillStyle = textColor;
+        ctx.fillText(n.title, sx, sy + 14);
+      }
+
+      rafId = requestAnimationFrame(render);
+    };
+
+    rafId = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(rafId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [textColor]);
 
   const edgeCount = graphDataProp?.links?.length ?? 0;
 
@@ -149,14 +224,11 @@ export default function GraphCanvas({
             height={height}
             backgroundColor={bgColor}
             nodeThreeObject={(n: GraphNode) => {
-              const sprite = new SpriteText(n.title);
-              sprite.textHeight = Math.min(11, 5 + (n.degree || 0) * 0.35);
-              sprite.color = textColor;
-              sprite.backgroundColor = nodeColor(n) + '44';
-              sprite.padding = [3, 7];
-              sprite.fontWeight = 'bold';
-              sprite.borderRadius = 6;
-              return sprite;
+              const radius = Math.min(5, 2.5 + (n.degree || 0) * 0.2);
+              return new THREE.Mesh(
+                new THREE.SphereGeometry(radius, 16, 16),
+                new THREE.MeshBasicMaterial({ color: nodeColor(n) })
+              );
             }}
             onNodeClick={(n: GraphNode) => handleNodeClick(n)}
             onNodeRightClick={(n: GraphNode) => handleNodeRightClick(n)}
@@ -171,6 +243,18 @@ export default function GraphCanvas({
             enableNodeDrag={true}
             enableNavigationControls={true}
             showNavInfo={false}
+          />
+          <canvas
+            ref={canvasRef}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              zIndex: 5,
+            }}
           />
         </>)}
       {!loading && !error && nodes.length === 0 && (
