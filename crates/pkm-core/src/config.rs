@@ -1,3 +1,4 @@
+use crate::PkmError;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -316,20 +317,28 @@ impl Default for WatcherConfig {
 
 impl Config {
     /// Load config from a TOML file.
-    pub fn load(path: impl Into<PathBuf>) -> Result<Self, ConfigError> {
+    pub fn load(path: impl Into<PathBuf>) -> Result<Self, PkmError> {
         let path: PathBuf = path.into();
-        let content = std::fs::read_to_string(&path)
-            .map_err(|e| ConfigError::Io(format!("Failed to read {}: {}", path.display(), e)))?;
-        toml::from_str(&content).map_err(|e| ConfigError::Parse(e.to_string()))
+        let content = std::fs::read_to_string(&path).map_err(|e| {
+            PkmError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to read {}: {}", path.display(), e),
+            ))
+        })?;
+        let config: Config = toml::from_str(&content)?;
+        Ok(config)
     }
 
     /// Save config to a TOML file.
-    pub fn save(&self, path: impl Into<PathBuf>) -> Result<(), ConfigError> {
+    pub fn save(&self, path: impl Into<PathBuf>) -> Result<(), PkmError> {
         let path: PathBuf = path.into();
-        let content =
-            toml::to_string_pretty(self).map_err(|e| ConfigError::Parse(e.to_string()))?;
-        std::fs::write(&path, &content)
-            .map_err(|e| ConfigError::Io(format!("Failed to write {}: {}", path.display(), e)))?;
+        let content = toml::to_string_pretty(self)?;
+        std::fs::write(&path, &content).map_err(|e| {
+            PkmError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to write {}: {}", path.display(), e),
+            ))
+        })?;
         Ok(())
     }
 
@@ -358,23 +367,6 @@ impl Config {
         self.pkm_dir().join("history")
     }
 }
-
-#[derive(Debug)]
-pub enum ConfigError {
-    Io(String),
-    Parse(String),
-}
-
-impl std::fmt::Display for ConfigError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ConfigError::Io(msg) => write!(f, "IO error: {}", msg),
-            ConfigError::Parse(msg) => write!(f, "Parse error: {}", msg),
-        }
-    }
-}
-
-impl std::error::Error for ConfigError {}
 
 #[cfg(test)]
 mod tests {
