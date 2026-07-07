@@ -139,8 +139,47 @@ fn parse_raw_blocks(body: &str) -> Vec<RawBlock> {
                 heading_level,
                 block_id,
             });
-        } else {
+        } else if let Some(hl) = parse_atx_heading(line) {
+            // ATX heading — each heading line produces one RawBlock
+            let content = strip_atx_marker(line).trim().to_string();
+            blocks.push(RawBlock {
+                indent: 0,
+                content_lines: vec![content],
+                properties: BTreeMap::new(),
+                marker: None,
+                priority: None,
+                heading_level: Some(hl),
+                block_id: None,
+            });
             i += 1;
+        } else {
+            // Group consecutive non-block lines into a paragraph block
+            let mut para_lines = vec![line];
+            i += 1;
+            while i < lines.len() {
+                let next = lines[i];
+                if next.trim().is_empty() {
+                    i += 1;
+                    break;
+                }
+                if is_block_line(next) || parse_atx_heading(next).is_some() {
+                    break;
+                }
+                para_lines.push(next);
+                i += 1;
+            }
+            let content = para_lines.join("\n").trim().to_string();
+            if !content.is_empty() {
+                blocks.push(RawBlock {
+                    indent: 0,
+                    content_lines: vec![content],
+                    properties: BTreeMap::new(),
+                    marker: None,
+                    priority: None,
+                    heading_level: None,
+                    block_id: None,
+                });
+            }
         }
     }
 
