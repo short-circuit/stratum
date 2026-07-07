@@ -106,14 +106,18 @@ pub fn move_block(
     // Check for cycles: can't move a block under itself
     if let Some(pid) = new_parent_id {
         if tree.ancestors(pid).iter().any(|b| b.id == block_id) {
-            return Err(PkmError::CycleDetected("Operation would create a cycle".to_string()));
+            return Err(PkmError::CycleDetected(
+                "Operation would create a cycle".to_string(),
+            ));
         }
     }
     if block_id == new_left_id.unwrap_or_default() || block_id == new_parent_id.unwrap_or_default()
     {
         // Moving to self as parent
         if new_parent_id == Some(block_id) {
-            return Err(PkmError::CycleDetected("Operation would create a cycle".to_string()));
+            return Err(PkmError::CycleDetected(
+                "Operation would create a cycle".to_string(),
+            ));
         }
     }
 
@@ -154,7 +158,11 @@ pub fn indent_block(tree: &mut BlockTree, block_id: BlockId) -> Result<(), PkmEr
     let left_id = tree.get(block_id).and_then(|b| b.left_id);
     let new_parent = match left_id {
         Some(left) => left,
-        None => return Err(PkmError::Internal("Invalid position for insertion".to_string())), // Can't indent first child
+        None => {
+            return Err(PkmError::Internal(
+                "Invalid position for insertion".to_string(),
+            ))
+        } // Can't indent first child
     };
 
     // Find the last child of the new parent (to place after it)
@@ -173,7 +181,11 @@ pub fn outdent_block(tree: &mut BlockTree, block_id: BlockId) -> Result<(), PkmE
     let parent_id = tree.get(block_id).and_then(|b| b.parent_id);
     let grandparent_id = match parent_id {
         Some(pid) => tree.get(pid).and_then(|b| b.parent_id),
-        None => return Err(PkmError::Internal("Invalid position for insertion".to_string())), // Root can't outdent
+        None => {
+            return Err(PkmError::Internal(
+                "Invalid position for insertion".to_string(),
+            ))
+        } // Root can't outdent
     };
 
     move_block(tree, block_id, grandparent_id, parent_id)
@@ -185,7 +197,9 @@ pub fn split_block(
     block_id: BlockId,
     split_pos: usize,
 ) -> Result<BlockId, PkmError> {
-    let block = tree.get(block_id).ok_or(PkmError::BlockNotFound(block_id.to_string()))?;
+    let block = tree
+        .get(block_id)
+        .ok_or(PkmError::BlockNotFound(block_id.to_string()))?;
     let original = block.content.clone();
     let parent = block.parent_id;
 
@@ -215,7 +229,11 @@ pub fn merge_with_previous(tree: &mut BlockTree, block_id: BlockId) -> Result<()
     let prev_id = tree.prev_sibling(block_id);
     let prev_id = match prev_id {
         Some(id) => id,
-        None => return Err(PkmError::Internal("Invalid position for insertion".to_string())), // No previous sibling
+        None => {
+            return Err(PkmError::Internal(
+                "Invalid position for insertion".to_string(),
+            ))
+        } // No previous sibling
     };
 
     let block_content = tree.get(block_id).unwrap().content.clone();
@@ -242,7 +260,10 @@ pub fn merge_with_previous(tree: &mut BlockTree, block_id: BlockId) -> Result<()
 }
 
 /// Cycle a block's task marker through TODO → DOING → DONE → (clear).
-pub fn toggle_task(tree: &mut BlockTree, block_id: BlockId) -> Result<Option<TaskMarker>, PkmError> {
+pub fn toggle_task(
+    tree: &mut BlockTree,
+    block_id: BlockId,
+) -> Result<Option<TaskMarker>, PkmError> {
     let block = tree
         .get_mut(block_id)
         .ok_or(PkmError::BlockNotFound(block_id.to_string()))?;

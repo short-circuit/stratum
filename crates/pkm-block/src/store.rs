@@ -22,8 +22,8 @@ pub struct BlockStore {
 impl BlockStore {
     /// Open or create the block store at the given path.
     pub fn open(path: &Path) -> StoreResult<Self> {
-        let conn = Connection::open(path)
-            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+        let conn =
+            Connection::open(path).map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         let store = Self { conn };
         store.init_schema()?;
         Ok(store)
@@ -39,8 +39,9 @@ impl BlockStore {
     }
 
     fn init_schema(&self) -> StoreResult<()> {
-        self.conn.execute_batch(
-            "
+        self.conn
+            .execute_batch(
+                "
             CREATE TABLE IF NOT EXISTS blocks (
                 id TEXT PRIMARY KEY,
                 page_path TEXT NOT NULL,
@@ -82,10 +83,11 @@ impl BlockStore {
             CREATE INDEX IF NOT EXISTS idx_links_target_page ON links(target_page);
             CREATE INDEX IF NOT EXISTS idx_links_target_block ON links(target_block);
             ",
-        )
-        .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
-        self.conn.execute_batch(
-            "
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+        self.conn
+            .execute_batch(
+                "
             PRAGMA foreign_keys = ON;
             PRAGMA journal_mode = WAL;
             PRAGMA synchronous = NORMAL;
@@ -94,8 +96,8 @@ impl BlockStore {
             PRAGMA mmap_size = 268435456;
             PRAGMA busy_timeout = 5000;
             ",
-        )
-        .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(())
     }
 
@@ -111,26 +113,27 @@ impl BlockStore {
         let created_at = block.created_at.to_rfc3339();
         let modified_at = block.modified_at.to_rfc3339();
 
-        self.conn.execute(
-            "INSERT OR REPLACE INTO blocks (id, page_path, content, parent_id, left_id,
+        self.conn
+            .execute(
+                "INSERT OR REPLACE INTO blocks (id, page_path, content, parent_id, left_id,
              properties, marker, priority, collapsed, heading_level, created_at, modified_at)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-            params![
-                id,
-                page_path,
-                block.content,
-                parent_id,
-                left_id,
-                properties,
-                marker,
-                priority,
-                block.meta.collapsed as i32,
-                block.meta.heading_level,
-                created_at,
-                modified_at,
-            ],
-        )
-        .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+                params![
+                    id,
+                    page_path,
+                    block.content,
+                    parent_id,
+                    left_id,
+                    properties,
+                    marker,
+                    priority,
+                    block.meta.collapsed as i32,
+                    block.meta.heading_level,
+                    created_at,
+                    modified_at,
+                ],
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(())
     }
 
@@ -183,9 +186,7 @@ impl BlockStore {
                 },
             )
             .map_err(|e| match e {
-                rusqlite::Error::QueryReturnedNoRows => {
-                    PkmError::BlockNotFound(format!("{}", id))
-                }
+                rusqlite::Error::QueryReturnedNoRows => PkmError::BlockNotFound(format!("{}", id)),
                 other => PkmError::Internal(format!("SQLite error: {other}")),
             })
     }
@@ -221,25 +222,26 @@ impl BlockStore {
         let left_id = block.left_id.map(|l| l.to_string());
         let modified_at = block.modified_at.to_rfc3339();
 
-        self.conn.execute(
-            "UPDATE blocks SET content = ?2, parent_id = ?3, left_id = ?4,
+        self.conn
+            .execute(
+                "UPDATE blocks SET content = ?2, parent_id = ?3, left_id = ?4,
              properties = ?5, marker = ?6, priority = ?7, collapsed = ?8,
              heading_level = ?9, modified_at = ?10
              WHERE id = ?1",
-            params![
-                id,
-                block.content,
-                parent_id,
-                left_id,
-                properties,
-                marker,
-                priority,
-                block.meta.collapsed as i32,
-                block.meta.heading_level,
-                modified_at,
-            ],
-        )
-        .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+                params![
+                    id,
+                    block.content,
+                    parent_id,
+                    left_id,
+                    properties,
+                    marker,
+                    priority,
+                    block.meta.collapsed as i32,
+                    block.meta.heading_level,
+                    modified_at,
+                ],
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(())
     }
 
@@ -345,12 +347,13 @@ impl BlockStore {
         let source = source_block.to_string();
         let target_b = target_block.map(|b| b.to_string());
 
-        self.conn.execute(
-            "INSERT INTO links (source_block, link_type, target_page, target_block)
+        self.conn
+            .execute(
+                "INSERT INTO links (source_block, link_type, target_page, target_block)
              VALUES (?1, ?2, ?3, ?4)",
-            params![source, link_type, target_page, target_b],
-        )
-        .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+                params![source, link_type, target_page, target_b],
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(())
     }
 
@@ -383,11 +386,12 @@ impl BlockStore {
 
     pub fn delete_links_for_block(&self, block_id: BlockId) -> StoreResult<()> {
         let id = block_id.to_string();
-        self.conn.execute(
-            "DELETE FROM links WHERE source_block = ?1 OR target_block = ?1",
-            params![id],
-        )
-        .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+        self.conn
+            .execute(
+                "DELETE FROM links WHERE source_block = ?1 OR target_block = ?1",
+                params![id],
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(())
     }
 
