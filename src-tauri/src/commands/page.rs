@@ -4,6 +4,7 @@ use crate::commands::vault::AppState;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tauri::Emitter;
+use tracing::info;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PageDto {
@@ -167,7 +168,7 @@ pub async fn reindex_vault(
             percent: 1.0,
         },
     );
-    eprintln!("[stratum] Reindexed {} pages from filesystem", count);
+    info!("Reindexed {} pages from filesystem", count);
     Ok(count)
 }
 
