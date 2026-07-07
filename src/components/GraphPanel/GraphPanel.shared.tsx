@@ -125,6 +125,10 @@ export function useGraphPanel(): UseGraphPanelReturn {
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    // Clear graph data before fetching so ForceGraph3D unmounts and remounts clean,
+    // ensuring links are always processed (workaround for react-force-graph link
+    // rendering bug on fresh mount with populated data).
+    setGraphData(null);
     setError(null);
     try {
       const [data, comps, orphs] = await Promise.all([
