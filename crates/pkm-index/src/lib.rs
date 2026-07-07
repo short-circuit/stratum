@@ -3,4 +3,5 @@ pub mod block_search;
 pub mod graph;
 pub mod indexer;
 pub mod rebuild;
+pub mod related;
 pub mod tags;
