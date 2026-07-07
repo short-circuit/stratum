@@ -297,28 +297,24 @@ pub async fn rebuild_graph(
     state: tauri::State<'_, AppState>,
 ) -> Result<String, String> {
     let mut vault = state.lock().map_err(|e| e.to_string())?;
-    vault.try_start_indexing()?;
+    let _guard = crate::commands::vault::IndexingGuard::new(&vault)?;
 
-    // Use a closure so that `?` propagates within the closure,
-    // and `finish_indexing` is always called afterward.
-    let result = (|| -> Result<String, String> {
-        let engine = vault.ensure_index()?;
+    let progress = super::make_progress_callback(app);
 
-        let progress = super::make_progress_callback(app);
-        let _notes = engine
-            .rebuild_all(Some(progress))
-            .map_err(|e| format!("Graph rebuild failed: {}", e))?;
+    // Drop guard before accessing IndexEngine (&mut self)
+    drop(_guard);
 
-        let graph = engine.get_graph();
-        Ok(format!(
-            "Indexed {} notes with {} edges",
-            graph.node_count(),
-            graph.edge_count()
-        ))
-    })();
+    let engine = vault.ensure_index()?;
+    let _notes = engine
+        .rebuild_all(Some(progress))
+        .map_err(|e| format!("Graph rebuild failed: {}", e))?;
 
-    vault.finish_indexing();
-    result
+    let graph = engine.get_graph();
+    Ok(format!(
+        "Indexed {} notes with {} edges",
+        graph.node_count(),
+        graph.edge_count()
+    ))
 }
 
 /// Pre-built index of all pages in the vault for fast slug/title/path resolution.
