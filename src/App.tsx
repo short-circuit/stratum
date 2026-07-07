@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useResponsive } from './lib/hooks/useResponsive';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
@@ -8,6 +8,7 @@ import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import { useStore } from './stores/appStore';
+import { useSyncModalStore } from './stores/syncModalStore';
 import { createMuiTheme } from './lib/muiTheme';
 import Sidebar from './components/Sidebar';
 import PageView from './components/PageView';
@@ -22,6 +23,8 @@ import GraphPanel from './components/GraphPanel';
 import SettingsPage from './components/SettingsPage';
 import MobileLayout from './components/MobileLayout';
 import VaultPicker from './components/VaultPicker';
+import ConflictModal from './components/ui/ConflictModal';
+import PassphraseModal from './components/ui/PassphraseModal';
 import { getCurrentWindow, type CloseRequestedEvent } from '@tauri-apps/api/window';
 import { getLatestLibraryJson } from './lib/libraryStore';
 import * as api from './lib/commands';
@@ -52,6 +55,40 @@ getCurrentWindow().onCloseRequested(async (event: CloseRequestedEvent) => {
 function AppContent() {
   const { vault, loading, loadVault, loadPages, error } = useStore();
   const { isMobile } = useResponsive();
+  const syncModal = useSyncModalStore();
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Poll sync status periodically to detect conflicts from auto-sync scheduler
+  useEffect(() => {
+    if (!vault) return;
+
+    const check = async () => {
+      try {
+        const status = await api.getSyncStatus();
+        const { conflictModalOpen, showConflictModal } = useSyncModalStore.getState();
+        if (
+          status.status === 'conflicts' &&
+          status.conflicts.length > 0 &&
+          !conflictModalOpen
+        ) {
+          showConflictModal(status.conflicts);
+        }
+      } catch {
+        // silently ignore poll errors
+      }
+    };
+
+    // Check immediately on mount, then every 30 seconds
+    check();
+    pollIntervalRef.current = setInterval(check, 30_000);
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, [vault]);
 
   useEffect(() => {
     if (!vault) {
@@ -94,6 +131,21 @@ function AppContent() {
           <Route path="/graph" element={<GraphPanel />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
+        {/* Global modals for conflict & passphrase — visible on any page */}
+        {syncModal.conflictModalOpen && (
+          <ConflictModal
+            files={syncModal.conflictFiles}
+            onResolve={syncModal.resolveConflict}
+            onResolveAll={syncModal.resolveAllConflicts}
+            onAbort={syncModal.abortMerge}
+          />
+        )}
+        {syncModal.passphraseModalOpen && (
+          <PassphraseModal
+            onClose={syncModal.hidePassphraseModal}
+            onSubmit={syncModal.submitPassphrase}
+          />
+        )}
       </MobileLayout>
     );
   }
@@ -119,6 +171,21 @@ function AppContent() {
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </Box>
+      {/* Global modals for conflict & passphrase — visible on any page */}
+      {syncModal.conflictModalOpen && (
+        <ConflictModal
+          files={syncModal.conflictFiles}
+          onResolve={syncModal.resolveConflict}
+          onResolveAll={syncModal.resolveAllConflicts}
+          onAbort={syncModal.abortMerge}
+        />
+      )}
+      {syncModal.passphraseModalOpen && (
+        <PassphraseModal
+          onClose={syncModal.hidePassphraseModal}
+          onSubmit={syncModal.submitPassphrase}
+        />
+      )}
     </Box>
   );
 }
