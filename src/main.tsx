@@ -9,6 +9,7 @@ import '@fontsource/inter/700.css'
 import App from './App'
 import { applyTheme } from './lib/theme'
 import { useStore } from './stores/appStore'
+import { useSyncStore } from './stores/syncStore'
 import * as api from './lib/commands'
 import './global.css'
 
@@ -32,6 +33,9 @@ async function init() {
   }
 
   useStore.getState().setThemeConfig({ primaryHex: primary, secondaryHex: secondary, dark, fontSize })
+
+  // Initialize sync status on startup so it's available globally
+  useSyncStore.getState().fetchSyncStatus();
 
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
