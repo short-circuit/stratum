@@ -119,8 +119,14 @@ pub fn sync_filesystem_to_db(vault_path: &Path, db_path: &Path) -> Result<usize,
             true
         };
 
-        if needs_sync && sync_page_from_disk(&store, &rel, vault_path, block_index.as_mut())? {
-            count += 1;
+        if needs_sync {
+            match sync_page_from_disk(&store, &rel, vault_path, block_index.as_mut()) {
+                Ok(true) => count += 1,
+                Ok(false) => {}
+                Err(e) => {
+                    warn!("sync_filesystem_to_db: failed for {}: {}", rel, e);
+                }
+            }
         }
     }
 
@@ -609,4 +615,70 @@ pub async fn normalize_all_files(
 
     info!("Normalized {} files", count);
     Ok(count)
+}
+
+/// Atomically ensure today's journal page exists.
+///
+/// Computes the current local date (`YYYY-MM-DD`), checks if `journals/YYYY-MM-DD.md`
+/// already exists on disk, and creates it with a frontmatter title if not.
+/// Returns the `PageDto` for the journal page in either case.
+///
+/// This is idempotent — safe to call repeatedly. It replaces the previous pattern of
+/// `createPage` + `loadPages` which was prone to race conditions and infinite spinners.
+#[tauri::command]
+pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<PageDto, String> {
+    let mut state = state.lock().map_err(|e| e.to_string())?;
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let path = format!("journals/{}.md", today);
+    let full_path = state.vault_path.join(&path);
+
+    if full_path.exists() {
+        let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
+        let (fm, _, _) = pkm_markdown::block_parser::parse_document(&content);
+        let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+        let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
+
+        return Ok(PageDto {
+            path: path.clone(),
+            slug: today.clone(),
+            title: fm.title.or_else(|| Some(today.clone())),
+            block_count: blocks.len(),
+            modified_at: chrono::Utc::now().to_rfc3339(),
+        });
+    }
+
+    let title = today.clone();
+    let content = format!("---\ntitle: {}\n---\n", title);
+
+    if let Some(parent) = full_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
+
+    let (_fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
+    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let mut page = pkm_block::Page::new(full_path, &state.vault_path);
+    page.frontmatter.title = Some(title.clone());
+    for block in &blocks {
+        store
+            .insert_block(block, &path)
+            .map_err(|e| e.to_string())?;
+    }
+    store.upsert_page(&page).map_err(|e| e.to_string())?;
+
+    let block_index = state.ensure_block_index()?;
+    for block in &blocks {
+        block_index
+            .index_block(block, &path)
+            .map_err(|e| e.to_string())?;
+    }
+    block_index.flush().map_err(|e| e.to_string())?;
+
+    Ok(PageDto {
+        path,
+        slug: today,
+        title: Some(title),
+        block_count: blocks.len(),
+        modified_at: chrono::Utc::now().to_rfc3339(),
+    })
 }

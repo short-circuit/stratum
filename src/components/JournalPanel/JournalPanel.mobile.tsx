@@ -2,6 +2,8 @@ import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CloseIcon from '@mui/icons-material/Close';
@@ -29,6 +31,9 @@ export default function JournalPanelMobile() {
     today,
     todayPagePath,
     todayExists,
+    journalLoading,
+    journalError,
+    retryJournal,
     targetDate,
     allJournalDates,
     pastDates,
@@ -86,10 +91,19 @@ export default function JournalPanelMobile() {
         </IconButton>
       </Box>
 
-      {todayExists ? (
-        <OutlinerEditor pagePath={todayPagePath} minHeight="0" />
-      ) : (
+      {journalError ? (
+        <Box sx={{ px: 1, my: 2 }}>
+          <Alert severity="error" sx={{ mb: 1 }}>
+            {journalError}
+          </Alert>
+          <Button variant="outlined" size="small" onClick={retryJournal}>
+            Retry
+          </Button>
+        </Box>
+      ) : journalLoading || !todayExists ? (
         <CircularProgress size={20} sx={{ display: 'block', mx: 'auto', my: 4 }} />
+      ) : (
+        <OutlinerEditor pagePath={todayPagePath} minHeight="0" />
       )}
 
       {pastDates.slice(0, visibleCount).map((date) => {

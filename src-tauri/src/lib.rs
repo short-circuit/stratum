@@ -119,6 +119,7 @@ pub fn run() {
             commands::page::open_page,
             commands::page::save_page,
             commands::page::create_page,
+            commands::page::ensure_today_journal,
             commands::page::delete_page,
             commands::page::reindex_vault,
             commands::page::reindex_page,
