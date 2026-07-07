@@ -52,6 +52,7 @@ export function usePageView(): PageViewState {
       setEditorKey(k => k + 1);
     } catch (e) {
       console.error('Reindex failed:', e);
+      useStore.setState({ error: String(e) });
     } finally {
       setReindexing(false);
     }
