@@ -45,11 +45,12 @@ export const DEFAULT_SETTINGS: GraphSettings = {
   show_connected: true,
   show_orphaned: true,
   show_tags: true,
-  charge_strength: -8,
+  charge_strength: -4,
   link_distance: 40,
-  alpha_decay: 0.08,
-  velocity_decay: 0.3,
+  alpha_decay: 0.15,
+  velocity_decay: 0.4,
   link_curvature: 0.15,
+  node_cap: 0,
 };
 
 interface GraphCanvas2DProps {
@@ -150,8 +151,8 @@ export default function GraphCanvas2D({
             }}
             onNodeClick={(n) => handleNodeClick(n as GraphNode)}
             linkColor={() => textColor}
-            linkDirectionalArrowLength={3.5}
-            linkDirectionalArrowRelPos={1}
+            linkDirectionalArrowLength={nodes.length > 500 ? 0 : 3.5}
+            linkDirectionalArrowRelPos={nodes.length > 500 ? 0 : 1}
             linkWidth={0.5}
             linkCurvature={graphSettings.link_curvature}
             d3AlphaDecay={graphSettings.alpha_decay}

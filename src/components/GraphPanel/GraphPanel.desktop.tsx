@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
+import Alert from '@mui/material/Alert';
+import Typography from '@mui/material/Typography';
 import { useGraphPanel } from './GraphPanel.shared';
 import GraphToolbar from './GraphToolbar';
 import GraphSettingsPanel from './GraphSettings';
@@ -17,6 +19,7 @@ export default function GraphPanelDesktop() {
     setViewMode, setSelectedComponent, setSearch, loadData,
     handleNodeClick, handleNodeRightClick, updateSetting,
     filteredNodes, filteredEdges, graphDataProp,
+    nodeCapActive, preCapNodeCount,
   } = useGraphPanel();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -64,6 +67,14 @@ export default function GraphPanelDesktop() {
         graphSettings={graphSettings}
         updateSetting={updateSetting}
       />
+
+      {nodeCapActive && (
+        <Alert severity="info" icon={false} sx={{ mx: 1, mt: 0.5, py: 0, '& .MuiAlert-message': { py: 0.5 } }}>
+          <Typography variant="caption">
+            Showing {filteredNodes.length} of {preCapNodeCount} nodes (cap: {graphSettings.node_cap})
+          </Typography>
+        </Alert>
+      )}
 
       <GraphCanvas
         graphDataProp={graphDataProp}
