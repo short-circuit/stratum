@@ -38,7 +38,8 @@ impl TagAggregator {
             }
 
             // Store reverse mapping for later decrement
-            self.note_tags.insert(slug, unique_tags.into_iter().collect());
+            self.note_tags
+                .insert(slug, unique_tags.into_iter().collect());
         }
     }
 
@@ -337,7 +338,7 @@ mod tests {
         // Remove note-3 (had tag1) — tag1 should be cleaned up
         agg.decrement_note("note-3");
         assert_eq!(agg.unique_tag_count(), 2); // tag1 removed
-        assert!(agg.counts.get("tag1").is_none());
+        assert!(!agg.counts.contains_key("tag1"));
         assert!(agg.filter_by_tag("tag1").is_empty());
     }
 
@@ -356,7 +357,7 @@ mod tests {
         // Now note-1's old tags are removed
         assert_eq!(agg.counts.get("tag1"), None); // only note-1 had it
         assert_eq!(agg.counts.get("tag2"), Some(&1)); // only note-2 remains
-        assert!(agg.note_tags.get("note-1").is_none());
+        assert!(!agg.note_tags.contains_key("note-1"));
 
         // Now add new tags (simulating the new version of the note)
         let updated_note = make_note("note-1", "Note 1", vec!["tag3"]);
