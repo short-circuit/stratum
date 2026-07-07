@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 use std::collections::HashMap;
 use tauri::Emitter;
+use tracing::{debug, info};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SearchResultDto {
@@ -446,7 +447,7 @@ pub async fn suggest_connections(
     page_path: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<ConnectionSuggestion>, String> {
-    eprintln!("[suggest] page={}", page_path);
+    info!("page={}", page_path);
 
     let (db_path, index_path) = {
         let s = state.lock().map_err(|e| e.to_string())?;
@@ -568,7 +569,7 @@ pub async fn suggest_connections(
     suggestions.sort_by_key(|b| std::cmp::Reverse(b.score));
     suggestions.truncate(10);
 
-    eprintln!("[suggest] found {} connections", suggestions.len());
+    debug!("found {} connections", suggestions.len());
     Ok(suggestions)
 }
 
