@@ -74,7 +74,7 @@ impl BlockStore {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 source_block TEXT NOT NULL,
                 link_type TEXT NOT NULL,
-                target_page TEXT,
+                target_page TEXT COLLATE NOCASE,
                 target_block TEXT,
                 FOREIGN KEY (source_block) REFERENCES blocks(id) ON DELETE CASCADE
             );
@@ -374,7 +374,7 @@ impl BlockStore {
     pub fn get_backlinks_for_page(&self, target_page: &str) -> StoreResult<Vec<String>> {
         let mut stmt = self
             .conn
-            .prepare("SELECT source_block FROM links WHERE LOWER(target_page) = LOWER(?1)")
+            .prepare("SELECT source_block FROM links WHERE target_page = ?1")
             .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         let sources: Vec<String> = stmt
             .query_map(params![target_page], |row| row.get(0))
@@ -471,6 +471,31 @@ impl BlockStore {
             .query_row("SELECT COUNT(*) FROM pages", [], |row| row.get(0))
             .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         Ok(count as usize)
+    }
+
+    /// Get counts of incoming links per target page, ordered by count descending.
+    /// Returns (target_page, count) pairs.
+    pub fn get_backlink_counts(&self) -> StoreResult<Vec<(String, i64)>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT target_page, COUNT(*) as cnt \
+                 FROM links \
+                 WHERE target_page IS NOT NULL \
+                 GROUP BY target_page \
+                 ORDER BY cnt DESC",
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+            })
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+        let mut results = Vec::new();
+        for row in rows {
+            results.push(row.map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?);
+        }
+        Ok(results)
     }
 }
 
