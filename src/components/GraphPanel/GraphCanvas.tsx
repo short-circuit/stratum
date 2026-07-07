@@ -70,6 +70,7 @@ interface GraphCanvasProps {
   graphData: GraphDataDto | null;
   graphSettings: GraphSettings;
   graphRef: React.MutableRefObject<any>;
+  refreshKey: number;
 }
 
 interface GraphStats {
@@ -91,6 +92,7 @@ export default function GraphCanvas({
   graphData,
   graphSettings,
   graphRef,
+  refreshKey,
 }: GraphCanvasProps) {
   const navigate = useNavigate();
 
@@ -219,6 +221,7 @@ export default function GraphCanvas({
             </Alert>
           )}
           <ForceGraph3D
+            key={`fg3d-${refreshKey}`}
             ref={graphRef}
             graphData={graphDataProp}
             width={width}
