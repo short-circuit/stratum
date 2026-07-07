@@ -168,6 +168,10 @@ export default function GraphCanvas({
         if (n.x === undefined || n.y === undefined || n.z === undefined) continue;
 
         vec.set(n.x, n.y, n.z);
+
+        // Camera distance from origin — proxy for zoom level (graph is centered at origin)
+        const camDist = camera.position.length();
+
         vec.project(camera);
 
         // Skip nodes behind the camera
@@ -179,8 +183,17 @@ export default function GraphCanvas({
         // Skip off-screen nodes (with generous margin)
         if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) continue;
 
-        ctx.fillStyle = textColor;
-        ctx.fillText(n.title, sx, sy + 14);
+        // Smooth label fade: fully visible within 30 units, invisible past 2000
+        const MIN_DIST = 30;
+        const MAX_DIST = 2000;
+        const labelAlpha = 1 - Math.min(1, Math.max(0, (camDist - MIN_DIST) / (MAX_DIST - MIN_DIST)));
+
+        if (labelAlpha > 0.01) {
+          ctx.globalAlpha = labelAlpha;
+          ctx.fillStyle = textColor;
+          ctx.fillText(n.title, sx, sy + 14);
+          ctx.globalAlpha = 1;
+        }
       }
 
       rafId = requestAnimationFrame(render);

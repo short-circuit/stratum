@@ -134,20 +134,27 @@ export default function GraphCanvas2D({
               ctx.fillStyle = nodeColor(node);
               ctx.fill();
 
-              // Draw label background
-              const bgAlpha = Math.min(1, 2 * globalScale);
-              ctx.fillStyle = nodeColor(node) + Math.round(bgAlpha * 68).toString(16).padStart(2, '0');
-              const lx = boxX - boxW / 2;
-              const ly = boxY - boxH / 2;
-              ctx.beginPath();
-              ctx.roundRect(lx, ly, boxW, boxH, [4 / globalScale]);
-              ctx.fill();
+              // Fade label when zooming out: invisible below 0.4×, full at 0.8× and above
+              const labelAlpha = Math.min(1, Math.max(0, (globalScale - 0.4) / (0.8 - 0.4)));
 
-              // Draw label text
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'middle';
-              ctx.fillStyle = textColor;
-              ctx.fillText(label, boxX, boxY);
+              if (labelAlpha > 0.01) {
+                // Draw label background
+                const bgAlpha = Math.min(1, 2 * globalScale) * labelAlpha;
+                ctx.fillStyle = nodeColor(node) + Math.round(bgAlpha * 68).toString(16).padStart(2, '0');
+                const lx = boxX - boxW / 2;
+                const ly = boxY - boxH / 2;
+                ctx.beginPath();
+                ctx.roundRect(lx, ly, boxW, boxH, [4 / globalScale]);
+                ctx.fill();
+
+                // Draw label text
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.globalAlpha = labelAlpha;
+                ctx.fillStyle = textColor;
+                ctx.fillText(label, boxX, boxY);
+                ctx.globalAlpha = 1;
+              }
             }}
             onNodeClick={(n) => handleNodeClick(n as GraphNode)}
             linkColor={() => textColor}
