@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../../lib/commands';
-import type { GraphSettings, GraphDataDto, ComponentDto, OrphanDto } from '../../lib/types';
+import type { GraphSettings, GraphDataDto, GraphNodeDto, ComponentDto, OrphanDto } from '../../lib/types';
 import { DEFAULT_SETTINGS, type GraphNode } from './GraphCanvas';
 
 /**
@@ -40,6 +40,10 @@ export interface UseGraphPanelReturn {
   filteredEdges: { source: string; target: string }[];
   /** Data shaped for ForceGraph[2D|3D] consumption ({ nodes, links }). */
   graphDataProp: { nodes: GraphNode[]; links: { source: string; target: string }[] };
+  /** Whether a node cap is actively limiting rendered nodes. */
+  nodeCapActive: boolean;
+  /** Node count before node_cap was applied (for the warning banner). */
+  preCapNodeCount: number;
 }
 
 /**
@@ -74,7 +78,7 @@ export function useGraphPanel(): UseGraphPanelReturn {
   useEffect(() => {
     api.getSettings()
       .then((s) => {
-        if (s.graph) setGraphSettings(s.graph);
+        if (s.graph) setGraphSettings({ ...DEFAULT_SETTINGS, ...s.graph });
       })
       .catch(() => {});
   }, []);
@@ -148,62 +152,68 @@ export function useGraphPanel(): UseGraphPanelReturn {
    * Applies view-mode (full / component / orphans), visibility toggles
    * (show_connected / show_orphaned), and text search filter.
    */
-  const { nodes: filteredNodes, edges: filteredEdges } = useMemo(() => {
+  const { nodes: filteredNodes, edges: filteredEdges, preCapNodeCount } = useMemo(() => {
     if (!graphData) {
-      return { nodes: [] as GraphNode[], edges: [] as { source: string; target: string }[] };
+      return { nodes: [] as GraphNode[], edges: [] as { source: string; target: string }[], preCapNodeCount: 0 };
     }
+
+    let resultNodes: GraphNodeDto[];
+    let resultEdges: { source: string; target: string }[];
 
     // View mode: component
     if (viewMode === 'component' && components.length > 0) {
       const idx = Math.min(selectedComponent, components.length - 1);
       const comp = components[idx];
       const idSet = new Set(comp.nodes.map((n) => n.id));
-      return {
-        nodes: comp.nodes as GraphNode[],
-        edges: graphData.edges.filter((e) => idSet.has(e.source) && idSet.has(e.target)),
-      };
+      resultNodes = comp.nodes;
+      resultEdges = graphData.edges.filter((e) => idSet.has(e.source) && idSet.has(e.target));
     }
-
     // View mode: orphans
-    if (viewMode === 'orphans') {
+    else if (viewMode === 'orphans') {
       const orphanIds = new Set(orphans.map((o) => o.slug));
-      return {
-        nodes: graphData.nodes.filter((n) => orphanIds.has(n.id)) as GraphNode[],
-        edges: [],
-      };
+      resultNodes = graphData.nodes.filter((n) => orphanIds.has(n.id));
+      resultEdges = [];
+    }
+    // Full mode with visibility toggles and search
+    else {
+      let nodes = graphData.nodes;
+      if (!graphSettings.show_connected && !graphSettings.show_orphaned) {
+        nodes = [];
+      } else if (!graphSettings.show_connected && graphSettings.show_orphaned) {
+        const orphanIds = new Set(orphans.map((o) => o.slug));
+        nodes = graphData.nodes.filter((n) => orphanIds.has(n.id));
+      } else if (graphSettings.show_connected && !graphSettings.show_orphaned) {
+        const orphanIds = new Set(orphans.map((o) => o.slug));
+        nodes = graphData.nodes.filter((n) => !orphanIds.has(n.id));
+      }
+
+      if (search) {
+        const q = search.toLowerCase();
+        nodes = nodes.filter(
+          (n) =>
+            n.title.toLowerCase().includes(q) ||
+            n.id.toLowerCase().includes(q) ||
+            n.tags.some((t) => t.toLowerCase().includes(q)),
+        );
+        const matched = new Set(nodes.map((n) => n.id));
+        resultNodes = nodes;
+        resultEdges = graphData.edges.filter((e) => matched.has(e.source) || matched.has(e.target));
+      } else {
+        resultNodes = nodes;
+        resultEdges = graphData.edges;
+      }
     }
 
-    // Visibility toggles (only applies in 'full' mode)
-    let filteredNodes = graphData.nodes;
-    if (!graphSettings.show_connected && !graphSettings.show_orphaned) {
-      filteredNodes = [];
-    } else if (!graphSettings.show_connected && graphSettings.show_orphaned) {
-      const orphanIds = new Set(orphans.map((o) => o.slug));
-      filteredNodes = graphData.nodes.filter((n) => orphanIds.has(n.id));
-    } else if (graphSettings.show_connected && !graphSettings.show_orphaned) {
-      const orphanIds = new Set(orphans.map((o) => o.slug));
-      filteredNodes = graphData.nodes.filter((n) => !orphanIds.has(n.id));
-    }
-
-    // Text search filter
-    if (search) {
-      const q = search.toLowerCase();
-      filteredNodes = filteredNodes.filter(
-        (n) =>
-          n.title.toLowerCase().includes(q) ||
-          n.id.toLowerCase().includes(q) ||
-          n.tags.some((t) => t.toLowerCase().includes(q)),
-      );
-      const matched = new Set(filteredNodes.map((n) => n.id));
-      return {
-        nodes: filteredNodes as GraphNode[],
-        edges: graphData.edges.filter((e) => matched.has(e.source) || matched.has(e.target)),
-      };
+    // Apply node cap
+    const preCap = resultNodes.length;
+    if (graphSettings.node_cap > 0 && resultNodes.length > graphSettings.node_cap) {
+      resultNodes = resultNodes.slice(0, graphSettings.node_cap);
     }
 
     return {
-      nodes: filteredNodes as GraphNode[],
-      edges: graphData.edges,
+      nodes: resultNodes as GraphNode[],
+      edges: resultEdges,
+      preCapNodeCount: preCap,
     };
   }, [
     graphData,
@@ -214,6 +224,7 @@ export function useGraphPanel(): UseGraphPanelReturn {
     search,
     graphSettings.show_connected,
     graphSettings.show_orphaned,
+    graphSettings.node_cap,
   ]);
 
   // Data shaped for ForceGraph consumption
@@ -252,6 +263,8 @@ export function useGraphPanel(): UseGraphPanelReturn {
     [],
   );
 
+  const nodeCapActive = graphSettings.node_cap > 0 && preCapNodeCount > graphSettings.node_cap;
+
   return {
     state: {
       graphData,
@@ -276,5 +289,7 @@ export function useGraphPanel(): UseGraphPanelReturn {
     filteredNodes,
     filteredEdges,
     graphDataProp,
+    nodeCapActive,
+    preCapNodeCount,
   };
 }
