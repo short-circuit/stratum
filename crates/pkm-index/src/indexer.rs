@@ -73,7 +73,8 @@ impl IndexEngine {
             }
         }
 
-        // Update tag aggregator
+        // Update tag aggregator: decrement old tags, then add new ones
+        self.tags.decrement_note(&note.slug);
         self.tags.aggregate(std::slice::from_ref(note));
 
         // Update meta
@@ -85,6 +86,16 @@ impl IndexEngine {
 
     /// Remove a note from the index by its vault-relative path.
     pub fn remove_note(&mut self, path: &str) -> PkmResult<()> {
+        // Derive slug from path (e.g. "subdir/note.md" -> "note")
+        let slug = std::path::Path::new(path)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_string();
+
+        // Decrement tag counts for this note
+        self.tags.decrement_note(&slug);
+
         self.block_index.delete_blocks_by_page(path)?;
         self.block_index.flush()?;
 

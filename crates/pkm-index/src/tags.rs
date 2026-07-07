@@ -8,6 +8,8 @@ pub struct TagAggregator {
     counts: HashMap<String, usize>,
     /// tag_name -> list of note slugs having this tag
     notes_by_tag: HashMap<String, Vec<String>>,
+    /// slug -> list of tag names for that note (reverse mapping for decrement)
+    note_tags: HashMap<String, Vec<String>>,
 }
 
 impl TagAggregator {
@@ -16,6 +18,7 @@ impl TagAggregator {
         Self {
             counts: HashMap::new(),
             notes_by_tag: HashMap::new(),
+            note_tags: HashMap::new(),
         }
     }
 
@@ -26,13 +29,17 @@ impl TagAggregator {
             let unique_tags: std::collections::HashSet<String> =
                 note.tags.iter().map(|t| t.name.clone()).collect();
 
-            for tag_name in unique_tags {
+            for tag_name in &unique_tags {
                 *self.counts.entry(tag_name.clone()).or_insert(0) += 1;
                 self.notes_by_tag
-                    .entry(tag_name)
+                    .entry(tag_name.clone())
                     .or_default()
                     .push(slug.clone());
             }
+
+            // Store reverse mapping for later decrement
+            self.note_tags
+                .insert(slug, unique_tags.into_iter().collect());
         }
     }
 
@@ -56,6 +63,35 @@ impl TagAggregator {
     /// Get total number of unique tags.
     pub fn unique_tag_count(&self) -> usize {
         self.counts.len()
+    }
+
+    /// Decrement tag counts for a note that was removed or had its tags changed.
+    ///
+    /// Removes the note slug from `notes_by_tag`, decrements each tag's count,
+    /// and cleans up any tag that reaches zero.
+    pub fn decrement_note(&mut self, slug: &str) {
+        let old_tags = match self.note_tags.remove(slug) {
+            Some(tags) => tags,
+            None => return, // No tags to decrement
+        };
+
+        for tag_name in old_tags {
+            // Remove slug from the per-tag note list
+            if let Some(notes) = self.notes_by_tag.get_mut(&tag_name) {
+                notes.retain(|n| n != slug);
+                if notes.is_empty() {
+                    self.notes_by_tag.remove(&tag_name);
+                }
+            }
+
+            // Decrement the count, cleaning up if it reaches zero
+            if let Some(count) = self.counts.get_mut(&tag_name) {
+                *count = count.saturating_sub(1);
+                if *count == 0 {
+                    self.counts.remove(&tag_name);
+                }
+            }
+        }
     }
 }
 
@@ -275,5 +311,80 @@ mod tests {
         assert!(rendered.len() >= 2);
         // The first line should contain the top-level science tag
         assert!(rendered.iter().any(|r| r.contains("science")));
+    }
+
+    #[test]
+    fn test_decrement_note_remove() {
+        let mut agg = TagAggregator::new();
+        let notes = vec![
+            make_note("note-1", "Note 1", vec!["tag1", "tag2"]),
+            make_note("note-2", "Note 2", vec!["tag2", "tag3"]),
+            make_note("note-3", "Note 3", vec!["tag1"]),
+        ];
+        agg.aggregate(&notes);
+        assert_eq!(agg.unique_tag_count(), 3);
+        assert_eq!(agg.counts.get("tag1"), Some(&2));
+        assert_eq!(agg.counts.get("tag2"), Some(&2));
+        assert_eq!(agg.counts.get("tag3"), Some(&1));
+
+        // Remove note-1 (had tag1, tag2)
+        agg.decrement_note("note-1");
+        assert_eq!(agg.unique_tag_count(), 3); // all 3 tags still present
+        assert_eq!(agg.counts.get("tag1"), Some(&1)); // note-3 still has it
+        assert_eq!(agg.counts.get("tag2"), Some(&1)); // note-2 still has it
+        assert_eq!(agg.filter_by_tag("tag1"), vec!["note-3"]);
+        assert!(agg.filter_by_tag("tag2").iter().any(|n| n == "note-2"));
+
+        // Remove note-3 (had tag1) — tag1 should be cleaned up
+        agg.decrement_note("note-3");
+        assert_eq!(agg.unique_tag_count(), 2); // tag1 removed
+        assert!(!agg.counts.contains_key("tag1"));
+        assert!(agg.filter_by_tag("tag1").is_empty());
+    }
+
+    #[test]
+    fn test_decrement_note_update_tags() {
+        let mut agg = TagAggregator::new();
+        let notes = vec![
+            make_note("note-1", "Note 1", vec!["tag1", "tag2"]),
+            make_note("note-2", "Note 2", vec!["tag2"]),
+        ];
+        agg.aggregate(&notes);
+        assert_eq!(agg.counts.get("tag2"), Some(&2));
+
+        // Simulate an update: note-1 changes tags from [tag1, tag2] to [tag3]
+        agg.decrement_note("note-1");
+        // Now note-1's old tags are removed
+        assert_eq!(agg.counts.get("tag1"), None); // only note-1 had it
+        assert_eq!(agg.counts.get("tag2"), Some(&1)); // only note-2 remains
+        assert!(!agg.note_tags.contains_key("note-1"));
+
+        // Now add new tags (simulating the new version of the note)
+        let updated_note = make_note("note-1", "Note 1", vec!["tag3"]);
+        agg.aggregate(std::slice::from_ref(&updated_note));
+        assert_eq!(agg.counts.get("tag3"), Some(&1));
+        assert_eq!(agg.note_tags.get("note-1"), Some(&vec!["tag3".to_string()]));
+        assert_eq!(agg.unique_tag_count(), 2); // tag2, tag3
+    }
+
+    #[test]
+    fn test_decrement_nonexistent_note() {
+        let mut agg = TagAggregator::new();
+        // Should not panic
+        agg.decrement_note("never-indexed");
+        assert_eq!(agg.unique_tag_count(), 0);
+    }
+
+    #[test]
+    fn test_decrement_tag_to_zero_removes_entry() {
+        let mut agg = TagAggregator::new();
+        let notes = vec![make_note("lone", "Lone", vec!["lonely-tag"])];
+        agg.aggregate(&notes);
+        assert_eq!(agg.unique_tag_count(), 1);
+
+        agg.decrement_note("lone");
+        assert_eq!(agg.unique_tag_count(), 0);
+        assert!(agg.counts.is_empty());
+        assert!(agg.notes_by_tag.is_empty());
     }
 }
