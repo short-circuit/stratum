@@ -126,18 +126,12 @@ pub async fn get_graph_data(state: tauri::State<'_, AppState>) -> Result<GraphDa
     let state = state.lock().map_err(|e| e.to_string())?;
     let vault_path_str = state.vault_path.to_string_lossy().to_string();
 
-    info!(
-        "Building graph from SQLite: {}",
-        vault_path_str
-    );
+    info!("Building graph from SQLite: {}", vault_path_str);
 
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     let data = build_graph_data_from_store(&store, &vault_path_str)?;
 
-    debug!(
-        "Found {} nodes, {} edges",
-        data.node_count, data.edge_count
-    );
+    debug!("Found {} nodes, {} edges", data.node_count, data.edge_count);
 
     Ok(data)
 }

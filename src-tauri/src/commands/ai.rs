@@ -248,11 +248,7 @@ pub async fn ai_interlink_notes(
     page_path: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<AiTransformResult, String> {
-    info!(
-        "interlink text_len={} page={:?}",
-        text.len(),
-        page_path
-    );
+    info!("interlink text_len={} page={:?}", text.len(), page_path);
 
     let config_path;
     let db_path;
