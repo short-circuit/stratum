@@ -7,6 +7,12 @@ import * as api from '../../lib/commands';
 import type { GraphSettings, GraphDataDto, GraphNodeDto, ComponentDto, OrphanDto } from '../../lib/types';
 import { DEFAULT_SETTINGS, type GraphNode } from './GraphCanvas';
 
+/** Number of nodes added per progressive-rendering batch. */
+const CHUNK_SIZE = 200;
+
+/** Minimum node count before the Web Worker layout offload kicks in. */
+const LAYOUT_WORKER_MIN_NODES = 50;
+
 /**
  * Return type for the useGraphPanel hook.
  * All state, setters, and derived data consumed by both desktop and mobile variants.
@@ -44,6 +50,10 @@ export interface UseGraphPanelReturn {
   nodeCapActive: boolean;
   /** Node count before node_cap was applied (for the warning banner). */
   preCapNodeCount: number;
+  /** Whether progressive rendering is still revealing node batches. */
+  progressiveLoading: boolean;
+  /** Progress of the progressive render: {current, total} nodes revealed so far. */
+  progress: { current: number; total: number };
 }
 
 /**
@@ -71,6 +81,14 @@ export function useGraphPanel(): UseGraphPanelReturn {
   const [search, setSearch] = useState('');
   const [graphSettings, setGraphSettings] = useState<GraphSettings>(DEFAULT_SETTINGS);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'unsaved'>('saved');
+
+  // ---- progressive rendering state ----
+
+  /** How many chunks of CHUNK_SIZE nodes have been revealed so far. */
+  const [displayBatch, setDisplayBatch] = useState(1);
+
+  /** Pre-computed layout positions from the Web Worker, keyed by node id. */
+  const [layoutPositions, setLayoutPositions] = useState<Map<string, { x: number; y: number; z: number }>>(new Map());
 
   // ---- settings persistence ----
 
@@ -129,6 +147,57 @@ export function useGraphPanel(): UseGraphPanelReturn {
     loadData();
   }, [loadData]);
 
+  // ---- progressive rendering ----
+
+  // Reset batch-and-a-half progress whenever the underlying graph data changes.
+  useEffect(() => {
+    if (graphData) {
+      setDisplayBatch(1);
+      setLayoutPositions(new Map());
+    }
+  }, [graphData]);
+
+  // ---- Web Worker layout offload ----
+
+  // Spawn a Web Worker to pre-compute d3-force positions off the main thread,
+  // then merge the results back into layoutPositions.
+  useEffect(() => {
+    if (!graphData || graphData.nodes.length < LAYOUT_WORKER_MIN_NODES) return;
+    const worker = new Worker(
+      new URL('../../workers/force-layout.worker.ts', import.meta.url),
+      { type: 'module' },
+    );
+    const nodes = graphData.nodes.map((n) => ({ id: n.id }));
+    const links = graphData.edges.map((e) => ({
+      source: e.source,
+      target: e.target,
+    }));
+    worker.postMessage({
+      nodes,
+      links,
+      chargeStrength: graphSettings.charge_strength,
+      linkDistance: graphSettings.link_distance,
+      alphaDecay: graphSettings.alpha_decay,
+      velocityDecay: graphSettings.velocity_decay,
+    });
+    worker.onmessage = (event) => {
+      const { positions } = event.data as { positions: { id: string; x: number; y: number; z: number }[] };
+      const map = new Map<string, { x: number; y: number; z: number }>();
+      for (const p of positions) {
+        map.set(p.id, { x: p.x, y: p.y, z: p.z });
+      }
+      setLayoutPositions(map);
+      worker.terminate();
+    };
+    worker.onerror = (err) => {
+      console.warn('[GraphPanel] layout worker error:', err);
+      worker.terminate();
+    };
+    return () => {
+      worker.terminate();
+    };
+  }, [graphData, graphSettings.charge_strength, graphSettings.link_distance, graphSettings.alpha_decay, graphSettings.velocity_decay]);
+
   // ---- d3 force config ----
 
   // Configure d3 forces whenever settings or graph data changes.
@@ -152,9 +221,9 @@ export function useGraphPanel(): UseGraphPanelReturn {
    * Applies view-mode (full / component / orphans), visibility toggles
    * (show_connected / show_orphaned), and text search filter.
    */
-  const { nodes: filteredNodes, edges: filteredEdges, preCapNodeCount } = useMemo(() => {
+  const { nodes: filteredNodes, edges: filteredEdges, preCapNodeCount, totalUnbatched } = useMemo(() => {
     if (!graphData) {
-      return { nodes: [] as GraphNode[], edges: [] as { source: string; target: string }[], preCapNodeCount: 0 };
+      return { nodes: [] as GraphNode[], edges: [] as { source: string; target: string }[], preCapNodeCount: 0, totalUnbatched: 0 };
     }
 
     let resultNodes: GraphNodeDto[];
@@ -210,10 +279,18 @@ export function useGraphPanel(): UseGraphPanelReturn {
       resultNodes = resultNodes.slice(0, graphSettings.node_cap);
     }
 
+    // Progressive rendering batch slice — reveals CHUNK_SIZE nodes at a time.
+    const totalBeforeBatch = resultNodes.length;
+    const batchLimit = displayBatch * CHUNK_SIZE;
+    if (resultNodes.length > batchLimit) {
+      resultNodes = resultNodes.slice(0, batchLimit);
+    }
+
     return {
       nodes: resultNodes as GraphNode[],
       edges: resultEdges,
       preCapNodeCount: preCap,
+      totalUnbatched: totalBeforeBatch,
     };
   }, [
     graphData,
@@ -225,13 +302,36 @@ export function useGraphPanel(): UseGraphPanelReturn {
     graphSettings.show_connected,
     graphSettings.show_orphaned,
     graphSettings.node_cap,
+    displayBatch,
   ]);
 
   // Data shaped for ForceGraph consumption
-  const graphDataProp = useMemo(
-    () => ({ nodes: filteredNodes, links: filteredEdges }),
-    [filteredNodes, filteredEdges],
-  );
+  // Merges Web Worker pre-computed positions (if available) and filters edges
+  // to only include connections between currently visible (unbatched) nodes.
+  const graphDataProp = useMemo(() => {
+    const visibleIds = new Set(filteredNodes.map((n) => n.id));
+    const links = filteredEdges.filter(
+      (e) => visibleIds.has(e.source) && visibleIds.has(e.target),
+    );
+    if (layoutPositions.size === 0) {
+      return { nodes: filteredNodes, links };
+    }
+    const nodes = filteredNodes.map((n) => {
+      const pos = layoutPositions.get(n.id);
+      if (pos) return { ...n, x: pos.x, y: pos.y, z: pos.z };
+      return n;
+    });
+    return { nodes, links };
+  }, [filteredNodes, filteredEdges, layoutPositions]);
+
+  // Increment displayBatch every 100 ms until all filtered nodes are shown.
+  useEffect(() => {
+    if (totalUnbatched === 0 || displayBatch * CHUNK_SIZE >= totalUnbatched) return;
+    const timer = setInterval(() => {
+      setDisplayBatch((prev) => prev + 1);
+    }, 100);
+    return () => clearInterval(timer);
+  }, [displayBatch, totalUnbatched]);
 
   // ---- navigation ----
 
@@ -264,6 +364,11 @@ export function useGraphPanel(): UseGraphPanelReturn {
   );
 
   const nodeCapActive = graphSettings.node_cap > 0 && preCapNodeCount > graphSettings.node_cap;
+  const progressiveLoading = graphData !== null && totalUnbatched > displayBatch * CHUNK_SIZE;
+  const progress = {
+    current: Math.min(filteredNodes.length, totalUnbatched),
+    total: totalUnbatched,
+  };
 
   return {
     state: {
@@ -291,5 +396,7 @@ export function useGraphPanel(): UseGraphPanelReturn {
     graphDataProp,
     nodeCapActive,
     preCapNodeCount,
+    progressiveLoading,
+    progress,
   };
 }
