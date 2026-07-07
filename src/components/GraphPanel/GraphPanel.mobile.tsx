@@ -55,6 +55,7 @@ export default function GraphPanelMobile() {
     handleNodeClick, updateSetting,
     filteredNodes,
     graphDataProp,
+    nodeCapActive, preCapNodeCount,
   } = useGraphPanel();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -181,6 +182,14 @@ export default function GraphPanelMobile() {
           </Alert>
         )}
 
+        {nodeCapActive && (
+          <Alert severity="info" icon={false} sx={{ position: 'absolute', top: error ? 44 : 8, left: 8, right: 8, zIndex: 10, py: 0, '& .MuiAlert-message': { py: 0.5 } }}>
+            <Typography variant="caption">
+              Showing {filteredNodes.length}/{preCapNodeCount} nodes (cap: {graphSettings.node_cap})
+            </Typography>
+          </Alert>
+        )}
+
         {filteredNodes.length > 0 ? (
           <GraphCanvas2D
             graphDataProp={graphDataProp}
@@ -254,6 +263,13 @@ export default function GraphPanelMobile() {
             <SliderSetting label="Alpha decay" value={graphSettings.alpha_decay} min={0.01} max={0.3} step={0.01} display={graphSettings.alpha_decay.toFixed(2)} onChange={(v) => updateSetting('alpha_decay', v)} />
             <SliderSetting label="Friction" value={graphSettings.velocity_decay} min={0.05} max={0.95} step={0.05} display={graphSettings.velocity_decay.toFixed(2)} onChange={(v) => updateSetting('velocity_decay', v)} />
             <SliderSetting label="Curvature" value={graphSettings.link_curvature} min={0} max={0.5} step={0.05} display={graphSettings.link_curvature.toFixed(2)} onChange={(v) => updateSetting('link_curvature', v)} />
+            <Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="caption">Node cap</Typography>
+                <Typography variant="caption" color="text.secondary">{graphSettings.node_cap === 0 ? 'Unlimited' : graphSettings.node_cap}</Typography>
+              </Box>
+              <Slider size="small" value={graphSettings.node_cap} min={0} max={10000} step={500} marks={[{ value: 0, label: '∞' }]} onChange={(_, v) => updateSetting('node_cap', v as number)} />
+            </Box>
           </Box>
         </Box>
       </SwipeableDrawer>

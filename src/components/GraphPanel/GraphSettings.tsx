@@ -3,6 +3,8 @@ import Box from '@mui/material/Box';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import Typography from '@mui/material/Typography';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import SliderRow from '../ui/SliderRow';
 import type { GraphSettings } from '../../lib/types';
 
@@ -37,6 +39,25 @@ export default function GraphSettingsPanel({ settingsOpen, graphSettings, update
           <SliderRow label="Alpha decay" value={graphSettings.alpha_decay} min={0.01} max={0.3} step={0.01} onChange={v => updateSetting('alpha_decay', v)} display={graphSettings.alpha_decay.toFixed(2)} />
           <SliderRow label="Friction" value={graphSettings.velocity_decay} min={0.05} max={0.95} step={0.05} onChange={v => updateSetting('velocity_decay', v)} display={graphSettings.velocity_decay.toFixed(2)} />
           <SliderRow label="Curvature" value={graphSettings.link_curvature} min={0} max={0.5} step={0.05} onChange={v => updateSetting('link_curvature', v)} display={graphSettings.link_curvature.toFixed(2)} />
+        </Box>
+
+        <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary', width: 100, textAlign: 'right', flexShrink: 0 }}>
+            Node cap
+          </Typography>
+          <Select
+            size="small"
+            value={graphSettings.node_cap}
+            onChange={(e) => updateSetting('node_cap', Number(e.target.value))}
+            sx={{ fontSize: '0.8rem', minWidth: 120 }}
+          >
+            <MenuItem value={500}>500</MenuItem>
+            <MenuItem value={1000}>1000</MenuItem>
+            <MenuItem value={2000}>2000</MenuItem>
+            <MenuItem value={5000}>5000</MenuItem>
+            <MenuItem value={10000}>10000</MenuItem>
+            <MenuItem value={0}>Unlimited</MenuItem>
+          </Select>
         </Box>
       </Box>
     </Collapse>
