@@ -4,6 +4,7 @@ use pkm_index::indexer::IndexEngine;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Mutex;
+use tracing::info;
 
 /// Application state holding the active vault.
 pub struct VaultState {
@@ -20,7 +21,7 @@ impl VaultState {
         let db_path = vault_path.join(".pkm").join("blocks.db");
         let index_engine = IndexEngine::new(&vault_path).ok();
         if index_engine.is_some() {
-            eprintln!("[stratum] IndexEngine initialized at {:?}", vault_path);
+            info!("IndexEngine initialized at {:?}", vault_path);
         }
         Self {
             vault_path,
