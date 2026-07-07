@@ -1,10 +1,10 @@
 //! Shared "find related pages" engine.
 //!
-//! Extracts the common logic from `suggest_connections` (search.rs) and
-//! `ai_interlink_notes` (ai.rs) — both independently rebuilt a Tantivy index,
-//! extracted keywords, searched, scored, and ranked. This module provides a
-//! single [`RelatedFinder`] builder with configurable split predicate,
-//! result count, and keyword length threshold.
+//! Provides [`RelatedFinder`], a builder for finding pages related to a given
+//! text fragment via Tantivy search (reusing the existing maintained index)
+//! plus keyword-based supplement. No longer rebuilds the Tantivy index from
+//! scratch — callers should ensure the index is populated (e.g. via
+//! `IndexEngine::rebuild_all` or incremental `index_note` calls).
 
 use pkm_block::BlockStore;
 use pkm_core::fs_util::truncate_text;
@@ -25,6 +25,10 @@ pub struct RelatedPageResult {
 }
 
 /// Builder for finding related pages via Tantivy search + keyword supplement.
+///
+/// Tantivy search reuses the existing index at `index_path` (read-only). The
+/// index must be populated beforehand — callers should ensure `IndexEngine`
+/// has been initialized and rebuilt at least once.
 ///
 /// # Example
 ///
@@ -87,12 +91,10 @@ impl RelatedFinder {
     /// Find pages related to `text`, skipping `current_slug` if provided.
     ///
     /// Internally:
-    /// 1. Lists all pages from `store`
-    /// 2. Builds a temporary Tantivy index with all block content
-    /// 3. Extracts keywords from `text` using the configured split predicate
-    /// 4. Searches Tantivy, deduplicates by slug
-    /// 5. Supplements with keyword matching on remaining pages
-    /// 6. Sorts by score descending, truncates to `max_results`
+    /// 1. Extracts keywords from `text` using the configured split predicate
+    /// 2. Searches the existing Tantivy index (read-only, no rebuild), deduplicates by slug
+    /// 3. Supplements with keyword matching on remaining pages
+    /// 4. Sorts by score descending, truncates to `max_results`
     pub fn find_related(
         &self,
         store: &BlockStore,
@@ -104,19 +106,7 @@ impl RelatedFinder {
             .list_pages()
             .map_err(|e| PkmError::Internal(e.to_string()))?;
 
-        // Step 1: Build Tantivy index from all pages
-        if let Ok(mut idx) = crate::block_search::BlockIndex::create(index_path) {
-            for path in &pages {
-                if let Ok(blocks) = store.get_blocks_by_page(path) {
-                    for b in &blocks {
-                        let _ = idx.index_block(b, path);
-                    }
-                }
-            }
-            let _ = idx.flush();
-        }
-
-        // Step 2: Extract keywords from input text
+        // Step 1: Extract keywords from input text
         let query_words: Vec<String> = text
             .split(|c| (self.split_predicate)(c))
             .filter(|w| w.len() > self.min_keyword_len)
@@ -124,11 +114,13 @@ impl RelatedFinder {
             .collect();
         let query = query_words.join(" ");
 
-        // Step 3: Search Tantivy
+        // Step 2: Search Tantivy — reuse the existing maintained index instead
+        // of rebuilding from scratch. The index is maintained by IndexEngine
+        // (incremental updates via index_note / rebuild_all).
         let mut results: Vec<RelatedPageResult> = Vec::new();
         let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
 
-        if let Ok(idx) = crate::block_search::BlockIndex::create(index_path) {
+        if let Some(idx) = crate::block_search::BlockIndex::open_readonly(index_path) {
             if let Ok(search_results) = idx.search(&query, self.max_results * 2) {
                 for r in &search_results {
                     let slug = std::path::Path::new(&r.page_path)
