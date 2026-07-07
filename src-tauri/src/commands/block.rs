@@ -67,7 +67,7 @@ pub async fn save_blocks(
     title: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
+    let mut state = state.lock().map_err(|e| e.to_string())?;
 
     let pkm_blocks: Vec<pkm_block::Block> = blocks
         .into_iter()
@@ -115,13 +115,13 @@ pub async fn save_blocks(
     }
 
     // Index blocks in Tantivy for full-text search
-    let index_path = state.vault_path.join(".pkm").join("search");
-    if let Ok(mut block_index) = pkm_index::block_search::BlockIndex::create(&index_path) {
-        for block in &pkm_blocks {
-            let _ = block_index.index_block(block, &page_path);
-        }
-        let _ = block_index.flush();
+    let block_index = state.ensure_block_index()?;
+    for block in &pkm_blocks {
+        block_index
+            .index_block(block, &page_path)
+            .map_err(|e| e.to_string())?;
     }
+    block_index.flush().map_err(|e| e.to_string())?;
 
     let mut page = pkm_block::Page::new(full_path, &state.vault_path);
     if let Some(t) = title {
@@ -247,7 +247,7 @@ pub async fn toggle_block_marker(
     block_id: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<Option<String>, String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
+    let mut state = state.lock().map_err(|e| e.to_string())?;
     let id = Uuid::parse_str(&block_id).map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     let blocks = store
@@ -284,14 +284,13 @@ pub async fn toggle_block_marker(
     };
     std::fs::write(&full_path, &final_md).map_err(|e| e.to_string())?;
 
-    if let Ok(mut block_index) =
-        pkm_index::block_search::BlockIndex::create(&state.vault_path.join(".pkm").join("search"))
-    {
-        for b in &all_blocks {
-            let _ = block_index.index_block(b, &page_path);
-        }
-        let _ = block_index.flush();
+    let block_index = state.ensure_block_index()?;
+    for b in &all_blocks {
+        block_index
+            .index_block(b, &page_path)
+            .map_err(|e| e.to_string())?;
     }
+    block_index.flush().map_err(|e| e.to_string())?;
 
     Ok(new_marker.map(|m| m.as_str().to_string()))
 }
@@ -302,7 +301,7 @@ pub async fn clear_block_marker(
     block_id: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
+    let mut state = state.lock().map_err(|e| e.to_string())?;
     let id = Uuid::parse_str(&block_id).map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     let mut blocks = store
@@ -328,14 +327,13 @@ pub async fn clear_block_marker(
     };
     std::fs::write(&full_path, &final_md).map_err(|e| e.to_string())?;
 
-    if let Ok(mut block_index) =
-        pkm_index::block_search::BlockIndex::create(&state.vault_path.join(".pkm").join("search"))
-    {
-        for b in &blocks {
-            let _ = block_index.index_block(b, &page_path);
-        }
-        let _ = block_index.flush();
+    let block_index = state.ensure_block_index()?;
+    for b in &blocks {
+        block_index
+            .index_block(b, &page_path)
+            .map_err(|e| e.to_string())?;
     }
+    block_index.flush().map_err(|e| e.to_string())?;
 
     Ok(())
 }
