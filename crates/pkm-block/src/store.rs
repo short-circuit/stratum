@@ -194,22 +194,55 @@ impl BlockStore {
     pub fn get_blocks_by_page(&self, page_path: &str) -> StoreResult<Vec<Block>> {
         let mut stmt = self
             .conn
-            .prepare("SELECT id FROM blocks WHERE page_path = ?1 ORDER BY rowid")
+            .prepare(
+                "SELECT id, content, parent_id, left_id, properties, marker, priority,
+                 collapsed, heading_level, created_at, modified_at
+                 FROM blocks WHERE page_path = ?1 ORDER BY rowid",
+            )
             .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
-        let ids: Vec<String> = stmt
-            .query_map(params![page_path], |row| row.get(0))
+        let blocks: Vec<Block> = stmt
+            .query_map(params![page_path], |row| {
+                let id: String = row.get(0)?;
+                let content: String = row.get(1)?;
+                let parent_id: Option<String> = row.get(2)?;
+                let left_id: Option<String> = row.get(3)?;
+                let properties_str: String = row.get(4)?;
+                let marker: Option<String> = row.get(5)?;
+                let priority: Option<String> = row.get(6)?;
+                let collapsed: bool = row.get::<_, i32>(7)? != 0;
+                let heading_level: Option<u8> = row.get(8)?;
+                let created_at: String = row.get(9)?;
+                let modified_at: String = row.get(10)?;
+
+                let id = Uuid::parse_str(&id).unwrap_or_else(|_| Uuid::nil());
+                let properties: BTreeMap<String, String> =
+                    serde_json::from_str(&properties_str).unwrap_or_default();
+                let marker = marker.and_then(|m| TaskMarker::parse(&m));
+                let priority = priority.and_then(|p| Priority::parse(&p));
+
+                Ok(Block {
+                    id,
+                    content,
+                    parent_id: parent_id.and_then(|s| Uuid::parse_str(&s).ok()),
+                    left_id: left_id.and_then(|s| Uuid::parse_str(&s).ok()),
+                    properties,
+                    marker,
+                    priority,
+                    meta: BlockMeta {
+                        collapsed,
+                        heading_level,
+                    },
+                    created_at: DateTime::parse_from_rfc3339(&created_at)
+                        .map(|dt| dt.with_timezone(&Utc))
+                        .unwrap_or_else(|_| Utc::now()),
+                    modified_at: DateTime::parse_from_rfc3339(&modified_at)
+                        .map(|dt| dt.with_timezone(&Utc))
+                        .unwrap_or_else(|_| Utc::now()),
+                })
+            })
             .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?
             .filter_map(|r| r.ok())
             .collect();
-
-        let mut blocks = Vec::new();
-        for id_str in ids {
-            if let Ok(id) = Uuid::parse_str(&id_str) {
-                if let Ok(block) = self.get_block(id) {
-                    blocks.push(block);
-                }
-            }
-        }
         Ok(blocks)
     }
 
