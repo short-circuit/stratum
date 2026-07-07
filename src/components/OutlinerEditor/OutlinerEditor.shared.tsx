@@ -219,8 +219,10 @@ export function useEditorData(
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
         try {
+          // Clone blocks before marker detection so the editor document is never
+          // mutated if saveBlocks() fails — prevents marker keyword data loss.
           detectAndApplyMarkers(
-            blockNoteBlocks,
+            structuredClone(blockNoteBlocks),
             pagePath,
             blockMetaRef.current,
           );
