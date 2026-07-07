@@ -4,6 +4,7 @@ use futures::StreamExt;
 use pkm_core::{AiConfig, AiProvider, PkmError, PkmResult};
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::time::Duration;
 
 /// Role of a chat message sender.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -149,11 +150,14 @@ pub struct OllamaProvider {
 }
 
 impl OllamaProvider {
-    pub fn new(endpoint: impl Into<String>) -> Self {
-        Self {
+    pub fn new(endpoint: impl Into<String>) -> PkmResult<Self> {
+        Ok(Self {
             endpoint: endpoint.into(),
-            client: reqwest::Client::new(),
-        }
+            client: reqwest::Client::builder()
+                .timeout(Duration::from_secs(30))
+                .build()
+                .map_err(|e| PkmError::Ai(format!("Failed to create HTTP client: {e}")))?,
+        })
     }
 }
 
@@ -362,12 +366,15 @@ pub struct OpenAIProvider {
 }
 
 impl OpenAIProvider {
-    pub fn new(endpoint: impl Into<String>, api_key: impl Into<String>) -> Self {
-        Self {
+    pub fn new(endpoint: impl Into<String>, api_key: impl Into<String>) -> PkmResult<Self> {
+        Ok(Self {
             endpoint: endpoint.into(),
             api_key: api_key.into(),
-            client: reqwest::Client::new(),
-        }
+            client: reqwest::Client::builder()
+                .timeout(Duration::from_secs(30))
+                .build()
+                .map_err(|e| PkmError::Ai(format!("Failed to create HTTP client: {e}")))?,
+        })
     }
 }
 
@@ -606,12 +613,15 @@ pub struct AnthropicProvider {
 }
 
 impl AnthropicProvider {
-    pub fn new(endpoint: impl Into<String>, api_key: impl Into<String>) -> Self {
-        Self {
+    pub fn new(endpoint: impl Into<String>, api_key: impl Into<String>) -> PkmResult<Self> {
+        Ok(Self {
             endpoint: endpoint.into(),
             api_key: api_key.into(),
-            client: reqwest::Client::new(),
-        }
+            client: reqwest::Client::builder()
+                .timeout(Duration::from_secs(30))
+                .build()
+                .map_err(|e| PkmError::Ai(format!("Failed to create HTTP client: {e}")))?,
+        })
     }
 }
 
@@ -829,12 +839,15 @@ pub struct CustomProvider {
 }
 
 impl CustomProvider {
-    pub fn new(endpoint: impl Into<String>, api_key: Option<String>) -> Self {
-        Self {
+    pub fn new(endpoint: impl Into<String>, api_key: Option<String>) -> PkmResult<Self> {
+        Ok(Self {
             endpoint: endpoint.into(),
             api_key,
-            client: reqwest::Client::new(),
-        }
+            client: reqwest::Client::builder()
+                .timeout(Duration::from_secs(30))
+                .build()
+                .map_err(|e| PkmError::Ai(format!("Failed to create HTTP client: {e}")))?,
+        })
     }
 }
 
@@ -1014,41 +1027,41 @@ impl ProviderFactory {
             });
 
         match config.provider {
-            AiProvider::Ollama => Ok(Box::new(OllamaProvider::new(endpoint))),
+            AiProvider::Ollama => Ok(Box::new(OllamaProvider::new(endpoint)?)),
             AiProvider::OpenAI => {
                 let api_key = config
                     .api_key
                     .clone()
                     .ok_or_else(|| PkmError::Config("OpenAI requires an API key".to_string()))?;
-                Ok(Box::new(OpenAIProvider::new(endpoint, api_key)))
+                Ok(Box::new(OpenAIProvider::new(endpoint, api_key)?))
             }
             AiProvider::Anthropic => {
                 let api_key = config
                     .api_key
                     .clone()
                     .ok_or_else(|| PkmError::Config("Anthropic requires an API key".to_string()))?;
-                Ok(Box::new(AnthropicProvider::new(endpoint, api_key)))
+                Ok(Box::new(AnthropicProvider::new(endpoint, api_key)?))
             }
             AiProvider::Custom => Ok(Box::new(CustomProvider::new(
                 endpoint,
                 config.api_key.clone(),
-            ))),
+            )?)),
             AiProvider::CustomOpenAI => {
                 let api_key = config.api_key.clone().ok_or_else(|| {
                     PkmError::Config("CustomOpenAI requires an API key".to_string())
                 })?;
-                Ok(Box::new(OpenAIProvider::new(endpoint, api_key)))
+                Ok(Box::new(OpenAIProvider::new(endpoint, api_key)?))
             }
             AiProvider::CustomAnthropic => {
                 let api_key = config.api_key.clone().ok_or_else(|| {
                     PkmError::Config("CustomAnthropic requires an API key".to_string())
                 })?;
-                Ok(Box::new(AnthropicProvider::new(endpoint, api_key)))
+                Ok(Box::new(AnthropicProvider::new(endpoint, api_key)?))
             }
             AiProvider::Google | AiProvider::Zai => Ok(Box::new(CustomProvider::new(
                 endpoint,
                 config.api_key.clone(),
-            ))),
+            )?)),
         }
     }
 }
