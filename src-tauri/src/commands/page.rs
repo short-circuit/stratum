@@ -404,6 +404,9 @@ pub async fn save_page(
     };
     store.upsert_page(&page).map_err(|e| e.to_string())?;
 
+    // Drop BlockIndex writer before IndexEngine acquires its own (same Tantivy dir)
+    drop(state.block_index.take());
+
     // Keep IndexEngine in sync with the written file
     state
         .ensure_index()?
@@ -491,6 +494,9 @@ pub async fn delete_page(path: String, state: tauri::State<'_, AppState>) -> Res
 
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     store.delete_page(&path).map_err(|e| e.to_string())?;
+
+    // Drop BlockIndex writer before IndexEngine acquires its own (same Tantivy dir)
+    drop(state.block_index.take());
 
     // Remove from IndexEngine so graph/search don't reference a deleted note
     state
