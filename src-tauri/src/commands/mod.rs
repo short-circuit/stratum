@@ -13,7 +13,7 @@ pub mod template;
 pub mod vault;
 pub mod whiteboard;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::Emitter;
 
 /// Payload emitted as a "reindex-progress" Tauri event during long-running operations.
@@ -21,6 +21,15 @@ use tauri::Emitter;
 pub struct ProgressEventPayload {
     pub message: String,
     pub percent: f32,
+}
+
+/// Structured result for reindex operations.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReindexResult {
+    pub processed: usize,
+    pub succeeded: usize,
+    pub failed: usize,
+    pub errors: Vec<String>,
 }
 
 /// Create a `ProgressCallback` that emits Tauri events for progress reporting.

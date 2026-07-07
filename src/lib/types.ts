@@ -205,3 +205,10 @@ export interface KanbanBlockDto {
 export interface KanbanDataDto {
   blocks: KanbanBlockDto[];
 }
+
+export interface ReindexResult {
+  processed: number;
+  succeeded: number;
+  failed: number;
+  errors: string[];
+}

@@ -23,6 +23,7 @@ import type {
   AutocompleteItem,
   KanbanBlockDto,
   KanbanDataDto,
+  ReindexResult,
 } from './types';
 
 export async function getVaultInfo(): Promise<VaultInfo> {
@@ -366,12 +367,22 @@ export async function getBacklinkContext(
 
 // --- Reindex ---
 
-export async function reindexVault(): Promise<number> {
+export async function reindexVault(): Promise<ReindexResult> {
   return invoke('reindex_vault');
 }
 
-export async function reindexPage(path: string): Promise<number> {
+export async function reindexPage(path: string): Promise<ReindexResult> {
   return invoke('reindex_page', { path });
+}
+
+// --- Normalize ---
+
+export async function normalizeFile(path: string): Promise<void> {
+  return invoke('normalize_file', { path });
+}
+
+export async function normalizeAllFiles(): Promise<number> {
+  return invoke('normalize_all_files');
 }
 
 // --- Kanban ---

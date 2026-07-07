@@ -103,6 +103,41 @@ impl IndexEngine {
         Ok(())
     }
 
+    /// Re-index a single page from disk by reading the .md file, parsing it,
+    /// and updating the index in place.
+    ///
+    /// If the file does not exist on disk (e.g. it was just deleted), this is a
+    /// no-op that returns `Ok(())` — the caller should call `remove_note` for
+    /// deletions.
+    pub fn refresh_page(&mut self, rel_path: &str, vault_path: &Path) -> PkmResult<()> {
+        let full_path = vault_path.join(rel_path);
+
+        // If file doesn't exist, just return Ok — caller handles deletion
+        if !full_path.exists() {
+            tracing::debug!("refresh_page: file not found, skipping: {}", rel_path);
+            return Ok(());
+        }
+
+        let content = std::fs::read_to_string(&full_path).map_err(PkmError::Io)?;
+        let metadata = std::fs::metadata(&full_path).map_err(PkmError::Io)?;
+        let modified_at: chrono::DateTime<chrono::Utc> =
+            metadata.modified().map_err(PkmError::Io)?.into();
+        let parsed = pkm_markdown::parser::parse_raw(&content);
+
+        let note = Note::new(
+            full_path,
+            vault_path,
+            parsed.frontmatter,
+            parsed.body,
+            parsed.raw,
+            parsed.links,
+            parsed.tags,
+            modified_at,
+        );
+
+        self.index_note(&note)
+    }
+
     /// Rebuild the entire index from .md files on disk.
     pub fn rebuild_all(&mut self, progress: Option<ProgressCallback>) -> PkmResult<Vec<Note>> {
         // Reset state
