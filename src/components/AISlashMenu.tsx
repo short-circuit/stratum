@@ -6,8 +6,8 @@ import {
   type DefaultReactSuggestionItem,
 } from '@blocknote/react';
 import { filterSuggestionItems } from '@blocknote/core';
-import * as api from '../lib/commands';
-import type { AiAction } from '../lib/types';
+import { useAbortableInvoke } from '../lib/hooks/useAbortableInvoke';
+import type { AiAction, AiTransformResult, ResearchResult } from '../lib/types';
 import AILoadingOverlay from './ui/AILoadingOverlay';
 import MathEditorModal from './MathEditorModal';
 
@@ -26,6 +26,7 @@ export default function AISlashMenu({ pagePath }: Props) {
     onSave: (latex: string) => void;
   } | null>(null);
   const capturedRef = useRef('');
+  const { abortableInvoke } = useAbortableInvoke();
 
   // Capture selected text before "/" key replaces it
   useEffect(() => {
@@ -79,7 +80,7 @@ export default function AISlashMenu({ pagePath }: Props) {
               const text = capturedRef.current;
               capturedRef.current = '';
               if (!text.trim()) return;
-              const { content } = await api.aiTransformBlock(text, action, pagePath);
+              const { content } = await abortableInvoke<AiTransformResult>('ai_transform_block', { text, action, pagePath });
               if (content.trim()) {
                 editor.pasteMarkdown(content);
               }
@@ -90,7 +91,7 @@ export default function AISlashMenu({ pagePath }: Props) {
                 .filter(Boolean)
                 .join('\n\n');
               if (!allText.trim()) return;
-              const { content } = await api.aiTransformBlock(allText, action, pagePath);
+              const { content } = await abortableInvoke<AiTransformResult>('ai_transform_block', { text: allText, action, pagePath });
               if (content.trim()) {
                 const blocks = editor.tryParseMarkdownToBlocks(content);
                 if (blocks.length > 0) {
@@ -133,7 +134,7 @@ export default function AISlashMenu({ pagePath }: Props) {
           const query = allText || capturedRef.current || pagePath;
           capturedRef.current = '';
           if (!query.trim()) return;
-          const result = await api.aiResearch(query);
+          const result = await abortableInvoke<ResearchResult>('ai_research', { query });
           if (result.findings.trim()) {
             const blocks = editor.tryParseMarkdownToBlocks(result.findings);
             if (blocks.length > 0) {
@@ -167,7 +168,7 @@ export default function AISlashMenu({ pagePath }: Props) {
           try {
             const md = editor.blocksToMarkdownLossy();
             if (!md.trim()) return;
-            const { content } = await api.aiInterlinkNotes(md, pagePath);
+            const { content } = await abortableInvoke<AiTransformResult>('ai_interlink_notes', { text: md, pagePath });
             if (content.trim()) {
               const blocks = editor.tryParseMarkdownToBlocks(content);
               if (blocks.length > 0) {
@@ -199,7 +200,7 @@ export default function AISlashMenu({ pagePath }: Props) {
           try {
             const md = editor.blocksToMarkdownLossy();
             if (!md.trim()) return;
-            const { content } = await api.aiInterlinkNotes(md, pagePath);
+            const { content } = await abortableInvoke<AiTransformResult>('ai_interlink_notes', { text: md, pagePath });
             if (content.trim()) {
               const blocks = editor.tryParseMarkdownToBlocks(content);
               if (blocks.length > 0) {
@@ -250,7 +251,8 @@ export default function AISlashMenu({ pagePath }: Props) {
           const prompt = capturedRef.current || extractText(editor.document as unknown);
           capturedRef.current = '';
           if (!prompt.trim()) return;
-          const code = await api.generateMermaid(prompt);
+          const result = await abortableInvoke<AiTransformResult>('generate_mermaid', { prompt });
+          const code = result.content;
           if (code.trim()) {
             const pos = editor.getTextCursorPosition();
             editor.insertBlocks(
@@ -272,7 +274,7 @@ export default function AISlashMenu({ pagePath }: Props) {
       [...aiItems, ...defaultItems.filter((i) => !customGroups.has(i.group))],
       query,
     );
-  }, [editor, pagePath]);
+  }, [editor, pagePath, abortableInvoke]);
 
   return (
     <>
