@@ -14,7 +14,8 @@ export default function QueryPanelDesktop() {
   const { datalog, setDatalog, result, error, running, doQuery, resetQuery } = useDatalogQuery();
 
   return (
-    <Box sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Box sx={{ flex: 1, overflow: 'auto', p: 3, maxWidth: 800, mx: 'auto' }}>
       <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>Datalog Query</Typography>
 
       <TextField
@@ -66,6 +67,7 @@ export default function QueryPanelDesktop() {
       {result && result.rows.length === 0 && (
         <Typography variant="body2" color="text.secondary">Query returned no results.</Typography>
       )}
+      </Box>
     </Box>
   );
 }

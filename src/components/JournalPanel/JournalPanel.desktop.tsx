@@ -27,7 +27,8 @@ export default function JournalPanelDesktop() {
   } = useJournalPanel();
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, mb: 0.5 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
           {formatDisplayDate(today)}
@@ -83,6 +84,7 @@ export default function JournalPanelDesktop() {
       })}
 
       {visibleCount < pastDates.length && <div ref={sentinelRef} />}
+      </Box>
     </Box>
   );
 }
