@@ -191,6 +191,10 @@ pub async fn reindex_vault(
 
     local_block_index.flush().map_err(|e| e.to_string())?;
 
+    // Drop local index writer so its Tantivy lockfile is released before
+    // IndexEngine tries to open its own writer on the same directory.
+    drop(local_block_index);
+
     // Drop indexing guard before accessing IndexEngine (&mut self)
     drop(_guard);
 
@@ -292,6 +296,10 @@ pub async fn reindex_page(
             warn!("reindex_page: failed for {}: {}", path, e);
         }
     }
+
+    // Drop local index writer so its Tantivy lockfile is released before
+    // IndexEngine tries to open its own writer on the same directory.
+    drop(local_block_index);
 
     // Drop indexing guard before accessing IndexEngine (&mut self)
     drop(_guard);
