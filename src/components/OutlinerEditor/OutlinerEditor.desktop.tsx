@@ -200,7 +200,7 @@ export default function OutlinerEditor({
   useEffect(() => {
     if (!editor || status !== 'ready' || !autoFocus) return;
     requestAnimationFrame(() => {
-      (editor as any)?.prosemirrorView?.focus();
+      editor.prosemirrorView.focus();
     });
   }, [editor, status, autoFocus]);
 
