@@ -9,8 +9,6 @@ import AITab from './AITab';
 import ResearchTab from './ResearchTab';
 import DeveloperTab from './DeveloperTab';
 import SyncTab from './SyncTab';
-import ConflictModal from '../ui/ConflictModal';
-import PassphraseModal from '../ui/PassphraseModal';
 import { useSettingsPage, type SettingsTab } from './SettingsPage.shared';
 
 export default function SettingsPageDesktop() {
@@ -26,16 +24,12 @@ export default function SettingsPageDesktop() {
     syncStatus,
     commits,
     commitsOpen,
-    conflictModalOpen,
-    conflictFiles,
-    passphraseModalOpen,
     syncing,
     ai,
     research,
     theme,
     syncSettings,
     setMsg,
-    setPassphraseModalOpen,
     updateAi,
     updateVault,
     updateResearch,
@@ -48,10 +42,6 @@ export default function SettingsPageDesktop() {
     toggleModelCapability,
     handleToggleCommits,
     handleStartScheduler,
-    handlePassphraseSubmit,
-    handleResolveConflict,
-    handleResolveAllConflicts,
-    handleAbortMerge,
     pickVaultDirectory,
   } = useSettingsPage();
 
@@ -144,24 +134,6 @@ export default function SettingsPageDesktop() {
           />
         )}
       </Box>
-
-      {/* Passphrase Modal */}
-      {passphraseModalOpen && (
-        <PassphraseModal
-          onClose={() => setPassphraseModalOpen(false)}
-          onSubmit={handlePassphraseSubmit}
-        />
-      )}
-
-      {/* Conflict Resolution Modal */}
-      {conflictModalOpen && (
-        <ConflictModal
-          files={conflictFiles}
-          onResolve={handleResolveConflict}
-          onResolveAll={handleResolveAllConflicts}
-          onAbort={handleAbortMerge}
-        />
-      )}
     </Box>
   );
 }

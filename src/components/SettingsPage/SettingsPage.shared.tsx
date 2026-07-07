@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore } from '../../stores/appStore';
+import { useSyncModalStore } from '../../stores/syncModalStore';
 import { useSyncStore } from '../../stores/syncStore';
 import * as api from '../../lib/commands';
 import { applyTheme } from '../../lib/theme';
@@ -64,9 +65,8 @@ export function useSettingsPage() {
   const syncing = useSyncStore(s => s.syncing);
   const setSyncing = useSyncStore(s => s.setSyncing);
   const [commitsOpen, setCommitsOpen] = useState(false);
-  const [conflictModalOpen, setConflictModalOpen] = useState(false);
-  const [conflictFiles, setConflictFiles] = useState<string[]>([]);
-  const [passphraseModalOpen, setPassphraseModalOpen] = useState(false);
+
+  const syncModal = useSyncModalStore();
 
   const syncMuiTheme = useCallback(
     (primary: string, secondary: string, dark: boolean, fontSize: number) => {
@@ -216,8 +216,7 @@ export function useSettingsPage() {
     try {
       const result = await useSyncStore.getState().doSync();
       if (result.status === 'conflicts') {
-        setConflictFiles(result.conflicts);
-        setConflictModalOpen(true);
+        syncModal.showConflictModal(result.conflicts);
       }
       setMsg(
         result.status === 'ok'
@@ -229,7 +228,7 @@ export function useSettingsPage() {
     } catch (e) {
       const errStr = String(e);
       if (errStr.includes('NeedsPassphrase') || errStr.includes('passphrase')) {
-        setPassphraseModalOpen(true);
+        syncModal.showPassphraseModal();
       } else {
         setMsg(`Sync failed: ${e}`);
       }
@@ -270,10 +269,9 @@ export function useSettingsPage() {
   const handlePassphraseSubmit = async (passphrase: string) => {
     try {
       const result = await useSyncStore.getState().doSyncWithPassphrase(passphrase);
-      setPassphraseModalOpen(false);
+      syncModal.hidePassphraseModal();
       if (result.status === 'conflicts') {
-        setConflictFiles(result.conflicts);
-        setConflictModalOpen(true);
+        syncModal.showConflictModal(result.conflicts);
       }
       setMsg(
         result.status === 'ok'
@@ -284,45 +282,6 @@ export function useSettingsPage() {
       );
     } catch (e) {
       setMsg(`Sync failed: ${e}`);
-    }
-  };
-
-  const handleResolveConflict = async (file: string) => {
-    try {
-      await api.resolveConflictFile(file);
-      setConflictFiles(prev => prev.filter(f => f !== file));
-      setMsg(`Resolved: ${file}`);
-      setMsgSeverity('success');
-    } catch (e) {
-      setMsg(`Resolve failed: ${e}`);
-      setMsgSeverity('error');
-    }
-  };
-
-  const handleResolveAllConflicts = async () => {
-    for (const f of conflictFiles) {
-      try {
-        await api.resolveConflictFile(f);
-      } catch {
-        /* skip */
-      }
-    }
-    setConflictFiles([]);
-    setConflictModalOpen(false);
-    setMsg('All conflicts resolved.');
-    setMsgSeverity('success');
-  };
-
-  const handleAbortMerge = async () => {
-    try {
-      await api.abortMerge();
-      setConflictFiles([]);
-      setConflictModalOpen(false);
-      setMsg('Merge aborted.');
-      setMsgSeverity('success');
-    } catch (e) {
-      setMsg(`Abort failed: ${e}`);
-      setMsgSeverity('error');
     }
   };
 
@@ -339,9 +298,6 @@ export function useSettingsPage() {
     syncStatus,
     commits,
     commitsOpen,
-    conflictModalOpen,
-    conflictFiles,
-    passphraseModalOpen,
     syncing,
 
     // Derived
@@ -354,8 +310,6 @@ export function useSettingsPage() {
     setMsg,
     setMsgSeverity,
     setSyncing,
-    setConflictModalOpen,
-    setPassphraseModalOpen,
     updateAi,
     updateVault,
     updateResearch,
@@ -369,9 +323,6 @@ export function useSettingsPage() {
     handleToggleCommits,
     handleStartScheduler,
     handlePassphraseSubmit,
-    handleResolveConflict,
-    handleResolveAllConflicts,
-    handleAbortMerge,
     pickVaultDirectory,
   };
 }
