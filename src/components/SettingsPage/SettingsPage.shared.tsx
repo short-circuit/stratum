@@ -2,8 +2,8 @@
 //! Provides the `useSettingsPage()` hook consumed by both desktop and mobile variants.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { SyncStatusDto, CommitLogEntry } from '../../lib/types';
 import { useStore } from '../../stores/appStore';
+import { useSyncStore } from '../../stores/syncStore';
 import * as api from '../../lib/commands';
 import { applyTheme } from '../../lib/theme';
 
@@ -59,13 +59,14 @@ export function useSettingsPage() {
     fontSize: number;
   } | null>(null);
   const muiSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [syncStatus, setSyncStatus] = useState<SyncStatusDto | null>(null);
-  const [commits, setCommits] = useState<CommitLogEntry[]>([]);
+  const syncStatus = useSyncStore(s => s.syncStatus);
+  const commits = useSyncStore(s => s.commits);
+  const syncing = useSyncStore(s => s.syncing);
+  const setSyncing = useSyncStore(s => s.setSyncing);
   const [commitsOpen, setCommitsOpen] = useState(false);
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
   const [conflictFiles, setConflictFiles] = useState<string[]>([]);
   const [passphraseModalOpen, setPassphraseModalOpen] = useState(false);
-  const [syncing, setSyncing] = useState(false);
 
   const syncMuiTheme = useCallback(
     (primary: string, secondary: string, dark: boolean, fontSize: number) => {
@@ -97,8 +98,8 @@ export function useSettingsPage() {
         setMsgSeverity('error');
       });
 
-    api.getSyncStatus().then(setSyncStatus).catch(() => {});
-    api.getCommitLog().then(setCommits).catch(() => {});
+    useSyncStore.getState().fetchSyncStatus();
+    useSyncStore.getState().fetchCommitLog();
 
     return () => {
       const saved = savedThemeRef.current;
@@ -211,11 +212,9 @@ export function useSettingsPage() {
   };
 
   const handleSyncNow = async () => {
-    setSyncing(true);
     setMsg('');
     try {
-      const result = await api.syncVault();
-      setSyncStatus(result);
+      const result = await useSyncStore.getState().doSync();
       if (result.status === 'conflicts') {
         setConflictFiles(result.conflicts);
         setConflictModalOpen(true);
@@ -234,8 +233,6 @@ export function useSettingsPage() {
       } else {
         setMsg(`Sync failed: ${e}`);
       }
-    } finally {
-      setSyncing(false);
     }
   };
 
@@ -254,7 +251,7 @@ export function useSettingsPage() {
 
   const handleToggleCommits = () => {
     if (!commitsOpen && commits.length === 0) {
-      api.getCommitLog().then(setCommits).catch(() => {});
+      useSyncStore.getState().fetchCommitLog();
     }
     setCommitsOpen(!commitsOpen);
   };
@@ -271,10 +268,8 @@ export function useSettingsPage() {
   };
 
   const handlePassphraseSubmit = async (passphrase: string) => {
-    setSyncing(true);
     try {
-      const result = await api.syncVaultWithPassphrase(passphrase);
-      setSyncStatus(result);
+      const result = await useSyncStore.getState().doSyncWithPassphrase(passphrase);
       setPassphraseModalOpen(false);
       if (result.status === 'conflicts') {
         setConflictFiles(result.conflicts);
@@ -289,8 +284,6 @@ export function useSettingsPage() {
       );
     } catch (e) {
       setMsg(`Sync failed: ${e}`);
-    } finally {
-      setSyncing(false);
     }
   };
 
