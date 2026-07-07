@@ -15,6 +15,7 @@ import Slider from '@mui/material/Slider';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import CircularProgress from '@mui/material/CircularProgress';
+import LinearProgress from '@mui/material/LinearProgress';
 import Alert from '@mui/material/Alert';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -56,6 +57,7 @@ export default function GraphPanelMobile() {
     filteredNodes,
     graphDataProp,
     nodeCapActive, preCapNodeCount,
+    progressiveLoading, progress,
   } = useGraphPanel();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -187,6 +189,19 @@ export default function GraphPanelMobile() {
             <Typography variant="caption">
               Showing {filteredNodes.length}/{preCapNodeCount} nodes (cap: {graphSettings.node_cap})
             </Typography>
+          </Alert>
+        )}
+
+        {progressiveLoading && (
+          <Alert severity="info" icon={false} sx={{ position: 'absolute', top: (nodeCapActive ? 44 : error ? 44 : 8), left: 8, right: 8, zIndex: 10, py: 0, '& .MuiAlert-message': { py: 0.5 } }}>
+            <Typography variant="caption" sx={{ mb: 0.25, display: 'block' }}>
+              Rendering {progress.current}/{progress.total} nodes...
+            </Typography>
+            <LinearProgress
+              variant="determinate"
+              value={(progress.current / progress.total) * 100}
+              sx={{ height: 3, borderRadius: 2 }}
+            />
           </Alert>
         )}
 
