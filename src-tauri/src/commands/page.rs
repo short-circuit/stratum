@@ -2,6 +2,7 @@
 
 use crate::commands::vault::{AppState, IndexingGuard};
 use pkm_core::fs_util::MdCollector;
+use pkm_index::block_search::BlockIndex;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tauri::Emitter;
@@ -59,7 +60,7 @@ fn sync_page_from_disk(
     store: &pkm_block::BlockStore,
     rel: &str,
     vault_path: &Path,
-    index_path: Option<&Path>,
+    block_index: Option<&mut BlockIndex>,
 ) -> Result<bool, String> {
     let full = vault_path.join(rel);
     let content = std::fs::read_to_string(&full).map_err(|e| e.to_string())?;
@@ -84,12 +85,9 @@ fn sync_page_from_disk(
     }
 
     // Rebuild Tantivy search index for this page
-    if let Some(index_path) = index_path {
-        if let Ok(mut block_index) = pkm_index::block_search::BlockIndex::create(index_path) {
-            for block in &blocks {
-                let _ = block_index.index_block(block, rel);
-            }
-            let _ = block_index.flush();
+    if let Some(block_index) = block_index {
+        for block in &blocks {
+            let _ = block_index.index_block(block, rel);
         }
     }
 
@@ -108,7 +106,9 @@ pub fn sync_filesystem_to_db(vault_path: &Path, db_path: &Path) -> Result<usize,
         .skip_dirs(vec![".pkm", "templates", ".git"])
         .collect_relative(vault_path, vault_path)
         .map_err(|e| e.to_string())?;
-    let index_path = vault_path.join(".pkm").join("search");
+
+    // Create a shared BlockIndex for the full sync pass
+    let mut block_index = BlockIndex::create(&vault_path.join(".pkm").join("search")).ok();
 
     let mut count = 0;
     for rel in md_files {
@@ -119,9 +119,14 @@ pub fn sync_filesystem_to_db(vault_path: &Path, db_path: &Path) -> Result<usize,
             true
         };
 
-        if needs_sync && sync_page_from_disk(&store, &rel, vault_path, Some(&index_path))? {
+        if needs_sync && sync_page_from_disk(&store, &rel, vault_path, block_index.as_mut())? {
             count += 1;
         }
+    }
+
+    // Flush index once after all pages are processed
+    if let Some(ref mut bi) = block_index {
+        let _ = bi.flush();
     }
 
     for rel in &db_paths {
@@ -150,8 +155,11 @@ pub async fn reindex_vault(
         .collect_relative(&state.vault_path, &state.vault_path)
         .map_err(|e| e.to_string())?;
 
+    let vault_path = state.vault_path.clone();
     let total = md_files.len();
-    let index_path = state.vault_path.join(".pkm").join("search");
+    // Create a local BlockIndex for this reindex pass (IndexingGuard prevents state mutation)
+    let mut local_block_index =
+        BlockIndex::create(&vault_path.join(".pkm").join("search")).map_err(|e| e.to_string())?;
     let mut count = 0;
     for (i, rel) in md_files.iter().enumerate() {
         let _ = app.emit(
@@ -165,10 +173,11 @@ pub async fn reindex_vault(
                 },
             },
         );
-        if sync_page_from_disk(&store, rel, &state.vault_path, Some(&index_path))? {
+        if sync_page_from_disk(&store, rel, &vault_path, Some(&mut local_block_index))? {
             count += 1;
         }
     }
+    local_block_index.flush().map_err(|e| e.to_string())?;
 
     let _ = app.emit(
         "reindex-progress",
@@ -226,6 +235,7 @@ fn reparse_page_from_disk(
     store: &pkm_block::BlockStore,
     rel: &str,
     vault_path: &Path,
+    block_index: Option<&mut BlockIndex>,
 ) -> Result<bool, String> {
     let full = vault_path.join(rel);
     let content = std::fs::read_to_string(&full).map_err(|e| e.to_string())?;
@@ -251,12 +261,10 @@ fn reparse_page_from_disk(
     }
 
     // Rebuild Tantivy search index for this page
-    let index_path = vault_path.join(".pkm").join("search");
-    if let Ok(mut block_index) = pkm_index::block_search::BlockIndex::create(&index_path) {
+    if let Some(block_index) = block_index {
         for block in &blocks {
             let _ = block_index.index_block(block, rel);
         }
-        let _ = block_index.flush();
     }
 
     Ok(true)
@@ -273,7 +281,16 @@ pub async fn reindex_page(
     let state = state.lock().map_err(|e| e.to_string())?;
     let _guard = IndexingGuard::new(&state)?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    if reparse_page_from_disk(&store, &path, &state.vault_path)? {
+    // Create a local BlockIndex for this operation (IndexingGuard prevents state mutation)
+    let mut local_block_index = BlockIndex::create(&state.vault_path.join(".pkm").join("search"))
+        .map_err(|e| e.to_string())?;
+    if reparse_page_from_disk(
+        &store,
+        &path,
+        &state.vault_path,
+        Some(&mut local_block_index),
+    )? {
+        local_block_index.flush().map_err(|e| e.to_string())?;
         let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
         Ok(blocks.len())
     } else {
@@ -366,7 +383,7 @@ pub async fn create_page(
     title: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<PageDto, String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
+    let mut state = state.lock().map_err(|e| e.to_string())?;
 
     // Ensure path has .md extension
     let path = if path.ends_with(".md") {
@@ -406,13 +423,13 @@ pub async fn create_page(
     store.upsert_page(&page).map_err(|e| e.to_string())?;
 
     // Index blocks in Tantivy for full-text search
-    let index_path = state.vault_path.join(".pkm").join("search");
-    if let Ok(mut block_index) = pkm_index::block_search::BlockIndex::create(&index_path) {
-        for block in &blocks {
-            let _ = block_index.index_block(block, &path);
-        }
-        let _ = block_index.flush();
+    let block_index = state.ensure_block_index()?;
+    for block in &blocks {
+        block_index
+            .index_block(block, &path)
+            .map_err(|e| e.to_string())?;
     }
+    block_index.flush().map_err(|e| e.to_string())?;
 
     Ok(PageDto {
         path: path.clone(),
