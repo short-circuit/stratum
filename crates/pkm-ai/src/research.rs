@@ -1,6 +1,7 @@
 use crate::provider::{ChatConfig, ChatMessage, LlmProvider, ProviderFactory};
 use pkm_core::PkmResult;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 /// Result of a web research session.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,7 +110,10 @@ impl ResearchEngine {
 
     /// Search SearXNG and return results.
     async fn search_searxng(&self, query: &str) -> PkmResult<Vec<SearxngResult>> {
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(30))
+            .build()
+            .map_err(|e| pkm_core::PkmError::Ai(format!("HTTP client error: {e}")))?;
         let url = format!(
             "{}/search?q={}&format=json&categories=general",
             self.searxng_endpoint.trim_end_matches('/'),
