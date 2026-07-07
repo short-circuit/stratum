@@ -3,6 +3,7 @@
 use pkm_index::indexer::IndexEngine;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use tracing::info;
 
@@ -14,6 +15,7 @@ pub struct VaultState {
     pub sync_scheduler: Option<pkm_sync::SyncScheduler>,
     pub auto_commit_engine: Option<pkm_sync::AutoCommitEngine>,
     pub passphrase: Option<String>,
+    indexing_in_progress: AtomicBool,
 }
 
 impl VaultState {
@@ -30,6 +32,7 @@ impl VaultState {
             sync_scheduler: None,
             auto_commit_engine: None,
             passphrase: None,
+            indexing_in_progress: AtomicBool::new(false),
         }
     }
 
@@ -47,6 +50,40 @@ impl VaultState {
 
     pub fn set_passphrase(&mut self, passphrase: String) {
         self.passphrase = Some(passphrase);
+    }
+
+    /// Attempt to mark indexing as in-progress.
+    /// Returns an error if another index operation is already running.
+    pub fn try_start_indexing(&self) -> Result<(), String> {
+        self.indexing_in_progress
+            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .map(|_| ())
+            .map_err(|_| "A reindex operation is already in progress".to_string())
+    }
+
+    /// Clear the indexing-in-progress flag.
+    pub fn finish_indexing(&self) {
+        self.indexing_in_progress.store(false, Ordering::SeqCst);
+    }
+}
+
+/// RAII guard that marks indexing as in-progress for its lifetime.
+/// When the guard is dropped, the flag is automatically cleared.
+pub struct IndexingGuard<'a> {
+    state: &'a VaultState,
+}
+
+impl<'a> IndexingGuard<'a> {
+    /// Create a new guard, returning an error if indexing is already in progress.
+    pub fn new(state: &'a VaultState) -> Result<Self, String> {
+        state.try_start_indexing()?;
+        Ok(Self { state })
+    }
+}
+
+impl<'a> Drop for IndexingGuard<'a> {
+    fn drop(&mut self) {
+        self.state.finish_indexing();
     }
 }
 

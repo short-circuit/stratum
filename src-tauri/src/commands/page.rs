@@ -1,6 +1,6 @@
 //! Page management commands.
 
-use crate::commands::vault::AppState;
+use crate::commands::vault::{AppState, IndexingGuard};
 use pkm_core::fs_util::MdCollector;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -142,6 +142,7 @@ pub async fn reindex_vault(
     state: tauri::State<'_, AppState>,
 ) -> Result<usize, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
+    let _guard = IndexingGuard::new(&state)?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     let md_files = MdCollector::new()
         .include_extensionless(true)
@@ -270,6 +271,7 @@ pub async fn reindex_page(
     state: tauri::State<'_, AppState>,
 ) -> Result<usize, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
+    let _guard = IndexingGuard::new(&state)?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     if reparse_page_from_disk(&store, &path, &state.vault_path)? {
         let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;

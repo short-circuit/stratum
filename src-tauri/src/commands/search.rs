@@ -1,6 +1,6 @@
 //! Search and query commands.
 
-use crate::commands::vault::AppState;
+use crate::commands::vault::{AppState, IndexingGuard};
 use pkm_markdown::linker::extract_links;
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
@@ -28,6 +28,7 @@ pub async fn rebuild_search_index(
     state: tauri::State<'_, AppState>,
 ) -> Result<String, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
+    let _guard = IndexingGuard::new(&state)?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     let pages = store.list_pages().map_err(|e| e.to_string())?;
 
