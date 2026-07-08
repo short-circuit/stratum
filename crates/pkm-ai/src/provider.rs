@@ -1089,37 +1089,35 @@ impl ProviderFactory {
             AiProvider::Ollama => Ok(Box::new(OllamaProvider::new(endpoint)?)),
             AiProvider::OpenAI => {
                 let api_key = config
-                    .api_key
-                    .clone()
+                    .effective_api_key()
                     .ok_or_else(|| PkmError::Config("OpenAI requires an API key".to_string()))?;
                 Ok(Box::new(OpenAIProvider::new(endpoint, api_key)?))
             }
             AiProvider::Anthropic => {
                 let api_key = config
-                    .api_key
-                    .clone()
+                    .effective_api_key()
                     .ok_or_else(|| PkmError::Config("Anthropic requires an API key".to_string()))?;
                 Ok(Box::new(AnthropicProvider::new(endpoint, api_key)?))
             }
             AiProvider::Custom => Ok(Box::new(CustomProvider::new(
                 endpoint,
-                config.api_key.clone(),
+                config.effective_api_key(),
             )?)),
             AiProvider::CustomOpenAI => {
-                let api_key = config.api_key.clone().ok_or_else(|| {
+                let api_key = config.effective_api_key().ok_or_else(|| {
                     PkmError::Config("CustomOpenAI requires an API key".to_string())
                 })?;
                 Ok(Box::new(OpenAIProvider::new(endpoint, api_key)?))
             }
             AiProvider::CustomAnthropic => {
-                let api_key = config.api_key.clone().ok_or_else(|| {
+                let api_key = config.effective_api_key().ok_or_else(|| {
                     PkmError::Config("CustomAnthropic requires an API key".to_string())
                 })?;
                 Ok(Box::new(AnthropicProvider::new(endpoint, api_key)?))
             }
             AiProvider::Google | AiProvider::Zai => Ok(Box::new(CustomProvider::new(
                 endpoint,
-                config.api_key.clone(),
+                config.effective_api_key(),
             )?)),
         }
     }
