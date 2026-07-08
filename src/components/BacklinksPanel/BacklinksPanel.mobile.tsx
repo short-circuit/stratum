@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';
@@ -19,7 +19,7 @@ import { useBacklinksData, usePreview } from './BacklinksPanel.shared';
 import type { BacklinksPanelProps } from './BacklinksPanel.shared';
 import type { BacklinkItem } from '../../lib/types';
 
-function BacklinkRow({
+const BacklinkRow = memo(function BacklinkRow({
   item,
   onNavigate,
   onLongPress,
@@ -43,9 +43,9 @@ function BacklinkRow({
       <Typography variant="body2" noWrap sx={{ maxWidth: '100%' }}>{item.context}</Typography>
     </ListItemButton>
   );
-}
+});
 
-export default function BacklinksPanelMobile({ pagePath }: BacklinksPanelProps) {
+const BacklinksPanelMobile = memo(function BacklinksPanelMobile({ pagePath }: BacklinksPanelProps) {
   const navigate = useNavigate();
   const { isMobile } = useResponsive();
   const { backlinks, loading, linked, unlinked } = useBacklinksData(pagePath);
@@ -158,4 +158,6 @@ export default function BacklinksPanelMobile({ pagePath }: BacklinksPanelProps) 
       </Dialog>
     </>
   );
-}
+});
+
+export default BacklinksPanelMobile;

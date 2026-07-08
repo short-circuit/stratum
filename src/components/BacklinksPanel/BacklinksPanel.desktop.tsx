@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Accordion from '@mui/material/Accordion';
@@ -15,7 +15,7 @@ import type { BacklinkItem } from '../../lib/types';
 import { useBacklinksData, usePreview } from './BacklinksPanel.shared';
 import type { BacklinksPanelProps } from './BacklinksPanel.shared';
 
-export default function BacklinksPanelDesktop({ pagePath }: BacklinksPanelProps) {
+const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: BacklinksPanelProps) {
   const navigate = useNavigate();
   const { backlinks, loading, linked, unlinked } = useBacklinksData(pagePath);
   const { preview, showPreview, dismissPreview } = usePreview();
@@ -125,4 +125,6 @@ export default function BacklinksPanelDesktop({ pagePath }: BacklinksPanelProps)
       </Popover>
     </>
   );
-}
+});
+
+export default BacklinksPanelDesktop;

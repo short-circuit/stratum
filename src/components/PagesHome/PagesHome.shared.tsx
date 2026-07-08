@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '../../stores/appStore';
 import type { PageDto, VaultInfo } from '../../lib/types';
 
@@ -9,7 +10,9 @@ export interface PagesHomeData {
 }
 
 export function usePagesHomeData(): PagesHomeData {
-  const { pages, vault } = useStore();
+  const { pages, vault } = useStore(useShallow(
+    s => ({ pages: s.pages, vault: s.vault }),
+  ));
   const navigate = useNavigate();
 
   const navigateToPage = (path: string) => {
