@@ -341,17 +341,14 @@ impl GitEngine {
     /// Set the GIT_SSH_COMMAND environment variable if an SSH key is configured.
     fn inject_ssh_key(&self, cmd: &mut std::process::Command) {
         if let Some(ref key_path) = self.ssh_key_path {
-            let ssh_cmd = if let Some(ref passphrase) = self.passphrase {
-                // Use sshpass for passphrase-protected keys (if available)
-                format!(
-                    "ssh -i {} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new",
-                    key_path.display()
-                )
+            let ssh_base = format!(
+                "ssh -i {} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new",
+                key_path.display()
+            );
+            let ssh_cmd = if let Some(ref _passphrase) = self.passphrase {
+                format!("sshpass -p '{}' {}", _passphrase, ssh_base)
             } else {
-                format!(
-                    "ssh -i {} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new",
-                    key_path.display()
-                )
+                ssh_base
             };
             cmd.env("GIT_SSH_COMMAND", &ssh_cmd);
         }
