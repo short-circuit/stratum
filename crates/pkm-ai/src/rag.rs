@@ -464,6 +464,7 @@ mod tests {
             chrono::Utc::now(),
         );
         index.index_note(&note).unwrap();
+        index.flush().unwrap();
 
         let engine = RagEngine::new(index, Box::new(embedding), Box::new(provider));
 

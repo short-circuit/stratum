@@ -57,7 +57,6 @@ impl IndexEngine {
         for block in &blocks {
             self.block_index.index_block(block, &rel_path)?;
         }
-        self.block_index.flush()?;
 
         // Add/update node in graph
         self.graph.add_node(note);
@@ -82,6 +81,15 @@ impl IndexEngine {
         self.meta.last_indexed = Some(chrono::Utc::now());
 
         Ok(())
+    }
+
+    /// Explicitly flush the underlying block index, committing all pending writes.
+    ///
+    /// This is exposed so that callers (e.g., the file watcher or CLI) can control
+    /// when a Tantivy commit happens, rather than committing on every single
+    /// `index_note` call which causes index fragmentation.
+    pub fn flush(&mut self) -> PkmResult<()> {
+        self.block_index.flush()
     }
 
     /// Remove a note from the index by its vault-relative path.
@@ -135,7 +143,9 @@ impl IndexEngine {
             modified_at,
         );
 
-        self.index_note(&note)
+        self.index_note(&note)?;
+        self.block_index.flush()?;
+        Ok(())
     }
 
     /// Rebuild the entire index from .md files on disk.
@@ -292,6 +302,7 @@ mod tests {
         );
 
         engine.index_note(&note).unwrap();
+        engine.flush().unwrap();
         assert_eq!(engine.meta.note_count, 1);
 
         let results = engine.search("Rust", SearchMode::FullText).unwrap();
@@ -373,6 +384,7 @@ mod tests {
 
         let note = make_note("remove-me", "Remove Me", "This will be removed.", vec![]);
         engine.index_note(&note).unwrap();
+        engine.flush().unwrap();
 
         let results = engine.search("removed", SearchMode::FullText).unwrap();
         assert!(!results.is_empty());
