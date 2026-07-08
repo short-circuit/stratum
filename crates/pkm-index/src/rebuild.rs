@@ -39,6 +39,10 @@ pub fn rebuild_all(
 
     // First pass: parse all notes and index blocks in Tantivy
     for (i, file_path) in md_files.iter().enumerate() {
+        // Periodically flush every 100 notes to avoid losing progress on crash
+        if i > 0 && i % 100 == 0 {
+            block_index.flush()?;
+        }
         let file_name = file_path
             .file_name()
             .and_then(|s| s.to_str())
