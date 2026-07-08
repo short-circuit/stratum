@@ -38,6 +38,15 @@ impl BlockStore {
         Ok(store)
     }
 
+    /// Execute a raw SQL batch (used for BEGIN/COMMIT/ROLLBACK wrapping).
+    /// Enables callers to wrap multi-step operations in explicit transactions
+    /// to prevent data loss on partial failure.
+    pub fn execute_batch(&self, sql: &str) -> StoreResult<()> {
+        self.conn
+            .execute_batch(sql)
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))
+    }
+
     fn init_schema(&self) -> StoreResult<()> {
         self.conn
             .execute_batch(
