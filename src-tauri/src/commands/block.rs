@@ -128,6 +128,9 @@ pub async fn save_blocks(
     }
     std::fs::write(&full_path, &markdown).map_err(|e| e.to_string())?;
 
+    // Notify auto-commit engine
+    state.record_change(&page_path);
+
     // Index blocks in Tantivy for full-text search
     let block_index = state.ensure_block_index()?;
     for block in &pkm_blocks {
@@ -350,6 +353,9 @@ pub async fn toggle_block_marker(
     };
     std::fs::write(&full_path, &final_md).map_err(|e| e.to_string())?;
 
+    // Notify auto-commit engine
+    state.record_change(&page_path);
+
     let block_index = state.ensure_block_index()?;
     for b in &all_blocks {
         block_index
@@ -436,6 +442,9 @@ pub async fn clear_block_marker(
         body
     };
     std::fs::write(&full_path, &final_md).map_err(|e| e.to_string())?;
+
+    // Notify auto-commit engine
+    state.record_change(&page_path);
 
     let block_index = state.ensure_block_index()?;
     for b in &blocks {
