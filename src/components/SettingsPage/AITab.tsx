@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
@@ -67,6 +68,11 @@ export default function AITab({
   const modelCaps = (name: string) =>
     (ai.models || []).find(m => m.name === name)?.capabilities || [];
   const envVarName = envVarForProvider(ai.provider);
+  const [isKeyMasked, setIsKeyMasked] = useState(false);
+
+  useEffect(() => {
+    setIsKeyMasked(!!(ai.api_key && ai.api_key.includes('****')));
+  }, [ai.api_key]);
 
   return (
     <Box>
@@ -113,8 +119,8 @@ export default function AITab({
         <TextField
           label="API Key"
           type="password"
-          placeholder="sk-..."
-          value={ai.api_key || ''}
+          placeholder={isKeyMasked ? 'Key saved - enter new value to change' : 'sk-...'}
+          value={isKeyMasked ? '' : (ai.api_key || '')}
           onChange={e => onAiChange({ api_key: e.target.value || null })}
           size="small"
           sx={{ '& .MuiInputBase-input': { fontFamily: 'monospace' } }}
