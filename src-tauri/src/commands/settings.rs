@@ -45,6 +45,8 @@ pub struct AiSettingsDto {
     pub provider: String,
     pub endpoint: Option<String>,
     pub api_key: Option<String>,
+    #[serde(default)]
+    pub api_key_from_env: bool,
     pub model: String,
     pub models: Vec<AiModelDto>,
     pub rag_enabled: bool,
@@ -82,6 +84,17 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
         }
     };
 
+    let api_key_from_env = match config.ai.provider {
+        pkm_core::AiProvider::OpenAI | pkm_core::AiProvider::CustomOpenAI => {
+            std::env::var("OPENAI_API_KEY").is_ok()
+        }
+        pkm_core::AiProvider::Anthropic | pkm_core::AiProvider::CustomAnthropic => {
+            std::env::var("ANTHROPIC_API_KEY").is_ok()
+        }
+        pkm_core::AiProvider::Google => std::env::var("GOOGLE_API_KEY").is_ok(),
+        _ => false,
+    };
+
     Ok(SettingsDto {
         vault_path: config.vault_path.to_string_lossy().to_string(),
         theme: ThemeSettingsDto {
@@ -103,6 +116,7 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             },
             endpoint: config.ai.endpoint,
             api_key: config.ai.api_key,
+            api_key_from_env,
             model: config.ai.model,
             models: config
                 .ai
@@ -283,8 +297,9 @@ pub async fn fetch_models(state: tauri::State<'_, AppState>) -> Result<Vec<Strin
             config
                 .ai
                 .endpoint
+                .clone()
                 .unwrap_or_else(|| "http://localhost:11434".into()),
-            config.ai.api_key.clone(),
+            config.ai.effective_api_key(),
         )
     };
 
