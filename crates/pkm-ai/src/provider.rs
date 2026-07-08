@@ -169,17 +169,12 @@ impl StreamBuffer {
         let mut results = Vec::new();
         let delim_len = delimiter.len();
 
-        loop {
-            match self.buffer.find(delimiter) {
-                Some(pos) => {
-                    let msg = self.buffer[..pos].to_string();
-                    if !msg.trim().is_empty() {
-                        results.push(msg);
-                    }
-                    self.buffer = self.buffer[pos + delim_len..].to_string();
-                }
-                None => break,
+        while let Some(pos) = self.buffer.find(delimiter) {
+            let msg = self.buffer[..pos].to_string();
+            if !msg.trim().is_empty() {
+                results.push(msg);
             }
+            self.buffer = self.buffer[pos + delim_len..].to_string();
         }
 
         results
