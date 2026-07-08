@@ -291,34 +291,6 @@ pub async fn resolve_link_target(
     }))
 }
 
-#[tauri::command]
-pub async fn rebuild_graph(
-    app: tauri::AppHandle,
-    state: tauri::State<'_, AppState>,
-) -> Result<String, String> {
-    let mut vault = state.lock().map_err(|e| e.to_string())?;
-    // Drop cached BlockIndex to release its Tantivy lockfile before IndexEngine opens its own
-    drop(vault.block_index.take());
-    let _guard = crate::commands::vault::IndexingGuard::new(&vault)?;
-
-    let progress = super::make_progress_callback(app);
-
-    // Drop guard before accessing IndexEngine (&mut self)
-    drop(_guard);
-
-    let engine = vault.ensure_index()?;
-    let _notes = engine
-        .rebuild_all(Some(progress))
-        .map_err(|e| format!("Graph rebuild failed: {}", e))?;
-
-    let graph = engine.get_graph();
-    Ok(format!(
-        "Indexed {} notes with {} edges",
-        graph.node_count(),
-        graph.edge_count()
-    ))
-}
-
 /// Pre-built index of all pages in the vault for fast slug/title/path resolution.
 /// Eliminates duplicated map-building across graph, connected components, orphans, and link resolution.
 struct PageMetaIndex {

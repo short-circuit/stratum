@@ -92,6 +92,101 @@ pub fn run() {
                             }
                         }
                     }
+
+                    // ── File watcher ──────────────────────────────────────
+                    if config.watcher.enabled {
+                        let app_handle = app.handle().clone();
+                        let vault_path_clone = vault_path.clone();
+                        let on_event = Box::new(move |event: pkm_watcher::FileChangeEvent| {
+                            // Skip events from our own recent saves (avoid reindex loops)
+                            let state_guard = app_handle.state::<AppState>();
+                            let state = match state_guard.lock() {
+                                Ok(s) => s,
+                                Err(_) => return,
+                            };
+                            if state.watcher_last_save != std::time::SystemTime::UNIX_EPOCH {
+                                if let Ok(elapsed) =
+                                    event.timestamp.duration_since(state.watcher_last_save)
+                                {
+                                    if elapsed.as_millis() < 2000 {
+                                        return;
+                                    }
+                                }
+                            }
+                            drop(state);
+
+                            let rel = match event.path.strip_prefix(&vault_path_clone) {
+                                Ok(r) => r.to_string_lossy().to_string(),
+                                Err(_) => return,
+                            };
+
+                            match event.kind {
+                                pkm_core::FileEvent::Created
+                                | pkm_core::FileEvent::Modified
+                                | pkm_core::FileEvent::Renamed => {
+                                    let state_guard = app_handle.state::<AppState>();
+                                    let mut state = match state_guard.lock() {
+                                        Ok(s) => s,
+                                        Err(_) => return,
+                                    };
+                                    let store = match pkm_block::BlockStore::open(&state.db_path) {
+                                        Ok(s) => s,
+                                        Err(_) => return,
+                                    };
+                                    let vp = state.vault_path.clone();
+                                    // Sync page data into SQLite
+                                    let _ = crate::commands::page::sync_page_from_disk(
+                                        &store, &rel, &vp, None,
+                                    );
+                                    // Drop BlockStore and cached BlockIndex before
+                                    // accessing IndexEngine (same Tantivy dir).
+                                    drop(store);
+                                    drop(state.block_index.take());
+                                    if let Ok(ie) = state.ensure_index() {
+                                        let _ = ie.refresh_page(&rel, &vp);
+                                    }
+                                }
+                                pkm_core::FileEvent::Deleted => {
+                                    let state_guard = app_handle.state::<AppState>();
+                                    let mut state = match state_guard.lock() {
+                                        Ok(s) => s,
+                                        Err(_) => return,
+                                    };
+                                    let store = match pkm_block::BlockStore::open(&state.db_path) {
+                                        Ok(s) => s,
+                                        Err(_) => return,
+                                    };
+                                    let _ = store.delete_blocks_by_page(&rel);
+                                    let _ = store.delete_page(&rel);
+                                    drop(store);
+                                    drop(state.block_index.take());
+                                    if let Ok(ie) = state.ensure_index() {
+                                        let _ = ie.remove_note(&rel);
+                                    }
+                                }
+                            }
+                        });
+
+                        let mut watcher = pkm_watcher::FileWatcher::new(
+                            vault_path.clone(),
+                            config.watcher.debounce_ms,
+                            on_event,
+                        );
+                        match watcher.start() {
+                            Ok(()) => {
+                                if let Ok(mut state) = app.state::<AppState>().lock() {
+                                    state.watcher = Some(watcher);
+                                }
+                                eprintln!(
+                                    "[stratum] File watcher started (debounce={}ms)",
+                                    config.watcher.debounce_ms
+                                );
+                            }
+                            Err(e) => {
+                                eprintln!("[stratum] Failed to start file watcher: {}", e);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -147,7 +242,6 @@ pub fn run() {
             commands::graph::get_graph_data,
             commands::graph::get_connected_components,
             commands::graph::get_orphaned_notes,
-            commands::graph::rebuild_graph,
             commands::graph::resolve_link_target,
             // Query
             commands::query::run_query,
