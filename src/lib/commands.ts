@@ -16,6 +16,7 @@ import type {
   GraphDataDto,
   ComponentDto,
   OrphanDto,
+  GraphPanelDataDto,
   AiAction,
   AiTransformResult,
   ResearchResult,
@@ -342,6 +343,10 @@ export async function getConnectedComponents(): Promise<ComponentDto[]> {
 
 export async function getOrphanedNotes(): Promise<OrphanDto[]> {
   return invoke('get_orphaned_notes');
+}
+
+export async function getGraphPanelData(): Promise<GraphPanelDataDto> {
+  return invoke('get_graph_panel_data');
 }
 
 // --- Link resolution ---
