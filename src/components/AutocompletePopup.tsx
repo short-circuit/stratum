@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import Popper from '@mui/material/Popper';
 import Paper from '@mui/material/Paper';
 import List from '@mui/material/List';
@@ -41,7 +41,7 @@ function highlightText(text: string, query: string): React.ReactNode {
   });
 }
 
-export default function AutocompletePopup({
+const AutocompletePopup = memo(function AutocompletePopup({
   open,
   anchorPosition,
   items,
@@ -105,24 +105,44 @@ export default function AutocompletePopup({
         ) : (
           <List dense disablePadding>
             {items.map((item, index) => (
-              <ListItemButton
+              <AutocompleteItem
                 key={`${item.text}-${index}`}
+                item={item}
                 selected={index === selectedIndex}
-                onClick={() => onSelect(item)}
-              >
-                <ListItemText
-                  primary={highlightText(item.text, query)}
-                  secondary={
-                    item.kind === 'backlink' && item.detail
-                      ? item.detail
-                      : undefined
-                  }
-                />
-              </ListItemButton>
+                query={query}
+                onSelect={onSelect}
+              />
             ))}
           </List>
         )}
       </Paper>
     </Popper>
   );
+});
+
+interface AutocompleteItemProps {
+  item: AutocompleteItem;
+  selected: boolean;
+  query: string;
+  onSelect: (item: AutocompleteItem) => void;
 }
+
+const AutocompleteItem = memo(function AutocompleteItem({ item, selected, query, onSelect }: AutocompleteItemProps) {
+  return (
+    <ListItemButton
+      selected={selected}
+      onClick={() => onSelect(item)}
+    >
+      <ListItemText
+        primary={highlightText(item.text, query)}
+        secondary={
+          item.kind === 'backlink' && item.detail
+            ? item.detail
+            : undefined
+        }
+      />
+    </ListItemButton>
+  );
+});
+
+export default AutocompletePopup;

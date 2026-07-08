@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import ToggleButton from '@mui/material/ToggleButton';
 import TextField from '@mui/material/TextField';
@@ -29,7 +30,7 @@ interface GraphToolbarProps {
   saveStatus: 'saved' | 'unsaved';
 }
 
-export default function GraphToolbar({
+const GraphToolbar = memo(function GraphToolbar({
   viewMode,
   onViewModeChange,
   loading,
@@ -117,4 +118,6 @@ export default function GraphToolbar({
       )}
     </Box>
   );
-}
+});
+
+export default GraphToolbar;

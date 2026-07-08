@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
@@ -13,7 +14,7 @@ interface Props {
   onExport: () => void;
 }
 
-export default function SidebarFooter({ collapsed, exporting, onRefresh, onExport }: Props) {
+const SidebarFooter = memo(function SidebarFooter({ collapsed, exporting, onRefresh, onExport }: Props) {
   return (
     <Box
       sx={{
@@ -69,4 +70,6 @@ export default function SidebarFooter({ collapsed, exporting, onRefresh, onExpor
       )}
     </Box>
   );
-}
+});
+
+export default SidebarFooter;

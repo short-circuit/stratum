@@ -53,7 +53,11 @@ getCurrentWindow().onCloseRequested(async (event: CloseRequestedEvent) => {
 });
 
 function AppContent() {
-  const { vault, loading, loadVault, loadPages, error } = useStore();
+  const vault = useStore(s => s.vault);
+  const loading = useStore(s => s.loading);
+  const error = useStore(s => s.error);
+  const loadVault = useStore(s => s.loadVault);
+  const loadPages = useStore(s => s.loadPages);
   const { isMobile } = useResponsive();
   const syncModal = useSyncModalStore();
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);

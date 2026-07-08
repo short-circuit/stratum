@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '../../stores/appStore';
 import * as api from '../../lib/commands';
 import StratumIcon from '../StratumIcon';
@@ -19,7 +20,9 @@ const DRAWER_WIDTH = 224;
 const DRAWER_COLLAPSED = 52;
 
 export default function Sidebar() {
-  const { pages, vault, loadPages, createPage, deletePage } = useStore();
+  const { pages, vault, loadPages, createPage, deletePage } = useStore(useShallow(
+    s => ({ pages: s.pages, vault: s.vault, loadPages: s.loadPages, createPage: s.createPage, deletePage: s.deletePage }),
+  ));
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -28,10 +31,7 @@ export default function Sidebar() {
   const [activeTab, setActiveTab] = useState<TabId>('journal');
   const [exporting, setExporting] = useState(false);
 
-  const { isMobile } = useResponsive();
-  if (isMobile) return null;
-
-  const handleExport = async () => {
+  const handleExport = useCallback(async () => {
     setExporting(true);
     try {
       const dir = '/tmp/stratum-export';
@@ -42,20 +42,26 @@ export default function Sidebar() {
     } finally {
       setExporting(false);
     }
-  };
+  }, []);
 
-  const handleCreate = async () => {
+  const handleCreate = useCallback(async () => {
     if (!newPath) return;
     await createPage(newPath, newTitle || undefined);
     setShowNew(false);
     setNewPath('');
     setNewTitle('');
-  };
+  }, [newPath, newTitle, createPage]);
 
-  const navigateTab = (tab: TabId, path: string) => {
+  const navigateTab = useCallback((tab: TabId, path: string) => {
     setActiveTab(tab);
     navigate(path);
-  };
+  }, [navigate]);
+
+  const handleDelete = useCallback((path: string) => deletePage(path), [deletePage]);
+  const handleNavigateHome = useCallback(() => navigate('/'), [navigate]);
+
+  const { isMobile } = useResponsive();
+  if (isMobile) return null;
 
   const drawerWidth = collapsed ? DRAWER_COLLAPSED : DRAWER_WIDTH;
 
@@ -133,9 +139,9 @@ export default function Sidebar() {
           onNewPathChange={setNewPath}
           onNewTitleChange={setNewTitle}
           onCreatePage={handleCreate}
-          onDeletePage={path => deletePage(path)}
+          onDeletePage={handleDelete}
           onNavigate={navigate}
-          onNavigateHome={() => navigate('/')}
+          onNavigateHome={handleNavigateHome}
         />
       </Box>
 

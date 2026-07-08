@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import List from '@mui/material/List';
@@ -29,7 +29,7 @@ interface Props {
   onNavigateHome?: () => void;
 }
 
-export default function PageTree({
+const PageTree = memo(function PageTree({
   pages,
   collapsed,
   showNew,
@@ -156,4 +156,6 @@ export default function PageTree({
       />
     </>
   );
-}
+});
+
+export default PageTree;
