@@ -56,3 +56,7 @@ __pycache__/
 .hermes/
 .opencode/
 Developer
+
+# === Vault config (may contain API keys) ===
+.pkm/config.toml
+.pkm/config*.toml

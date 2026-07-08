@@ -16,6 +16,7 @@ export interface SettingsData {
     provider: string;
     endpoint: string | null;
     api_key: string | null;
+    api_key_from_env: boolean;
     model: string;
     models: { name: string; capabilities: string[] }[];
     rag_enabled: boolean;

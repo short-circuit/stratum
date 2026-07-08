@@ -225,6 +225,7 @@ export async function getSettings(): Promise<{
     provider: string;
     endpoint: string | null;
     api_key: string | null;
+    api_key_from_env: boolean;
     model: string;
     models: { name: string; capabilities: string[] }[];
     rag_enabled: boolean;
@@ -243,6 +244,7 @@ export async function saveSettings(settings: {
     provider: string;
     endpoint: string | null;
     api_key: string | null;
+    api_key_from_env?: boolean;
     model: string;
     models: { name: string; capabilities: string[] }[];
     rag_enabled: boolean;
