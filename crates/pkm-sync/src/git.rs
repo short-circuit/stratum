@@ -245,21 +245,116 @@ impl GitEngine {
         Ok(tree_id.detach())
     }
 
-    pub fn push(&self, remote: &str, _branch: &str) -> PkmResult<()> {
+    pub fn push(&self, remote: &str, branch: &str) -> PkmResult<()> {
         if self.get_remote_url(remote).is_none() {
             return Ok(());
         }
-        Err(PkmError::Git("push not yet implemented via gix".into()))
+        let workdir = self
+            .repo
+            .workdir()
+            .ok_or_else(|| PkmError::Git("no workdir".into()))?;
+        let mut cmd = std::process::Command::new("git");
+        cmd.current_dir(workdir)
+            .arg("push")
+            .arg(remote)
+            .arg(format!("refs/heads/{branch}:refs/heads/{branch}"))
+            .stderr(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped());
+        self.inject_ssh_key(&mut cmd);
+        let output = cmd
+            .output()
+            .map_err(|e| PkmError::Git(format!("push execution failed: {e}")))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(PkmError::Git(format!("push failed: {}", stderr.trim())));
+        }
+        Ok(())
     }
 
-    pub fn pull(&self, remote: &str, _branch: &str) -> PkmResult<PullResult> {
+    pub fn pull(&self, remote: &str, branch: &str) -> PkmResult<PullResult> {
         if self.get_remote_url(remote).is_none() {
             return Ok(PullResult {
                 success: true,
                 conflicts: vec![],
             });
         }
-        Err(PkmError::Git("pull not yet implemented via gix".into()))
+        let workdir = self
+            .repo
+            .workdir()
+            .ok_or_else(|| PkmError::Git("no workdir".into()))?;
+        // Step 1: Fetch from remote
+        let mut fetch_cmd = std::process::Command::new("git");
+        fetch_cmd
+            .current_dir(workdir)
+            .arg("fetch")
+            .arg(remote)
+            .arg(branch)
+            .stderr(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped());
+        self.inject_ssh_key(&mut fetch_cmd);
+        let fetch_output = fetch_cmd
+            .output()
+            .map_err(|e| PkmError::Git(format!("fetch execution failed: {e}")))?;
+        if !fetch_output.status.success() {
+            let stderr = String::from_utf8_lossy(&fetch_output.stderr);
+            return Err(PkmError::Git(format!("fetch failed: {}", stderr.trim())));
+        }
+        // Step 2: Try fast-forward merge (rebase-like)
+        let mut merge_cmd = std::process::Command::new("git");
+        merge_cmd
+            .current_dir(workdir)
+            .arg("merge")
+            .arg("--ff-only")
+            .arg(format!("{}/{}", remote, branch))
+            .stderr(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped());
+        let merge_output = merge_cmd
+            .output()
+            .map_err(|e| PkmError::Git(format!("merge execution failed: {e}")))?;
+        if !merge_output.status.success() {
+            let stderr = String::from_utf8_lossy(&merge_output.stderr);
+            // Check if there are conflicts
+            if stderr.contains("conflict") || stderr.contains("would be overwritten") {
+                // Run merge with no-commit to detect conflicts
+                let status = self.status().ok();
+                let conflict_files = status
+                    .map(|s| {
+                        s.into_iter()
+                            .filter(|(_, flags)| flags.is_conflicted())
+                            .map(|(path, _)| path)
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default();
+                return Ok(PullResult {
+                    success: false,
+                    conflicts: conflict_files,
+                });
+            }
+            return Err(PkmError::Git(format!("merge failed: {}", stderr.trim())));
+        }
+        Ok(PullResult {
+            success: true,
+            conflicts: vec![],
+        })
+    }
+
+    /// Set the GIT_SSH_COMMAND environment variable if an SSH key is configured.
+    fn inject_ssh_key(&self, cmd: &mut std::process::Command) {
+        if let Some(ref key_path) = self.ssh_key_path {
+            let ssh_cmd = if let Some(ref passphrase) = self.passphrase {
+                // Use sshpass for passphrase-protected keys (if available)
+                format!(
+                    "ssh -i {} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new",
+                    key_path.display()
+                )
+            } else {
+                format!(
+                    "ssh -i {} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new",
+                    key_path.display()
+                )
+            };
+            cmd.env("GIT_SSH_COMMAND", &ssh_cmd);
+        }
     }
 
     pub fn status(&self) -> PkmResult<Vec<(String, StatusFlags)>> {

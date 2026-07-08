@@ -447,6 +447,9 @@ pub async fn save_page(
     // Write .md file after SQLite succeeds
     std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
 
+    // Notify auto-commit engine
+    state.record_change(&path);
+
     // Drop BlockIndex writer before IndexEngine acquires its own (same Tantivy dir)
     drop(state.block_index.take());
 
@@ -492,6 +495,9 @@ pub async fn create_page(
     }
     std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
 
+    // Notify auto-commit engine
+    state.record_change(&path);
+
     // Parse content into blocks and upsert in SQLite so the page appears in list_pages
     let (_fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
@@ -534,6 +540,9 @@ pub async fn delete_page(path: String, state: tauri::State<'_, AppState>) -> Res
     if full_path.exists() {
         std::fs::remove_file(&full_path).map_err(|e| e.to_string())?;
     }
+
+    // Notify auto-commit engine
+    state.record_change(&path);
 
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     store.delete_page(&path).map_err(|e| e.to_string())?;
