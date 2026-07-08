@@ -242,6 +242,7 @@ pub fn run() {
             commands::graph::get_graph_data,
             commands::graph::get_connected_components,
             commands::graph::get_orphaned_notes,
+            commands::graph::get_graph_panel_data,
             commands::graph::resolve_link_target,
             // Query
             commands::query::run_query,

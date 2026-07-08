@@ -48,25 +48,39 @@ pub struct OrphanDto {
     pub path: String,
 }
 
-/// Build graph data directly from SQLite blocks instead of re-parsing markdown files.
-/// This avoids expensive file I/O, markdown parsing, and Tantivy indexing.
-fn build_graph_data_from_store(
-    store: &pkm_block::BlockStore,
-    vault_path: &str,
-) -> Result<GraphDataDto, String> {
-    let paths = store.list_pages().map_err(|e| e.to_string())?;
-    let meta = PageMetaIndex::from_store(store)?;
+/// Combined graph panel data — single response for the GraphPanel frontend.
+#[derive(Debug, Clone, Serialize)]
+pub struct GraphPanelDataDto {
+    pub graph: GraphDataDto,
+    pub components: Vec<ComponentDto>,
+    pub orphans: Vec<OrphanDto>,
+}
 
-    // Build edges by scanning blocks for [[wiki-links]]
+/// Shared adjacency result from a single pass through all blocks.
+/// Used by graph, connected components, and orphan derivation to avoid triple scanning.
+struct AdjacencyList {
+    outgoing: HashMap<String, Vec<GraphEdgeDto>>,
+    degree: HashMap<String, usize>,
+    adjacency: HashMap<String, Vec<String>>,
+    connected: HashSet<String>,
+}
+
+/// Build a shared adjacency structure from all blocks in a single pass.
+/// Used by graph, connected components, and orphan derivation to avoid triple-scanning blocks.
+fn build_adjacency_list(
+    meta: &PageMetaIndex,
+    store: &pkm_block::BlockStore,
+) -> Result<AdjacencyList, String> {
     let mut outgoing: HashMap<String, Vec<GraphEdgeDto>> = HashMap::new();
     let mut degree: HashMap<String, usize> = HashMap::new();
+    let mut adjacency: HashMap<String, Vec<String>> = HashMap::new();
+    let mut connected: HashSet<String> = HashSet::new();
 
     for (slug, page_path) in &meta.slug_to_path {
         if let Ok(blocks) = store.get_blocks_by_page(page_path) {
             for block in &blocks {
                 let links = pkm_markdown::linker::extract_links(&block.content);
                 for link in links {
-                    // Resolve the link target to a slug
                     let target_slug = meta.resolve_slug(&link.target);
                     if let Some(target) = target_slug {
                         // Include all resolved links including self-links
@@ -78,28 +92,54 @@ fn build_graph_data_from_store(
                                 target: target.clone(),
                                 label: link.display_text.clone(),
                             });
-                        // Degree: source always +1, target +1 only if different (avoid double-count self-links)
+                        // Degree: source always +1, target +1 only if different
                         *degree.entry(slug.clone()).or_default() += 1;
                         if target != *slug {
                             *degree.entry(target.clone()).or_default() += 1;
                         }
+                        // Bidirectional adjacency for BFS (self-links are harmless)
+                        adjacency
+                            .entry(slug.clone())
+                            .or_default()
+                            .push(target.clone());
+                        adjacency
+                            .entry(target.clone())
+                            .or_default()
+                            .push(slug.clone());
+                        // Track which slugs have any connection (for orphan detection)
+                        connected.insert(slug.clone());
+                        connected.insert(target);
                     }
                 }
             }
         }
     }
 
-    let nodes: Vec<GraphNodeDto> = paths
-        .iter()
-        .map(|path| {
-            let slug = slug_from_path(path);
-            let mut node = meta.get_node(&slug);
-            node.degree = degree.get(&slug).copied().unwrap_or(0);
+    Ok(AdjacencyList {
+        outgoing,
+        degree,
+        adjacency,
+        connected,
+    })
+}
+
+/// Build graph data from a pre-computed PageMetaIndex and AdjacencyList.
+fn build_graph_data_from_meta(
+    meta: &PageMetaIndex,
+    adj: &AdjacencyList,
+    vault_path: &str,
+) -> Result<GraphDataDto, String> {
+    let nodes: Vec<GraphNodeDto> = meta
+        .slug_to_path
+        .keys()
+        .map(|slug| {
+            let mut node = meta.get_node(slug);
+            node.degree = adj.degree.get(slug).copied().unwrap_or(0);
             node
         })
         .collect();
 
-    let edges: Vec<GraphEdgeDto> = outgoing.into_values().flatten().collect();
+    let edges: Vec<GraphEdgeDto> = adj.outgoing.values().flatten().cloned().collect();
     let node_count = nodes.len();
     let edge_count = edges.len();
 
@@ -110,6 +150,16 @@ fn build_graph_data_from_store(
         edge_count,
         vault_path: vault_path.to_string(),
     })
+}
+
+/// Legacy wrapper — builds meta + adjacency internally, then delegates.
+fn build_graph_data_from_store(
+    store: &pkm_block::BlockStore,
+    vault_path: &str,
+) -> Result<GraphDataDto, String> {
+    let meta = PageMetaIndex::from_store(store)?;
+    let adj = build_adjacency_list(&meta, store)?;
+    build_graph_data_from_meta(&meta, &adj, vault_path)
 }
 
 /// Derive a note slug from a vault-relative path (e.g. "pages/my-note.md" → "my-note").
@@ -136,28 +186,11 @@ pub async fn get_graph_data(state: tauri::State<'_, AppState>) -> Result<GraphDa
     Ok(data)
 }
 
-fn get_connected_components_from_store(
-    store: &pkm_block::BlockStore,
+/// Derive connected components from a pre-computed PageMetaIndex and AdjacencyList.
+fn get_connected_components_from_meta(
+    meta: &PageMetaIndex,
+    adj: &AdjacencyList,
 ) -> Result<Vec<ComponentDto>, String> {
-    let meta = PageMetaIndex::from_store(store)?;
-
-    // Build adjacency list
-    let mut adj: HashMap<String, Vec<String>> = HashMap::new();
-    for (slug, page_path) in &meta.slug_to_path {
-        if let Ok(blocks) = store.get_blocks_by_page(page_path) {
-            for block in &blocks {
-                let links = pkm_markdown::linker::extract_links(&block.content);
-                for link in links {
-                    if let Some(target) = meta.resolve_slug(&link.target) {
-                        // Include all links (self-links in adjacency are harmless for BFS)
-                        adj.entry(slug.clone()).or_default().push(target.clone());
-                        adj.entry(target).or_default().push(slug.clone());
-                    }
-                }
-            }
-        }
-    }
-
     // BFS for connected components
     let mut visited: HashSet<String> = HashSet::new();
     let mut components: Vec<Vec<String>> = Vec::new();
@@ -173,7 +206,7 @@ fn get_connected_components_from_store(
 
         while let Some(current) = queue.pop() {
             component.push(current.clone());
-            if let Some(neighbors) = adj.get(&current) {
+            if let Some(neighbors) = adj.adjacency.get(&current) {
                 for neighbor in neighbors {
                     if visited.insert(neighbor.clone()) {
                         queue.push(neighbor.clone());
@@ -192,7 +225,7 @@ fn get_connected_components_from_store(
                 .iter()
                 .map(|slug| {
                     let mut node = meta.get_node(slug);
-                    node.degree = adj.get(slug).map(|n| n.len()).unwrap_or(0);
+                    node.degree = adj.adjacency.get(slug).map(|n| n.len()).unwrap_or(0);
                     node
                 })
                 .collect();
@@ -205,6 +238,15 @@ fn get_connected_components_from_store(
     Ok(result)
 }
 
+/// Legacy wrapper — builds meta + adjacency internally, then delegates.
+fn get_connected_components_from_store(
+    store: &pkm_block::BlockStore,
+) -> Result<Vec<ComponentDto>, String> {
+    let meta = PageMetaIndex::from_store(store)?;
+    let adj = build_adjacency_list(&meta, store)?;
+    get_connected_components_from_meta(&meta, &adj)
+}
+
 #[tauri::command]
 pub async fn get_connected_components(
     state: tauri::State<'_, AppState>,
@@ -214,30 +256,14 @@ pub async fn get_connected_components(
     get_connected_components_from_store(&store)
 }
 
-fn get_orphaned_notes_from_store(store: &pkm_block::BlockStore) -> Result<Vec<OrphanDto>, String> {
-    let meta = PageMetaIndex::from_store(store)?;
-
-    // Track which slugs have any connections
-    let mut connected: HashSet<String> = HashSet::new();
-
-    for (slug, page_path) in &meta.slug_to_path {
-        if let Ok(blocks) = store.get_blocks_by_page(page_path) {
-            for block in &blocks {
-                let links = pkm_markdown::linker::extract_links(&block.content);
-                for link in links {
-                    if let Some(target) = meta.resolve_slug(&link.target) {
-                        // Include all links (HashSet insert is idempotent for self-links)
-                        connected.insert(slug.clone());
-                        connected.insert(target);
-                    }
-                }
-            }
-        }
-    }
-
+/// Derive orphans from a pre-computed PageMetaIndex and AdjacencyList.
+fn get_orphaned_notes_from_meta(
+    meta: &PageMetaIndex,
+    adj: &AdjacencyList,
+) -> Result<Vec<OrphanDto>, String> {
     let orphans: Vec<OrphanDto> = meta
         .all_slugs()
-        .filter(|slug| !connected.contains(*slug))
+        .filter(|slug| !adj.connected.contains(*slug))
         .map(|slug| OrphanDto {
             slug: slug.to_string(),
             title: meta.slug_to_title.get(slug).cloned().unwrap_or_default(),
@@ -248,6 +274,13 @@ fn get_orphaned_notes_from_store(store: &pkm_block::BlockStore) -> Result<Vec<Or
     Ok(orphans)
 }
 
+/// Legacy wrapper — builds meta + adjacency internally, then delegates.
+fn get_orphaned_notes_from_store(store: &pkm_block::BlockStore) -> Result<Vec<OrphanDto>, String> {
+    let meta = PageMetaIndex::from_store(store)?;
+    let adj = build_adjacency_list(&meta, store)?;
+    get_orphaned_notes_from_meta(&meta, &adj)
+}
+
 #[tauri::command]
 pub async fn get_orphaned_notes(
     state: tauri::State<'_, AppState>,
@@ -255,6 +288,40 @@ pub async fn get_orphaned_notes(
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
     get_orphaned_notes_from_store(&store)
+}
+
+/// Combined command: builds PageMetaIndex ONCE and derives graph, components, and orphans
+/// from the same adjacency structure — replacing three separate DB scans.
+#[tauri::command]
+pub async fn get_graph_panel_data(
+    state: tauri::State<'_, AppState>,
+) -> Result<GraphPanelDataDto, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let vault_path_str = state.vault_path.to_string_lossy().to_string();
+
+    info!("Building graph panel data from SQLite: {}", vault_path_str);
+
+    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let meta = PageMetaIndex::from_store(&store)?;
+    let adj = build_adjacency_list(&meta, &store)?;
+
+    let graph = build_graph_data_from_meta(&meta, &adj, &vault_path_str)?;
+    let components = get_connected_components_from_meta(&meta, &adj)?;
+    let orphans = get_orphaned_notes_from_meta(&meta, &adj)?;
+
+    debug!(
+        "Found {} nodes, {} edges, {} components, {} orphans",
+        graph.node_count,
+        graph.edge_count,
+        components.len(),
+        orphans.len(),
+    );
+
+    Ok(GraphPanelDataDto {
+        graph,
+        components,
+        orphans,
+    })
 }
 
 #[derive(Debug, Serialize)]

@@ -125,6 +125,12 @@ export interface OrphanDto {
   path: string;
 }
 
+export interface GraphPanelDataDto {
+  graph: GraphDataDto;
+  components: ComponentDto[];
+  orphans: OrphanDto[];
+}
+
 // --- Graph settings ---
 
 export interface GraphSettings {
