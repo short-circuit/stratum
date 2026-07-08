@@ -56,7 +56,7 @@ pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto
 
 /// Read a single .md file from disk, parse it, and sync its page metadata + blocks
 /// into SQLite. Returns true if the page was synced, false if the file couldn't be read.
-fn sync_page_from_disk(
+pub(crate) fn sync_page_from_disk(
     store: &pkm_block::BlockStore,
     rel: &str,
     vault_path: &Path,
@@ -444,6 +444,9 @@ pub async fn save_page(
         }
     }
 
+    // Mark this as our own save so the file watcher can skip it
+    state.watcher_last_save = std::time::SystemTime::now();
+
     // Write .md file after SQLite succeeds
     std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
 
@@ -493,6 +496,8 @@ pub async fn create_page(
     if let Some(parent) = full_path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
+    // Mark this as our own save so the file watcher can skip it
+    state.watcher_last_save = std::time::SystemTime::now();
     std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
 
     // Notify auto-commit engine
@@ -565,7 +570,7 @@ pub async fn delete_page(path: String, state: tauri::State<'_, AppState>) -> Res
 /// by extracting the raw frontmatter block if it existed.
 #[tauri::command]
 pub async fn normalize_file(path: String, state: tauri::State<'_, AppState>) -> Result<(), String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
+    let mut state = state.lock().map_err(|e| e.to_string())?;
     let full_path = state.vault_path.join(&path);
     let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
 
@@ -588,6 +593,8 @@ pub async fn normalize_file(path: String, state: tauri::State<'_, AppState>) -> 
         serialized
     };
 
+    // Mark this as our own save so the file watcher can skip it
+    state.watcher_last_save = std::time::SystemTime::now();
     std::fs::write(&full_path, &final_md).map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -599,7 +606,7 @@ pub async fn normalize_all_files(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<usize, String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
+    let mut state = state.lock().map_err(|e| e.to_string())?;
     let md_files = MdCollector::new()
         .include_extensionless(true)
         .skip_dirs(vec![".pkm", "templates", ".git"])
@@ -640,6 +647,8 @@ pub async fn normalize_all_files(
                 } else {
                     serialized
                 };
+                // Mark this as our own save so the file watcher can skip it
+                state.watcher_last_save = std::time::SystemTime::now();
                 let _ = std::fs::write(&full_path, &final_md);
                 count += 1;
             }
@@ -697,6 +706,8 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
     if let Some(parent) = full_path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
+    // Mark this as our own save so the file watcher can skip it
+    state.watcher_last_save = std::time::SystemTime::now();
     std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
 
     let (_fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
