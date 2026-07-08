@@ -101,13 +101,24 @@ pub async fn create_kanban_block(
 
     // Open store, insert block, upsert page
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    store
-        .insert_block(&block, &page_path)
-        .map_err(|e| e.to_string())?;
 
-    // Upsert the page so it exists in pages table
-    let page = pkm_block::Page::new(full_path.clone(), &state.vault_path);
-    store.upsert_page(&page).map_err(|e| e.to_string())?;
+    // Wrap SQLite operations in an explicit transaction
+    store.execute_batch("BEGIN").map_err(|e| e.to_string())?;
+    let result = (|| -> Result<(), String> {
+        store
+            .insert_block(&block, &page_path)
+            .map_err(|e| e.to_string())?;
+        let page = pkm_block::Page::new(full_path.clone(), &state.vault_path);
+        store.upsert_page(&page).map_err(|e| e.to_string())?;
+        Ok(())
+    })();
+    match result {
+        Ok(()) => store.execute_batch("COMMIT").map_err(|e| e.to_string())?,
+        Err(e) => {
+            store.execute_batch("ROLLBACK").ok();
+            return Err(e);
+        }
+    }
 
     // Serialize all blocks for this page to .md file
     let all_blocks = store

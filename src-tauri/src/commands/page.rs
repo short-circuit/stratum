@@ -75,13 +75,25 @@ fn sync_page_from_disk(
         aliases: fm.aliases,
         ..Default::default()
     };
-    store.upsert_page(&page).map_err(|e| e.to_string())?;
 
-    store
-        .delete_blocks_by_page(rel)
-        .map_err(|e| e.to_string())?;
-    for block in &blocks {
-        store.insert_block(block, rel).map_err(|e| e.to_string())?;
+    // Wrap SQLite operations in an explicit transaction for atomicity
+    store.execute_batch("BEGIN").map_err(|e| e.to_string())?;
+    let result = (|| -> Result<(), String> {
+        store.upsert_page(&page).map_err(|e| e.to_string())?;
+        store
+            .delete_blocks_by_page(rel)
+            .map_err(|e| e.to_string())?;
+        for block in &blocks {
+            store.insert_block(block, rel).map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    })();
+    match result {
+        Ok(()) => store.execute_batch("COMMIT").map_err(|e| e.to_string())?,
+        Err(e) => {
+            store.execute_batch("ROLLBACK").ok();
+            return Err(e);
+        }
     }
 
     // Rebuild Tantivy search index for this page
@@ -255,12 +267,25 @@ fn reparse_page_from_disk(
         aliases: fm.aliases,
         ..Default::default()
     };
-    store.upsert_page(&page).map_err(|e| e.to_string())?;
-    store
-        .delete_blocks_by_page(rel)
-        .map_err(|e| e.to_string())?;
-    for block in &blocks {
-        store.insert_block(block, rel).map_err(|e| e.to_string())?;
+
+    // Wrap SQLite operations in an explicit transaction for atomicity
+    store.execute_batch("BEGIN").map_err(|e| e.to_string())?;
+    let result = (|| -> Result<(), String> {
+        store.upsert_page(&page).map_err(|e| e.to_string())?;
+        store
+            .delete_blocks_by_page(rel)
+            .map_err(|e| e.to_string())?;
+        for block in &blocks {
+            store.insert_block(block, rel).map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    })();
+    match result {
+        Ok(()) => store.execute_batch("COMMIT").map_err(|e| e.to_string())?,
+        Err(e) => {
+            store.execute_batch("ROLLBACK").ok();
+            return Err(e);
+        }
     }
 
     // Rebuild Tantivy search index for this page
@@ -381,26 +406,11 @@ pub async fn save_page(
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
 
-    // Write .md file
-    std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
-
-    // Parse and store blocks in SQLite
+    // Parse content
     let (frontmatter, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
     let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
 
-    // Delete existing blocks for this page
-    store
-        .delete_blocks_by_page(&path)
-        .map_err(|e| e.to_string())?;
-
-    // Insert blocks
-    for block in &blocks {
-        store
-            .insert_block(block, &path)
-            .map_err(|e| e.to_string())?;
-    }
-
-    // Upsert page metadata
+    // Build page metadata
     let mut page = pkm_block::Page::new(full_path.clone(), &vault_path);
     page.frontmatter = pkm_block::PageFrontmatter {
         title: frontmatter.title,
@@ -410,7 +420,32 @@ pub async fn save_page(
         aliases: frontmatter.aliases,
         ..Default::default()
     };
-    store.upsert_page(&page).map_err(|e| e.to_string())?;
+
+    // SQLite first (inside a transaction), then write .md file
+    // This ensures the database is the source of truth.
+    store.execute_batch("BEGIN").map_err(|e| e.to_string())?;
+    let result = (|| -> Result<(), String> {
+        store
+            .delete_blocks_by_page(&path)
+            .map_err(|e| e.to_string())?;
+        for block in &blocks {
+            store
+                .insert_block(block, &path)
+                .map_err(|e| e.to_string())?;
+        }
+        store.upsert_page(&page).map_err(|e| e.to_string())?;
+        Ok(())
+    })();
+    match result {
+        Ok(()) => store.execute_batch("COMMIT").map_err(|e| e.to_string())?,
+        Err(e) => {
+            store.execute_batch("ROLLBACK").ok();
+            return Err(e);
+        }
+    }
+
+    // Write .md file after SQLite succeeds
+    std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
 
     // Drop BlockIndex writer before IndexEngine acquires its own (same Tantivy dir)
     drop(state.block_index.take());
