@@ -39,6 +39,21 @@ const PROVIDERS = [
   { value: 'custom-anthropic', label: 'Custom Anthropic API' },
 ];
 
+function envVarForProvider(provider: string): string {
+  switch (provider) {
+    case 'openai':
+    case 'custom-openai':
+      return 'OPENAI_API_KEY';
+    case 'anthropic':
+    case 'custom-anthropic':
+      return 'ANTHROPIC_API_KEY';
+    case 'google':
+      return 'GOOGLE_API_KEY';
+    default:
+      return '';
+  }
+}
+
 export default function SettingsPageMobile() {
   const {
     settings,
@@ -209,6 +224,14 @@ export default function SettingsPageMobile() {
           </AccordionSummary>
           <AccordionDetails sx={{ px: 0, pb: 1 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {ai?.api_key_from_env && (
+                <Alert severity="warning" sx={{ py: 0.5, px: 1.5, '& .MuiAlert-message': { py: 0.5 } }}>
+                  <Typography variant="caption">
+                    <strong>Security Notice:</strong> API key set via{' '}
+                    <strong>{envVarForProvider(ai?.provider)}</strong> environment variable.
+                  </Typography>
+                </Alert>
+              )}
               <Select
                 value={ai?.provider || 'ollama'}
                 onChange={e => updateAi({ provider: e.target.value })}
@@ -237,6 +260,14 @@ export default function SettingsPageMobile() {
                 size="small"
                 sx={{ '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.8rem' } }}
               />
+              {ai?.api_key_from_env && (
+                <Alert severity="info" sx={{ py: 0, px: 1.5, '& .MuiAlert-message': { py: 0.75 } }}>
+                  <Typography variant="caption">
+                    API key loaded from <strong>{envVarForProvider(ai?.provider)}</strong> environment variable.
+                    {ai?.api_key ? ' Config file key is ignored while the env var is set.' : ''}
+                  </Typography>
+                </Alert>
+              )}
               <TextField
                 label="Default Model"
                 placeholder="gpt-4o"

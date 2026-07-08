@@ -227,6 +227,24 @@ impl Default for AiConfig {
     }
 }
 
+impl AiConfig {
+    /// Returns the API key, checking environment variables first before falling back
+    /// to the config file value. The env var checked depends on the provider:
+    /// - "openai" / "custom-openai" → OPENAI_API_KEY
+    /// - "anthropic" / "custom-anthropic" → ANTHROPIC_API_KEY
+    /// - "google" → GOOGLE_API_KEY
+    /// - Other providers (Ollama, ZAI, Custom) → config file value only
+    pub fn effective_api_key(&self) -> Option<String> {
+        let env_var = match self.provider {
+            AiProvider::OpenAI | AiProvider::CustomOpenAI => "OPENAI_API_KEY",
+            AiProvider::Anthropic | AiProvider::CustomAnthropic => "ANTHROPIC_API_KEY",
+            AiProvider::Google => "GOOGLE_API_KEY",
+            _ => return self.api_key.clone(),
+        };
+        std::env::var(env_var).ok().or_else(|| self.api_key.clone())
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AiProvider {
     Ollama,

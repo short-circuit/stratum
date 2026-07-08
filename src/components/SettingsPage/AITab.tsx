@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import Alert from '@mui/material/Alert';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
@@ -27,6 +28,7 @@ interface AITabProps {
     provider: string;
     endpoint: string | null;
     api_key: string | null;
+    api_key_from_env: boolean;
     model: string;
     models: { name: string; capabilities: string[] }[];
     rag_enabled: boolean;
@@ -39,6 +41,21 @@ interface AITabProps {
   onToggleModelCapability: (modelName: string, cap: string) => void;
 }
 
+function envVarForProvider(provider: string): string {
+  switch (provider) {
+    case 'openai':
+    case 'custom-openai':
+      return 'OPENAI_API_KEY';
+    case 'anthropic':
+    case 'custom-anthropic':
+      return 'ANTHROPIC_API_KEY';
+    case 'google':
+      return 'GOOGLE_API_KEY';
+    default:
+      return '';
+  }
+}
+
 export default function AITab({
   ai,
   onAiChange,
@@ -49,10 +66,21 @@ export default function AITab({
 }: AITabProps) {
   const modelCaps = (name: string) =>
     (ai.models || []).find(m => m.name === name)?.capabilities || [];
+  const envVarName = envVarForProvider(ai.provider);
 
   return (
     <Box>
       <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>AI Configuration</Typography>
+
+      {ai.api_key_from_env && (
+        <Alert severity="warning" sx={{ mb: 2, maxWidth: 480 }}>
+          <Typography variant="caption">
+            <strong>Security Notice:</strong> API key is set via the <strong>{envVarName}</strong> environment variable.
+            {' '}Environment variables are more secure than storing keys in config files.
+            {' '}To use a different key, unset the environment variable or update it.
+          </Typography>
+        </Alert>
+      )}
 
       <Box sx={{ maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Select
@@ -91,6 +119,15 @@ export default function AITab({
           size="small"
           sx={{ '& .MuiInputBase-input': { fontFamily: 'monospace' } }}
         />
+
+        {ai.api_key_from_env && (
+          <Alert severity="info" sx={{ py: 0, px: 1.5, '& .MuiAlert-message': { py: 0.75 } }}>
+            <Typography variant="caption">
+              API key loaded from <strong>{envVarName}</strong> environment variable.
+              {ai.api_key ? ' Config file key is ignored while the env var is set.' : ''}
+            </Typography>
+          </Alert>
+        )}
 
         <TextField
           label="Default Chat Model"
