@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use futures::stream::BoxStream;
 use futures::StreamExt;
-use pkm_core::{AiConfig, AiProvider, PkmError, PkmResult};
+use pkm_core::{endpoint, AiConfig, AiProvider, PkmError, PkmResult};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::time::Duration;
@@ -207,6 +207,7 @@ impl OllamaProvider {
 #[async_trait]
 impl LlmProvider for OllamaProvider {
     async fn chat(&self, messages: &[ChatMessage], config: &ChatConfig) -> PkmResult<ChatResponse> {
+        endpoint::validate_endpoint_safe(&self.endpoint)?;
         let url = format!("{}/api/chat", self.endpoint.trim_end_matches('/'));
 
         #[derive(Serialize)]
@@ -298,6 +299,7 @@ impl LlmProvider for OllamaProvider {
         messages: &[ChatMessage],
         config: &ChatConfig,
     ) -> PkmResult<BoxStream<'static, PkmResult<ChatDelta>>> {
+        endpoint::validate_endpoint_safe(&self.endpoint)?;
         let url = format!("{}/api/chat", self.endpoint.trim_end_matches('/'));
 
         #[derive(Serialize)]
@@ -432,6 +434,7 @@ impl OpenAIProvider {
 #[async_trait]
 impl LlmProvider for OpenAIProvider {
     async fn chat(&self, messages: &[ChatMessage], config: &ChatConfig) -> PkmResult<ChatResponse> {
+        endpoint::validate_endpoint_safe(&self.endpoint)?;
         let url = format!("{}/chat/completions", self.endpoint.trim_end_matches('/'));
 
         #[derive(Serialize)]
@@ -537,6 +540,7 @@ impl LlmProvider for OpenAIProvider {
         messages: &[ChatMessage],
         config: &ChatConfig,
     ) -> PkmResult<BoxStream<'static, PkmResult<ChatDelta>>> {
+        endpoint::validate_endpoint_safe(&self.endpoint)?;
         let url = format!("{}/chat/completions", self.endpoint.trim_end_matches('/'));
 
         #[derive(Serialize)]
@@ -682,6 +686,7 @@ impl AnthropicProvider {
 #[async_trait]
 impl LlmProvider for AnthropicProvider {
     async fn chat(&self, messages: &[ChatMessage], config: &ChatConfig) -> PkmResult<ChatResponse> {
+        endpoint::validate_endpoint_safe(&self.endpoint)?;
         let url = format!("{}/v1/messages", self.endpoint.trim_end_matches('/'));
 
         #[derive(Serialize)]
@@ -784,6 +789,7 @@ impl LlmProvider for AnthropicProvider {
         messages: &[ChatMessage],
         config: &ChatConfig,
     ) -> PkmResult<BoxStream<'static, PkmResult<ChatDelta>>> {
+        endpoint::validate_endpoint_safe(&self.endpoint)?;
         let url = format!("{}/v1/messages", self.endpoint.trim_end_matches('/'));
 
         #[derive(Serialize)]
@@ -913,6 +919,7 @@ impl CustomProvider {
 #[async_trait]
 impl LlmProvider for CustomProvider {
     async fn chat(&self, messages: &[ChatMessage], config: &ChatConfig) -> PkmResult<ChatResponse> {
+        endpoint::validate_endpoint_safe(&self.endpoint)?;
         let url = self.endpoint.trim_end_matches('/').to_string();
 
         #[derive(Serialize)]
@@ -1054,6 +1061,7 @@ impl LlmProvider for CustomProvider {
         _messages: &[ChatMessage],
         _config: &ChatConfig,
     ) -> PkmResult<BoxStream<'static, PkmResult<ChatDelta>>> {
+        endpoint::validate_endpoint_safe(&self.endpoint)?;
         Err(PkmError::Unsupported(
             "Streaming not supported for custom provider".to_string(),
         ))

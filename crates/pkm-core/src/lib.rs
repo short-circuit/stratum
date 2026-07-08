@@ -1,4 +1,5 @@
 pub mod config;
+pub mod endpoint;
 pub mod error;
 pub mod fs_util;
 pub mod note;

@@ -70,6 +70,18 @@ pub struct SyncSettingsDto {
     pub commit_template: String,
 }
 
+/// Mask an API key for safe display, keeping only the first 3 and last 4 chars.
+fn mask_api_key(key: &Option<String>) -> Option<String> {
+    match key {
+        Some(k) if k.len() > 8 => {
+            let masked = format!("{}****{}", &k[..3], &k[k.len() - 4..]);
+            Some(masked)
+        }
+        Some(_) => Some("****".to_string()),
+        None => None,
+    }
+}
+
 #[tauri::command]
 pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
@@ -115,7 +127,7 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
                 pkm_core::AiProvider::CustomAnthropic => "custom-anthropic".into(),
             },
             endpoint: config.ai.endpoint,
-            api_key: config.ai.api_key,
+            api_key: mask_api_key(&config.ai.api_key),
             api_key_from_env,
             model: config.ai.model,
             models: config
@@ -170,6 +182,26 @@ pub async fn save_settings(
     let state = state.lock().map_err(|e| e.to_string())?;
     let config_path = state.vault_path.join(".pkm").join("config.toml");
 
+    // Check if the API key from the frontend is masked — if so, preserve the
+    // existing key on disk rather than overwriting with the masked placeholder.
+    let is_key_masked = settings
+        .ai
+        .api_key
+        .as_ref()
+        .is_some_and(|k| k.contains("****"));
+    let api_key = if is_key_masked {
+        // Load the existing key from disk to avoid saving the masked placeholder
+        if config_path.exists() {
+            pkm_core::Config::load(&config_path)
+                .ok()
+                .and_then(|c| c.ai.api_key)
+        } else {
+            None
+        }
+    } else {
+        settings.ai.api_key
+    };
+
     let provider = match settings.ai.provider.as_str() {
         "openai" => pkm_core::AiProvider::OpenAI,
         "anthropic" => pkm_core::AiProvider::Anthropic,
@@ -200,7 +232,7 @@ pub async fn save_settings(
         ai: pkm_core::AiConfig {
             provider,
             endpoint: settings.ai.endpoint,
-            api_key: settings.ai.api_key,
+            api_key,
             model: settings.ai.model,
             models: settings
                 .ai
@@ -303,7 +335,13 @@ pub async fn fetch_models(state: tauri::State<'_, AppState>) -> Result<Vec<Strin
         )
     };
 
+    // Validate endpoint URL to prevent SSRF
+    pkm_core::endpoint::validate_endpoint_safe(&endpoint).map_err(|e| e.to_string())?;
+
     let models_url = format!("{}/v1/models", endpoint.trim_end_matches('/'));
+
+    // Validate the full models URL too
+    pkm_core::endpoint::validate_endpoint_safe(&models_url).map_err(|e| e.to_string())?;
 
     let client = reqwest::Client::new();
     let mut request = client
