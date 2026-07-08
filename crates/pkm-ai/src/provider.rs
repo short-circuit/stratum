@@ -361,53 +361,44 @@ impl LlmProvider for OllamaProvider {
             .map_err(|e| PkmError::Ai(format!("Ollama stream request failed: {e}")))?;
 
         let mut buffer = StreamBuffer::new();
-        let stream = response
-            .bytes_stream()
-            .flat_map(move |chunk_result| {
-                let items: Vec<PkmResult<ChatDelta>> = match chunk_result {
-                    Ok(bytes) => {
-                        let text = String::from_utf8_lossy(&bytes);
-                        let lines = buffer.feed(&text, "\n");
+        let stream = response.bytes_stream().flat_map(move |chunk_result| {
+            let items: Vec<PkmResult<ChatDelta>> = match chunk_result {
+                Ok(bytes) => {
+                    let text = String::from_utf8_lossy(&bytes);
+                    let lines = buffer.feed(&text, "\n");
 
-                        #[derive(Deserialize)]
-                        struct OllamaStreamChunk {
-                            message: Option<OllamaStreamMessage>,
-                            _done: bool,
-                        }
-                        #[derive(Deserialize)]
-                        struct OllamaStreamMessage {
-                            content: String,
-                        }
-
-                        lines
-                            .into_iter()
-                            .map(|line| {
-                                if let Ok(chunk) =
-                                    serde_json::from_str::<OllamaStreamChunk>(&line)
-                                {
-                                    let content = chunk
-                                        .message
-                                        .map(|m| m.content)
-                                        .unwrap_or_default();
-                                    Ok(ChatDelta {
-                                        content,
-                                        done: chunk._done,
-                                    })
-                                } else {
-                                    Ok(ChatDelta {
-                                        content: String::new(),
-                                        done: false,
-                                    })
-                                }
-                            })
-                            .collect()
+                    #[derive(Deserialize)]
+                    struct OllamaStreamChunk {
+                        message: Option<OllamaStreamMessage>,
+                        _done: bool,
                     }
-                    Err(e) => vec![Err(PkmError::Ai(format!(
-                        "Ollama stream read error: {e}"
-                    )))],
-                };
-                futures::stream::iter(items)
-            });
+                    #[derive(Deserialize)]
+                    struct OllamaStreamMessage {
+                        content: String,
+                    }
+
+                    lines
+                        .into_iter()
+                        .map(|line| {
+                            if let Ok(chunk) = serde_json::from_str::<OllamaStreamChunk>(&line) {
+                                let content = chunk.message.map(|m| m.content).unwrap_or_default();
+                                Ok(ChatDelta {
+                                    content,
+                                    done: chunk._done,
+                                })
+                            } else {
+                                Ok(ChatDelta {
+                                    content: String::new(),
+                                    done: false,
+                                })
+                            }
+                        })
+                        .collect()
+                }
+                Err(e) => vec![Err(PkmError::Ai(format!("Ollama stream read error: {e}")))],
+            };
+            futures::stream::iter(items)
+        });
 
         Ok(Box::pin(stream))
     }
@@ -603,67 +594,61 @@ impl LlmProvider for OpenAIProvider {
             .map_err(|e| PkmError::Ai(format!("OpenAI stream request failed: {e}")))?;
 
         let mut buffer = StreamBuffer::new();
-        let stream = response
-            .bytes_stream()
-            .flat_map(move |chunk_result| {
-                let items: Vec<PkmResult<ChatDelta>> = match chunk_result {
-                    Ok(bytes) => {
-                        let text = String::from_utf8_lossy(&bytes);
-                        let events = buffer.feed(&text, "\n\n");
+        let stream = response.bytes_stream().flat_map(move |chunk_result| {
+            let items: Vec<PkmResult<ChatDelta>> = match chunk_result {
+                Ok(bytes) => {
+                    let text = String::from_utf8_lossy(&bytes);
+                    let events = buffer.feed(&text, "\n\n");
 
-                        events
-                            .into_iter()
-                            .filter_map(|event| {
-                                // SSE format: "data: {...}"
-                                let data = event.strip_prefix("data: ")?.trim();
-                                if data == "[DONE]" {
-                                    return Some(Ok(ChatDelta {
-                                        content: String::new(),
-                                        done: true,
-                                    }));
-                                }
-                                #[derive(Deserialize)]
-                                struct OpenAIStreamChunk {
-                                    choices: Vec<OpenAIStreamChoice>,
-                                }
-                                #[derive(Deserialize)]
-                                struct OpenAIStreamChoice {
-                                    delta: OpenAIStreamDelta,
-                                    #[allow(dead_code)]
-                                    finish_reason: Option<String>,
-                                }
-                                #[derive(Deserialize)]
-                                struct OpenAIStreamDelta {
-                                    content: Option<String>,
-                                }
+                    events
+                        .into_iter()
+                        .filter_map(|event| {
+                            // SSE format: "data: {...}"
+                            let data = event.strip_prefix("data: ")?.trim();
+                            if data == "[DONE]" {
+                                return Some(Ok(ChatDelta {
+                                    content: String::new(),
+                                    done: true,
+                                }));
+                            }
+                            #[derive(Deserialize)]
+                            struct OpenAIStreamChunk {
+                                choices: Vec<OpenAIStreamChoice>,
+                            }
+                            #[derive(Deserialize)]
+                            struct OpenAIStreamChoice {
+                                delta: OpenAIStreamDelta,
+                                #[allow(dead_code)]
+                                finish_reason: Option<String>,
+                            }
+                            #[derive(Deserialize)]
+                            struct OpenAIStreamDelta {
+                                content: Option<String>,
+                            }
 
-                                if let Ok(chunk) =
-                                    serde_json::from_str::<OpenAIStreamChunk>(data)
-                                {
-                                    let content = chunk
-                                        .choices
-                                        .first()
-                                        .and_then(|c| c.delta.content.clone())
-                                        .unwrap_or_default();
-                                    Some(Ok(ChatDelta {
-                                        content,
-                                        done: false,
-                                    }))
-                                } else {
-                                    Some(Ok(ChatDelta {
-                                        content: String::new(),
-                                        done: false,
-                                    }))
-                                }
-                            })
-                            .collect()
-                    }
-                    Err(e) => vec![Err(PkmError::Ai(format!(
-                        "OpenAI stream read error: {e}"
-                    )))],
-                };
-                futures::stream::iter(items)
-            });
+                            if let Ok(chunk) = serde_json::from_str::<OpenAIStreamChunk>(data) {
+                                let content = chunk
+                                    .choices
+                                    .first()
+                                    .and_then(|c| c.delta.content.clone())
+                                    .unwrap_or_default();
+                                Some(Ok(ChatDelta {
+                                    content,
+                                    done: false,
+                                }))
+                            } else {
+                                Some(Ok(ChatDelta {
+                                    content: String::new(),
+                                    done: false,
+                                }))
+                            }
+                        })
+                        .collect()
+                }
+                Err(e) => vec![Err(PkmError::Ai(format!("OpenAI stream read error: {e}")))],
+            };
+            futures::stream::iter(items)
+        });
 
         Ok(Box::pin(stream))
     }
@@ -851,57 +836,50 @@ impl LlmProvider for AnthropicProvider {
             .map_err(|e| PkmError::Ai(format!("Anthropic stream request failed: {e}")))?;
 
         let mut buffer = StreamBuffer::new();
-        let stream = response
-            .bytes_stream()
-            .flat_map(move |chunk_result| {
-                let items: Vec<PkmResult<ChatDelta>> = match chunk_result {
-                    Ok(bytes) => {
-                        let text = String::from_utf8_lossy(&bytes);
-                        let events = buffer.feed(&text, "\n\n");
+        let stream = response.bytes_stream().flat_map(move |chunk_result| {
+            let items: Vec<PkmResult<ChatDelta>> = match chunk_result {
+                Ok(bytes) => {
+                    let text = String::from_utf8_lossy(&bytes);
+                    let events = buffer.feed(&text, "\n\n");
 
-                        events
-                            .into_iter()
-                            .filter_map(|event| {
-                                // SSE format: "data: {...}"
-                                let data = event.strip_prefix("data: ")?.trim();
-                                #[derive(Deserialize)]
-                                struct AnthropicStreamChunk {
-                                    #[serde(rename = "type")]
-                                    chunk_type: String,
-                                    delta: Option<AnthropicStreamDelta>,
-                                }
-                                #[derive(Deserialize)]
-                                struct AnthropicStreamDelta {
-                                    text: Option<String>,
-                                }
+                    events
+                        .into_iter()
+                        .filter_map(|event| {
+                            // SSE format: "data: {...}"
+                            let data = event.strip_prefix("data: ")?.trim();
+                            #[derive(Deserialize)]
+                            struct AnthropicStreamChunk {
+                                #[serde(rename = "type")]
+                                chunk_type: String,
+                                delta: Option<AnthropicStreamDelta>,
+                            }
+                            #[derive(Deserialize)]
+                            struct AnthropicStreamDelta {
+                                text: Option<String>,
+                            }
 
-                                if let Ok(chunk) =
-                                    serde_json::from_str::<AnthropicStreamChunk>(data)
-                                {
-                                    let is_done = chunk.chunk_type == "message_stop";
-                                    let content = chunk
-                                        .delta
-                                        .and_then(|d| d.text)
-                                        .unwrap_or_default();
-                                    Some(Ok(ChatDelta {
-                                        content,
-                                        done: is_done,
-                                    }))
-                                } else {
-                                    Some(Ok(ChatDelta {
-                                        content: String::new(),
-                                        done: false,
-                                    }))
-                                }
-                            })
-                            .collect()
-                    }
-                    Err(e) => vec![Err(PkmError::Ai(format!(
-                        "Anthropic stream read error: {e}"
-                    )))],
-                };
-                futures::stream::iter(items)
-            });
+                            if let Ok(chunk) = serde_json::from_str::<AnthropicStreamChunk>(data) {
+                                let is_done = chunk.chunk_type == "message_stop";
+                                let content = chunk.delta.and_then(|d| d.text).unwrap_or_default();
+                                Some(Ok(ChatDelta {
+                                    content,
+                                    done: is_done,
+                                }))
+                            } else {
+                                Some(Ok(ChatDelta {
+                                    content: String::new(),
+                                    done: false,
+                                }))
+                            }
+                        })
+                        .collect()
+                }
+                Err(e) => vec![Err(PkmError::Ai(format!(
+                    "Anthropic stream read error: {e}"
+                )))],
+            };
+            futures::stream::iter(items)
+        });
 
         Ok(Box::pin(stream))
     }

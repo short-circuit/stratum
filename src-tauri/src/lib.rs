@@ -104,12 +104,9 @@ pub fn run() {
                                 Ok(s) => s,
                                 Err(_) => return,
                             };
-                            if state.watcher_last_save
-                                != std::time::SystemTime::UNIX_EPOCH
-                            {
-                                if let Ok(elapsed) = event
-                                    .timestamp
-                                    .duration_since(state.watcher_last_save)
+                            if state.watcher_last_save != std::time::SystemTime::UNIX_EPOCH {
+                                if let Ok(elapsed) =
+                                    event.timestamp.duration_since(state.watcher_last_save)
                                 {
                                     if elapsed.as_millis() < 2000 {
                                         return;
@@ -132,19 +129,14 @@ pub fn run() {
                                         Ok(s) => s,
                                         Err(_) => return,
                                     };
-                                    let store = match pkm_block::BlockStore::open(
-                                        &state.db_path,
-                                    ) {
+                                    let store = match pkm_block::BlockStore::open(&state.db_path) {
                                         Ok(s) => s,
                                         Err(_) => return,
                                     };
                                     let vp = state.vault_path.clone();
                                     // Sync page data into SQLite
                                     let _ = crate::commands::page::sync_page_from_disk(
-                                        &store,
-                                        &rel,
-                                        &vp,
-                                        None,
+                                        &store, &rel, &vp, None,
                                     );
                                     // Drop BlockStore and cached BlockIndex before
                                     // accessing IndexEngine (same Tantivy dir).
@@ -160,9 +152,7 @@ pub fn run() {
                                         Ok(s) => s,
                                         Err(_) => return,
                                     };
-                                    let store = match pkm_block::BlockStore::open(
-                                        &state.db_path,
-                                    ) {
+                                    let store = match pkm_block::BlockStore::open(&state.db_path) {
                                         Ok(s) => s,
                                         Err(_) => return,
                                     };
