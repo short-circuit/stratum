@@ -344,10 +344,6 @@ export async function getOrphanedNotes(): Promise<OrphanDto[]> {
   return invoke('get_orphaned_notes');
 }
 
-export async function rebuildGraph(): Promise<string> {
-  return invoke('rebuild_graph');
-}
-
 // --- Link resolution ---
 
 export async function resolveLinkTarget(target: string): Promise<{
