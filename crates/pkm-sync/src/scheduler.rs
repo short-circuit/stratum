@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use pkm_core::SyncStatus;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tracing::{error, info, warn};
 
@@ -42,155 +42,46 @@ pub struct SyncResult {
     pub status: SyncStatus,
 }
 
-/// Periodic sync scheduler that performs pull → merge → push cycles.
-///
-/// The scheduler can be controlled via `start()` and `stop()`. The `tick()`
-/// method performs a single sync cycle and is meant to be called either
-/// manually or from a background thread started by `start()`.
-pub struct SyncScheduler {
+/// A locked reference providing `Deref` access to the inner `GitEngine`.
+/// Returned by [`SyncScheduler::git_engine`].
+pub struct GitEngineGuard<'a>(std::sync::MutexGuard<'a, SchedulerInner>);
+
+impl<'a> std::ops::Deref for GitEngineGuard<'a> {
+    type Target = GitEngine;
+    fn deref(&self) -> &GitEngine {
+        &self.0.git
+    }
+}
+
+/// Internal mutable state for the scheduler, shared with the background thread.
+struct SchedulerInner {
     git: GitEngine,
-    config: SchedulerConfig,
-    running: Arc<AtomicBool>,
-    /// Handle to the background thread (if started).
-    thread_handle: Option<std::thread::JoinHandle<()>>,
-    /// Sender to signal the background thread to stop.
-    stop_tx: Option<mpsc::Sender<()>>,
     status: SyncStatus,
     last_sync: Option<DateTime<Utc>>,
     last_result: Option<SyncResult>,
 }
 
-impl SyncScheduler {
-    /// Create a new `SyncScheduler` with the given engine and configuration.
-    pub fn new(git: GitEngine, config: SchedulerConfig) -> Self {
+impl SchedulerInner {
+    fn new(git: GitEngine) -> Self {
         Self {
             git,
-            config,
-            running: Arc::new(AtomicBool::new(false)),
-            thread_handle: None,
-            stop_tx: None,
             status: SyncStatus::Idle,
             last_sync: None,
             last_result: None,
         }
     }
 
-    /// Start the scheduler loop in a background thread.
-    ///
-    /// The loop calls `tick()` every `interval_secs` seconds until `stop()`
-    /// is called or the scheduler is dropped.
-    pub fn start(&mut self) {
-        if self.is_running() {
-            warn!("scheduler is already running");
-            return;
-        }
-        self.running.store(true, Ordering::SeqCst);
-        self.status = SyncStatus::Idle;
-
-        let running = self.running.clone();
-        let remote = self.config.remote.clone();
-        let branch = self.config.branch.clone();
-        let interval = Duration::from_secs(self.config.interval_secs);
-
-        let (stop_tx, stop_rx) = mpsc::channel::<()>();
-
-        let handle = std::thread::Builder::new()
-            .name("pkm-sync-scheduler".into())
-            .spawn(move || {
-                info!(
-                    "sync scheduler thread started (remote={remote}, branch={branch}, interval={interval:?})"
-                );
-                loop {
-                    // Wait for the interval or a stop signal.
-                    // We either sleep the interval or receive stop.
-                    // Use a non-blocking check loop so we can respond to stop quickly.
-                    let sleep_start = Instant::now();
-                    let mut stop_requested = false;
-                    while sleep_start.elapsed() < interval {
-                        std::thread::sleep(Duration::from_millis(200));
-                        if stop_rx.try_recv().is_ok() {
-                            stop_requested = true;
-                            break;
-                        }
-                        if !running.load(Ordering::SeqCst) {
-                            stop_requested = true;
-                            break;
-                        }
-                    }
-                    if stop_requested {
-                        break;
-                    }
-                    if !running.load(Ordering::SeqCst) {
-                        break;
-                    }
-                    // tick() needs &mut self, but in this background thread
-                    // we don't have access. The actual tick should be called
-                    // by the owner via the public tick() method.
-                    // For the background thread, we just signal that a tick
-                    // is needed — but the real work is done by the owner
-                    // calling tick().
-                    // This is a simplified version; the heavy lifting is
-                    // done via tick() which is called manually.
-                    info!("sync scheduler background heartbeat (tick not executed here — call tick() from your event loop)");
-                }
-                info!("sync scheduler thread stopped");
-            })
-            .expect("failed to spawn scheduler thread");
-
-        self.thread_handle = Some(handle);
-        self.stop_tx = Some(stop_tx);
-
-        info!(
-            "sync scheduler started (remote={}, branch={}, interval={}s)",
-            self.config.remote, self.config.branch, self.config.interval_secs
-        );
-    }
-
-    /// Stop the scheduler. Signals the background thread and waits for it to
-    /// finish.
-    pub fn stop(&mut self) {
-        self.running.store(false, Ordering::SeqCst);
-        if let Some(tx) = self.stop_tx.take() {
-            let _ = tx.send(());
-        }
-        if let Some(handle) = self.thread_handle.take() {
-            let _ = handle.join();
-        }
-        self.status = SyncStatus::Idle;
-        info!("sync scheduler stopped");
-    }
-
-    /// Returns whether the scheduler is currently running.
-    pub fn is_running(&self) -> bool {
-        self.running.load(Ordering::SeqCst)
-    }
-
-    /// Return the current sync status.
-    pub fn status(&self) -> SyncStatus {
-        self.status
-    }
-
-    /// Return the last sync result, if any.
-    pub fn last_result(&self) -> Option<&SyncResult> {
-        self.last_result.as_ref()
-    }
-
-    /// Return the timestamp of the last sync.
-    pub fn last_sync_time(&self) -> Option<DateTime<Utc>> {
-        self.last_sync
-    }
-
-    /// Execute a single sync tick: pull → merge → push.
+    /// Execute a single sync tick: pull -> merge -> push.
     ///
     /// Returns a `SyncResult` describing what happened.
-    pub fn tick(&mut self) -> SyncResult {
+    fn tick(&mut self, config: &SchedulerConfig) -> SyncResult {
         self.status = SyncStatus::Syncing;
         let timestamp = Utc::now();
         let mut pushed = false;
         let mut pulled = false;
 
         // Stage 1: Pull
-        let pull_result = self.git.pull(&self.config.remote, &self.config.branch);
+        let pull_result = self.git.pull(&config.remote, &config.branch);
 
         match pull_result {
             Ok(pr) => {
@@ -242,7 +133,7 @@ impl SyncScheduler {
         }
 
         // Stage 2: Push
-        let push_result = self.git.push(&self.config.remote, &self.config.branch);
+        let push_result = self.git.push(&config.remote, &config.branch);
 
         match push_result {
             Ok(()) => {
@@ -287,10 +178,164 @@ impl SyncScheduler {
         self.last_sync = Some(timestamp);
         result
     }
+}
+
+/// Periodic sync scheduler that performs pull -> merge -> push cycles.
+///
+/// The scheduler can be controlled via `start()` and `stop()`. The `tick()`
+/// method performs a single sync cycle and is meant to be called either
+/// manually or from a background thread started by `start()`.
+pub struct SyncScheduler {
+    config: SchedulerConfig,
+    inner: Arc<Mutex<SchedulerInner>>,
+    running: Arc<AtomicBool>,
+    /// Handle to the background thread (if started).
+    thread_handle: Option<std::thread::JoinHandle<()>>,
+    /// Sender to signal the background thread to stop.
+    stop_tx: Option<mpsc::Sender<()>>,
+}
+
+impl SyncScheduler {
+    /// Create a new `SyncScheduler` with the given engine and configuration.
+    pub fn new(git: GitEngine, config: SchedulerConfig) -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(SchedulerInner::new(git))),
+            config,
+            running: Arc::new(AtomicBool::new(false)),
+            thread_handle: None,
+            stop_tx: None,
+        }
+    }
+
+    /// Start the scheduler loop in a background thread.
+    ///
+    /// The loop calls `tick()` every `interval_secs` seconds until `stop()`
+    /// is called or the scheduler is dropped.
+    pub fn start(&mut self) {
+        if self.is_running() {
+            warn!("scheduler is already running");
+            return;
+        }
+        self.running.store(true, Ordering::SeqCst);
+        if let Ok(mut inner) = self.inner.lock() {
+            inner.status = SyncStatus::Idle;
+        }
+
+        let running = self.running.clone();
+        let inner = self.inner.clone();
+        let config = self.config.clone();
+        let interval = Duration::from_secs(self.config.interval_secs);
+
+        let (stop_tx, stop_rx) = mpsc::channel::<()>();
+
+        let handle = std::thread::Builder::new()
+            .name("pkm-sync-scheduler".into())
+            .spawn(move || {
+                info!(
+                    "sync scheduler thread started (remote={}, branch={}, interval={:?})",
+                    config.remote, config.branch, interval
+                );
+                loop {
+                    // Wait for the interval or a stop signal.
+                    let sleep_start = Instant::now();
+                    let mut stop_requested = false;
+                    while sleep_start.elapsed() < interval {
+                        std::thread::sleep(Duration::from_millis(200));
+                        if stop_rx.try_recv().is_ok() {
+                            stop_requested = true;
+                            break;
+                        }
+                        if !running.load(Ordering::SeqCst) {
+                            stop_requested = true;
+                            break;
+                        }
+                    }
+                    if stop_requested {
+                        break;
+                    }
+                    if !running.load(Ordering::SeqCst) {
+                        break;
+                    }
+                    // Execute sync tick: pull -> commit -> push
+                    match inner.lock() {
+                        Ok(mut guard) => {
+                            let result = guard.tick(&config);
+                            info!(
+                                "sync tick completed: success={}, pushed={}, pulled={}, status={:?}",
+                                result.success, result.pushed, result.pulled, result.status
+                            );
+                        }
+                        Err(e) => {
+                            error!("failed to lock scheduler state for tick: {e}");
+                            break;
+                        }
+                    }
+                }
+                info!("sync scheduler thread stopped");
+            })
+            .expect("failed to spawn scheduler thread");
+
+        self.thread_handle = Some(handle);
+        self.stop_tx = Some(stop_tx);
+
+        info!(
+            "sync scheduler started (remote={}, branch={}, interval={}s)",
+            self.config.remote, self.config.branch, self.config.interval_secs
+        );
+    }
+
+    /// Stop the scheduler. Signals the background thread and waits for it to
+    /// finish.
+    pub fn stop(&mut self) {
+        self.running.store(false, Ordering::SeqCst);
+        if let Some(tx) = self.stop_tx.take() {
+            let _ = tx.send(());
+        }
+        if let Some(handle) = self.thread_handle.take() {
+            let _ = handle.join();
+        }
+        if let Ok(mut inner) = self.inner.lock() {
+            inner.status = SyncStatus::Idle;
+        }
+        info!("sync scheduler stopped");
+    }
+
+    /// Returns whether the scheduler is currently running.
+    pub fn is_running(&self) -> bool {
+        self.running.load(Ordering::SeqCst)
+    }
+
+    /// Return the current sync status.
+    pub fn status(&self) -> SyncStatus {
+        self.inner
+            .lock()
+            .map(|g| g.status)
+            .unwrap_or(SyncStatus::Idle)
+    }
+
+    /// Return the last sync result, if any.
+    pub fn last_result(&self) -> Option<SyncResult> {
+        self.inner.lock().ok().and_then(|g| g.last_result.clone())
+    }
+
+    /// Return the timestamp of the last sync.
+    pub fn last_sync_time(&self) -> Option<DateTime<Utc>> {
+        self.inner.lock().ok().and_then(|g| g.last_sync)
+    }
+
+    /// Execute a single sync tick: pull -> merge -> push.
+    ///
+    /// Returns a `SyncResult` describing what happened.
+    pub fn tick(&mut self) -> SyncResult {
+        self.inner.lock().unwrap().tick(&self.config)
+    }
 
     /// Access the underlying `GitEngine`.
-    pub fn git_engine(&self) -> &GitEngine {
-        &self.git
+    ///
+    /// Returns a `GitEngineGuard` that provides `Deref` access to `&GitEngine`.
+    /// The internal mutex is locked for the duration of the guard.
+    pub fn git_engine(&self) -> GitEngineGuard<'_> {
+        GitEngineGuard(self.inner.lock().unwrap())
     }
 }
 
@@ -348,7 +393,7 @@ mod tests {
             },
         );
 
-        // Tick should not fail — just skip pull/push (no remote)
+        // Tick should not fail -- just skip pull/push (no remote)
         let result = scheduler.tick();
         // Without a remote, tick should still succeed gracefully
         assert_eq!(result.status, SyncStatus::UpToDate);
@@ -390,7 +435,7 @@ mod tests {
         );
 
         let result = scheduler.tick();
-        // The remote exists but we can't actually connect — should fail gracefully
+        // The remote exists but we can't actually connect -- should fail gracefully
         // (it will try to pull, fail, but since it's a real remote URL it will
         // try to connect and fail with an error status)
         if !result.success {
