@@ -5,10 +5,13 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '../stores/appStore';
 
 export default function VaultPicker() {
-  const { pickVaultDirectory, error } = useStore();
+  const { pickVaultDirectory, error } = useStore(useShallow(
+    s => ({ pickVaultDirectory: s.pickVaultDirectory, error: s.error }),
+  ));
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100vw', bgcolor: 'background.default' }}>

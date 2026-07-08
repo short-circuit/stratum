@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ForceGraph3D from 'react-force-graph-3d';
 import * as THREE from 'three';
@@ -78,7 +78,7 @@ interface GraphStats {
   frameTime: number;
 }
 
-export default function GraphCanvas({
+const GraphCanvas = memo(function GraphCanvas({
   graphDataProp,
   width,
   height,
@@ -196,6 +196,18 @@ export default function GraphCanvas({
 
   const edgeCount = graphDataProp?.links?.length ?? 0;
 
+  const nodeThreeObj = useCallback((n: GraphNode) => {
+    const radius = Math.min(5, 2.5 + (n.degree || 0) * 0.2);
+    return new THREE.Mesh(
+      new THREE.SphereGeometry(radius, 16, 16),
+      new THREE.MeshBasicMaterial({ color: nodeColor(n) })
+    );
+  }, []);
+
+  const onNodeClickCb = useCallback((n: GraphNode) => handleNodeClick(n), [handleNodeClick]);
+
+  const onNodeRightClickCb = useCallback((n: GraphNode) => handleNodeRightClick(n), [handleNodeRightClick]);
+
   return (
     <Box sx={{ flex: 1, position: 'relative', bgcolor: 'background.default' }}>
       {loading && (
@@ -227,15 +239,9 @@ export default function GraphCanvas({
             width={width}
             height={height}
             backgroundColor={bgColor}
-            nodeThreeObject={(n: GraphNode) => {
-              const radius = Math.min(5, 2.5 + (n.degree || 0) * 0.2);
-              return new THREE.Mesh(
-                new THREE.SphereGeometry(radius, 16, 16),
-                new THREE.MeshBasicMaterial({ color: nodeColor(n) })
-              );
-            }}
-            onNodeClick={(n: GraphNode) => handleNodeClick(n)}
-            onNodeRightClick={(n: GraphNode) => handleNodeRightClick(n)}
+            nodeThreeObject={nodeThreeObj}
+            onNodeClick={onNodeClickCb}
+            onNodeRightClick={onNodeRightClickCb}
             linkColor={() => textColor}
             linkDirectionalArrowLength={nodes.length > 500 ? 0 : 3.5}
             linkDirectionalArrowRelPos={nodes.length > 500 ? 0 : 1}
@@ -312,4 +318,6 @@ export default function GraphCanvas({
       </Box>
     </Box>
   );
-}
+});
+
+export default GraphCanvas;

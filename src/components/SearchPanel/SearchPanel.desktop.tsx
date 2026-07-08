@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
@@ -8,7 +9,7 @@ import ListItemButton from '@mui/material/ListItemButton';
 import SearchIcon from '@mui/icons-material/Search';
 import { useSearchPanel } from './SearchPanel.shared';
 
-export default function SearchPanelDesktop() {
+const SearchPanelDesktop = memo(function SearchPanelDesktop() {
   const navigate = useNavigate();
   const { query, setQuery, results, searching, indexing, indexMsg, handleSearch, doReindex } = useSearchPanel();
 
@@ -56,4 +57,6 @@ export default function SearchPanelDesktop() {
       </Box>
     </Box>
   );
-}
+});
+
+export default SearchPanelDesktop;

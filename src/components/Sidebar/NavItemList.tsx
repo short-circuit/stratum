@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
@@ -31,7 +32,7 @@ interface Props {
   onNavigate: (tab: TabId, path: string) => void;
 }
 
-export default function NavItemList({ collapsed, activeTab, onNavigate }: Props) {
+const NavItemList = memo(function NavItemList({ collapsed, activeTab, onNavigate }: Props) {
   return (
     <>
       {NAV_ITEMS.map(item => (
@@ -63,7 +64,8 @@ export default function NavItemList({ collapsed, activeTab, onNavigate }: Props)
       ))}
     </>
   );
-}
+});
 
+export default NavItemList;
 export { NAV_ITEMS };
 export type { TabId };

@@ -2,6 +2,7 @@
 //! Provides the `useSettingsPage()` hook consumed by both desktop and mobile variants.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '../../stores/appStore';
 import { useSyncModalStore } from '../../stores/syncModalStore';
 import { useSyncStore } from '../../stores/syncStore';
@@ -45,7 +46,9 @@ export interface SettingsData {
 }
 
 export function useSettingsPage() {
-  const { pickVaultDirectory, setThemeConfig } = useStore();
+  const { pickVaultDirectory, setThemeConfig } = useStore(useShallow(
+    s => ({ pickVaultDirectory: s.pickVaultDirectory, setThemeConfig: s.setThemeConfig }),
+  ));
   const [settings, setSettings] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [fetching, setFetching] = useState(false);

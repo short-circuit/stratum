@@ -6,6 +6,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
+import { useShallow } from 'zustand/react/shallow';
 import { useStore, type AppState } from '../../stores/appStore';
 import * as api from '../../lib/commands';
 
@@ -30,7 +31,9 @@ export interface PageViewState {
  */
 export function usePageView(): PageViewState {
   const { pagePath: rawPath } = useParams<{ pagePath: string }>();
-  const { currentPage, openPage, deletePage } = useStore();
+  const { currentPage, openPage, deletePage } = useStore(useShallow(
+    s => ({ currentPage: s.currentPage, openPage: s.openPage, deletePage: s.deletePage }),
+  ));
   const [editorKey, setEditorKey] = useState(0);
   const [reindexing, setReindexing] = useState(false);
 
