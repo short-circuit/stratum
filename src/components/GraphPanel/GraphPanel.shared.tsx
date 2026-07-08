@@ -134,14 +134,10 @@ export function useGraphPanel(): UseGraphPanelReturn {
     setError(null);
     try {
       setRefreshKey((prev) => prev + 1);
-      const [data, comps, orphs] = await Promise.all([
-        api.getGraphData(),
-        api.getConnectedComponents(),
-        api.getOrphanedNotes(),
-      ]);
-      setGraphData(data);
-      setComponents(comps);
-      setOrphans(orphs);
+      const result = await api.getGraphPanelData();
+      setGraphData(result.graph);
+      setComponents(result.components);
+      setOrphans(result.orphans);
     } catch (e) {
       setError(String(e));
     } finally {
