@@ -83,7 +83,7 @@ pub async fn create_kanban_block(
     marker: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<KanbanBlockDto, String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
+    let mut state = state.lock().map_err(|e| e.to_string())?;
 
     // Create the block on today's journal page
     let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
@@ -127,6 +127,9 @@ pub async fn create_kanban_block(
     let body = pkm_markdown::block_parser::serialize_blocks(&all_blocks);
     let markdown = format!("---\ntitle: {}\n---\n\n{}", today, body);
     std::fs::write(&full_path, &markdown).map_err(|e| e.to_string())?;
+
+    // Notify auto-commit engine
+    state.record_change(&page_path);
 
     Ok(KanbanBlockDto {
         id: id.to_string(),

@@ -91,6 +91,13 @@ impl VaultState {
     pub fn finish_indexing(&self) {
         self.indexing_in_progress.store(false, Ordering::SeqCst);
     }
+
+    /// Record a file change to trigger the auto-commit engine.
+    pub fn record_change(&mut self, path: &str) {
+        if let Some(ref mut engine) = self.auto_commit_engine {
+            let _ = engine.record_change(path);
+        }
+    }
 }
 
 /// RAII guard that marks indexing as in-progress for its lifetime.
