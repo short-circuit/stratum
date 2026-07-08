@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import Collapse from '@mui/material/Collapse';
 import Box from '@mui/material/Box';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -14,7 +15,7 @@ interface GraphSettingsPanelProps {
   updateSetting: <K extends keyof GraphSettings>(key: K, value: GraphSettings[K]) => void;
 }
 
-export default function GraphSettingsPanel({ settingsOpen, graphSettings, updateSetting }: GraphSettingsPanelProps) {
+const GraphSettingsPanel = memo(function GraphSettingsPanel({ settingsOpen, graphSettings, updateSetting }: GraphSettingsPanelProps) {
   return (
     <Collapse in={settingsOpen}>
       <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
@@ -62,4 +63,6 @@ export default function GraphSettingsPanel({ settingsOpen, graphSettings, update
       </Box>
     </Collapse>
   );
-}
+});
+
+export default GraphSettingsPanel;

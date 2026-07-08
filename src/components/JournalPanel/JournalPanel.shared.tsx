@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '../../stores/appStore';
 import * as api from '../../lib/commands';
 
@@ -31,7 +32,9 @@ export function formatDisplayDate(dateStr: string): string {
 export function useJournalPanel() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { pages, loadPages } = useStore();
+  const { pages, loadPages } = useStore(useShallow(
+    s => ({ pages: s.pages, loadPages: s.loadPages }),
+  ));
 
   const today = useMemo(() => formatDate(new Date()), []);
   const todayPagePath = journalPath(today);
