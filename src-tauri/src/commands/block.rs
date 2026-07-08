@@ -98,21 +98,35 @@ pub async fn save_blocks(
         body
     };
 
+    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+
+    // SQLite first (in a transaction), then write .md file
+    store.execute_batch("BEGIN").map_err(|e| e.to_string())?;
+    let result = (|| -> Result<(), String> {
+        store
+            .delete_blocks_by_page(&page_path)
+            .map_err(|e| e.to_string())?;
+        for block in &pkm_blocks {
+            store
+                .insert_block(block, &page_path)
+                .map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    })();
+    match result {
+        Ok(()) => store.execute_batch("COMMIT").map_err(|e| e.to_string())?,
+        Err(e) => {
+            store.execute_batch("ROLLBACK").ok();
+            return Err(e);
+        }
+    }
+
+    // Write .md file after SQLite succeeds
     let full_path = state.vault_path.join(&page_path);
     if let Some(parent) = full_path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     std::fs::write(&full_path, &markdown).map_err(|e| e.to_string())?;
-
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    store
-        .delete_blocks_by_page(&page_path)
-        .map_err(|e| e.to_string())?;
-    for block in &pkm_blocks {
-        store
-            .insert_block(block, &page_path)
-            .map_err(|e| e.to_string())?;
-    }
 
     // Index blocks in Tantivy for full-text search
     let block_index = state.ensure_block_index()?;
@@ -300,13 +314,25 @@ pub async fn toggle_block_marker(
     }
     let new_marker = pkm_block::ops::toggle_task(&mut tree, id).map_err(|e| e.to_string())?;
 
-    store
-        .delete_blocks_by_page(&page_path)
-        .map_err(|e| e.to_string())?;
-    for b in tree.all_blocks() {
+    // Wrap SQLite operations in an explicit transaction
+    store.execute_batch("BEGIN").map_err(|e| e.to_string())?;
+    let result = (|| -> Result<(), String> {
         store
-            .insert_block(b, &page_path)
+            .delete_blocks_by_page(&page_path)
             .map_err(|e| e.to_string())?;
+        for b in tree.all_blocks() {
+            store
+                .insert_block(b, &page_path)
+                .map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    })();
+    match result {
+        Ok(()) => store.execute_batch("COMMIT").map_err(|e| e.to_string())?,
+        Err(e) => {
+            store.execute_batch("ROLLBACK").ok();
+            return Err(e);
+        }
     }
 
     let all_blocks = store
@@ -382,10 +408,21 @@ pub async fn clear_block_marker(
         .map_err(|e| e.to_string())?;
 
     if let Some(block) = blocks.iter_mut().find(|b| b.id == id) {
-        block.marker = None;
-        store
-            .insert_block(block, &page_path)
-            .map_err(|e| e.to_string())?;
+        // Wrap SQLite operation in a transaction
+        store.execute_batch("BEGIN").map_err(|e| e.to_string())?;
+        let result = (|| -> Result<(), String> {
+            store
+                .insert_block(block, &page_path)
+                .map_err(|e| e.to_string())?;
+            Ok(())
+        })();
+        match result {
+            Ok(()) => store.execute_batch("COMMIT").map_err(|e| e.to_string())?,
+            Err(e) => {
+                store.execute_batch("ROLLBACK").ok();
+                return Err(e);
+            }
+        }
     }
 
     let body = pkm_markdown::block_parser::serialize_blocks(&blocks);
