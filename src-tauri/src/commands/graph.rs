@@ -3,7 +3,24 @@
 use crate::commands::vault::AppState;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
+use std::sync::Mutex;
+use std::sync::OnceLock;
 use tracing::{debug, info};
+
+/// In-memory cache for graph panel data.
+/// Invalidated by `invalidate_graph_cache()` after any page/block mutation.
+static GRAPH_CACHE: OnceLock<Mutex<Option<GraphPanelDataDto>>> = OnceLock::new();
+
+/// Clear the in-memory graph cache.
+/// Call this after any page or block mutation so the next graph view rebuilds fresh data.
+pub fn invalidate_graph_cache() {
+    if let Some(cache) = GRAPH_CACHE.get() {
+        if let Ok(mut guard) = cache.lock() {
+            *guard = None;
+            debug!("Graph cache invalidated");
+        }
+    }
+}
 
 /// A node in the graph, ready for frontend rendering.
 #[derive(Debug, Clone, Serialize)]
@@ -308,10 +325,23 @@ pub async fn get_orphaned_notes(
 
 /// Combined command: builds PageMetaIndex ONCE and derives graph, components, and orphans
 /// from the same adjacency structure — replacing three separate DB scans.
+///
+/// Results are cached in-process; call `invalidate_graph_cache()` after any page mutation.
 #[tauri::command]
 pub async fn get_graph_panel_data(
     state: tauri::State<'_, AppState>,
 ) -> Result<GraphPanelDataDto, String> {
+    // Check in-memory cache first
+    if let Some(cached) = GRAPH_CACHE
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .map_err(|e| e.to_string())?
+        .as_ref()
+    {
+        info!("Returning cached graph data");
+        return Ok(cached.clone());
+    }
+
     let vault_path_str = {
         let s = state.lock().map_err(|e| e.to_string())?;
         s.vault_path.to_string_lossy().to_string()
@@ -338,19 +368,26 @@ pub async fn get_graph_panel_data(
     .map_err(|e| e.to_string())?;
     let (graph, components, orphans) = result?;
 
-    debug!(
-        "Found {} nodes, {} edges, {} components, {} orphans",
-        graph.node_count,
-        graph.edge_count,
-        components.len(),
-        orphans.len(),
-    );
-
-    Ok(GraphPanelDataDto {
+    let panel_data = GraphPanelDataDto {
         graph,
         components,
         orphans,
-    })
+    };
+
+    // Cache the result
+    if let Ok(mut cache) = GRAPH_CACHE.get_or_init(|| Mutex::new(None)).lock() {
+        *cache = Some(panel_data.clone());
+    }
+
+    debug!(
+        "Found {} nodes, {} edges, {} components, {} orphans",
+        panel_data.graph.node_count,
+        panel_data.graph.edge_count,
+        panel_data.components.len(),
+        panel_data.orphans.len(),
+    );
+
+    Ok(panel_data)
 }
 
 #[derive(Debug, Serialize)]
