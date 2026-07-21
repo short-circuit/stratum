@@ -5,6 +5,9 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+// Import path traversal protection from page module
+use super::page::resolve_safe_path;
+
 /// Sync state persisted to disk after each sync operation.
 /// Stored in `.pkm/sync_state.json`.
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -382,6 +385,8 @@ pub async fn resolve_conflict_file(
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
     let vault_path = state.lock().map_err(|e| e.to_string())?.vault_path.clone();
+    // Validate path is within vault before passing to git engine
+    let _safe = resolve_safe_path(&vault_path, &path)?;
     let engine = pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
     engine.add(&[&path]).map_err(|e| e.to_string())?;
     engine
