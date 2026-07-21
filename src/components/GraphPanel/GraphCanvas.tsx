@@ -99,6 +99,7 @@ const GraphCanvas = memo(function GraphCanvas({
 
   const [graphStats, setGraphStats] = useState<GraphStats>({ fps: 0, frameTime: 0 });
   const fpsRef = useRef({ frameCount: 0, lastSampleTime: 0 });
+  const instancedMeshRef = useRef<THREE.InstancedMesh | null>(null);
 
   useEffect(() => {
     const r = fpsRef.current;
@@ -130,20 +131,93 @@ const GraphCanvas = memo(function GraphCanvas({
   // Stable extraRenderers array — CSS2DRenderer is automatically layered above the WebGL canvas
   const extraRenderers = useMemo(() => [css2dRenderer], [css2dRenderer]);
 
+  // Sync InstancedMesh positions with force simulation every frame
+  useEffect(() => {
+    const fg = graphRef.current;
+    if (!fg) return;
+    const updateDummy = new THREE.Object3D();
+    let rafId: number;
+    const sync = () => {
+      rafId = requestAnimationFrame(sync);
+      const im = instancedMeshRef.current;
+      if (!im || !fg) return;
+      const syncNodes: GraphNode[] = fg.graphData().nodes || [];
+      const syncCount = Math.min(im.count, syncNodes.length);
+      for (let i = 0; i < syncCount; i++) {
+        const nn = syncNodes[i];
+        const r = Math.min(5, 2.5 + (nn.degree || 0) * 0.2);
+        updateDummy.position.set(nn.x ?? 0, nn.y ?? 0, nn.z ?? 0);
+        updateDummy.scale.set(r, r, r);
+        updateDummy.updateMatrix();
+        im.setMatrixAt(i, updateDummy.matrix);
+      }
+      im.instanceMatrix.needsUpdate = true;
+    };
+    rafId = requestAnimationFrame(sync);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
+
+  // InstancedMesh — single draw call for all nodes
+  useEffect(() => {
+    const fg = graphRef.current;
+    if (!fg) return;
+    const scene = fg.scene();
+    if (!scene) return;
+
+    // Dispose previous mesh (if any)
+    if (instancedMeshRef.current) {
+      scene.remove(instancedMeshRef.current);
+      instancedMeshRef.current.geometry.dispose();
+      const prevMat = instancedMeshRef.current.material;
+      if (!Array.isArray(prevMat)) prevMat.dispose();
+      instancedMeshRef.current = null;
+    }
+
+    const fgNodes: GraphNode[] = (fg.graphData().nodes as GraphNode[]) || [];
+    if (fgNodes.length === 0) return;
+
+    const count = fgNodes.length;
+    const geometry = new THREE.SphereGeometry(1, 16, 16);
+    const material = new THREE.MeshBasicMaterial();
+    const mesh = new THREE.InstancedMesh(geometry, material, count);
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    mesh.frustumCulled = false;
+
+    const dummy = new THREE.Object3D();
+    const color = new THREE.Color();
+    for (let i = 0; i < count; i++) {
+      const n = fgNodes[i];
+      const radius = Math.min(5, 2.5 + (n.degree || 0) * 0.2);
+      dummy.position.set(n.x ?? 0, n.y ?? 0, n.z ?? 0);
+      dummy.scale.set(radius, radius, radius);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+      color.set(nodeColor(n));
+      mesh.setColorAt(i, color);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+
+    scene.add(mesh);
+    instancedMeshRef.current = mesh;
+
+    return () => {
+      if (instancedMeshRef.current) {
+        scene.remove(instancedMeshRef.current);
+        instancedMeshRef.current.geometry.dispose();
+        const prevMat = instancedMeshRef.current.material;
+        if (!Array.isArray(prevMat)) prevMat.dispose();
+        instancedMeshRef.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, graphRef]);
+
   const edgeCount = graphDataProp?.links?.length ?? 0;
 
   const nodeThreeObj = useCallback((n: GraphNode) => {
-    const radius = Math.min(5, 2.5 + (n.degree || 0) * 0.2);
+    // CSS2D label only — sphere rendered by InstancedMesh
     const group = new THREE.Group();
-
-    // Sphere mesh (unchanged from original)
-    const sphere = new THREE.Mesh(
-      new THREE.SphereGeometry(radius, 16, 16),
-      new THREE.MeshBasicMaterial({ color: nodeColor(n) })
-    );
-    group.add(sphere);
-
-    // CSS2D label — GPU-composited DOM element, no CPU text rasterization
     const labelEl = document.createElement('div');
     labelEl.textContent = n.title;
     labelEl.style.color = textColor;
@@ -154,12 +228,9 @@ const GraphCanvas = memo(function GraphCanvas({
     labelEl.style.pointerEvents = 'none';
     labelEl.style.whiteSpace = 'nowrap';
     labelEl.style.userSelect = 'none';
-
     const label = new CSS2DObject(labelEl);
-    // Position label above the sphere, offset by radius + 14px to match original canvas offset
-    label.position.set(0, radius + 14, 0);
+    label.position.set(0, 0, 0);
     group.add(label);
-
     return group;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [textColor]);
