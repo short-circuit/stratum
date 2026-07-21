@@ -248,54 +248,14 @@ pub async fn reindex_vault(
 
 /// Re-read a single .md file from disk and re-parse it, preserving block syntax,
 /// UUIDs, markers, priorities, and heading levels. This is the "Reindex Note" operation.
+/// Delegates to [`sync_page_from_disk`] since the two are identical.
 fn reparse_page_from_disk(
     store: &pkm_block::BlockStore,
     rel: &str,
     vault_path: &Path,
     block_index: Option<&mut BlockIndex>,
 ) -> Result<bool, String> {
-    let full = vault_path.join(rel);
-    let content = std::fs::read_to_string(&full).map_err(|e| e.to_string())?;
-    let (fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
-
-    let mut page = pkm_block::Page::new(full, vault_path);
-    page.frontmatter = pkm_block::PageFrontmatter {
-        title: fm.title,
-        created: fm.created,
-        modified: fm.modified,
-        tags: fm.tags,
-        aliases: fm.aliases,
-        ..Default::default()
-    };
-
-    // Wrap SQLite operations in an explicit transaction for atomicity
-    store.execute_batch("BEGIN").map_err(|e| e.to_string())?;
-    let result = (|| -> Result<(), String> {
-        store.upsert_page(&page).map_err(|e| e.to_string())?;
-        store
-            .delete_blocks_by_page(rel)
-            .map_err(|e| e.to_string())?;
-        for block in &blocks {
-            store.insert_block(block, rel).map_err(|e| e.to_string())?;
-        }
-        Ok(())
-    })();
-    match result {
-        Ok(()) => store.execute_batch("COMMIT").map_err(|e| e.to_string())?,
-        Err(e) => {
-            store.execute_batch("ROLLBACK").ok();
-            return Err(e);
-        }
-    }
-
-    // Rebuild Tantivy search index for this page
-    if let Some(block_index) = block_index {
-        for block in &blocks {
-            let _ = block_index.index_block(block, rel);
-        }
-    }
-
-    Ok(true)
+    sync_page_from_disk(store, rel, vault_path, block_index)
 }
 
 /// Re-sync a single page from disk into SQLite, always using the plain-text converter.
