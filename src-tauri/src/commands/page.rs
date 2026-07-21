@@ -8,6 +8,62 @@ use std::path::Path;
 use tauri::Emitter;
 use tracing::{info, warn};
 
+/// Resolve a user-provided path safely within the vault for read operations.
+/// Canonicalizes both the vault path and the resulting path to ensure
+/// the result is contained within the vault. The file must exist.
+pub(crate) fn resolve_safe_path(
+    vault_path: &std::path::Path,
+    user_path: &str,
+) -> Result<std::path::PathBuf, String> {
+    let canonical_vault = vault_path
+        .canonicalize()
+        .map_err(|e| format!("Invalid vault path: {e}"))?;
+    let full = canonical_vault.join(user_path);
+    let canonical_full = full
+        .canonicalize()
+        .map_err(|_| format!("Path does not exist: {user_path}"))?;
+    if canonical_full.starts_with(&canonical_vault) {
+        Ok(canonical_full)
+    } else {
+        Err("Path traversal detected".to_string())
+    }
+}
+
+/// Resolve a user-provided path safely within the vault for write/create operations
+/// where the file may not yet exist. Validates that every existing ancestor
+/// directory is within the vault. Walks up the path tree until it finds an
+/// existing path component (at minimum the vault_path itself).
+pub(crate) fn resolve_safe_write_path(
+    vault_path: &std::path::Path,
+    user_path: &str,
+) -> Result<std::path::PathBuf, String> {
+    let canonical_vault = vault_path
+        .canonicalize()
+        .map_err(|e| format!("Invalid vault path: {e}"))?;
+    let full = canonical_vault.join(user_path);
+
+    // Walk up from the full path to find an existing ancestor directory
+    // to verify it's within the vault. At minimum vault_path exists.
+    let mut check_path = full.as_path();
+    loop {
+        if check_path.exists() {
+            let canonical = check_path
+                .canonicalize()
+                .map_err(|e| format!("Path resolution failed: {e}"))?;
+            if !canonical.starts_with(&canonical_vault) {
+                return Err("Path traversal detected".to_string());
+            }
+            break;
+        }
+        match check_path.parent() {
+            Some(parent) => check_path = parent,
+            None => return Err("Path is outside vault".to_string()),
+        }
+    }
+
+    Ok(full)
+}
+
 /// Read a file's modification time from filesystem metadata and return it as an
 /// RFC 3339 string. Falls back to `Utc::now()` if the file doesn't exist or
 /// metadata can't be read (e.g. the file was just created and hasn't been
@@ -338,7 +394,7 @@ pub async fn reindex_page(
 #[tauri::command]
 pub async fn open_page(path: String, state: tauri::State<'_, AppState>) -> Result<PageDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let full_path = state.vault_path.join(&path);
+    let full_path = resolve_safe_path(&state.vault_path, &path)?;
 
     let slug = std::path::Path::new(&path)
         .file_stem()
@@ -373,7 +429,7 @@ pub async fn save_page(
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
     let mut state = state.lock().map_err(|e| e.to_string())?;
-    let full_path = state.vault_path.join(&path);
+    let full_path = resolve_safe_write_path(&state.vault_path, &path)?;
     let vault_path = state.vault_path.clone();
 
     // Ensure parent directory exists
@@ -454,7 +510,7 @@ pub async fn create_page(
         format!("{}.md", path)
     };
 
-    let full_path = state.vault_path.join(&path);
+    let full_path = resolve_safe_write_path(&state.vault_path, &path)?;
 
     if full_path.exists() {
         return Err(format!("Page already exists: {}", path));
@@ -514,7 +570,7 @@ pub async fn create_page(
 #[tauri::command]
 pub async fn delete_page(path: String, state: tauri::State<'_, AppState>) -> Result<(), String> {
     let mut state = state.lock().map_err(|e| e.to_string())?;
-    let full_path = state.vault_path.join(&path);
+    let full_path = resolve_safe_write_path(&state.vault_path, &path)?;
 
     if full_path.exists() {
         std::fs::remove_file(&full_path).map_err(|e| e.to_string())?;
@@ -545,7 +601,7 @@ pub async fn delete_page(path: String, state: tauri::State<'_, AppState>) -> Res
 #[tauri::command]
 pub async fn normalize_file(path: String, state: tauri::State<'_, AppState>) -> Result<(), String> {
     let mut state = state.lock().map_err(|e| e.to_string())?;
-    let full_path = state.vault_path.join(&path);
+    let full_path = resolve_safe_path(&state.vault_path, &path)?;
     let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
 
     let (_fm, _body, blocks) = pkm_markdown::block_parser::parse_document(&content);
@@ -641,7 +697,7 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
     let mut state = state.lock().map_err(|e| e.to_string())?;
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
     let path = format!("journals/{}.md", today);
-    let full_path = state.vault_path.join(&path);
+    let full_path = resolve_safe_write_path(&state.vault_path, &path)?;
 
     if full_path.exists() {
         let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
