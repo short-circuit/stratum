@@ -251,13 +251,13 @@ pub async fn ai_interlink_notes(
     info!("interlink text_len={} page={:?}", text.len(), page_path);
 
     let config_path;
-    let db_path;
     let index_path;
+    let store;
     {
         let s = state.lock().map_err(|e| e.to_string())?;
         config_path = s.vault_path.join(".pkm").join("config.toml");
-        db_path = s.db_path.clone();
         index_path = s.vault_path.join(".pkm").join("search");
+        store = s.get_store().map_err(|e| e.to_string())?;
     }
 
     let config = if config_path.exists() {
@@ -277,14 +277,10 @@ pub async fn ai_interlink_notes(
     // Step 1: find related pages via Tantivy + keyword supplement
     let split_pred = |c: char| c.is_whitespace() || c == '#' || c == '*' || c == '[' || c == ']';
 
-    let related_titles: Vec<String> = pkm_block::BlockStore::open(&db_path)
+    let related_titles: Vec<String> = pkm_index::related::RelatedFinder::new()
+        .split_predicate(split_pred)
+        .find_related(&store, &index_path, &text, current_slug.as_deref())
         .ok()
-        .and_then(|store| {
-            pkm_index::related::RelatedFinder::new()
-                .split_predicate(split_pred)
-                .find_related(&store, &index_path, &text, current_slug.as_deref())
-                .ok()
-        })
         .unwrap_or_default()
         .into_iter()
         .map(|r| r.title)

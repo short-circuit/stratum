@@ -178,7 +178,7 @@ pub async fn get_graph_data(state: tauri::State<'_, AppState>) -> Result<GraphDa
 
     info!("Building graph from SQLite: {}", vault_path_str);
 
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let data = build_graph_data_from_store(&store, &vault_path_str)?;
 
     debug!("Found {} nodes, {} edges", data.node_count, data.edge_count);
@@ -252,7 +252,7 @@ pub async fn get_connected_components(
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<ComponentDto>, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     get_connected_components_from_store(&store)
 }
 
@@ -286,7 +286,7 @@ pub async fn get_orphaned_notes(
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<OrphanDto>, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     get_orphaned_notes_from_store(&store)
 }
 
@@ -301,7 +301,7 @@ pub async fn get_graph_panel_data(
 
     info!("Building graph panel data from SQLite: {}", vault_path_str);
 
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let meta = PageMetaIndex::from_store(&store)?;
     let adj = build_adjacency_list(&meta, &store)?;
 
@@ -337,7 +337,7 @@ pub async fn resolve_link_target(
     state: tauri::State<'_, AppState>,
 ) -> Result<LinkTargetDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let meta = PageMetaIndex::from_store(&store)?;
 
     let resolved_slug = meta.resolve_slug(&target);

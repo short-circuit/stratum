@@ -33,7 +33,7 @@ pub struct KanbanDataDto {
 #[tauri::command]
 pub async fn get_kanban_blocks(state: tauri::State<'_, AppState>) -> Result<KanbanDataDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
 
     // Use the find_blocks_by_markers method
     let markers = &[
@@ -100,7 +100,7 @@ pub async fn create_kanban_block(
     block.marker = pkm_block::TaskMarker::parse(&marker);
 
     // Open store, insert block, upsert page
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
 
     // Wrap SQLite operations in an explicit transaction
     store.execute_batch("BEGIN").map_err(|e| e.to_string())?;

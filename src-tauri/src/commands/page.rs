@@ -25,7 +25,7 @@ pub struct PageListDto {
 #[tauri::command]
 pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let paths = store.list_pages().map_err(|e| e.to_string())?;
 
     let mut pages = Vec::new();
@@ -169,7 +169,7 @@ pub async fn reindex_vault(
     drop(state.block_index.take());
     drop(state.index_engine.take());
     let _guard = IndexingGuard::new(&state)?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let md_files = MdCollector::new()
         .include_extensionless(true)
         .skip_dirs(vec![".pkm", "templates", ".git"])
@@ -310,7 +310,7 @@ pub async fn reindex_page(
     drop(state.block_index.take());
     drop(state.index_engine.take());
     let _guard = IndexingGuard::new(&state)?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let mut local_block_index = BlockIndex::create(&state.vault_path.join(".pkm").join("search"))
         .map_err(|e| e.to_string())?;
 
@@ -375,7 +375,7 @@ pub async fn open_page(path: String, state: tauri::State<'_, AppState>) -> Resul
     let (frontmatter, block_count) = if full_path.exists() {
         let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
         let (fm, _, _) = pkm_markdown::block_parser::parse_document(&content);
-        let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+        let store = state.get_store().map_err(|e| e.to_string())?;
         let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
         (fm, blocks.len())
     } else {
@@ -408,7 +408,7 @@ pub async fn save_page(
 
     // Parse content
     let (frontmatter, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
 
     // Build page metadata
     let mut page = pkm_block::Page::new(full_path.clone(), &vault_path);
@@ -505,7 +505,7 @@ pub async fn create_page(
 
     // Parse content into blocks and upsert in SQLite so the page appears in list_pages
     let (_fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let mut page = pkm_block::Page::new(full_path, &state.vault_path);
     page.frontmatter.title = title.clone();
     for block in &blocks {
@@ -549,7 +549,7 @@ pub async fn delete_page(path: String, state: tauri::State<'_, AppState>) -> Res
     // Notify auto-commit engine
     state.record_change(&path);
 
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     store.delete_page(&path).map_err(|e| e.to_string())?;
 
     // Drop BlockIndex writer before IndexEngine acquires its own (same Tantivy dir)
@@ -688,7 +688,7 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
     if full_path.exists() {
         let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
         let (fm, _, _) = pkm_markdown::block_parser::parse_document(&content);
-        let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+        let store = state.get_store().map_err(|e| e.to_string())?;
         let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
 
         return Ok(PageDto {
@@ -711,7 +711,7 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
     std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
 
     let (_fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let mut page = pkm_block::Page::new(full_path, &state.vault_path);
     page.frontmatter.title = Some(title.clone());
     for block in &blocks {

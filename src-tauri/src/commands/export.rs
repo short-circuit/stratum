@@ -21,7 +21,7 @@ pub async fn export_html(
 
     std::fs::create_dir_all(&output).map_err(|e| e.to_string())?;
 
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let pages = store.list_pages().map_err(|e| e.to_string())?;
 
     let mut exported = 0usize;
@@ -112,7 +112,7 @@ pub async fn export_json(
     let output = std::path::PathBuf::from(&output_dir);
     std::fs::create_dir_all(&output).map_err(|e| e.to_string())?;
 
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let pages = store.list_pages().map_err(|e| e.to_string())?;
 
     let mut exported = 0usize;
