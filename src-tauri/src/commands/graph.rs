@@ -4,8 +4,6 @@ use crate::commands::vault::AppState;
 use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
-use std::sync::Mutex;
 use tracing::{debug, info};
 
 /// A node in the graph, ready for frontend rendering.
