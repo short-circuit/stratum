@@ -444,11 +444,10 @@ pub async fn save_page(
         }
     }
 
-    // Mark this as our own save so the file watcher can skip it
-    state.watcher_last_save = std::time::SystemTime::now();
-
     // Write .md file after SQLite succeeds
     std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
+    // Mark this as our own save so the file watcher can skip it
+    state.watcher_last_save = std::time::SystemTime::now();
 
     // Notify auto-commit engine
     state.record_change(&path);
@@ -496,9 +495,9 @@ pub async fn create_page(
     if let Some(parent) = full_path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
+    std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
     // Mark this as our own save so the file watcher can skip it
     state.watcher_last_save = std::time::SystemTime::now();
-    std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
 
     // Notify auto-commit engine
     state.record_change(&path);
@@ -593,9 +592,9 @@ pub async fn normalize_file(path: String, state: tauri::State<'_, AppState>) -> 
         serialized
     };
 
+    std::fs::write(&full_path, &final_md).map_err(|e| e.to_string())?;
     // Mark this as our own save so the file watcher can skip it
     state.watcher_last_save = std::time::SystemTime::now();
-    std::fs::write(&full_path, &final_md).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -647,9 +646,9 @@ pub async fn normalize_all_files(
                 } else {
                     serialized
                 };
+                let _ = std::fs::write(&full_path, &final_md);
                 // Mark this as our own save so the file watcher can skip it
                 state.watcher_last_save = std::time::SystemTime::now();
-                let _ = std::fs::write(&full_path, &final_md);
                 count += 1;
             }
             Err(e) => {
@@ -706,9 +705,9 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
     if let Some(parent) = full_path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
+    std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
     // Mark this as our own save so the file watcher can skip it
     state.watcher_last_save = std::time::SystemTime::now();
-    std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
 
     let (_fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
     let store = state.get_store().map_err(|e| e.to_string())?;
