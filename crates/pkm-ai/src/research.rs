@@ -1,6 +1,6 @@
 use crate::provider::{ChatConfig, ChatMessage, LlmProvider, ProviderFactory};
-use pkm_core::PkmResult;
 use pkm_core::validate_endpoint_safe;
+use pkm_core::PkmResult;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
