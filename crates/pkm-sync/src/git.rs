@@ -381,10 +381,7 @@ impl GitEngine {
         // Clean up any previous script first
         self.cleanup_askpass_script();
 
-        let path = std::env::temp_dir().join(format!(
-            "pkm-askpass-{}",
-            std::process::id()
-        ));
+        let path = std::env::temp_dir().join(format!("pkm-askpass-{}", std::process::id()));
 
         // Encode the passphrase as octal escapes so no shell characters can
         // interfere — printf(1) interprets \NNN in the format string.
