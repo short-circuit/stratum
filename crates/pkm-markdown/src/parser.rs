@@ -109,6 +109,7 @@ pub fn parse_frontmatter(raw: &str) -> (Frontmatter, String) {
 /// Find the closing `---` delimiter in frontmatter content.
 ///
 /// The closing delimiter must be at the start of a line (after `\n` or at string start).
+#[allow(clippy::question_mark)]
 fn find_closing_delimiter(s: &str) -> Option<usize> {
     let mut search_start = 0;
 
