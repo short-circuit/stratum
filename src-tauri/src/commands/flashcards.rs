@@ -105,6 +105,7 @@ pub async fn generate_cards_from_page(
 pub async fn review_card(
     card_id: String,
     quality: u8,
+    page_path: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<FlashcardDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
@@ -163,7 +164,9 @@ pub async fn review_card(
         .properties
         .insert("next_review".into(), next_str.clone());
 
-    store.insert_block(&block, "").map_err(|e| e.to_string())?;
+    store
+        .insert_block(&block, &page_path)
+        .map_err(|e| e.to_string())?;
 
     Ok(FlashcardDto {
         id: block.id.to_string(),
@@ -173,7 +176,7 @@ pub async fn review_card(
             .cloned()
             .unwrap_or_default(),
         back: block.properties.get("answer").cloned().unwrap_or_default(),
-        page_path: String::new(),
+        page_path,
         ease_factor: ease,
         interval_days: interval,
         repetitions: reps,
