@@ -186,6 +186,9 @@ pub async fn save_blocks(
 
     store.upsert_page(&page).map_err(|e| e.to_string())?;
 
+    // Invalidate graph cache since blocks/page data changed
+    crate::commands::graph::invalidate_graph_cache();
+
     Ok(())
 }
 

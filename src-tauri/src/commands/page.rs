@@ -502,6 +502,9 @@ pub async fn save_page(
         .refresh_page(&path, &vault_path)
         .map_err(|e| format!("Index refresh failed: {}", e))?;
 
+    // Invalidate graph cache since page data changed
+    crate::commands::graph::invalidate_graph_cache();
+
     Ok(())
 }
 
@@ -600,6 +603,9 @@ pub async fn delete_page(path: String, state: tauri::State<'_, AppState>) -> Res
         .ensure_index()?
         .remove_note(&path)
         .map_err(|e| format!("Failed to remove note from index: {}", e))?;
+
+    // Invalidate graph cache since a page was deleted
+    crate::commands::graph::invalidate_graph_cache();
 
     Ok(())
 }
