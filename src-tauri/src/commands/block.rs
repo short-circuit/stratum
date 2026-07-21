@@ -91,6 +91,7 @@ pub async fn save_blocks(
         })
         .collect();
 
+    // Build markdown content first (do this before touching SQLite or disk)
     let body = pkm_markdown::block_parser::serialize_blocks(&pkm_blocks);
     let markdown = if let Some(t) = &title {
         format!("---\ntitle: {}\n---\n\n{}", t, body)
@@ -98,9 +99,21 @@ pub async fn save_blocks(
         body
     };
 
+    // Step 1: Write .md file atomically via temp+rename BEFORE touching SQLite.
+    // This ensures the on-disk .md file is always at least as fresh as SQLite,
+    // preventing data divergence on crash between steps.
+    let full_path = state.vault_path.join(&page_path);
+    if let Some(parent) = full_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    let temp_path = full_path.with_extension("md.tmp");
+    std::fs::write(&temp_path, &markdown).map_err(|e| e.to_string())?;
+    std::fs::rename(&temp_path, &full_path).map_err(|e| e.to_string())?;
+
+    // Step 2: Update SQLite in a transaction. If this fails, delete the .md
+    // file so a future sync doesn't load stale data into SQLite.
     let store = state.get_store().map_err(|e| e.to_string())?;
 
-    // SQLite first (in a transaction), then write .md file
     store.execute_batch("BEGIN").map_err(|e| e.to_string())?;
     let result = (|| -> Result<(), String> {
         store
@@ -117,16 +130,11 @@ pub async fn save_blocks(
         Ok(()) => store.execute_batch("COMMIT").map_err(|e| e.to_string())?,
         Err(e) => {
             store.execute_batch("ROLLBACK").ok();
+            // SQLite write failed — remove the .md file to prevent divergence
+            std::fs::remove_file(&full_path).ok();
             return Err(e);
         }
     }
-
-    // Write .md file after SQLite succeeds
-    let full_path = state.vault_path.join(&page_path);
-    if let Some(parent) = full_path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
-    std::fs::write(&full_path, &markdown).map_err(|e| e.to_string())?;
 
     // Notify auto-commit engine
     state.record_change(&page_path);
