@@ -579,16 +579,8 @@ pub async fn normalize_file(path: String, state: tauri::State<'_, AppState>) -> 
 
     // Preserve original frontmatter YAML if it existed (including tags, created, etc.)
     let final_md = if content.trim_start().starts_with("---") {
-        if let Some(rest) = content.trim_start().strip_prefix("---") {
-            if let Some(end) = rest.find("---") {
-                let fm_raw = &content.trim_start()["---".len()..end + "---".len()];
-                format!("---{}\n\n{}", fm_raw, serialized)
-            } else {
-                serialized
-            }
-        } else {
-            serialized
-        }
+        let yaml_str = serde_yaml::to_string(&_fm).unwrap_or_default();
+        format!("---\n{}---\n\n{}", yaml_str, serialized)
     } else {
         serialized
     };
@@ -634,16 +626,8 @@ pub async fn normalize_all_files(
                 let (_fm, _body, blocks) = pkm_markdown::block_parser::parse_document(&content);
                 let serialized = pkm_markdown::block_parser::serialize_blocks(&blocks);
                 let final_md = if content.trim_start().starts_with("---") {
-                    if let Some(rest) = content.trim_start().strip_prefix("---") {
-                        if let Some(end) = rest.find("---") {
-                            let fm_raw = &content.trim_start()["---".len()..end + "---".len()];
-                            format!("---{}\n\n{}", fm_raw, serialized)
-                        } else {
-                            serialized
-                        }
-                    } else {
-                        serialized
-                    }
+                    let yaml_str = serde_yaml::to_string(&_fm).unwrap_or_default();
+                    format!("---\n{}---\n\n{}", yaml_str, serialized)
                 } else {
                     serialized
                 };
