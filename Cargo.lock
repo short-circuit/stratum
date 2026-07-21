@@ -5899,6 +5899,7 @@ dependencies = [
  "pkm-sync",
  "pkm-watcher",
  "pulldown-cmark",
+ "rayon",
  "reqwest 0.12.28",
  "serde",
  "serde_json",

@@ -1,8 +1,11 @@
 //! Graph visualization commands — expose note-level graph data to the frontend.
 
 use crate::commands::vault::AppState;
+use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
+use std::sync::Mutex;
 use tracing::{debug, info};
 
 /// A node in the graph, ready for frontend rendering.
@@ -76,41 +79,53 @@ fn build_adjacency_list(
     let mut adjacency: HashMap<String, Vec<String>> = HashMap::new();
     let mut connected: HashSet<String> = HashSet::new();
 
+    // Collect all (slug, blocks) pairs first — store access stays sequential
+    let mut slug_blocks: Vec<(&String, &String, Vec<pkm_block::Block>)> = Vec::new();
     for (slug, page_path) in &meta.slug_to_path {
         if let Ok(blocks) = store.get_blocks_by_page(page_path) {
-            for block in &blocks {
-                let links = pkm_markdown::linker::extract_links(&block.content);
-                for link in links {
-                    let target_slug = meta.resolve_slug(&link.target);
-                    if let Some(target) = target_slug {
-                        // Include all resolved links including self-links
-                        outgoing
-                            .entry(slug.clone())
-                            .or_default()
-                            .push(GraphEdgeDto {
-                                source: slug.clone(),
-                                target: target.clone(),
-                                label: link.display_text.clone(),
-                            });
-                        // Degree: source always +1, target +1 only if different
-                        *degree.entry(slug.clone()).or_default() += 1;
-                        if target != *slug {
-                            *degree.entry(target.clone()).or_default() += 1;
-                        }
-                        // Bidirectional adjacency for BFS (self-links are harmless)
-                        adjacency
-                            .entry(slug.clone())
-                            .or_default()
-                            .push(target.clone());
-                        adjacency
-                            .entry(target.clone())
-                            .or_default()
-                            .push(slug.clone());
-                        // Track which slugs have any connection (for orphan detection)
-                        connected.insert(slug.clone());
-                        connected.insert(target);
-                    }
+            slug_blocks.push((slug, page_path, blocks));
+        }
+    }
+
+    // Parallel link extraction: the CPU-bound regex work runs across threads
+    let all_extracted: Vec<(&String, Vec<pkm_markdown::linker::LinkResult>)> = slug_blocks
+        .par_iter()
+        .flat_map(|(slug, _page_path, blocks)| {
+            let links: Vec<_> = blocks
+                .par_iter()
+                .flat_map(|block| pkm_markdown::linker::extract_links(&block.content))
+                .collect();
+            vec![(*slug, links)]
+        })
+        .collect();
+
+    // Sequential processing of extracted links (no contention on shared data)
+    for (slug, links) in &all_extracted {
+        for link in links {
+            let target_slug = meta.resolve_slug(&link.target);
+            if let Some(target) = target_slug {
+                outgoing
+                    .entry((*slug).clone())
+                    .or_default()
+                    .push(GraphEdgeDto {
+                        source: (*slug).clone(),
+                        target: target.clone(),
+                        label: link.display_text.clone(),
+                    });
+                *degree.entry((*slug).clone()).or_default() += 1;
+                if target != **slug {
+                    *degree.entry(target.clone()).or_default() += 1;
                 }
+                adjacency
+                    .entry((*slug).clone())
+                    .or_default()
+                    .push(target.clone());
+                adjacency
+                    .entry(target.clone())
+                    .or_default()
+                    .push((*slug).clone());
+                connected.insert((*slug).clone());
+                connected.insert(target);
             }
         }
     }

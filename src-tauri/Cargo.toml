@@ -24,6 +24,7 @@ uuid.workspace = true
 log.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+rayon = "1"
 pkm-core = { path = "../crates/pkm-core" }
 pkm-block = { path = "../crates/pkm-block" }
 pkm-markdown = { path = "../crates/pkm-markdown" }
