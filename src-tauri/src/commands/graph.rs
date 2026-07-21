@@ -76,9 +76,13 @@ fn build_adjacency_list(
     let mut adjacency: HashMap<String, Vec<String>> = HashMap::new();
     let mut connected: HashSet<String> = HashSet::new();
 
+    // Batch-load all blocks for all pages in a single query instead of N+1
+    let page_paths: Vec<String> = meta.slug_to_path.values().cloned().collect();
+    let blocks_by_page = store.get_blocks_by_pages(&page_paths).map_err(|e| e.to_string())?;
+
     for (slug, page_path) in &meta.slug_to_path {
-        if let Ok(blocks) = store.get_blocks_by_page(page_path) {
-            for block in &blocks {
+        if let Some(blocks) = blocks_by_page.get(page_path) {
+            for block in blocks {
                 let links = pkm_markdown::linker::extract_links(&block.content);
                 for link in links {
                     let target_slug = meta.resolve_slug(&link.target);
@@ -375,19 +379,21 @@ impl PageMetaIndex {
         let mut slug_to_tags = HashMap::new();
         let mut title_to_slug = HashMap::new();
 
+        // Batch-load all page frontmatter in a single query
+        let pages = store.get_pages(&paths).map_err(|e| e.to_string())?;
+
         for path in &paths {
             let slug = slug_from_path(path);
             slug_to_path.insert(slug.clone(), path.clone());
 
-            let fm = store.get_page(path).ok().flatten();
-            let title = fm
-                .as_ref()
+            let title = pages
+                .get(path)
                 .and_then(|f| f.title.clone())
                 .unwrap_or_else(|| slug.replace('-', " "));
             slug_to_title.insert(slug.clone(), title.clone());
             title_to_slug.insert(title.to_lowercase(), slug.clone());
 
-            let tags = fm.map(|f| f.tags).unwrap_or_default();
+            let tags = pages.get(path).map(|f| f.tags.clone()).unwrap_or_default();
             slug_to_tags.insert(slug, tags);
         }
 

@@ -9,7 +9,7 @@ use crate::page::{Page, PageFrontmatter};
 use chrono::{DateTime, Utc};
 use pkm_core::PkmError;
 use rusqlite::{params, params_from_iter, Connection};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 use uuid::Uuid;
 
@@ -316,6 +316,83 @@ impl BlockStore {
         Ok(blocks)
     }
 
+    /// Batch version of `get_blocks_by_page`. Returns a map from page_path to its
+    /// blocks for all requested pages in a single query.
+    pub fn get_blocks_by_pages(
+        &self,
+        page_paths: &[String],
+    ) -> StoreResult<HashMap<String, Vec<Block>>> {
+        if page_paths.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        let placeholders: Vec<String> = page_paths.iter().map(|_| "?".to_string()).collect();
+        let sql = format!(
+            "SELECT id, content, parent_id, left_id, properties, marker, priority, \
+             collapsed, heading_level, created_at, modified_at, page_path \
+             FROM blocks WHERE page_path IN ({}) ORDER BY page_path, rowid",
+            placeholders.join(", ")
+        );
+
+        let mut stmt = self
+            .conn
+            .prepare(&sql)
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+
+        let rows = stmt
+            .query_map(params_from_iter(page_paths.iter()), |row| {
+                let id: String = row.get(0)?;
+                let content: String = row.get(1)?;
+                let parent_id: Option<String> = row.get(2)?;
+                let left_id: Option<String> = row.get(3)?;
+                let properties_str: String = row.get(4)?;
+                let marker: Option<String> = row.get(5)?;
+                let priority: Option<String> = row.get(6)?;
+                let collapsed: bool = row.get::<_, i32>(7)? != 0;
+                let heading_level: Option<u8> = row.get(8)?;
+                let created_at: String = row.get(9)?;
+                let modified_at: String = row.get(10)?;
+                let page_path: String = row.get(11)?;
+
+                let id = Uuid::parse_str(&id).unwrap_or_else(|_| Uuid::nil());
+                let properties: BTreeMap<String, String> =
+                    serde_json::from_str(&properties_str).unwrap_or_default();
+                let marker = marker.and_then(|m| TaskMarker::parse(&m));
+                let priority = priority.and_then(|p| Priority::parse(&p));
+
+                Ok((
+                    page_path,
+                    Block {
+                        id,
+                        content,
+                        parent_id: parent_id.and_then(|s| Uuid::parse_str(&s).ok()),
+                        left_id: left_id.and_then(|s| Uuid::parse_str(&s).ok()),
+                        properties,
+                        marker,
+                        priority,
+                        meta: BlockMeta {
+                            collapsed,
+                            heading_level,
+                        },
+                        created_at: DateTime::parse_from_rfc3339(&created_at)
+                            .map(|dt| dt.with_timezone(&Utc))
+                            .unwrap_or_else(|_| Utc::now()),
+                        modified_at: DateTime::parse_from_rfc3339(&modified_at)
+                            .map(|dt| dt.with_timezone(&Utc))
+                            .unwrap_or_else(|_| Utc::now()),
+                    },
+                ))
+            })
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+
+        let mut result: HashMap<String, Vec<Block>> = HashMap::new();
+        for row in rows {
+            let (path, block) = row.map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+            result.entry(path).or_default().push(block);
+        }
+        Ok(result)
+    }
+
     pub fn update_block(&self, block: &Block) -> StoreResult<()> {
         let id = block.id.to_string();
         let properties = serde_json::to_string(&block.properties)?;
@@ -415,6 +492,42 @@ impl BlockStore {
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(PkmError::Internal(format!("SQLite error: {e}"))),
         }
+    }
+
+    /// Batch version of `get_page`. Returns a map from path to frontmatter for all
+    /// requested paths in a single query.
+    pub fn get_pages(&self, paths: &[String]) -> StoreResult<HashMap<String, PageFrontmatter>> {
+        if paths.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        let placeholders: Vec<String> = paths.iter().map(|_| "?".to_string()).collect();
+        let sql = format!(
+            "SELECT path, frontmatter FROM pages WHERE path IN ({})",
+            placeholders.join(", ")
+        );
+
+        let mut stmt = self
+            .conn
+            .prepare(&sql)
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+
+        let rows = stmt
+            .query_map(params_from_iter(paths.iter()), |row| {
+                let path: String = row.get(0)?;
+                let fm_str: String = row.get(1)?;
+                Ok((path, fm_str))
+            })
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+
+        let mut result = HashMap::new();
+        for row in rows {
+            let (path, fm_str) = row.map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+            let fm: PageFrontmatter = serde_json::from_str(&fm_str)
+                .map_err(|e| PkmError::Serialization(e.to_string()))?;
+            result.insert(path, fm);
+        }
+        Ok(result)
     }
 
     pub fn list_pages(&self) -> StoreResult<Vec<String>> {
