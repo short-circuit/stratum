@@ -78,7 +78,9 @@ fn build_adjacency_list(
 
     // Batch-load all blocks for all pages in a single query instead of N+1
     let page_paths: Vec<String> = meta.slug_to_path.values().cloned().collect();
-    let blocks_by_page = store.get_blocks_by_pages(&page_paths).map_err(|e| e.to_string())?;
+    let blocks_by_page = store
+        .get_blocks_by_pages(&page_paths)
+        .map_err(|e| e.to_string())?;
 
     for (slug, page_path) in &meta.slug_to_path {
         if let Some(blocks) = blocks_by_page.get(page_path) {

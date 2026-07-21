@@ -387,7 +387,8 @@ impl BlockStore {
 
         let mut result: HashMap<String, Vec<Block>> = HashMap::new();
         for row in rows {
-            let (path, block) = row.map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+            let (path, block) =
+                row.map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
             result.entry(path).or_default().push(block);
         }
         Ok(result)
@@ -522,7 +523,8 @@ impl BlockStore {
 
         let mut result = HashMap::new();
         for row in rows {
-            let (path, fm_str) = row.map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+            let (path, fm_str) =
+                row.map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
             let fm: PageFrontmatter = serde_json::from_str(&fm_str)
                 .map_err(|e| PkmError::Serialization(e.to_string()))?;
             result.insert(path, fm);
