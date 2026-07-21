@@ -30,7 +30,7 @@ pub async fn generate_flashcards(
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<FlashcardDto>, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let pages = store.list_pages().map_err(|e| e.to_string())?;
 
     let mut cards = Vec::new();
@@ -109,7 +109,7 @@ pub async fn review_card(
 ) -> Result<FlashcardDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let id = Uuid::parse_str(&card_id).map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let mut block = store.get_block(id).map_err(|e| e.to_string())?;
 
     // SM-2 algorithm

@@ -30,7 +30,7 @@ pub async fn rebuild_search_index(
 ) -> Result<String, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let _guard = IndexingGuard::new(&state)?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let pages = store.list_pages().map_err(|e| e.to_string())?;
 
     // Create a local BlockIndex for rebuild (IndexingGuard prevents state mutation)
@@ -119,7 +119,7 @@ pub async fn get_page_backlinks(
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<BacklinkDto>, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let page_backlinks = store
         .get_backlinks_for_page(&page_path)
         .map_err(|e| e.to_string())?;
@@ -212,7 +212,7 @@ pub async fn get_backlinks(
     state: tauri::State<'_, AppState>,
 ) -> Result<SearchResultsDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let id = uuid::Uuid::parse_str(&block_id).map_err(|e| e.to_string())?;
     let source_ids = store
         .get_backlinks_for_block(id)
@@ -221,11 +221,11 @@ pub async fn get_backlinks(
     let mut results = Vec::new();
     for src_str in source_ids {
         if let Ok(src_id) = uuid::Uuid::parse_str(&src_str) {
-            if let Ok(block) = store.get_block(src_id) {
+            if let Ok((block, page_path)) = store.get_block_with_page_path(src_id) {
                 results.push(SearchResultDto {
                     block_id: src_str.clone(),
                     content: block.content,
-                    page_path: String::new(),
+                    page_path,
                     snippet: String::new(),
                     score: 0.0,
                 });
@@ -250,7 +250,7 @@ pub async fn autocomplete(
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<AutocompleteItem>, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let mut items = Vec::new();
 
     match kind.as_str() {
@@ -391,7 +391,7 @@ pub async fn get_backlink_context(
     state: tauri::State<'_, AppState>,
 ) -> Result<Option<BacklinkContextDto>, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
 
     let current_slug = std::path::Path::new(&current_page)
         .file_stem()
@@ -443,12 +443,11 @@ pub async fn suggest_connections(
 ) -> Result<Vec<ConnectionSuggestion>, String> {
     info!("page={}", page_path);
 
-    let (db_path, index_path) = {
+    let (store, index_path) = {
         let s = state.lock().map_err(|e| e.to_string())?;
-        (s.db_path.clone(), s.vault_path.join(".pkm").join("search"))
+        let store = s.get_store().map_err(|e| e.to_string())?;
+        (store, s.vault_path.join(".pkm").join("search"))
     };
-
-    let store = pkm_block::BlockStore::open(&db_path).map_err(|e| e.to_string())?;
     let current_blocks = store
         .get_blocks_by_page(&page_path)
         .map_err(|e| e.to_string())?;
@@ -489,7 +488,7 @@ pub async fn search_by_tag(
     state: tauri::State<'_, AppState>,
 ) -> Result<SearchResultsDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let pages = store.list_pages().map_err(|e| e.to_string())?;
     let tag_lower = tag.to_lowercase();
     let tag_pattern = format!("#{}", tag_lower);

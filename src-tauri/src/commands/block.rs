@@ -91,6 +91,7 @@ pub async fn save_blocks(
         })
         .collect();
 
+    // Build markdown content first (do this before touching SQLite or disk)
     let body = pkm_markdown::block_parser::serialize_blocks(&pkm_blocks);
     let markdown = if let Some(t) = &title {
         format!("---\ntitle: {}\n---\n\n{}", t, body)
@@ -98,9 +99,21 @@ pub async fn save_blocks(
         body
     };
 
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    // Step 1: Write .md file atomically via temp+rename BEFORE touching SQLite.
+    // This ensures the on-disk .md file is always at least as fresh as SQLite,
+    // preventing data divergence on crash between steps.
+    let full_path = state.vault_path.join(&page_path);
+    if let Some(parent) = full_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    let temp_path = full_path.with_extension("md.tmp");
+    std::fs::write(&temp_path, &markdown).map_err(|e| e.to_string())?;
+    std::fs::rename(&temp_path, &full_path).map_err(|e| e.to_string())?;
 
-    // SQLite first (in a transaction), then write .md file
+    // Step 2: Update SQLite in a transaction. If this fails, delete the .md
+    // file so a future sync doesn't load stale data into SQLite.
+    let store = state.get_store().map_err(|e| e.to_string())?;
+
     store.execute_batch("BEGIN").map_err(|e| e.to_string())?;
     let result = (|| -> Result<(), String> {
         store
@@ -117,16 +130,11 @@ pub async fn save_blocks(
         Ok(()) => store.execute_batch("COMMIT").map_err(|e| e.to_string())?,
         Err(e) => {
             store.execute_batch("ROLLBACK").ok();
+            // SQLite write failed — remove the .md file to prevent divergence
+            std::fs::remove_file(&full_path).ok();
             return Err(e);
         }
     }
-
-    // Write .md file after SQLite succeeds
-    let full_path = state.vault_path.join(&page_path);
-    if let Some(parent) = full_path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
-    std::fs::write(&full_path, &markdown).map_err(|e| e.to_string())?;
 
     // Notify auto-commit engine
     state.record_change(&page_path);
@@ -187,7 +195,7 @@ pub async fn get_blocks(
     state: tauri::State<'_, AppState>,
 ) -> Result<BlockListDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let blocks = store
         .get_blocks_by_page(&page_path)
         .map_err(|e| e.to_string())?;
@@ -237,7 +245,7 @@ pub async fn update_block(
     b.meta.collapsed = block.collapsed;
     b.meta.heading_level = block.heading_level;
 
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     store
         .insert_block(&b, &page_path)
         .map_err(|e| e.to_string())?;
@@ -252,7 +260,7 @@ pub async fn delete_block(
 ) -> Result<(), String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let id = Uuid::parse_str(&block_id).map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     store.delete_block(id).map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -272,7 +280,7 @@ pub async fn insert_block(
     block.parent_id = parent_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
     block.left_id = after_id.as_ref().and_then(|s| Uuid::parse_str(s).ok());
 
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     store
         .insert_block(&block, &page_path)
         .map_err(|e| e.to_string())?;
@@ -306,7 +314,7 @@ pub async fn toggle_block_marker(
 ) -> Result<Option<String>, String> {
     let mut state = state.lock().map_err(|e| e.to_string())?;
     let id = Uuid::parse_str(&block_id).map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let blocks = store
         .get_blocks_by_page(&page_path)
         .map_err(|e| e.to_string())?;
@@ -408,7 +416,7 @@ pub async fn clear_block_marker(
 ) -> Result<(), String> {
     let mut state = state.lock().map_err(|e| e.to_string())?;
     let id = Uuid::parse_str(&block_id).map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let mut blocks = store
         .get_blocks_by_page(&page_path)
         .map_err(|e| e.to_string())?;

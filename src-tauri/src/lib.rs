@@ -129,7 +129,7 @@ pub fn run() {
                                         Ok(s) => s,
                                         Err(_) => return,
                                     };
-                                    let store = match pkm_block::BlockStore::open(&state.db_path) {
+                                    let store = match state.get_store() {
                                         Ok(s) => s,
                                         Err(_) => return,
                                     };
@@ -152,7 +152,7 @@ pub fn run() {
                                         Ok(s) => s,
                                         Err(_) => return,
                                     };
-                                    let store = match pkm_block::BlockStore::open(&state.db_path) {
+                                    let store = match state.get_store() {
                                         Ok(s) => s,
                                         Err(_) => return,
                                     };

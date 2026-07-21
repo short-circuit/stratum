@@ -17,11 +17,11 @@ pub(crate) fn resolve_safe_path(
 ) -> Result<std::path::PathBuf, String> {
     let canonical_vault = vault_path
         .canonicalize()
-        .map_err(|e| format!("Invalid vault path: {}", e))?;
+        .map_err(|e| format!("Invalid vault path: {e}"))?;
     let full = canonical_vault.join(user_path);
     let canonical_full = full
         .canonicalize()
-        .map_err(|_| format!("Path does not exist: {}", user_path))?;
+        .map_err(|_| format!("Path does not exist: {user_path}"))?;
     if canonical_full.starts_with(&canonical_vault) {
         Ok(canonical_full)
     } else {
@@ -39,7 +39,7 @@ pub(crate) fn resolve_safe_write_path(
 ) -> Result<std::path::PathBuf, String> {
     let canonical_vault = vault_path
         .canonicalize()
-        .map_err(|e| format!("Invalid vault path: {}", e))?;
+        .map_err(|e| format!("Invalid vault path: {e}"))?;
     let full = canonical_vault.join(user_path);
 
     // Walk up from the full path to find an existing ancestor directory
@@ -49,7 +49,7 @@ pub(crate) fn resolve_safe_write_path(
         if check_path.exists() {
             let canonical = check_path
                 .canonicalize()
-                .map_err(|e| format!("Path resolution failed: {}", e))?;
+                .map_err(|e| format!("Path resolution failed: {e}"))?;
             if !canonical.starts_with(&canonical_vault) {
                 return Err("Path traversal detected".to_string());
             }
@@ -62,6 +62,20 @@ pub(crate) fn resolve_safe_write_path(
     }
 
     Ok(full)
+}
+
+/// Read a file's modification time from filesystem metadata and return it as an
+/// RFC 3339 string. Falls back to `Utc::now()` if the file doesn't exist or
+/// metadata can't be read (e.g. the file was just created and hasn't been
+/// flushed to disk yet).
+fn get_file_mtime(full_path: &std::path::Path) -> String {
+    std::fs::metadata(full_path)
+        .and_then(|m| m.modified())
+        .map(|t| {
+            let dt: chrono::DateTime<chrono::Utc> = t.into();
+            dt.to_rfc3339()
+        })
+        .unwrap_or_else(|_| chrono::Utc::now().to_rfc3339())
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -81,7 +95,7 @@ pub struct PageListDto {
 #[tauri::command]
 pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let paths = store.list_pages().map_err(|e| e.to_string())?;
 
     let mut pages = Vec::new();
@@ -98,12 +112,13 @@ pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto
         let title = fm.and_then(|f| f.title);
         let blocks = store.get_blocks_by_page(&path).unwrap_or_default();
 
+        let full_path = state.vault_path.join(&path);
         pages.push(PageDto {
             path,
             slug,
             title,
             block_count: blocks.len(),
-            modified_at: chrono::Utc::now().to_rfc3339(),
+            modified_at: get_file_mtime(&full_path),
         });
     }
 
@@ -225,7 +240,7 @@ pub async fn reindex_vault(
     drop(state.block_index.take());
     drop(state.index_engine.take());
     let _guard = IndexingGuard::new(&state)?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let md_files = MdCollector::new()
         .include_extensionless(true)
         .skip_dirs(vec![".pkm", "templates", ".git"])
@@ -304,54 +319,14 @@ pub async fn reindex_vault(
 
 /// Re-read a single .md file from disk and re-parse it, preserving block syntax,
 /// UUIDs, markers, priorities, and heading levels. This is the "Reindex Note" operation.
+/// Delegates to [`sync_page_from_disk`] since the two are identical.
 fn reparse_page_from_disk(
     store: &pkm_block::BlockStore,
     rel: &str,
     vault_path: &Path,
     block_index: Option<&mut BlockIndex>,
 ) -> Result<bool, String> {
-    let full = vault_path.join(rel);
-    let content = std::fs::read_to_string(&full).map_err(|e| e.to_string())?;
-    let (fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
-
-    let mut page = pkm_block::Page::new(full, vault_path);
-    page.frontmatter = pkm_block::PageFrontmatter {
-        title: fm.title,
-        created: fm.created,
-        modified: fm.modified,
-        tags: fm.tags,
-        aliases: fm.aliases,
-        ..Default::default()
-    };
-
-    // Wrap SQLite operations in an explicit transaction for atomicity
-    store.execute_batch("BEGIN").map_err(|e| e.to_string())?;
-    let result = (|| -> Result<(), String> {
-        store.upsert_page(&page).map_err(|e| e.to_string())?;
-        store
-            .delete_blocks_by_page(rel)
-            .map_err(|e| e.to_string())?;
-        for block in &blocks {
-            store.insert_block(block, rel).map_err(|e| e.to_string())?;
-        }
-        Ok(())
-    })();
-    match result {
-        Ok(()) => store.execute_batch("COMMIT").map_err(|e| e.to_string())?,
-        Err(e) => {
-            store.execute_batch("ROLLBACK").ok();
-            return Err(e);
-        }
-    }
-
-    // Rebuild Tantivy search index for this page
-    if let Some(block_index) = block_index {
-        for block in &blocks {
-            let _ = block_index.index_block(block, rel);
-        }
-    }
-
-    Ok(true)
+    sync_page_from_disk(store, rel, vault_path, block_index)
 }
 
 /// Re-sync a single page from disk into SQLite, always using the plain-text converter.
@@ -366,7 +341,7 @@ pub async fn reindex_page(
     drop(state.block_index.take());
     drop(state.index_engine.take());
     let _guard = IndexingGuard::new(&state)?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let mut local_block_index = BlockIndex::create(&state.vault_path.join(".pkm").join("search"))
         .map_err(|e| e.to_string())?;
 
@@ -431,7 +406,7 @@ pub async fn open_page(path: String, state: tauri::State<'_, AppState>) -> Resul
     let (frontmatter, block_count) = if full_path.exists() {
         let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
         let (fm, _, _) = pkm_markdown::block_parser::parse_document(&content);
-        let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+        let store = state.get_store().map_err(|e| e.to_string())?;
         let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
         (fm, blocks.len())
     } else {
@@ -443,7 +418,7 @@ pub async fn open_page(path: String, state: tauri::State<'_, AppState>) -> Resul
         slug,
         title: frontmatter.title,
         block_count,
-        modified_at: chrono::Utc::now().to_rfc3339(),
+        modified_at: get_file_mtime(&full_path),
     })
 }
 
@@ -464,7 +439,7 @@ pub async fn save_page(
 
     // Parse content
     let (frontmatter, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
 
     // Build page metadata
     let mut page = pkm_block::Page::new(full_path.clone(), &vault_path);
@@ -500,11 +475,10 @@ pub async fn save_page(
         }
     }
 
-    // Mark this as our own save so the file watcher can skip it
-    state.watcher_last_save = std::time::SystemTime::now();
-
     // Write .md file after SQLite succeeds
     std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
+    // Mark this as our own save so the file watcher can skip it
+    state.watcher_last_save = std::time::SystemTime::now();
 
     // Notify auto-commit engine
     state.record_change(&path);
@@ -552,17 +526,17 @@ pub async fn create_page(
     if let Some(parent) = full_path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
+    std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
     // Mark this as our own save so the file watcher can skip it
     state.watcher_last_save = std::time::SystemTime::now();
-    std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
 
     // Notify auto-commit engine
     state.record_change(&path);
 
     // Parse content into blocks and upsert in SQLite so the page appears in list_pages
     let (_fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    let mut page = pkm_block::Page::new(full_path, &state.vault_path);
+    let store = state.get_store().map_err(|e| e.to_string())?;
+    let mut page = pkm_block::Page::new(full_path.clone(), &state.vault_path);
     page.frontmatter.title = title.clone();
     for block in &blocks {
         store
@@ -589,7 +563,7 @@ pub async fn create_page(
             .to_string(),
         title,
         block_count: blocks.len(),
-        modified_at: chrono::Utc::now().to_rfc3339(),
+        modified_at: get_file_mtime(&full_path),
     })
 }
 
@@ -605,7 +579,7 @@ pub async fn delete_page(path: String, state: tauri::State<'_, AppState>) -> Res
     // Notify auto-commit engine
     state.record_change(&path);
 
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     store.delete_page(&path).map_err(|e| e.to_string())?;
 
     // Drop BlockIndex writer before IndexEngine acquires its own (same Tantivy dir)
@@ -635,23 +609,15 @@ pub async fn normalize_file(path: String, state: tauri::State<'_, AppState>) -> 
 
     // Preserve original frontmatter YAML if it existed (including tags, created, etc.)
     let final_md = if content.trim_start().starts_with("---") {
-        if let Some(rest) = content.trim_start().strip_prefix("---") {
-            if let Some(end) = rest.find("---") {
-                let fm_raw = &content.trim_start()["---".len()..end + "---".len()];
-                format!("---{}\n\n{}", fm_raw, serialized)
-            } else {
-                serialized
-            }
-        } else {
-            serialized
-        }
+        let yaml_str = serde_yaml::to_string(&_fm).unwrap_or_default();
+        format!("---\n{}---\n\n{}", yaml_str, serialized)
     } else {
         serialized
     };
 
+    std::fs::write(&full_path, &final_md).map_err(|e| e.to_string())?;
     // Mark this as our own save so the file watcher can skip it
     state.watcher_last_save = std::time::SystemTime::now();
-    std::fs::write(&full_path, &final_md).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -690,22 +656,14 @@ pub async fn normalize_all_files(
                 let (_fm, _body, blocks) = pkm_markdown::block_parser::parse_document(&content);
                 let serialized = pkm_markdown::block_parser::serialize_blocks(&blocks);
                 let final_md = if content.trim_start().starts_with("---") {
-                    if let Some(rest) = content.trim_start().strip_prefix("---") {
-                        if let Some(end) = rest.find("---") {
-                            let fm_raw = &content.trim_start()["---".len()..end + "---".len()];
-                            format!("---{}\n\n{}", fm_raw, serialized)
-                        } else {
-                            serialized
-                        }
-                    } else {
-                        serialized
-                    }
+                    let yaml_str = serde_yaml::to_string(&_fm).unwrap_or_default();
+                    format!("---\n{}---\n\n{}", yaml_str, serialized)
                 } else {
                     serialized
                 };
+                let _ = std::fs::write(&full_path, &final_md);
                 // Mark this as our own save so the file watcher can skip it
                 state.watcher_last_save = std::time::SystemTime::now();
-                let _ = std::fs::write(&full_path, &final_md);
                 count += 1;
             }
             Err(e) => {
@@ -744,7 +702,7 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
     if full_path.exists() {
         let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
         let (fm, _, _) = pkm_markdown::block_parser::parse_document(&content);
-        let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+        let store = state.get_store().map_err(|e| e.to_string())?;
         let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
 
         return Ok(PageDto {
@@ -752,7 +710,7 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
             slug: today.clone(),
             title: fm.title.or_else(|| Some(today.clone())),
             block_count: blocks.len(),
-            modified_at: chrono::Utc::now().to_rfc3339(),
+            modified_at: get_file_mtime(&full_path),
         });
     }
 
@@ -762,13 +720,13 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
     if let Some(parent) = full_path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
+    std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
     // Mark this as our own save so the file watcher can skip it
     state.watcher_last_save = std::time::SystemTime::now();
-    std::fs::write(&full_path, &content).map_err(|e| e.to_string())?;
 
     let (_fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
-    let mut page = pkm_block::Page::new(full_path, &state.vault_path);
+    let store = state.get_store().map_err(|e| e.to_string())?;
+    let mut page = pkm_block::Page::new(full_path.clone(), &state.vault_path);
     page.frontmatter.title = Some(title.clone());
     for block in &blocks {
         store
@@ -790,6 +748,6 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
         slug: today,
         title: Some(title),
         block_count: blocks.len(),
-        modified_at: chrono::Utc::now().to_rfc3339(),
+        modified_at: get_file_mtime(&full_path),
     })
 }

@@ -1,5 +1,7 @@
 //! Vault management commands.
 
+use pkm_block::BlockStore;
+use pkm_block::StoreResult;
 use pkm_index::block_search::BlockIndex;
 use pkm_index::indexer::IndexEngine;
 use serde::{Deserialize, Serialize};
@@ -13,6 +15,7 @@ use tracing::info;
 pub struct VaultState {
     pub vault_path: PathBuf,
     pub db_path: PathBuf,
+    pub block_store: Option<BlockStore>,
     pub index_engine: Option<IndexEngine>,
     pub block_index: Option<BlockIndex>,
     pub sync_scheduler: Option<pkm_sync::SyncScheduler>,
@@ -26,6 +29,7 @@ pub struct VaultState {
 impl VaultState {
     pub fn new(vault_path: PathBuf) -> Self {
         let db_path = vault_path.join(".pkm").join("blocks.db");
+        let block_store = BlockStore::open(&db_path).ok();
         let index_engine = IndexEngine::new(&vault_path).ok();
         if index_engine.is_some() {
             info!("IndexEngine initialized at {:?}", vault_path);
@@ -33,6 +37,7 @@ impl VaultState {
         Self {
             vault_path,
             db_path,
+            block_store,
             index_engine,
             block_index: None,
             sync_scheduler: None,
@@ -42,6 +47,14 @@ impl VaultState {
             watcher_last_save: SystemTime::UNIX_EPOCH,
             indexing_in_progress: AtomicBool::new(false),
         }
+    }
+
+    /// Get a handle to the block store.
+    /// Opens a new connection to the same SQLite database.
+    /// The stored block_store keeps the database "warm" (open).
+    /// Future optimization: switch to connection pooling via Arc<Mutex<Connection>>.
+    pub fn get_store(&self) -> StoreResult<BlockStore> {
+        BlockStore::open(&self.db_path)
     }
 
     pub fn ensure_index(&mut self) -> Result<&mut IndexEngine, String> {
@@ -101,6 +114,7 @@ impl VaultState {
     pub fn record_change(&mut self, path: &str) {
         if let Some(ref mut engine) = self.auto_commit_engine {
             let _ = engine.record_change(path);
+            let _ = engine.tick(); // Immediately evaluate whether to commit
         }
     }
 }
@@ -137,7 +151,7 @@ pub struct VaultInfo {
 #[tauri::command]
 pub async fn get_vault_info(state: tauri::State<'_, AppState>) -> Result<VaultInfo, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
-    let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
     let block_count = store.block_count().map_err(|e| e.to_string())?;
     let page_count = store.page_count().map_err(|e| e.to_string())?;
 
@@ -385,7 +399,7 @@ fn setup_vault(
     vstate: &mut VaultState,
 ) -> Result<(pkm_block::BlockStore, usize, usize), String> {
     std::fs::create_dir_all(vault_path.join(".pkm"))
-        .map_err(|e| format!("Failed to initialize vault: {}", e))?;
+        .map_err(|e| format!("Failed to initialize vault: {e}"))?;
 
     let db_path = vault_path.join(".pkm").join("blocks.db");
     let index_engine = IndexEngine::new(vault_path).ok();
@@ -394,6 +408,7 @@ fn setup_vault(
     vstate.index_engine = index_engine;
 
     let store = pkm_block::BlockStore::open(&db_path).map_err(|e| e.to_string())?;
+    vstate.block_store = pkm_block::BlockStore::open(&db_path).ok();
     let block_count = store.block_count().map_err(|e| e.to_string())?;
     let page_count = store.page_count().map_err(|e| e.to_string())?;
     Ok((store, block_count, page_count))
