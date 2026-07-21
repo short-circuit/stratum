@@ -173,13 +173,23 @@ fn slug_from_path(path: &str) -> String {
 
 #[tauri::command]
 pub async fn get_graph_data(state: tauri::State<'_, AppState>) -> Result<GraphDataDto, String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
-    let vault_path_str = state.vault_path.to_string_lossy().to_string();
+    let vault_path_str = {
+        let s = state.lock().map_err(|e| e.to_string())?;
+        s.vault_path.to_string_lossy().to_string()
+    };
+    let db_path = {
+        let s = state.lock().map_err(|e| e.to_string())?;
+        s.db_path.clone()
+    };
 
     info!("Building graph from SQLite: {}", vault_path_str);
 
-    let store = state.get_store().map_err(|e| e.to_string())?;
-    let data = build_graph_data_from_store(&store, &vault_path_str)?;
+    let data = tokio::task::spawn_blocking(move || {
+        let store = pkm_block::BlockStore::open(&db_path).map_err(|e| e.to_string())?;
+        build_graph_data_from_store(&store, &vault_path_str)
+    })
+    .await
+    .map_err(|e| e.to_string())??;
 
     debug!("Found {} nodes, {} edges", data.node_count, data.edge_count);
 
@@ -296,18 +306,31 @@ pub async fn get_orphaned_notes(
 pub async fn get_graph_panel_data(
     state: tauri::State<'_, AppState>,
 ) -> Result<GraphPanelDataDto, String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
-    let vault_path_str = state.vault_path.to_string_lossy().to_string();
+    let vault_path_str = {
+        let s = state.lock().map_err(|e| e.to_string())?;
+        s.vault_path.to_string_lossy().to_string()
+    };
+    let db_path = {
+        let s = state.lock().map_err(|e| e.to_string())?;
+        s.db_path.clone()
+    };
 
     info!("Building graph panel data from SQLite: {}", vault_path_str);
 
-    let store = state.get_store().map_err(|e| e.to_string())?;
-    let meta = PageMetaIndex::from_store(&store)?;
-    let adj = build_adjacency_list(&meta, &store)?;
+    let result = tokio::task::spawn_blocking(move || {
+        let store = pkm_block::BlockStore::open(&db_path).map_err(|e| e.to_string())?;
+        let meta = PageMetaIndex::from_store(&store)?;
+        let adj = build_adjacency_list(&meta, &store)?;
 
-    let graph = build_graph_data_from_meta(&meta, &adj, &vault_path_str)?;
-    let components = get_connected_components_from_meta(&meta, &adj)?;
-    let orphans = get_orphaned_notes_from_meta(&meta, &adj)?;
+        let graph = build_graph_data_from_meta(&meta, &adj, &vault_path_str)?;
+        let components = get_connected_components_from_meta(&meta, &adj)?;
+        let orphans = get_orphaned_notes_from_meta(&meta, &adj)?;
+
+        Ok::<_, String>((graph, components, orphans))
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    let (graph, components, orphans) = result?;
 
     debug!(
         "Found {} nodes, {} edges, {} components, {} orphans",
