@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, useCallback } from 'react';
 import katex from 'katex';
+import DOMPurify from 'dompurify';
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -98,9 +99,9 @@ export default function MathEditorModal({ initialLatex, onSave, onCancel }: Prop
             sx={{ minHeight: 60, p: 2, border: 1, borderColor: 'divider', borderRadius: 1, bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center', overflowX: 'auto' }}
             dangerouslySetInnerHTML={{
               __html: html
-                ? html
+                ? DOMPurify.sanitize(html)
                 : error
-                  ? `<span style="color:#f44336;font-size:0.875rem">${error}</span>`
+                  ? DOMPurify.sanitize(`<span style="color:#f44336;font-size:0.875rem">${error}</span>`)
                   : '<span style="color:#9e9e9e;font-size:0.875rem">Preview</span>',
             }}
           />
