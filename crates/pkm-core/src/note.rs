@@ -32,10 +32,15 @@ pub struct Note {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct Frontmatter {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub created: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub modified: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub aliases: Vec<String>,
     #[serde(flatten)]
     pub extra: std::collections::HashMap<String, serde_yaml::Value>,
