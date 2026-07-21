@@ -1,5 +1,6 @@
 import { createBlockSpec } from '@blocknote/core';
 import mermaid from 'mermaid';
+import DOMPurify from 'dompurify';
 
 let mermaidInitialized = false;
 
@@ -9,7 +10,7 @@ function ensureMermaid() {
   mermaid.initialize({
     startOnLoad: false,
     theme: dark ? 'dark' : 'default',
-    securityLevel: 'loose',
+    securityLevel: 'strict',
     fontFamily: 'sans-serif',
   });
   mermaidInitialized = true;
@@ -100,7 +101,7 @@ export const createMermaidSpec = createBlockSpec(
             const wrapper = document.createElement('div');
             wrapper.style.cssText = 'pointer-events:none;transform-origin:0 0;';
             wrapper.style.transform = `scale(${scale}) translate(${offsetX / scale}px, ${offsetY / scale}px)`;
-            wrapper.innerHTML = svg;
+            wrapper.innerHTML = DOMPurify.sanitize(svg);
             diagramEl.appendChild(wrapper);
             // Let the container grow to fit the diagram
             diagramEl.style.display = '';
