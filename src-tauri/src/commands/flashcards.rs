@@ -164,7 +164,9 @@ pub async fn review_card(
         .properties
         .insert("next_review".into(), next_str.clone());
 
-    store.insert_block(&block, &page_path).map_err(|e| e.to_string())?;
+    store
+        .insert_block(&block, &page_path)
+        .map_err(|e| e.to_string())?;
 
     Ok(FlashcardDto {
         id: block.id.to_string(),
