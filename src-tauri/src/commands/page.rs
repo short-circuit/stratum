@@ -94,9 +94,23 @@ pub struct PageListDto {
 
 #[tauri::command]
 pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto, String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
-    let store = state.get_store().map_err(|e| e.to_string())?;
-    let paths = store.list_pages().map_err(|e| e.to_string())?;
+    let vault_path = {
+        let s = state.lock().map_err(|e| e.to_string())?;
+        s.vault_path.clone()
+    };
+    let db_path = {
+        let s = state.lock().map_err(|e| e.to_string())?;
+        s.db_path.clone()
+    };
+
+    // Run DB query on blocking pool to avoid freezing the async event loop
+    let paths = tokio::task::spawn_blocking(move || {
+        let store = pkm_block::BlockStore::open(&db_path)?;
+        store.list_pages()
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())?;
 
     let mut pages = Vec::new();
     for path in paths {
@@ -108,16 +122,12 @@ pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto
             .and_then(|s| s.to_str())
             .unwrap_or("untitled")
             .to_string();
-        let fm = store.get_page(&path).ok().flatten();
-        let title = fm.and_then(|f| f.title);
-        let blocks = store.get_blocks_by_page(&path).unwrap_or_default();
-
-        let full_path = state.vault_path.join(&path);
+        let full_path = vault_path.join(&path);
         pages.push(PageDto {
             path,
             slug,
-            title,
-            block_count: blocks.len(),
+            title: None,
+            block_count: 0,
             modified_at: get_file_mtime(&full_path),
         });
     }
