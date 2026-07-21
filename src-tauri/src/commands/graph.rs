@@ -88,7 +88,7 @@ fn build_adjacency_list(
     }
 
     // Parallel link extraction: the CPU-bound regex work runs across threads
-    let all_extracted: Vec<(&String, Vec<pkm_markdown::linker::LinkResult>)> = slug_blocks
+    let all_extracted: Vec<(&String, Vec<_>)> = slug_blocks
         .par_iter()
         .flat_map(|(slug, _page_path, blocks)| {
             let links: Vec<_> = blocks
