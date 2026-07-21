@@ -114,6 +114,7 @@ impl VaultState {
     pub fn record_change(&mut self, path: &str) {
         if let Some(ref mut engine) = self.auto_commit_engine {
             let _ = engine.record_change(path);
+            let _ = engine.tick(); // Immediately evaluate whether to commit
         }
     }
 }
