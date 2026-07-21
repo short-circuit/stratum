@@ -8,6 +8,20 @@ use std::path::Path;
 use tauri::Emitter;
 use tracing::{info, warn};
 
+/// Read a file's modification time from filesystem metadata and return it as an
+/// RFC 3339 string. Falls back to `Utc::now()` if the file doesn't exist or
+/// metadata can't be read (e.g. the file was just created and hasn't been
+/// flushed to disk yet).
+fn get_file_mtime(full_path: &std::path::Path) -> String {
+    std::fs::metadata(full_path)
+        .and_then(|m| m.modified())
+        .map(|t| {
+            let dt: chrono::DateTime<chrono::Utc> = t.into();
+            dt.to_rfc3339()
+        })
+        .unwrap_or_else(|_| chrono::Utc::now().to_rfc3339())
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PageDto {
     pub path: String,
@@ -42,12 +56,13 @@ pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto
         let title = fm.and_then(|f| f.title);
         let blocks = store.get_blocks_by_page(&path).unwrap_or_default();
 
+        let full_path = state.vault_path.join(&path);
         pages.push(PageDto {
             path,
             slug,
             title,
             block_count: blocks.len(),
-            modified_at: chrono::Utc::now().to_rfc3339(),
+            modified_at: get_file_mtime(&full_path),
         });
     }
 
@@ -347,7 +362,7 @@ pub async fn open_page(path: String, state: tauri::State<'_, AppState>) -> Resul
         slug,
         title: frontmatter.title,
         block_count,
-        modified_at: chrono::Utc::now().to_rfc3339(),
+        modified_at: get_file_mtime(&full_path),
     })
 }
 
@@ -465,7 +480,7 @@ pub async fn create_page(
     // Parse content into blocks and upsert in SQLite so the page appears in list_pages
     let (_fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
     let store = state.get_store().map_err(|e| e.to_string())?;
-    let mut page = pkm_block::Page::new(full_path, &state.vault_path);
+    let mut page = pkm_block::Page::new(full_path.clone(), &state.vault_path);
     page.frontmatter.title = title.clone();
     for block in &blocks {
         store
@@ -492,7 +507,7 @@ pub async fn create_page(
             .to_string(),
         title,
         block_count: blocks.len(),
-        modified_at: chrono::Utc::now().to_rfc3339(),
+        modified_at: get_file_mtime(&full_path),
     })
 }
 
@@ -639,7 +654,7 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
             slug: today.clone(),
             title: fm.title.or_else(|| Some(today.clone())),
             block_count: blocks.len(),
-            modified_at: chrono::Utc::now().to_rfc3339(),
+            modified_at: get_file_mtime(&full_path),
         });
     }
 
@@ -655,7 +670,7 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
 
     let (_fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
     let store = state.get_store().map_err(|e| e.to_string())?;
-    let mut page = pkm_block::Page::new(full_path, &state.vault_path);
+    let mut page = pkm_block::Page::new(full_path.clone(), &state.vault_path);
     page.frontmatter.title = Some(title.clone());
     for block in &blocks {
         store
@@ -677,6 +692,6 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
         slug: today,
         title: Some(title),
         block_count: blocks.len(),
-        modified_at: chrono::Utc::now().to_rfc3339(),
+        modified_at: get_file_mtime(&full_path),
     })
 }
