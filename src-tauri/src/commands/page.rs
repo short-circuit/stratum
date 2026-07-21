@@ -11,10 +11,17 @@ use tracing::{info, warn};
 /// Resolve a user-provided path safely within the vault for read operations.
 /// Canonicalizes both the vault path and the resulting path to ensure
 /// the result is contained within the vault. The file must exist.
-pub(crate) fn resolve_safe_path(vault_path: &std::path::Path, user_path: &str) -> Result<std::path::PathBuf, String> {
-    let canonical_vault = vault_path.canonicalize().map_err(|e| format!("Invalid vault path: {}", e))?;
+pub(crate) fn resolve_safe_path(
+    vault_path: &std::path::Path,
+    user_path: &str,
+) -> Result<std::path::PathBuf, String> {
+    let canonical_vault = vault_path
+        .canonicalize()
+        .map_err(|e| format!("Invalid vault path: {}", e))?;
     let full = canonical_vault.join(user_path);
-    let canonical_full = full.canonicalize().map_err(|_| format!("Path does not exist: {}", user_path))?;
+    let canonical_full = full
+        .canonicalize()
+        .map_err(|_| format!("Path does not exist: {}", user_path))?;
     if canonical_full.starts_with(&canonical_vault) {
         Ok(canonical_full)
     } else {
@@ -26,8 +33,13 @@ pub(crate) fn resolve_safe_path(vault_path: &std::path::Path, user_path: &str) -
 /// where the file may not yet exist. Validates that every existing ancestor
 /// directory is within the vault. Walks up the path tree until it finds an
 /// existing path component (at minimum the vault_path itself).
-pub(crate) fn resolve_safe_write_path(vault_path: &std::path::Path, user_path: &str) -> Result<std::path::PathBuf, String> {
-    let canonical_vault = vault_path.canonicalize().map_err(|e| format!("Invalid vault path: {}", e))?;
+pub(crate) fn resolve_safe_write_path(
+    vault_path: &std::path::Path,
+    user_path: &str,
+) -> Result<std::path::PathBuf, String> {
+    let canonical_vault = vault_path
+        .canonicalize()
+        .map_err(|e| format!("Invalid vault path: {}", e))?;
     let full = canonical_vault.join(user_path);
 
     // Walk up from the full path to find an existing ancestor directory
@@ -35,7 +47,9 @@ pub(crate) fn resolve_safe_write_path(vault_path: &std::path::Path, user_path: &
     let mut check_path = full.as_path();
     loop {
         if check_path.exists() {
-            let canonical = check_path.canonicalize().map_err(|e| format!("Path resolution failed: {}", e))?;
+            let canonical = check_path
+                .canonicalize()
+                .map_err(|e| format!("Path resolution failed: {}", e))?;
             if !canonical.starts_with(&canonical_vault) {
                 return Err("Path traversal detected".to_string());
             }
