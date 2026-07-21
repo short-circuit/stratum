@@ -221,11 +221,11 @@ pub async fn get_backlinks(
     let mut results = Vec::new();
     for src_str in source_ids {
         if let Ok(src_id) = uuid::Uuid::parse_str(&src_str) {
-            if let Ok(block) = store.get_block(src_id) {
+            if let Ok((block, page_path)) = store.get_block_with_page_path(src_id) {
                 results.push(SearchResultDto {
                     block_id: src_str.clone(),
                     content: block.content,
-                    page_path: String::new(),
+                    page_path,
                     snippet: String::new(),
                     score: 0.0,
                 });
