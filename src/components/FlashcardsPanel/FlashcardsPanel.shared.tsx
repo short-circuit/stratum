@@ -39,7 +39,7 @@ export function useFlashcardReview() {
   const review = useCallback(async (quality: number) => {
     if (current >= cards.length) return;
     try {
-      await api.reviewCard(cards[current].id, quality);
+      await api.reviewCard(cards[current].id, quality, cards[current].page_path);
       setMessage(quality >= 3 ? 'Correct!' : 'Review again soon');
       setTimeout(() => {
         setShowBack(false);
