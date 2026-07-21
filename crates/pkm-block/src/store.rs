@@ -200,6 +200,66 @@ impl BlockStore {
             })
     }
 
+    /// Get a block by ID along with its page_path.
+    /// Returns (Block, page_path) or an error if the block is not found.
+    pub fn get_block_with_page_path(&self, id: BlockId) -> StoreResult<(Block, String)> {
+        let id_str = id.to_string();
+        self.conn
+            .query_row(
+                "SELECT id, content, parent_id, left_id, properties, marker, priority,
+                 collapsed, heading_level, created_at, modified_at, page_path
+                 FROM blocks WHERE id = ?1",
+                params![id_str],
+                |row| {
+                    let id: String = row.get(0)?;
+                    let content: String = row.get(1)?;
+                    let parent_id: Option<String> = row.get(2)?;
+                    let left_id: Option<String> = row.get(3)?;
+                    let properties_str: String = row.get(4)?;
+                    let marker: Option<String> = row.get(5)?;
+                    let priority: Option<String> = row.get(6)?;
+                    let collapsed: bool = row.get::<_, i32>(7)? != 0;
+                    let heading_level: Option<u8> = row.get(8)?;
+                    let created_at: String = row.get(9)?;
+                    let modified_at: String = row.get(10)?;
+                    let page_path: String = row.get(11)?;
+
+                    let id = Uuid::parse_str(&id).unwrap_or_else(|_| Uuid::nil());
+                    let properties: BTreeMap<String, String> =
+                        serde_json::from_str(&properties_str).unwrap_or_default();
+                    let marker = marker.and_then(|m| TaskMarker::parse(&m));
+                    let priority = priority.and_then(|p| Priority::parse(&p));
+
+                    Ok((
+                        Block {
+                            id,
+                            content,
+                            parent_id: parent_id.and_then(|s| Uuid::parse_str(&s).ok()),
+                            left_id: left_id.and_then(|s| Uuid::parse_str(&s).ok()),
+                            properties,
+                            marker,
+                            priority,
+                            meta: BlockMeta {
+                                collapsed,
+                                heading_level,
+                            },
+                            created_at: DateTime::parse_from_rfc3339(&created_at)
+                                .map(|dt| dt.with_timezone(&Utc))
+                                .unwrap_or_else(|_| Utc::now()),
+                            modified_at: DateTime::parse_from_rfc3339(&modified_at)
+                                .map(|dt| dt.with_timezone(&Utc))
+                                .unwrap_or_else(|_| Utc::now()),
+                        },
+                        page_path,
+                    ))
+                },
+            )
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => PkmError::BlockNotFound(format!("{}", id)),
+                other => PkmError::Internal(format!("SQLite error: {other}")),
+            })
+    }
+
     pub fn get_blocks_by_page(&self, page_path: &str) -> StoreResult<Vec<Block>> {
         let mut stmt = self
             .conn
