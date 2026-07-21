@@ -3,6 +3,7 @@ import { Plugin, PluginKey, type EditorState } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 import { type Node } from 'prosemirror-model';
 import katex from 'katex';
+import DOMPurify from 'dompurify';
 
 const MATH_RE = /\$([^$\n]+?)\$/g;
 
@@ -25,7 +26,7 @@ function scanMath(doc: Node): DecorationSet {
       }
       const wrapper = document.createElement('span');
       wrapper.className = 'math-inline-rendered';
-      wrapper.innerHTML = html;
+      wrapper.innerHTML = DOMPurify.sanitize(html);
       wrapper.dataset.latex = latex;
       wrapper.dataset.pos = String(from);
       wrapper.contentEditable = 'false';
