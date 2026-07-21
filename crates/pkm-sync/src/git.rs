@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use gix::bstr::{ByteSlice, ByteVec};
 use pkm_core::{PkmError, PkmResult};
 use std::ops::BitOr;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
@@ -62,6 +63,7 @@ pub struct GitEngine {
     repo: gix::Repository,
     ssh_key_path: Option<PathBuf>,
     passphrase: Option<String>,
+    askpass_script_path: Option<PathBuf>,
 }
 
 impl GitEngine {
@@ -76,6 +78,7 @@ impl GitEngine {
             repo,
             ssh_key_path: None,
             passphrase: None,
+            askpass_script_path: None,
         })
     }
 
@@ -92,6 +95,7 @@ impl GitEngine {
             repo,
             ssh_key_path: None,
             passphrase: None,
+            askpass_script_path: None,
         })
     }
 
@@ -338,19 +342,72 @@ impl GitEngine {
         })
     }
 
-    /// Set the GIT_SSH_COMMAND environment variable if an SSH key is configured.
+    /// Inject SSH configuration into a git command.
+    ///
+    /// When an SSH key is configured, sets `GIT_SSH_COMMAND` to use that key
+    /// with strict host key checking.
+    ///
+    /// When a passphrase is also configured, sets `GIT_ASKPASS` pointing to
+    /// the helper script (written by `set_passphrase`) so the passphrase is
+    /// never embedded in an environment variable or command line.
     fn inject_ssh_key(&self, cmd: &mut std::process::Command) {
         if let Some(ref key_path) = self.ssh_key_path {
             let ssh_base = format!(
                 "ssh -i {} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new",
                 key_path.display()
             );
-            let ssh_cmd = if let Some(ref _passphrase) = self.passphrase {
-                format!("sshpass -p '{}' {}", _passphrase, ssh_base)
-            } else {
-                ssh_base
-            };
-            cmd.env("GIT_SSH_COMMAND", &ssh_cmd);
+
+            if self.passphrase.is_some() {
+                if let Some(ref script_path) = self.askpass_script_path {
+                    cmd.env("GIT_ASKPASS", script_path);
+                }
+            }
+
+            cmd.env("GIT_SSH_COMMAND", &ssh_base);
+        }
+    }
+
+    /// Write the GIT_ASKPASS helper script that provides the SSH key passphrase.
+    ///
+    /// The script uses `printf` with octal-encoded bytes so there are no shell
+    /// escaping concerns regardless of passphrase content. The file is written
+    /// with 0700 permissions and removed in `Drop`.
+    fn write_askpass_script(&mut self) -> PkmResult<PathBuf> {
+        let passphrase = self
+            .passphrase
+            .clone()
+            .ok_or_else(|| PkmError::Git("no passphrase set for askpass script".into()))?;
+
+        // Clean up any previous script first
+        self.cleanup_askpass_script();
+
+        let path = std::env::temp_dir().join(format!("pkm-askpass-{}", std::process::id()));
+
+        // Encode the passphrase as octal escapes so no shell characters can
+        // interfere — printf(1) interprets \NNN in the format string.
+        let octal: String = passphrase
+            .bytes()
+            .map(|b| format!("\\{:03o}", b))
+            .collect::<Vec<_>>()
+            .join("");
+        let script = format!("#!/bin/sh\nprintf '{}'\n", octal);
+
+        std::fs::write(&path, &script)
+            .map_err(|e| PkmError::Git(format!("write askpass script: {e}")))?;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700))
+            .map_err(|e| PkmError::Git(format!("chmod askpass script: {e}")))?;
+
+        tracing::debug!("wrote GIT_ASKPASS script to {}", path.display());
+
+        self.askpass_script_path = Some(path.clone());
+        Ok(path)
+    }
+
+    /// Remove the askpass script from disk.
+    fn cleanup_askpass_script(&mut self) {
+        if let Some(ref path) = self.askpass_script_path.take() {
+            let _ = std::fs::remove_file(path);
+            tracing::debug!("cleaned up GIT_ASKPASS script {}", path.display());
         }
     }
 
@@ -570,6 +627,14 @@ impl GitEngine {
 
     pub fn set_ssh_key_path(&mut self, path: Option<PathBuf>) {
         self.ssh_key_path = path;
+        // If we have both a key and passphrase, ensure the askpass script exists
+        if self.passphrase.is_some() && self.ssh_key_path.is_some() {
+            if self.askpass_script_path.is_none() {
+                let _ = self.write_askpass_script();
+            }
+        } else {
+            self.cleanup_askpass_script();
+        }
     }
 
     pub fn ssh_key_path(&self) -> Option<&PathBuf> {
@@ -578,6 +643,11 @@ impl GitEngine {
 
     pub fn set_passphrase(&mut self, passphrase: Option<String>) {
         self.passphrase = passphrase;
+        // Recreate the askpass script with the new passphrase
+        self.cleanup_askpass_script();
+        if self.passphrase.is_some() && self.ssh_key_path.is_some() {
+            let _ = self.write_askpass_script();
+        }
     }
 
     pub fn passphrase(&self) -> Option<&str> {
@@ -641,6 +711,12 @@ impl GitEngine {
         let behind = walk_count(&self.repo, upstream_oid, |id| id == local_oid);
 
         Ok((ahead, behind))
+    }
+}
+
+impl Drop for GitEngine {
+    fn drop(&mut self) {
+        self.cleanup_askpass_script();
     }
 }
 
