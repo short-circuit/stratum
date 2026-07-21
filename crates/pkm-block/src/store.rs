@@ -260,6 +260,7 @@ impl BlockStore {
             })
     }
 
+    #[allow(clippy::type_complexity)]
     pub fn get_blocks_by_page(&self, page_path: &str) -> StoreResult<Vec<Block>> {
         let mut stmt = self
             .conn
