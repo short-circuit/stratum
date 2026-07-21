@@ -384,6 +384,9 @@ pub async fn resolve_conflict_file(
     let vault_path = state.lock().map_err(|e| e.to_string())?.vault_path.clone();
     let engine = pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
     engine.add(&[&path]).map_err(|e| e.to_string())?;
+    engine
+        .commit(&format!("Resolved conflict in {}", path), "stratum")
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
