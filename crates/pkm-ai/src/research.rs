@@ -1,4 +1,5 @@
 use crate::provider::{ChatConfig, ChatMessage, LlmProvider, ProviderFactory};
+use pkm_core::validate_endpoint_safe;
 use pkm_core::PkmResult;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -110,6 +111,9 @@ impl ResearchEngine {
 
     /// Search SearXNG and return results.
     async fn search_searxng(&self, query: &str) -> PkmResult<Vec<SearxngResult>> {
+        // Validate the SearXNG endpoint against SSRF attacks
+        validate_endpoint_safe(&self.searxng_endpoint)?;
+
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
             .build()
@@ -137,6 +141,9 @@ impl ResearchEngine {
 
     /// Read a webpage and extract text content.
     async fn read_url(&self, url: &str) -> PkmResult<String> {
+        // Validate each URL fetched from search results against SSRF attacks
+        validate_endpoint_safe(url)?;
+
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(10))
             .user_agent("StratumPKM/1.0 Research Bot")
