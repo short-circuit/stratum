@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, useCallback, memo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ForceGraph3D from 'react-force-graph-3d';
 import * as THREE from 'three';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -98,7 +99,6 @@ const GraphCanvas = memo(function GraphCanvas({
 
   const [graphStats, setGraphStats] = useState<GraphStats>({ fps: 0, frameTime: 0 });
   const fpsRef = useRef({ frameCount: 0, lastSampleTime: 0 });
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const r = fpsRef.current;
@@ -119,90 +119,50 @@ const GraphCanvas = memo(function GraphCanvas({
     return () => cancelAnimationFrame(rafId);
   }, []);
 
-  // Sync canvas bitmap size with container dimensions
+  // CSS2DRenderer instance for GPU-composited labels — created once, lives for component lifetime
+  const [css2dRenderer] = useState(() => new CSS2DRenderer());
+
+  // Sync CSS2DRenderer size with container dimensions
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    canvas.width = width;
-    canvas.height = height;
-  }, [width, height]);
+    css2dRenderer.setSize(width, height);
+  }, [css2dRenderer, width, height]);
 
-  // Canvas 2D label overlay — projects node positions every frame
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const vec = new THREE.Vector3();
-    let rafId: number;
-
-    const render = () => {
-      const fg = graphRef.current;
-      if (!fg || !canvas) {
-        rafId = requestAnimationFrame(render);
-        return;
-      }
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const camera = fg.camera();
-      if (!camera) {
-        rafId = requestAnimationFrame(render);
-        return;
-      }
-
-      const fgNodes: GraphNode[] = fg.graphData().nodes || [];
-      if (fgNodes.length === 0) {
-        rafId = requestAnimationFrame(render);
-        return;
-      }
-
-      const w = canvas.width;
-      const h = canvas.height;
-
-      ctx.font = 'bold 11px Inter, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-
-      for (let i = 0; i < fgNodes.length; i++) {
-        const n = fgNodes[i];
-        if (n.x === undefined || n.y === undefined || n.z === undefined) continue;
-
-        vec.set(n.x, n.y, n.z);
-
-        vec.project(camera);
-
-        // Skip nodes behind the camera
-        if (vec.z > 1) continue;
-
-        const sx = (vec.x * 0.5 + 0.5) * w;
-        const sy = (-vec.y * 0.5 + 0.5) * h;
-
-        // Skip off-screen nodes (with generous margin)
-        if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) continue;
-
-        ctx.fillStyle = textColor;
-        ctx.fillText(n.title, sx, sy + 14);
-      }
-
-      rafId = requestAnimationFrame(render);
-    };
-
-    rafId = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(rafId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [textColor]);
+  // Stable extraRenderers array — CSS2DRenderer is automatically layered above the WebGL canvas
+  const extraRenderers = useMemo(() => [css2dRenderer], [css2dRenderer]);
 
   const edgeCount = graphDataProp?.links?.length ?? 0;
 
   const nodeThreeObj = useCallback((n: GraphNode) => {
     const radius = Math.min(5, 2.5 + (n.degree || 0) * 0.2);
-    return new THREE.Mesh(
+    const group = new THREE.Group();
+
+    // Sphere mesh (unchanged from original)
+    const sphere = new THREE.Mesh(
       new THREE.SphereGeometry(radius, 16, 16),
       new THREE.MeshBasicMaterial({ color: nodeColor(n) })
     );
-  }, []);
+    group.add(sphere);
+
+    // CSS2D label — GPU-composited DOM element, no CPU text rasterization
+    const labelEl = document.createElement('div');
+    labelEl.textContent = n.title;
+    labelEl.style.color = textColor;
+    labelEl.style.fontFamily = 'Inter, sans-serif';
+    labelEl.style.fontSize = '11px';
+    labelEl.style.fontWeight = 'bold';
+    labelEl.style.textShadow = '0 1px 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.5)';
+    labelEl.style.pointerEvents = 'none';
+    labelEl.style.whiteSpace = 'nowrap';
+    labelEl.style.userSelect = 'none';
+
+    const label = new CSS2DObject(labelEl);
+    // Position label above the sphere, offset by radius + 14px to match original canvas offset
+    label.position.set(0, radius + 14, 0);
+    group.add(label);
+
+    return group;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [textColor]);
 
   const onNodeClickCb = useCallback((n: GraphNode) => handleNodeClick(n), [handleNodeClick]);
 
@@ -253,18 +213,7 @@ const GraphCanvas = memo(function GraphCanvas({
             enableNodeDrag={true}
             enableNavigationControls={true}
             showNavInfo={false}
-          />
-          <canvas
-            ref={canvasRef}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              pointerEvents: 'none',
-              zIndex: 5,
-            }}
+            extraRenderers={extraRenderers}
           />
         </>)}
       {!loading && !error && nodes.length === 0 && (
