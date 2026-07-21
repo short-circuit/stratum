@@ -332,7 +332,12 @@ pub async fn get_graph_panel_data(
     state: tauri::State<'_, AppState>,
 ) -> Result<GraphPanelDataDto, String> {
     // Check in-memory cache first
-    if let Some(cached) = GRAPH_CACHE.get_or_init(|| Mutex::new(None)).lock().map_err(|e| e.to_string())?.as_ref() {
+    if let Some(cached) = GRAPH_CACHE
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .map_err(|e| e.to_string())?
+        .as_ref()
+    {
         info!("Returning cached graph data");
         return Ok(cached.clone());
     }
