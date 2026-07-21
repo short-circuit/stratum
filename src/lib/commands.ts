@@ -179,10 +179,10 @@ export async function generateFlashcards(): Promise<{
   return invoke('generate_flashcards');
 }
 
-export async function reviewCard(cardId: string, quality: number): Promise<{
+export async function reviewCard(cardId: string, quality: number, pagePath: string): Promise<{
   id: string; front: string; back: string; page_path: string; ease_factor: number; interval_days: number; repetitions: number; next_review: string;
 }> {
-  return invoke('review_card', { cardId, quality });
+  return invoke('review_card', { cardId, quality, pagePath });
 }
 
 export async function listWhiteboards(): Promise<{
