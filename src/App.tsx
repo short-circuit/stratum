@@ -23,6 +23,7 @@ import GraphPanel from './components/GraphPanel';
 import SettingsPage from './components/SettingsPage';
 import MobileLayout from './components/MobileLayout';
 import VaultPicker from './components/VaultPicker';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import ConflictModal from './components/ui/ConflictModal';
 import PassphraseModal from './components/ui/PassphraseModal';
 import { getCurrentWindow, type CloseRequestedEvent } from '@tauri-apps/api/window';
@@ -124,16 +125,16 @@ function AppContent() {
       <MobileLayout error={error}>
         <Routes>
           <Route path="/" element={<Navigate to="/journal" replace />} />
-          <Route path="/journal" element={<JournalPanel />} />
-          <Route path="/page/:pagePath" element={<PageView />} />
-          <Route path="/search" element={<SearchPanel />} />
-          <Route path="/query" element={<QueryPanel />} />
-          <Route path="/templates" element={<TemplatesPanel />} />
-          <Route path="/flashcards" element={<FlashcardsPanel />} />
-          <Route path="/kanban" element={<KanbanPanel />} />
-          <Route path="/whiteboards" element={<WhiteboardPanel />} />
-          <Route path="/graph" element={<GraphPanel />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/journal" element={<ErrorBoundary><JournalPanel /></ErrorBoundary>} />
+          <Route path="/page/:pagePath" element={<ErrorBoundary><PageView /></ErrorBoundary>} />
+          <Route path="/search" element={<ErrorBoundary><SearchPanel /></ErrorBoundary>} />
+          <Route path="/query" element={<ErrorBoundary><QueryPanel /></ErrorBoundary>} />
+          <Route path="/templates" element={<ErrorBoundary><TemplatesPanel /></ErrorBoundary>} />
+          <Route path="/flashcards" element={<ErrorBoundary><FlashcardsPanel /></ErrorBoundary>} />
+          <Route path="/kanban" element={<ErrorBoundary><KanbanPanel /></ErrorBoundary>} />
+          <Route path="/whiteboards" element={<ErrorBoundary><WhiteboardPanel /></ErrorBoundary>} />
+          <Route path="/graph" element={<ErrorBoundary><GraphPanel /></ErrorBoundary>} />
+          <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
         </Routes>
         {/* Global modals for conflict & passphrase — visible on any page */}
         {syncModal.conflictModalOpen && (
@@ -163,16 +164,16 @@ function AppContent() {
         )}
         <Routes>
           <Route path="/" element={<Navigate to="/journal" replace />} />
-          <Route path="/journal" element={<JournalPanel />} />
-          <Route path="/page/:pagePath" element={<PageView />} />
-          <Route path="/search" element={<SearchPanel />} />
-          <Route path="/query" element={<QueryPanel />} />
-          <Route path="/templates" element={<TemplatesPanel />} />
-          <Route path="/flashcards" element={<FlashcardsPanel />} />
-          <Route path="/kanban" element={<KanbanPanel />} />
-          <Route path="/whiteboards" element={<WhiteboardPanel />} />
-          <Route path="/graph" element={<GraphPanel />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/journal" element={<ErrorBoundary><JournalPanel /></ErrorBoundary>} />
+          <Route path="/page/:pagePath" element={<ErrorBoundary><PageView /></ErrorBoundary>} />
+          <Route path="/search" element={<ErrorBoundary><SearchPanel /></ErrorBoundary>} />
+          <Route path="/query" element={<ErrorBoundary><QueryPanel /></ErrorBoundary>} />
+          <Route path="/templates" element={<ErrorBoundary><TemplatesPanel /></ErrorBoundary>} />
+          <Route path="/flashcards" element={<ErrorBoundary><FlashcardsPanel /></ErrorBoundary>} />
+          <Route path="/kanban" element={<ErrorBoundary><KanbanPanel /></ErrorBoundary>} />
+          <Route path="/whiteboards" element={<ErrorBoundary><WhiteboardPanel /></ErrorBoundary>} />
+          <Route path="/graph" element={<ErrorBoundary><GraphPanel /></ErrorBoundary>} />
+          <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
         </Routes>
       </Box>
       {/* Global modals for conflict & passphrase — visible on any page */}
