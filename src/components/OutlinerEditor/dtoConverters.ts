@@ -14,6 +14,9 @@ interface InlineContentItem {
 
 export const mermaidBlockRegex = /^```mermaid\n?([\s\S]*?)\n?```\s*$/;
 
+/** Matches any fenced code block: ```lang\n...\n``` where lang is optional. */
+export const codeBlockRegex = /^```(\w+)?\n?([\s\S]*?)\n?```\s*$/;
+
 export function extractTextContent(block: { content?: InlineContentItem[] }): string {
   if (!block.content || !Array.isArray(block.content)) return '';
   return block.content.map((c: InlineContentItem) => c.text || '').join('');
@@ -41,6 +44,16 @@ export function dtoToBlockNote(dtos: BlockDto[], metaMap: Map<string, BlockMeta>
         type: 'mermaid',
         props: { language: 'mermaid' },
         content: [{ type: 'text' as const, text: mermaidMatch[1].trimEnd(), styles: {} }],
+        children: children.map(convert),
+      };
+    }
+    const codeMatch = contentStr.match(codeBlockRegex);
+    if (codeMatch) {
+      const lang = codeMatch[1] || 'text';
+      return {
+        type: 'codeBlock',
+        props: { language: lang },
+        content: [{ type: 'text' as const, text: codeMatch[2].trimEnd(), styles: {} }],
         children: children.map(convert),
       };
     }
@@ -80,11 +93,16 @@ export function blockNoteToDto(blockNoteBlocks: any[], metaMap: Map<string, Bloc
         if (typeof b.content === 'string') code = b.content;
         else if (Array.isArray(b.content)) code = b.content.map((c: { text?: string }) => c?.text || '').join('');
         content = '```mermaid\n' + code + '\n```';
-      } else if (b.type === 'codeBlock' && b.props?.language === 'mermaid') {
+      } else if (b.type === 'codeBlock') {
         let code = '';
         if (typeof b.content === 'string') code = b.content;
         else if (Array.isArray(b.content)) code = b.content.map((c: { text?: string }) => c?.text || '').join('');
-        content = '```mermaid\n' + code + '\n```';
+        const lang = b.props?.language;
+        if (lang && lang !== 'text') {
+          content = '```' + lang + '\n' + code + '\n```';
+        } else {
+          content = '```\n' + code + '\n```';
+        }
       } else if (b.content) {
         if (typeof b.content === 'string') content = b.content;
         else if (Array.isArray(b.content)) content = inlineItemsToContent(b.content);

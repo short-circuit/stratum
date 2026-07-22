@@ -33,6 +33,7 @@ import LooksOneIcon from '@mui/icons-material/LooksOne';
 import LooksTwoIcon from '@mui/icons-material/LooksTwo';
 import Looks3Icon from '@mui/icons-material/Looks3';
 import FunctionsIcon from '@mui/icons-material/Functions';
+import CodeIcon from '@mui/icons-material/Code';
 import DiagramIcon from '@mui/icons-material/Schema';
 import FlagIcon from '@mui/icons-material/Flag';
 import ContentCutIcon from '@mui/icons-material/ContentCut';
@@ -122,6 +123,10 @@ export default function OutlinerEditorMobile(props: Props) {
         block.props = { level: level || 1 };
       } else if (type === 'mermaid') {
         block.type = 'mermaid';
+        block.content = [{ type: 'text', text: '', styles: {} }];
+      } else if (type === 'codeBlock') {
+        block.type = 'codeBlock';
+        block.props = { language: 'text' };
         block.content = [{ type: 'text', text: '', styles: {} }];
       } else if (type === 'paragraph') {
         block.type = 'paragraph';
@@ -393,6 +398,10 @@ export default function OutlinerEditorMobile(props: Props) {
           <MenuItem onClick={() => insertBlock('heading', 3)}>
             <ListItemIcon><Looks3Icon fontSize="small" /></ListItemIcon>
             <ListItemText>Heading 3</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => insertBlock('codeBlock')}>
+            <ListItemIcon><CodeIcon fontSize="small" /></ListItemIcon>
+            <ListItemText>Code block</ListItemText>
           </MenuItem>
           <MenuItem onClick={() => insertBlock('mermaid')}>
             <ListItemIcon><DiagramIcon fontSize="small" /></ListItemIcon>
