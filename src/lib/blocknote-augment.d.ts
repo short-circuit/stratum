@@ -12,7 +12,7 @@ declare module '@blocknote/core' {
   interface BlockNoteEditor {
     /** The underlying Tiptap editor instance. */
     _tiptapEditor: import('@tiptap/core').Editor;
-    /** The underlying ProseMirror view (set after mount). */
-    prosemirrorView?: import('prosemirror-view').EditorView;
+    /** The underlying ProseMirror view (available after mount). */
+    prosemirrorView: import('prosemirror-view').EditorView;
   }
 }
