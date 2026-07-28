@@ -41,3 +41,5 @@ tauri-plugin-android-fs = "28"
 [dev-dependencies]
 tempfile.workspace = true
 pretty_assertions = { workspace = true }
+uuid.workspace = true
+chrono.workspace = true

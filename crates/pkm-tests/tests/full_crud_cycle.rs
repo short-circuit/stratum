@@ -66,7 +66,10 @@ fn test_page_with_blocks_then_delete() {
 
     tv.store.delete_page("pages/full.md").unwrap();
     // Verify blocks were also deleted
-    assert_eq!(tv.store.get_blocks_by_page("pages/full.md").unwrap().len(), 0);
+    assert_eq!(
+        tv.store.get_blocks_by_page("pages/full.md").unwrap().len(),
+        0
+    );
 }
 
 #[test]
@@ -78,6 +81,12 @@ fn test_insert_block_with_properties() {
     tv.store.insert_block(&block, "pages/test.md").unwrap();
 
     let retrieved = tv.store.get_block(block.id).unwrap();
-    assert_eq!(retrieved.properties.get("deadline").map(|s| s.as_str()), Some("2026-08-01"));
-    assert_eq!(retrieved.properties.get("assignee").map(|s| s.as_str()), Some("me"));
+    assert_eq!(
+        retrieved.properties.get("deadline").map(|s| s.as_str()),
+        Some("2026-08-01")
+    );
+    assert_eq!(
+        retrieved.properties.get("assignee").map(|s| s.as_str()),
+        Some("me")
+    );
 }

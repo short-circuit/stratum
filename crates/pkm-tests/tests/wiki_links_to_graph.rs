@@ -17,7 +17,9 @@ fn add_block_with_link(tv: &common::TestVault, content: &str, rel_path: &str) ->
                 .unwrap_or("")
                 .to_string();
             if slug == target_slug {
-                tv.store.insert_link(block.id, "page_ref", Some(&p), None).unwrap();
+                tv.store
+                    .insert_link(block.id, "page_ref", Some(&p), None)
+                    .unwrap();
             }
         }
     }
@@ -62,9 +64,9 @@ fn test_self_link() {
     let tv = create_test_vault();
     tv.add_page("pages/self.md");
 
-    let b = tv.add_block("pages/self.md", "Self reference [[self]]");
+    let _b = tv.add_block("pages/self.md", "Self reference [[self]]");
 
-    // The block content mentions [[self]] — no link in DB though since we'd 
+    // The block content mentions [[self]] — no link in DB though since we'd
     // skip self-referencing links
     let backlinks = tv.store.get_backlinks_for_page("pages/self.md").unwrap();
     // Could be empty or contain self-link depending on implementation
@@ -80,7 +82,11 @@ fn test_complex_graph() {
     }
 
     // hub links to all spokes
-    add_block_with_link(&tv, "Links to [[spoke-a]], [[spoke-b]], [[spoke-c]]", "pages/hub.md");
+    add_block_with_link(
+        &tv,
+        "Links to [[spoke-a]], [[spoke-b]], [[spoke-c]]",
+        "pages/hub.md",
+    );
     // spokes link back to hub
     add_block_with_link(&tv, "Back to [[hub]]", "pages/spoke-a.md");
     add_block_with_link(&tv, "Back to [[hub]]", "pages/spoke-b.md");
@@ -93,7 +99,10 @@ fn test_complex_graph() {
 
     // Each spoke has 1 incoming (from hub) + no others
     let spoke_a = tv.store.get_backlinks_for_page("pages/spoke-a.md").unwrap();
-    let isolated = tv.store.get_backlinks_for_page("pages/isolated.md").unwrap();
+    let isolated = tv
+        .store
+        .get_backlinks_for_page("pages/isolated.md")
+        .unwrap();
     assert_eq!(spoke_a.len(), 1, "spoke-a should have 1 incoming from hub");
     assert!(isolated.is_empty(), "isolated should have no links");
 }

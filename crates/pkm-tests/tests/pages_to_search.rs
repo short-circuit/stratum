@@ -11,9 +11,9 @@ fn make_block(content: &str) -> pkm_block::Block {
 #[test]
 fn test_index_and_search() {
     let tv = create_test_vault();
-    let indexPath = tv.vault_path.join(".pkm").join("search");
-    std::fs::create_dir_all(&indexPath).unwrap();
-    let mut index = BlockIndex::create(&indexPath).unwrap();
+    let index_path = tv.vault_path.join(".pkm").join("search");
+    std::fs::create_dir_all(&index_path).unwrap();
+    let mut index = BlockIndex::create(&index_path).unwrap();
 
     let b1 = make_block("Machine learning and neural networks");
     tv.store.insert_block(&b1, "pages/ai.md").unwrap();
@@ -40,9 +40,9 @@ fn test_index_and_search() {
 #[test]
 fn test_remove_from_index() {
     let tv = create_test_vault();
-    let indexPath = tv.vault_path.join(".pkm").join("search");
-    std::fs::create_dir_all(&indexPath).unwrap();
-    let mut index = BlockIndex::create(&indexPath).unwrap();
+    let index_path = tv.vault_path.join(".pkm").join("search");
+    std::fs::create_dir_all(&index_path).unwrap();
+    let mut index = BlockIndex::create(&index_path).unwrap();
 
     let b = make_block("This will be removed");
     index.index_block(&b, "pages/test.md").unwrap();
@@ -59,9 +59,9 @@ fn test_remove_from_index() {
 #[test]
 fn test_index_multiple_blocks_same_page() {
     let tv = create_test_vault();
-    let indexPath = tv.vault_path.join(".pkm").join("search");
-    std::fs::create_dir_all(&indexPath).unwrap();
-    let mut index = BlockIndex::create(&indexPath).unwrap();
+    let index_path = tv.vault_path.join(".pkm").join("search");
+    std::fs::create_dir_all(&index_path).unwrap();
+    let mut index = BlockIndex::create(&index_path).unwrap();
 
     for i in 0..3 {
         let b = make_block(&format!("Block number {}", i));
@@ -80,21 +80,21 @@ fn test_index_multiple_blocks_same_page() {
 #[test]
 fn test_rebuild_index_with_clean_dir() {
     let tv = create_test_vault();
-    let indexPath = tv.vault_path.join(".pkm").join("search");
-    std::fs::create_dir_all(&indexPath).unwrap();
+    let index_path = tv.vault_path.join(".pkm").join("search");
+    std::fs::create_dir_all(&index_path).unwrap();
 
     // Create index and add a block
-    let mut index = BlockIndex::create(&indexPath).unwrap();
+    let mut index = BlockIndex::create(&index_path).unwrap();
     let b = make_block("Initial content");
     index.index_block(&b, "pages/test.md").unwrap();
     index.flush().unwrap();
     drop(index);
 
     // Remove index directory and recreate (simulating full rebuild)
-    std::fs::remove_dir_all(&indexPath).unwrap();
-    std::fs::create_dir_all(&indexPath).unwrap();
+    std::fs::remove_dir_all(&index_path).unwrap();
+    std::fs::create_dir_all(&index_path).unwrap();
 
-    let mut rebuilt = BlockIndex::create(&indexPath).unwrap();
+    let mut rebuilt = BlockIndex::create(&index_path).unwrap();
     let b2 = make_block("New content");
     rebuilt.index_block(&b2, "pages/test.md").unwrap();
     rebuilt.flush().unwrap();
@@ -109,9 +109,9 @@ fn test_rebuild_index_with_clean_dir() {
 #[test]
 fn test_search_limit() {
     let tv = create_test_vault();
-    let indexPath = tv.vault_path.join(".pkm").join("search");
-    std::fs::create_dir_all(&indexPath).unwrap();
-    let mut index = BlockIndex::create(&indexPath).unwrap();
+    let index_path = tv.vault_path.join(".pkm").join("search");
+    std::fs::create_dir_all(&index_path).unwrap();
+    let mut index = BlockIndex::create(&index_path).unwrap();
 
     for i in 0..5 {
         let b = make_block(&format!("Searchable item {}", i));

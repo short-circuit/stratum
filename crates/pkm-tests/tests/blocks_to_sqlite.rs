@@ -1,7 +1,7 @@
 mod common;
 
-use common::{create_test_vault, TestVault};
-use pkm_block::{Block, TaskMarker, Priority};
+use common::create_test_vault;
+use pkm_block::{Block, Priority, TaskMarker};
 
 #[test]
 fn test_insert_and_retrieve_block() {
@@ -16,7 +16,10 @@ fn test_insert_and_retrieve_block() {
 
     assert_eq!(retrieved.content, "Hello world");
     assert_eq!(retrieved.marker, Some(TaskMarker::Todo));
-    assert_eq!(retrieved.properties.get("key").map(|s| s.as_str()), Some("value"));
+    assert_eq!(
+        retrieved.properties.get("key").map(|s| s.as_str()),
+        Some("value")
+    );
 }
 
 #[test]
@@ -97,7 +100,9 @@ fn test_block_count() {
 fn test_insert_link_and_backlinks() {
     let tv = create_test_vault();
     let source = tv.add_block("pages/a.md", "Links to [[other-page]]");
-    tv.store.insert_link(source.id, "page_ref", Some("pages/other.md"), None).unwrap();
+    tv.store
+        .insert_link(source.id, "page_ref", Some("pages/other.md"), None)
+        .unwrap();
 
     let backlinks = tv.store.get_backlinks_for_page("pages/other.md").unwrap();
     assert_eq!(backlinks.len(), 1);
@@ -142,7 +147,9 @@ fn test_delete_links_on_block_delete() {
     let tv = create_test_vault();
     let source = tv.add_block("pages/a.md", "Links to b");
     tv.add_page("pages/b.md");
-    tv.store.insert_link(source.id, "page_ref", Some("pages/b.md"), None).unwrap();
+    tv.store
+        .insert_link(source.id, "page_ref", Some("pages/b.md"), None)
+        .unwrap();
 
     // Delete the source block (CASCADE should remove the link)
     tv.store.delete_block(source.id).unwrap();

@@ -25,9 +25,14 @@ fn test_export_html_creates_files() {
             .and_then(|s| s.to_str())
             .unwrap_or("page");
 
-        let html = format!("<!DOCTYPE html><html><head><title>{}</title></head><body>{}</body></html>",
+        let html = format!(
+            "<!DOCTYPE html><html><head><title>{}</title></head><body>{}</body></html>",
             slug,
-            blocks.iter().map(|b| format!("<p>{}</p>", b.content)).collect::<Vec<_>>().join("\n")
+            blocks
+                .iter()
+                .map(|b| format!("<p>{}</p>", b.content))
+                .collect::<Vec<_>>()
+                .join("\n")
         );
 
         let out_path = export_dir.join(format!("{}.html", slug));

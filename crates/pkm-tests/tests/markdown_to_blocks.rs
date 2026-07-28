@@ -31,9 +31,15 @@ This is a paragraph with **bold** and *italic*.
     assert_eq!(frontmatter.title.as_deref(), Some("Test Page"));
     assert!(!blocks.is_empty(), "should parse blocks");
     assert!(blocks.iter().any(|b| b.meta.heading_level == Some(1)));
-    assert!(blocks.iter().any(|b| b.marker == Some(pkm_block::TaskMarker::Todo)));
-    assert!(blocks.iter().any(|b| b.marker == Some(pkm_block::TaskMarker::Doing)));
-    assert!(blocks.iter().any(|b| b.marker == Some(pkm_block::TaskMarker::Done)));
+    assert!(blocks
+        .iter()
+        .any(|b| b.marker == Some(pkm_block::TaskMarker::Todo)));
+    assert!(blocks
+        .iter()
+        .any(|b| b.marker == Some(pkm_block::TaskMarker::Doing)));
+    assert!(blocks
+        .iter()
+        .any(|b| b.marker == Some(pkm_block::TaskMarker::Done)));
 }
 
 #[test]
@@ -62,16 +68,17 @@ fn test_multiple_headings() {
     tv.create_md_file("pages/headings.md", "# H1\n\n## H2\n\n### H3");
     let content = fs::read_to_string(tv.vault_path.join("pages/headings.md")).unwrap();
     let (_, _body, blocks) = pkm_markdown::block_parser::parse_document(&content);
-    let heading_levels: Vec<u8> = blocks.iter()
-        .filter_map(|b| b.meta.heading_level)
-        .collect();
+    let heading_levels: Vec<u8> = blocks.iter().filter_map(|b| b.meta.heading_level).collect();
     assert_eq!(heading_levels, vec![1, 2, 3]);
 }
 
 #[test]
 fn test_wiki_links_extracted() {
     let tv = create_test_vault();
-    tv.create_md_file("pages/links.md", "See [[Target Page]] and [[Other Page|display text]].");
+    tv.create_md_file(
+        "pages/links.md",
+        "See [[Target Page]] and [[Other Page|display text]].",
+    );
     let content = fs::read_to_string(tv.vault_path.join("pages/links.md")).unwrap();
     let links = pkm_markdown::linker::extract_links(&content);
     assert_eq!(links.len(), 2);
@@ -83,7 +90,10 @@ fn test_wiki_links_extracted() {
 #[test]
 fn test_tags_extracted() {
     let tv = create_test_vault();
-    tv.create_md_file("pages/tags.md", "---\ntags: [frontmatter-tag]\n---\nThis is about #machine-learning and #rust.");
+    tv.create_md_file(
+        "pages/tags.md",
+        "---\ntags: [frontmatter-tag]\n---\nThis is about #machine-learning and #rust.",
+    );
     let content = fs::read_to_string(tv.vault_path.join("pages/tags.md")).unwrap();
     let (fm, _body, _blocks) = pkm_markdown::block_parser::parse_document(&content);
     let tags = pkm_markdown::tagger::extract_tags(&content, &fm);

@@ -42,7 +42,8 @@ fn test_list_templates_multiple() {
         std::fs::write(template_dir.join(name), format!("# {} template", name)).unwrap();
     }
 
-    let mut names: Vec<String> = std::fs::read_dir(&template_dir).unwrap()
+    let mut names: Vec<String> = std::fs::read_dir(&template_dir)
+        .unwrap()
         .filter_map(|e| e.ok())
         .map(|e| e.file_name().to_string_lossy().to_string())
         .collect();
