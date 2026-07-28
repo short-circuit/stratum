@@ -4554,6 +4554,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "pkm-tests"
+version = "0.6.0"
+dependencies = [
+ "chrono",
+ "pkm-ai",
+ "pkm-block",
+ "pkm-core",
+ "pkm-index",
+ "pkm-markdown",
+ "pkm-query",
+ "pkm-sync",
+ "pretty_assertions",
+ "pulldown-cmark",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "pkm-watcher"
 version = "0.6.0"
 dependencies = [
@@ -5898,6 +5918,7 @@ dependencies = [
  "pkm-query",
  "pkm-sync",
  "pkm-watcher",
+ "pretty_assertions",
  "pulldown-cmark",
  "reqwest 0.12.28",
  "serde",
@@ -5908,6 +5929,7 @@ dependencies = [
  "tauri-plugin-android-fs",
  "tauri-plugin-dialog",
  "tauri-plugin-log",
+ "tempfile",
  "tokio",
  "tracing",
  "uuid",

@@ -37,3 +37,7 @@ reqwest.workspace = true
 gix.workspace = true
 dirs.workspace = true
 tauri-plugin-android-fs = "28"
+
+[dev-dependencies]
+tempfile.workspace = true
+pretty_assertions = { workspace = true }
