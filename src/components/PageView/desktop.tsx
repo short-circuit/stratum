@@ -23,7 +23,6 @@ export default function PageViewDesktop() {
     if (!currentPage) return;
     try {
       await api.normalizeFile(currentPage.path);
-      console.log('File normalized:', currentPage.path);
     } catch (e) {
       console.error('Normalize failed:', e);
       useStore.setState({ error: String(e) });

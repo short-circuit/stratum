@@ -48,7 +48,6 @@ export function useWhiteboardPanel(): WhiteboardPanelState {
         const personalItems = personal ? JSON.parse(personal) : [];
         const extraItems = extra ? JSON.parse(extra) : [];
         const merged = [...personalItems, ...extraItems];
-        console.log('[library] loaded from disk, items:', merged.length);
         const restored = restoreLibraryItems(merged, 'published');
         setLibraryItems(restored);
       } catch (e) {
@@ -152,7 +151,6 @@ export function useWhiteboardPanel(): WhiteboardPanelState {
     setLibraryItems(items);
     try {
       await api.saveLibrary(json);
-      console.log('[library] saved', items.length, 'items');
     } catch (e) {
       console.error('[library] save failed:', e);
     }
@@ -160,7 +158,6 @@ export function useWhiteboardPanel(): WhiteboardPanelState {
 
   // Auto-save whenever Excalidraw's library changes (with empty guard)
   const handleLibraryChange = useCallback((items: LibraryItems) => {
-    console.log('[library] onChange', items.length, 'items');
     saveLibraryItems(items);
   }, [saveLibraryItems]);
 

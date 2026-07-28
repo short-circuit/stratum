@@ -95,7 +95,6 @@ export function parseContentToInlineItems(text: string): InlineItem[] {
         continue;
       }
       const tagName = m[13];
-      console.log('[wikiLinks] parsed #tag:', m[12], '→ href:', TAG_PREFIX + tagName);
       items.push({
         type: 'link',
         href: TAG_PREFIX + tagName,
