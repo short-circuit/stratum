@@ -152,7 +152,12 @@ const GraphCanvas = memo(function GraphCanvas({
       rafId = requestAnimationFrame(sync);
       const im = instancedMeshRef.current;
       if (!im || !fg) return;
-      const syncNodes: GraphNode[] = (fg as any).graphData().nodes || nodes;
+      let syncNodes: GraphNode[];
+      try {
+        syncNodes = (fg as any).graphData().nodes || nodes;
+      } catch {
+        syncNodes = nodes;
+      }
       const syncCount = Math.min(im.count, syncNodes.length);
       for (let i = 0; i < syncCount; i++) {
         const nn = syncNodes[i];
@@ -166,7 +171,7 @@ const GraphCanvas = memo(function GraphCanvas({
     };
     rafId = requestAnimationFrame(sync);
     return () => cancelAnimationFrame(rafId);
-  }, [nodes, graphRef]);
+  }, [nodes, refreshKey, graphRef]);
 
   // Build the InstancedMesh from current node data
   useEffect(() => {
@@ -189,7 +194,7 @@ const GraphCanvas = memo(function GraphCanvas({
 
     const count = fgNodes.length;
     const geometry = new THREE.SphereGeometry(1, 16, 16);
-    const material = new THREE.MeshBasicMaterial();
+    const material = new THREE.MeshBasicMaterial({ vertexColors: true });
     const mesh = new THREE.InstancedMesh(geometry, material, count);
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     mesh.frustumCulled = false;
@@ -211,7 +216,7 @@ const GraphCanvas = memo(function GraphCanvas({
 
     scene.add(mesh);
     instancedMeshRef.current = mesh;
-  }, [nodes, graphRef]);
+  }, [nodes, refreshKey, graphRef]);
 
   // ── Per-node object (invisible hit target + label) ───────────────
   // The InstancedMesh handles visual spheres. nodeThreeObject returns
