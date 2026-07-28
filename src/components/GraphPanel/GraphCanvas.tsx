@@ -21,7 +21,7 @@ interface GraphDataProp {
   links: any[];
 }
 
-// Vibrant palette optimised for dark backgrounds — high saturation, 65-75% lightness
+// Vibrant palette — high saturation, 65-75% lightness, optimized for dark backgrounds
 const NODE_PALETTE = [
   '#fbbf24', // amber
   '#60a5fa', // blue
@@ -33,15 +33,18 @@ const NODE_PALETTE = [
   '#e879f9', // fuchsia
 ];
 
-// Visible warm colour for untagged or low-degree nodes (pops against #1a1a2e)
-const UNTAGGED_COLOR = '#d4a574';
+/// Deterministic palette index from a string — used so each node keeps its colour across re-renders.
+function paletteIndex(s: string): number {
+  return s.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % NODE_PALETTE.length;
+}
 
 function nodeColor(n: GraphNode): string {
-  const fromTags = n.tags.length > 0;
-  if (!fromTags) return UNTAGGED_COLOR;
-  // Pick palette entry by tag hash so the colour is deterministic per tag
-  const idx = n.tags[0].split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % NODE_PALETTE.length;
-  return NODE_PALETTE[idx];
+  if (n.tags.length > 0) {
+    // Tagged nodes get a colour derived from their first tag (consistent per tag name)
+    return NODE_PALETTE[paletteIndex(n.tags[0])];
+  }
+  // Untagged nodes get a colour derived from their id so every node looks distinct
+  return NODE_PALETTE[paletteIndex(n.id)];
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
