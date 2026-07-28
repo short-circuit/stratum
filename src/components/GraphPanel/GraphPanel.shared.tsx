@@ -192,8 +192,7 @@ export function useGraphPanel(): UseGraphPanelReturn {
       setLayoutPositions(map);
       worker.terminate();
     };
-    worker.onerror = (err) => {
-      console.warn('[GraphPanel] layout worker error:', err);
+    worker.onerror = () => {
       worker.terminate();
     };
     return () => {
@@ -213,8 +212,8 @@ export function useGraphPanel(): UseGraphPanelReturn {
       if (charge) charge.strength(graphSettings.charge_strength);
       const link = g.d3Force('link');
       if (link) link.distance(graphSettings.link_distance);
-    } catch (e) {
-      console.warn('[GraphPanel] force config:', e);
+    } catch {
+      // d3 force config may fail if graph doesn't support the force type
     }
   }, [graphData, graphSettings.charge_strength, graphSettings.link_distance]);
 
