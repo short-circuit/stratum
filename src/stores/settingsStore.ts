@@ -126,9 +126,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           graph: { ...DEFAULT_GRAPH, ...result.graph },
           sync: { ...DEFAULT_SYNC_SETTINGS, ...result.sync },
           // research is only merged if it exists in the response
-          research: (result as any).research
-            ? { ...DEFAULT_RESEARCH, ...(result as any).research }
-            : DEFAULT_RESEARCH,
+          research: result.research ? { ...DEFAULT_RESEARCH, ...result.research } : DEFAULT_RESEARCH,
         },
         loading: false,
       });
