@@ -21,6 +21,7 @@ pub struct VaultState {
     pub sync_scheduler: Option<pkm_sync::SyncScheduler>,
     pub auto_commit_engine: Option<pkm_sync::AutoCommitEngine>,
     pub passphrase: Option<String>,
+    #[cfg(not(target_os = "android"))]
     pub watcher: Option<pkm_watcher::FileWatcher>,
     pub watcher_last_save: SystemTime,
     indexing_in_progress: AtomicBool,
@@ -43,6 +44,7 @@ impl VaultState {
             sync_scheduler: None,
             auto_commit_engine: None,
             passphrase: None,
+            #[cfg(not(target_os = "android"))]
             watcher: None,
             watcher_last_save: SystemTime::UNIX_EPOCH,
             indexing_in_progress: AtomicBool::new(false),
