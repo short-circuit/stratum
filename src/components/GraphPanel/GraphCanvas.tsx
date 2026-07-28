@@ -141,7 +141,7 @@ const GraphCanvas = memo(function GraphCanvas({
       rafId = requestAnimationFrame(sync);
       const im = instancedMeshRef.current;
       if (!im || !fg) return;
-      const syncNodes: GraphNode[] = fg.graphData().nodes || [];
+      const syncNodes: GraphNode[] = nodes;
       const syncCount = Math.min(im.count, syncNodes.length);
       for (let i = 0; i < syncCount; i++) {
         const nn = syncNodes[i];
@@ -155,7 +155,7 @@ const GraphCanvas = memo(function GraphCanvas({
     };
     rafId = requestAnimationFrame(sync);
     return () => cancelAnimationFrame(rafId);
-  }, []);
+  }, [nodes]);
 
   // InstancedMesh — single draw call for all nodes
   useEffect(() => {
@@ -173,7 +173,7 @@ const GraphCanvas = memo(function GraphCanvas({
       instancedMeshRef.current = null;
     }
 
-    const fgNodes: GraphNode[] = (fg.graphData().nodes as GraphNode[]) || [];
+    const fgNodes: GraphNode[] = nodes;
     if (fgNodes.length === 0) return;
 
     const count = fgNodes.length;
