@@ -7,6 +7,7 @@ import {
 } from '@blocknote/react';
 import { useAbortableInvoke } from '../lib/hooks/useAbortableInvoke';
 import type { AiTransformResult, ResearchResult } from '../lib/types';
+import { createMermaidBlock } from '../lib/mermaidBlock';
 import AILoadingOverlay from './ui/AILoadingOverlay';
 
 export default function AIFormattingToolbar() {
@@ -98,7 +99,7 @@ export default function AIFormattingToolbar() {
                   if (code.trim()) {
                     const pos = editor.getTextCursorPosition();
                     editor.insertBlocks(
-                      [{ type: 'mermaid' as any, props: { language: 'mermaid' }, content: [{ type: 'text', text: code, styles: {} }] }],
+                      [createMermaidBlock(code)],
                       pos.block,
                       'after',
                     );

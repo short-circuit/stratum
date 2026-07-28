@@ -197,9 +197,9 @@ function createPlugin(
  * Force a refresh of marker decorations without changing the document.
  * Call this after updating blockMetaRef from toggle/clear operations.
  */
-export function refreshMarkerDecorations(editor: unknown): void {
+export function refreshMarkerDecorations(editor: import('@blocknote/core').BlockNoteEditor<any, any, any> | null | undefined): void {
   try {
-    const te = (editor as any)._tiptapEditor as
+    const te = editor?._tiptapEditor as
       | { view?: { dispatch?: (tr: import('prosemirror-state').Transaction) => void }; state?: import('prosemirror-state').EditorState; isDestroyed?: boolean }
       | undefined;
     if (te && !te.isDestroyed && te.view?.dispatch && te.state) {
@@ -215,7 +215,7 @@ export function refreshMarkerDecorations(editor: unknown): void {
  * Follows the same pattern as useMathInline.tsx.
  */
 export function useMarkerDecorations(
-  editor: unknown,
+  editor: import('@blocknote/core').BlockNoteEditor<any, any, any> | null | undefined,
   enabled: boolean,
   blockMetaRef: React.MutableRefObject<Map<string, BlockMeta>>,
   onToggle: (id: string) => void,
@@ -226,7 +226,7 @@ export function useMarkerDecorations(
 
     const tryAdd = setInterval(() => {
       try {
-        const te = (editor as any)._tiptapEditor as
+        const te = editor?._tiptapEditor as
           | { registerPlugin?: (p: Plugin) => void; isDestroyed?: boolean; state: import('prosemirror-state').EditorState }
           | undefined;
         if (!te || te.isDestroyed) return;
