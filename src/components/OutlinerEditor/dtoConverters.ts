@@ -116,7 +116,7 @@ export function blockNoteToDto(blockNoteBlocks: any[], metaMap: Map<string, Bloc
         marker: meta.marker,
         priority: meta.priority,
         collapsed: false,
-        heading_level: b.type === 'heading' ? (b.props as any)?.level ?? null : null,
+        heading_level: b.type === 'heading' ? b.props?.level ?? null : null,
       });
       if (b.children?.length) walk(b.children, id);
       prevId = id;
