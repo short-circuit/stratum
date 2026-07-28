@@ -8,6 +8,7 @@ import {
 import { filterSuggestionItems } from '@blocknote/core';
 import { useAbortableInvoke } from '../lib/hooks/useAbortableInvoke';
 import type { AiAction, AiTransformResult, ResearchResult } from '../lib/types';
+import { createMermaidBlock } from '../lib/mermaidBlock';
 import AILoadingOverlay from './ui/AILoadingOverlay';
 import MathEditorModal from './MathEditorModal';
 
@@ -256,7 +257,7 @@ export default function AISlashMenu({ pagePath }: Props) {
           if (code.trim()) {
             const pos = editor.getTextCursorPosition();
             editor.insertBlocks(
-              [{ type: 'mermaid' as any, props: { language: 'mermaid' }, content: [{ type: 'text', text: code, styles: {} }] }],
+              [createMermaidBlock(code)],
               pos.block,
               'after',
             );

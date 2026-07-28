@@ -116,7 +116,7 @@ export default function OutlinerEditorMobile(props: Props) {
     (type: string, level?: number) => {
       setInsertAnchor(null);
       if (!editor) return;
-      const ed = editor as any;
+      const ed = editor;
       const block = ed.createBlock();
       if (type === 'heading') {
         block.type = 'heading';
@@ -139,7 +139,7 @@ export default function OutlinerEditorMobile(props: Props) {
   const insertMath = useCallback(() => {
     setInsertAnchor(null);
     if (!editor) return;
-    const view = (editor as any)?.prosemirrorView;
+    const view = editor?.prosemirrorView;
     if (view) {
       const pos = view.state.selection.from;
       setMathEdit({ latex: '', pos });
@@ -153,7 +153,7 @@ export default function OutlinerEditorMobile(props: Props) {
     (marker: string) => {
       setMarkerAnchor(null);
       if (!editor) return;
-      const ed = editor as any;
+      const ed = editor;
       const sel = ed.getSelection();
       if (!sel) return;
       const block = sel[0];
@@ -175,7 +175,7 @@ export default function OutlinerEditorMobile(props: Props) {
       if (!contextMenu || !editor) return;
       const { blockId } = contextMenu;
       setContextMenu(null);
-      const ed = editor as any;
+      const ed = editor;
       switch (action) {
         case 'delete':
           ed.removeBlocks([blockId]);
@@ -517,9 +517,7 @@ export default function OutlinerEditorMobile(props: Props) {
             const pos = mathEdit.pos;
             setMathEdit(null);
             if (!latex.trim()) return;
-            const view = (
-              editor as any
-            )?.prosemirrorView as import('prosemirror-view').EditorView | undefined;
+            const view = editor?.prosemirrorView;
             if (!view) return;
             const text = `$${latex}$`;
             const tr = view.state.tr.replaceWith(

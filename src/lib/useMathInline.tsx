@@ -59,12 +59,12 @@ function createPlugin() {
   });
 }
 
-export function useMathInline(editor: unknown, enabled: boolean) {
+export function useMathInline(editor: import('@blocknote/core').BlockNoteEditor<any, any, any> | null | undefined, enabled: boolean) {
   useEffect(() => {
     if (!enabled || !editor) return;
 
     const tryAdd = setInterval(() => {
-      const te = (editor as any)._tiptapEditor as
+      const te = editor?._tiptapEditor as
         | { registerPlugin?: (p: Plugin) => void; isDestroyed?: boolean; state: unknown }
         | undefined;
       if (!te || te.isDestroyed) return;

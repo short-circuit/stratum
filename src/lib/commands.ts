@@ -234,6 +234,11 @@ export async function getSettings(): Promise<{
   };
   graph: GraphSettings;
   sync: SyncSettings;
+  research?: {
+    searxng_endpoint: string;
+    max_results: number;
+    max_depth: number;
+  };
 }> {
   return invoke('get_settings');
 }

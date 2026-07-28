@@ -285,14 +285,14 @@ export function useEditorData(
   useEffect(() => {
     if (!editor || status !== 'ready' || !autoFocus) return;
     requestAnimationFrame(() => {
-      (editor as any)?.prosemirrorView?.focus();
+      editor?.prosemirrorView?.focus();
     });
   }, [editor, status, autoFocus]);
 
   // -----------------------------------------------------------------------
   // Inline KaTeX rendering via ProseMirror decorations
   // -----------------------------------------------------------------------
-  useMathInline(editor as any, status === 'ready');
+  useMathInline(editor, status === 'ready');
 
   // Double-click on rendered math to open the editor modal
   useEffect(() => {

@@ -210,9 +210,7 @@ export default function OutlinerEditorDesktop(props: Props) {
               const pos = mathEdit.pos;
               setMathEdit(null);
               if (!latex.trim()) return;
-              const view = (
-                editor as any
-              )?.prosemirrorView as import('prosemirror-view').EditorView | undefined;
+              const view = editor?.prosemirrorView;
               if (!view) return;
               const text = `$${latex}$`;
               const tr = view.state.tr.replaceWith(

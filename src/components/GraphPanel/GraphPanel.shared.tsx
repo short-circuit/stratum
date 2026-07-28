@@ -206,7 +206,7 @@ export function useGraphPanel(): UseGraphPanelReturn {
   // Works with both ForceGraph2D and ForceGraph3D refs (both expose d3Force).
   useEffect(() => {
     if (!graphRef.current || !graphData) return;
-    const g = graphRef.current as any;
+      const g = graphRef.current;
     try {
       const charge = g.d3Force('charge');
       if (charge) charge.strength(graphSettings.charge_strength);
@@ -349,7 +349,7 @@ export function useGraphPanel(): UseGraphPanelReturn {
     (node: GraphNode) => {
       if (!graphRef.current || node.x === undefined || node.y === undefined) return;
       const cam = graphRef.current.camera();
-      const controls = graphRef.current.controls() as any;
+      const controls = graphRef.current.controls() as { target?: { x: number; y: number; z: number } };
       const target = { x: node.x, y: node.y, z: node.z || 0 };
       const lookAt = controls?.target || { x: 0, y: 0, z: 0 };
       graphRef.current.cameraPosition(
