@@ -12,7 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
-    "test:e2e:real": "playwright test --config e2e/playwright.real.config.ts",
+    "test:e2e:real": "node e2e/real/test.mjs",
     "tauri": "tauri",
     "tauri:dev": "WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 tauri dev",
     "tauri:dev:x11": "WEBKIT_DISABLE_DMABUF_RENDERER=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 GDK_BACKEND=x11 tauri dev",
@@ -74,6 +74,7 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.9",
+    "webdriver": "^9.30.0"
   }
 }
