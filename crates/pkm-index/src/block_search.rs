@@ -52,15 +52,36 @@ impl BlockIndex {
                 .map_err(|e| PkmError::Index(format!("Failed to create block index: {}", e)))?
         };
 
-        let writer = index
-            .writer(50_000_000)
-            .map_err(|e| PkmError::Index(format!("Failed to create block writer: {}", e)))?;
+        let writer = Self::create_writer(&index, &dir)?;
 
         Ok(Self {
             index,
             schema,
             writer: Some(writer),
         })
+    }
+
+    /// Create an IndexWriter, retrying once if the lock is stale.
+    fn create_writer(index: &Index, dir: &Path) -> PkmResult<IndexWriter> {
+        let attempt = || -> PkmResult<IndexWriter> {
+            index
+                .writer(50_000_000)
+                .map_err(|e| PkmError::Index(format!("Failed to create block writer: {e}")))
+        };
+        match attempt() {
+            Ok(w) => Ok(w),
+            Err(e) if e.to_string().contains("LockBusy") => {
+                // stale lock from a previous crash — clear it and retry
+                let lock_path = dir.join(".tantivy-lock");
+                if lock_path.exists() {
+                    tracing::warn!("Removing stale Tantivy lock at {:?}", lock_path);
+                    let _ = std::fs::remove_file(&lock_path);
+                }
+                tracing::info!("Retrying BlockIndex writer creation after lock cleanup");
+                attempt()
+            }
+            Err(e) => Err(e),
+        }
     }
 
     /// Open an existing block index for read-only access (no writer).
