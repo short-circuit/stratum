@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './specs',
+  testDir: './specs/real',
   timeout: 60000,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
@@ -10,12 +10,5 @@ export default defineConfig({
   use: {
     baseURL: 'tauri://localhost',
     headless: true,
-  },
-  // tauri-driver provides the WebDriver server on port 4444
-  webServer: {
-    command: 'tauri-driver',
-    port: 4444,
-    reuseExistingServer: !process.env.CI,
-    timeout: 30000,
   },
 });
