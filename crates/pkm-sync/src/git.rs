@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use gix::bstr::{ByteSlice, ByteVec};
 use pkm_core::{PkmError, PkmResult};
 use std::ops::BitOr;
+#[cfg(not(windows))]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
@@ -394,6 +395,7 @@ impl GitEngine {
 
         std::fs::write(&path, &script)
             .map_err(|e| PkmError::Git(format!("write askpass script: {e}")))?;
+        #[cfg(not(windows))]
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700))
             .map_err(|e| PkmError::Git(format!("chmod askpass script: {e}")))?;
 
