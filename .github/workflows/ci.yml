@@ -69,7 +69,7 @@ jobs:
       - name: Run E2E tests
         run: npm run test:e2e
 
-  # ── Real E2E (tauri-driver, manual trigger only — requires display server) ──
+  # ── Real E2E (tauri-driver, manual trigger only) ──────────────────
   e2e-real:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -80,7 +80,6 @@ jobs:
       - name: Install Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          components: clippy, rustfmt
           cache: false
 
       - name: Cache Rust dependencies
@@ -92,24 +91,25 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install Linux dependencies
+      - name: Install Linux deps (webkit, gtk, xvfb)
         uses: ./.github/actions/install-linux-deps
+      - name: Install xvfb
+        run: sudo apt-get install -y xvfb
 
-      - name: Install frontend dependencies
+      - name: Install frontend deps
         run: npm ci
 
       - name: Build frontend
         run: npm run build
 
-      - name: Build Tauri app (debug)
+      - name: Build Tauri app
         run: cargo build -p stratum-tauri
 
       - name: Install tauri-driver
         run: cargo install tauri-driver
 
       - name: Run real E2E tests
-        run: |
-          xvfb-run -a bash e2e/real/run.sh
+        run: xvfb-run -a bash e2e/real/run.sh
 
   # ── Frontend build (tag only, decoupled from test for parallelism) ──
   frontend:

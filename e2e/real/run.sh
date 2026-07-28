@@ -1,13 +1,31 @@
 #!/bin/bash
 # Real E2E test runner for Stratum PKM
 # Builds the app, starts tauri-driver, runs WebDriver tests
+# Works both locally and in CI (uses GITHUB_WORKSPACE or script location)
 set -euo pipefail
 
 export PATH="$HOME/.cargo/bin:$PATH"
 
-STRATUM_DIR="$HOME/stratum"
-APP_BINARY="$STRATUM_DIR/src-tauri/target/debug/stratum-tauri"
+# Determine workspace root (works in CI and locally)
+if [ -n "${GITHUB_WORKSPACE:-}" ]; then
+  STRATUM_DIR="$GITHUB_WORKSPACE"
+else
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  STRATUM_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+fi
+
+APP_BINARY="$STRATUM_DIR/target/debug/stratum-tauri"
 TEST_SCRIPT="$STRATUM_DIR/e2e/real/test.mjs"
+
+# Find WebKitWebDriver (Ubuntu: /usr/lib/*/webkit2gtk-*/WebKitWebDriver, Arch: /usr/lib/webkit2gtk-4.1/WebKitWebDriver)
+WEBKIT_DRIVER=$(find /usr/lib -name "WebKitWebDriver" -type f 2>/dev/null | head -1 || true)
+if [ -z "$WEBKIT_DRIVER" ]; then
+  echo "❌ WebKitWebDriver not found. Install webkit2gtk-4.1-dev (Ubuntu) or webkit2gtk (Arch)."
+  echo "   Ubuntu: sudo apt install libwebkit2gtk-4.1-dev"
+  echo "   Arch:   sudo pacman -S webkit2gtk-4.1"
+  exit 1
+fi
+echo "✅ WebKitWebDriver: $WEBKIT_DRIVER"
 
 cleanup() {
   echo "=== Cleanup ==="
@@ -18,6 +36,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 echo "=== Stratum Real E2E Test Runner ==="
+echo "Workspace: $STRATUM_DIR"
 echo "App: $APP_BINARY"
 echo "Test: $TEST_SCRIPT"
 
@@ -33,9 +52,9 @@ xvfb-run -a "$APP_BINARY" &
 APP_PID=$!
 sleep 3
 
-# Start tauri-driver
-echo "Starting tauri-driver..."
-tauri-driver --port 4444 &
+# Start tauri-driver with WebKitWebDriver path
+echo "Starting tauri-driver on port 4444..."
+tauri-driver --port 4444 --native-driver "$WEBKIT_DRIVER" &
 TAURI_DRIVER_PID=$!
 sleep 2
 
