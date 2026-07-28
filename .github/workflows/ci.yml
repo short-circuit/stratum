@@ -109,9 +109,7 @@ jobs:
 
       - name: Run real E2E tests
         run: |
-          xvfb-run -a npm run test:e2e:real
-        env:
-          STRATUM_E2E_REAL: 1
+          xvfb-run -a bash e2e/real/run.sh
 
   # ── Frontend build (tag only, decoupled from test for parallelism) ──
   frontend:
