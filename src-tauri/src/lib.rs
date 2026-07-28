@@ -94,6 +94,7 @@ pub fn run() {
                     }
 
                     // ── File watcher ──────────────────────────────────────
+                    #[cfg(not(target_os = "android"))]
                     if config.watcher.enabled {
                         let app_handle = app.handle().clone();
                         let vault_path_clone = vault_path.clone();
