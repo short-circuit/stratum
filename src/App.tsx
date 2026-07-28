@@ -39,15 +39,11 @@ getCurrentWindow().onCloseRequested(async (event: CloseRequestedEvent) => {
     json = localStorage.getItem('stratum-library');
   }
   if (json) {
-    console.log('[library] saving on app close, length:', json.length);
     try {
       await api.saveLibrary(json);
-      console.log('[library] saved on app close');
     } catch (e) {
       console.error('[library] failed to save on app close:', e);
     }
-  } else {
-    console.log('[library] nothing to save on close');
   }
   // Manually close after save completes
   getCurrentWindow().destroy();

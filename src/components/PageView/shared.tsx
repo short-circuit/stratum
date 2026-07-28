@@ -54,7 +54,6 @@ export function usePageView(): PageViewState {
       const result = await api.reindexPage(currentPage.path);
       setEditorKey(k => k + 1);
       if (result.succeeded > 0) {
-        console.log('Reindex succeeded:', result);
         useStore.setState({ error: `Reindexed page — ${result.succeeded} block(s)` });
         setTimeout(() => useStore.setState({ error: null }), 2000);
       } else if (result.failed > 0) {

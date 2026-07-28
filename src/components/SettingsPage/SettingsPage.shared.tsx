@@ -221,7 +221,6 @@ export function useSettingsPage() {
       if (result.failed > 0) {
         setMsg(`Reindexed: ${result.succeeded} ok, ${result.failed} failed out of ${result.processed}`);
         setMsgSeverity('error');
-        console.warn('Reindex errors:', result.errors);
       } else {
         setMsg(`Reindexed ${result.succeeded} pages.`);
       }
