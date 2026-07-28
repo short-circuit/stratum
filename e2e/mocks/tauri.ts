@@ -1,12 +1,9 @@
 import type { Page } from '@playwright/test';
 import type {
-  VaultInfo,
   PageDto,
-  PageListDto,
   BlockDto,
   BlockListDto,
   SearchResultDto,
-  SearchResultsDto,
   BacklinkItem,
   ConnectionSuggestion,
   SyncStatusDto,
@@ -16,7 +13,6 @@ import type {
   GraphEdgeDto,
   AutocompleteItem,
   KanbanBlockDto,
-  KanbanDataDto,
 } from '../../src/lib/types';
 
 // ---------------------------------------------------------------------------

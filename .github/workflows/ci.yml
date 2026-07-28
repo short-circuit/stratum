@@ -69,6 +69,50 @@ jobs:
       - name: Run E2E tests
         run: npm run test:e2e
 
+  # ── Real E2E (tauri-driver, runs on every push/PR) ──────────────────
+  e2e-real:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy, rustfmt
+          cache: false
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Linux dependencies
+        uses: ./.github/actions/install-linux-deps
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build Tauri app (debug)
+        run: cargo build -p stratum-tauri
+
+      - name: Install tauri-driver
+        run: cargo install tauri-driver
+
+      - name: Run real E2E tests
+        run: |
+          xvfb-run -a npm run test:e2e:real
+        env:
+          STRATUM_E2E_REAL: 1
+
   # ── Frontend build (tag only, decoupled from test for parallelism) ──
   frontend:
     if: startsWith(github.ref, 'refs/tags/v')
