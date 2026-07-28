@@ -97,7 +97,7 @@ export function useJournalPanel() {
         setJournalError(String(err));
         setJournalLoading(false);
       });
-  }, [pages.length, todayExists, loadPages]);
+  }, [pages, todayExists, loadPages]);
 
   useEffect(() => {
     ensureJournal();
