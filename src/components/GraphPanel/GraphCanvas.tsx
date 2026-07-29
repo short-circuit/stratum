@@ -69,13 +69,16 @@ const GraphCanvas = memo(function GraphCanvas({
     // Deterministic from node ID to prevent jumping on refresh
     d.nodes.forEach((n: any) => {
       if (n.z === undefined || n.z === 0) {
-        n.z = ((n.id || '').split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0) % 60) - 30;
+        const zh = (n.id || '').split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0);
+        n.z = ((zh * 7 + 13) % 120) - 60;
       }
       if (n.x === undefined) {
-        n.x = ((n.id || '').split('').reduce((a: number, c: string) => a + c.charCodeAt(0) * 3, 0) % 60) - 30;
+        const xh = (n.id || '').split('').reduce((a: number, c: string) => a + c.charCodeAt(0) * 3, 0);
+        n.x = ((xh * 11 + 7) % 120) - 60;
       }
       if (n.y === undefined) {
-        n.y = ((n.id || '').split('').reduce((a: number, c: string) => a + c.charCodeAt(0) * 7, 0) % 60) - 30;
+        const yh = (n.id || '').split('').reduce((a: number, c: string) => a + c.charCodeAt(0) * 7, 0);
+        n.y = ((yh * 13 + 3) % 120) - 60;
       }
     });
     const byId = new Map(d.nodes.map((n: any) => [n.id, n]));
@@ -257,8 +260,8 @@ const GraphCanvas = memo(function GraphCanvas({
           enableNavigationControls={true}
           controlType="trackball"
           showNavInfo={false}
-          warmupTicks={100}
-          cooldownTicks={50}
+          warmupTicks={300}
+          cooldownTicks={100}
         />
       ) : !loading && !error ? (
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>

@@ -319,6 +319,8 @@ pub async fn reindex_vault(
     });
     info!("Reindexed {} pages ({} failed)", processed, failed);
     state.finish_indexing();
+    // Invalidate graph cache so fresh data is served
+    crate::commands::graph::invalidate_graph_cache();
     Ok(super::ReindexResult {
         processed: processed as usize,
         succeeded: succeeded as usize,
@@ -699,6 +701,8 @@ pub async fn normalize_all_files(
 
     info!("Normalized {} files", count);
     state.finish_indexing();
+    // Invalidate graph cache so fresh data is served
+    crate::commands::graph::invalidate_graph_cache();
     Ok(count)
 }
 
