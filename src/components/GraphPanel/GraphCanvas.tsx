@@ -22,7 +22,8 @@ function nodeColor(n: any): string {
   return PALETTE[key.split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0) % PALETTE.length];
 }
 
-const DEFAULT_SETTINGS = {
+// eslint-disable-next-line react-refresh/only-export-components
+export const DEFAULT_SETTINGS = {
   show_connected: true, show_orphaned: true, show_tags: true,
   charge_strength: -30, link_distance: 50, alpha_decay: 0.15,
   velocity_decay: 0.4, link_curvature: 0.15, node_cap: 0,
