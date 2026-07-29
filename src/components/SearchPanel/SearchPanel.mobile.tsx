@@ -16,9 +16,8 @@ const SearchPanelMobile = memo(function SearchPanelMobile() {
   const { query, setQuery, results, searching, indexing, indexMsg, handleSearch, doReindex } = useSearchPanel();
 
   return (
-    <Box sx={{ height: '100%', overflow: 'auto' }}>
-      <Box sx={{ p: 2 }}>
-        <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+    <Box sx={{ p: 2 }}>
+      <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
         <TextField
           size="small"
           placeholder="Search blocks..."
@@ -57,7 +56,6 @@ const SearchPanelMobile = memo(function SearchPanelMobile() {
           <Typography variant="body2" color="text.secondary">No results found.</Typography>
         )}
       </List>
-      </Box>
     </Box>
   );
 });

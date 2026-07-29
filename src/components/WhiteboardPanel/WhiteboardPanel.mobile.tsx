@@ -100,7 +100,7 @@ export default function WhiteboardPanelMobile() {
             <Chip label="Unsaved" size="small" color="warning" variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
           )}
         </Box>
-        <Box sx={{ flex: 1, position: 'relative', minHeight: 0 }}>
+        <Box sx={{ flex: 1, position: 'relative', minHeight: 0, height: '100%' }}>
           <Excalidraw
             key={activeBoard}
             theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
