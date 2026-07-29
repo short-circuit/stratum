@@ -49,6 +49,8 @@ export interface UseGraphPanelReturn {
   graphDataProp: { nodes: GraphNode[]; links: { source: string; target: string }[] };
   /** Whether a node cap is actively limiting rendered nodes. */
   nodeCapActive: boolean;
+  /** Pre-computed layout positions from Web Worker. */
+  layoutPositions: Map<string, { x: number; y: number; z: number }>;
   /** Node count before node_cap was applied (for the warning banner). */
   preCapNodeCount: number;
   /** Whether progressive rendering is still revealing node batches. */
@@ -321,7 +323,8 @@ export function useGraphPanel(): UseGraphPanelReturn {
     }
     const nodes = filteredNodes.map((n) => {
       const pos = layoutPositions.get(n.id);
-      if (pos) return { ...n, x: pos.x, y: pos.y, z: pos.z };
+      // Only use x,y from worker — preserve original z to maintain 3D spread
+      if (pos) return { ...n, x: pos.x, y: pos.y };
       return n;
     });
     return { nodes, links };
