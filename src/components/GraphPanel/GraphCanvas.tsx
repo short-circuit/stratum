@@ -50,6 +50,7 @@ const GraphCanvas = memo(function GraphCanvas({
   const [hlRaw, setHlRaw] = useState<any>(null); // hovered node
   const hlNode = hlRaw as any;
   const tweenRef = useRef<number | null>(null);
+  const initialZRef = useRef<Map<string, number>>(new Map());
 
   // Cancel any ongoing camera lerp
   const cancelLerp = useCallback(() => {
@@ -67,7 +68,7 @@ const GraphCanvas = memo(function GraphCanvas({
       links: graphDataProp.links.map((l: any) => ({ ...l })),
     };
     // Seed deterministic positions from node ID to ensure initial 3D spread.
-    // Also store _initZ so we can restore z-spread during simulation.
+    // Seed deterministic positions from node ID to ensure initial 3D spread.
     d.nodes.forEach((n: any) => {
       if (n.z === undefined || n.z === 0) {
         const zh = (n.id || '').split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0);
@@ -82,6 +83,10 @@ const GraphCanvas = memo(function GraphCanvas({
         n.y = ((yh * 13 + 3) % 120) - 60;
       }
     });
+    // Store initial z positions for post-simulation restoration
+    const zMap = new Map<string, number>();
+    d.nodes.forEach((n: any) => { zMap.set(n.id, n.z || 0); });
+    initialZRef.current = zMap;
     const byId = new Map(d.nodes.map((n: any) => [n.id, n]));
     d.nodes.forEach((n: any) => { n.neighbors = []; n.links = []; });
     d.links.forEach((l: any) => {
@@ -191,7 +196,6 @@ const GraphCanvas = memo(function GraphCanvas({
       fg.d3ReheatSimulation();
     } catch (e) { console.warn('Force config failed', e); }
   }, [enriched, graphSettings.charge_strength, graphSettings.link_distance, graphRef]);
-  }, [enriched, graphSettings.charge_strength, graphSettings.link_distance, graphRef]);
 
   // Listen for controls interaction start → cancel camera lerp
   useEffect(() => {
@@ -245,7 +249,18 @@ const GraphCanvas = memo(function GraphCanvas({
           nodeResolution={8}
           numDimensions={3}
           warmupTicks={0}
-          cooldownTicks={0}
+          cooldownTicks={300}
+          onEngineStop={() => {
+            // Restore initial z positions after simulation to prevent flattening
+            const fg = graphRef.current;
+            if (!fg || !initialZRef.current) return;
+            const data = fg.graphData();
+            if (!data?.nodes) return;
+            data.nodes.forEach((n: any) => {
+              const iz = initialZRef.current.get(n.id);
+              if (iz !== undefined) n.z = iz;
+            });
+          }}
         />
       ) : !loading && !error ? (
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
