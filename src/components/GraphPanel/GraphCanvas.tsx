@@ -18,7 +18,7 @@ export interface GraphNode extends GraphNodeDto {
 
 interface GraphDataProp {
   nodes: GraphNode[];
-  links: any[];
+  links: { source: string; target: string }[];
 }
 
 // Vibrant palette — high saturation, 65-75% lightness, optimized for dark backgrounds
@@ -33,7 +33,6 @@ const NODE_PALETTE = [
   '#e879f9', // fuchsia
 ];
 
-/// Deterministic palette index from a string — used so each node keeps its colour across re-renders.
 function paletteIndex(s: string): number {
   return s.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % NODE_PALETTE.length;
 }
@@ -76,7 +75,6 @@ interface GraphCanvasProps {
   graphData: GraphDataDto | null;
   graphSettings: GraphSettings;
   graphRef: React.MutableRefObject<any>;
-  refreshKey: number;
 }
 
 interface GraphStats {
@@ -98,14 +96,13 @@ const GraphCanvas = memo(function GraphCanvas({
   graphData,
   graphSettings,
   graphRef,
-  refreshKey,
 }: GraphCanvasProps) {
   const navigate = useNavigate();
 
   const [graphStats, setGraphStats] = useState<GraphStats>({ fps: 0, frameTime: 0 });
   const fpsRef = useRef({ frameCount: 0, lastSampleTime: 0 });
-  const instancedMeshRef = useRef<THREE.InstancedMesh | null>(null);
 
+  // FPS counter
   useEffect(() => {
     const r = fpsRef.current;
     r.lastSampleTime = performance.now();
@@ -114,8 +111,7 @@ const GraphCanvas = memo(function GraphCanvas({
       r.frameCount++;
       const elapsed = now - r.lastSampleTime;
       if (elapsed >= 500) {
-        const fps = Math.round((r.frameCount / elapsed) * 1000);
-        setGraphStats({ fps, frameTime: Math.round(elapsed / r.frameCount) });
+        setGraphStats({ fps: Math.round((r.frameCount / elapsed) * 1000), frameTime: Math.round(elapsed / r.frameCount) });
         r.frameCount = 0;
         r.lastSampleTime = now;
       }
@@ -125,125 +121,32 @@ const GraphCanvas = memo(function GraphCanvas({
     return () => cancelAnimationFrame(rafId);
   }, []);
 
-  // CSS2DRenderer instance for GPU-composited labels — created once, lives for component lifetime
+  // CSS2DRenderer — created once, lives for component lifetime
   const [css2dRenderer] = useState(() => new CSS2DRenderer());
 
-  // Sync CSS2DRenderer size with container dimensions
   useEffect(() => {
     css2dRenderer.setSize(width, height);
   }, [css2dRenderer, width, height]);
 
-  // Stable extraRenderers array — CSS2DRenderer is automatically layered above the WebGL canvas
   const extraRenderers = useMemo(() => [css2dRenderer], [css2dRenderer]);
 
-  // ── InstancedMesh ────────────────────────────────────────────────
-  // Single InstancedMesh replaces N per-node spheres (1 draw call vs N).
-  // Positions are synced every frame from ForceGraph3D's live simulation data.
-
-  // Sync InstancedMesh positions with force simulation every frame.
-  // Reads live node positions from fg.graphData() — the any cast is needed
-  // because react-force-graph-3d's public types don't expose graphData().
-  useEffect(() => {
-    const fg = graphRef.current;
-    if (!fg) return;
-    const updateDummy = new THREE.Object3D();
-    let rafId: number;
-    const sync = () => {
-      rafId = requestAnimationFrame(sync);
-      const im = instancedMeshRef.current;
-      if (!im || !fg) return;
-      let syncNodes: GraphNode[];
-      try {
-        syncNodes = (fg as any).graphData().nodes || nodes;
-      } catch {
-        syncNodes = nodes;
-      }
-      const syncCount = Math.min(im.count, syncNodes.length);
-      for (let i = 0; i < syncCount; i++) {
-        const nn = syncNodes[i];
-        const r = nodeRadius(nn);
-        updateDummy.position.set(nn.x ?? 0, nn.y ?? 0, nn.z ?? 0);
-        updateDummy.scale.set(r, r, r);
-        updateDummy.updateMatrix();
-        im.setMatrixAt(i, updateDummy.matrix);
-      }
-      im.instanceMatrix.needsUpdate = true;
-    };
-    rafId = requestAnimationFrame(sync);
-    return () => cancelAnimationFrame(rafId);
-  }, [nodes, refreshKey, graphRef]);
-
-  // Build the InstancedMesh from current node data
-  useEffect(() => {
-    const fg = graphRef.current;
-    if (!fg) return;
-    const scene = fg.scene();
-    if (!scene) return;
-
-    // Dispose previous mesh
-    if (instancedMeshRef.current) {
-      scene.remove(instancedMeshRef.current);
-      instancedMeshRef.current.geometry.dispose();
-      const prevMat = instancedMeshRef.current.material;
-      if (!Array.isArray(prevMat)) prevMat.dispose();
-      instancedMeshRef.current = null;
-    }
-
-    const fgNodes: GraphNode[] = nodes;
-    if (fgNodes.length === 0) return;
-
-    const count = fgNodes.length;
-    const geometry = new THREE.SphereGeometry(1, 16, 16);
-    const material = new THREE.MeshBasicMaterial({ vertexColors: true });
-    const mesh = new THREE.InstancedMesh(geometry, material, count);
-    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    mesh.frustumCulled = false;
-    // Disable raycasting — the InstancedMesh is visual only.
-    // Interaction (click/drag) is handled by invisible hit spheres in nodeThreeObject
-    // which ForceGraph3D tracks for its internal raycasting.
-    mesh.raycast = () => {};
-
-    const dummy = new THREE.Object3D();
-    const color = new THREE.Color();
-    for (let i = 0; i < count; i++) {
-      const n = fgNodes[i];
-      const r = nodeRadius(n);
-      dummy.position.set(n.x ?? 0, n.y ?? 0, n.z ?? 0);
-      dummy.scale.set(r, r, r);
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
-      color.set(nodeColor(n));
-      mesh.setColorAt(i, color);
-    }
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-
-    scene.add(mesh);
-    instancedMeshRef.current = mesh;
-  }, [nodes, refreshKey, graphRef]);
-
-  // ── Per-node object (invisible hit target + label) ───────────────
-  // The InstancedMesh handles visual spheres. nodeThreeObject returns
-  // an invisible hit sphere for ForceGraph3D's raycasting (click/drag)
-  // plus a CSS2D label. The invisible sphere has zero opacity but is
-  // still raycastable by Three.js.
-
+  // Per-node three.js object: visible colored sphere + CSS2D label
+  // ForceGraph3D manages raycasting, dragging, and position updates natively.
   const nodeThreeObj = useCallback((n: GraphNode) => {
     const group = new THREE.Group();
+
     const r = nodeRadius(n);
-
-    // Invisible hit sphere — provides a target for ForceGraph3D raycasting
-    const hitGeo = new THREE.SphereGeometry(1, 8, 8);
-    const hitMat = new THREE.MeshBasicMaterial({
+    const geo = new THREE.SphereGeometry(1, 16, 16);
+    const mat = new THREE.MeshBasicMaterial({
+      color: nodeColor(n),
       transparent: true,
-      opacity: 0,
-      depthWrite: false,
+      opacity: 0.9,
     });
-    const hitSphere = new THREE.Mesh(hitGeo, hitMat);
-    hitSphere.scale.set(r * 1.5, r * 1.5, r * 1.5); // slightly larger than visual for easier clicking
-    group.add(hitSphere);
+    const sphere = new THREE.Mesh(geo, mat);
+    sphere.scale.set(r, r, r);
+    group.add(sphere);
 
-    // CSS2D label above sphere
+    // Label above the sphere
     const labelEl = document.createElement('div');
     labelEl.textContent = n.title;
     labelEl.style.color = textColor;
@@ -260,6 +163,22 @@ const GraphCanvas = memo(function GraphCanvas({
 
     return group;
   }, [textColor]);
+
+  // On graph data change, explicitly refresh link forces to work around
+  // react-force-graph-3d's known issue where links don't render on data update.
+  useEffect(() => {
+    if (!graphRef.current || !graphDataProp) return;
+    try {
+      const charge = graphRef.current.d3Force('charge');
+      if (charge) charge.strength(graphSettings.charge_strength);
+      const link = graphRef.current.d3Force('link');
+      if (link) link.distance(graphSettings.link_distance);
+      // Reheat the simulation so it responds to new data
+      graphRef.current.d3ReheatSimulation();
+    } catch {
+      // Gracefully handle missing d3 methods
+    }
+  }, [graphDataProp, graphSettings.charge_strength, graphSettings.link_distance, graphRef]);
 
   const onNodeClickCb = useCallback((n: GraphNode) => handleNodeClick(n), [handleNodeClick]);
   const onNodeRightClickCb = useCallback((n: GraphNode) => handleNodeRightClick(n), [handleNodeRightClick]);
@@ -291,7 +210,6 @@ const GraphCanvas = memo(function GraphCanvas({
             </Alert>
           )}
           <ForceGraph3D
-            key={`fg3d-${refreshKey}`}
             ref={graphRef}
             graphData={graphDataProp}
             width={width}
