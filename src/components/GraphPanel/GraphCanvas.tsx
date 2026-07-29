@@ -188,22 +188,9 @@ const GraphCanvas = memo(function GraphCanvas({
       const link = fg.d3Force('link');
       if (link) link.distance(graphSettings.link_distance);
       fg.d3Force('collide', forceCollide(fg.nodeRelSize()));
-      // Custom z-axis spring force: pushes each node toward a target z.
-      // Without this, d3-force-3d's charge+link forces collapse into a 2D plane.
-      const targetZ = new Map<string, number>();
-      enriched.nodes.forEach((n: any) => { targetZ.set(n.id, n.z || 0); });
-      fg.d3Force('zSpring', (alpha: number) => {
-        const strength = 0.08 * alpha;
-        fg.graphData().nodes.forEach((n: any) => {
-          const tz = targetZ.get(n.id);
-          if (tz !== undefined && n.z !== undefined) {
-            n.vz += (tz - n.z) * strength;
-          }
-        });
-      });
       fg.d3ReheatSimulation();
     } catch (e) { console.warn('Force config failed', e); }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enriched, graphSettings.charge_strength, graphSettings.link_distance, graphRef]);
   }, [enriched, graphSettings.charge_strength, graphSettings.link_distance, graphRef]);
 
   // Listen for controls interaction start → cancel camera lerp
@@ -258,7 +245,7 @@ const GraphCanvas = memo(function GraphCanvas({
           nodeResolution={8}
           numDimensions={3}
           warmupTicks={0}
-          cooldownTicks={300}
+          cooldownTicks={0}
         />
       ) : !loading && !error ? (
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
