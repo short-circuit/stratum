@@ -106,7 +106,6 @@ export default function GraphPanelDesktop() {
         graphData={graphData}
         graphSettings={graphSettings}
         graphRef={graphRef}
-        layoutReady={layoutPositions.size > 0}
       />
     </Box>
   );
