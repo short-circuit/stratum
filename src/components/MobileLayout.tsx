@@ -44,7 +44,7 @@ export default function MobileLayout({ error, children }: MobileLayoutProps) {
         </div>
       )}
 
-      <div style={{ position: 'absolute', top: error ? 88 : 48, bottom: 56, left: 0, right: 0, overflow: 'auto' }}>
+      <div style={{ position: 'absolute', top: error ? 88 : 48, bottom: 56, left: 0, right: 0, overflow: 'hidden' }}>
         {children}
       </div>
 

@@ -20,8 +20,9 @@ export default function QueryPanelMobile() {
   }, []);
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h6" sx={{ fontWeight: 600, mb: 1.5 }}>Datalog Query</Typography>
+    <Box sx={{ height: '100%', overflow: 'auto' }}>
+      <Box sx={{ p: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1.5 }}>Datalog Query</Typography>
 
       <TextField
         inputRef={inputRef}
@@ -73,6 +74,7 @@ export default function QueryPanelMobile() {
       {result && result.rows.length === 0 && (
         <Typography variant="body2" color="text.secondary">No results.</Typography>
       )}
+      </Box>
     </Box>
   );
 }
