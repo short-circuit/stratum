@@ -173,6 +173,7 @@ function AppContent() {
           <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
         </Routes>
       </Box>
+      </Box>
       {/* Global modals for conflict & passphrase — visible on any page */}
       {syncModal.conflictModalOpen && (
         <ConflictModal
