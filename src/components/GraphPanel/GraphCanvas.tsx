@@ -37,11 +37,12 @@ interface Props {
   nodes: GraphNode[]; graphData: GraphDataDto | null;
   graphSettings: typeof DEFAULT_SETTINGS;
   graphRef: React.MutableRefObject<any>;
+  layoutReady?: boolean;
 }
 
 const GraphCanvas = memo(function GraphCanvas({
   graphDataProp, width, height, bgColor, textColor,
-  handleNodeClick, loading, error, nodes, graphData, graphSettings, graphRef,
+  handleNodeClick, loading, error, nodes, graphData, graphSettings, graphRef, layoutReady,
 }: Props) {
   const navigate = useNavigate();
 
@@ -215,6 +216,8 @@ const GraphCanvas = memo(function GraphCanvas({
   useEffect(() => {
     const fg = graphRef.current;
     if (!fg || !enriched) return;
+    // When Web Worker has pre-computed all positions, skip reheat to preserve 3D spread
+    if (layoutReady) return;
     try {
       const charge = fg.d3Force('charge');
       if (charge) charge.strength(graphSettings.charge_strength);
@@ -223,7 +226,7 @@ const GraphCanvas = memo(function GraphCanvas({
       fg.d3Force('collide', forceCollide(fg.nodeRelSize()));
       fg.d3ReheatSimulation();
     } catch {}
-  }, [enriched, graphSettings.charge_strength, graphSettings.link_distance, graphRef]);
+  }, [enriched, graphSettings.charge_strength, graphSettings.link_distance, graphRef, layoutReady]);
 
   // ── Render ───────────────────────────────────────────────────────
   return (
