@@ -264,6 +264,7 @@ const GraphCanvas = memo(function GraphCanvas({
           enableNavigationControls={true}
           controlType="trackball"
           showNavInfo={false}
+          numDimensions={3}
           nodeResolution={8}
           warmupTicks={0}
           cooldownTicks={300}
