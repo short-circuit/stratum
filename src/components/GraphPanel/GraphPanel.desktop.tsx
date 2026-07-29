@@ -22,7 +22,6 @@ export default function GraphPanelDesktop() {
     filteredNodes, filteredEdges, graphDataProp,
     nodeCapActive, preCapNodeCount,
     progressiveLoading, progress,
-    refreshKey,
   } = useGraphPanel();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -106,7 +105,6 @@ export default function GraphPanelDesktop() {
         graphData={graphData}
         graphSettings={graphSettings}
         graphRef={graphRef}
-        refreshKey={refreshKey}
       />
     </Box>
   );
