@@ -264,7 +264,7 @@ const GraphCanvas = memo(function GraphCanvas({
           controlType="trackball"
           showNavInfo={false}
           warmupTicks={0}
-          cooldownTicks={300}
+          cooldownTicks={0}
         />
       ) : !loading && !error ? (
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
