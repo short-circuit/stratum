@@ -259,6 +259,8 @@ pub async fn reindex_vault(
     }
 
     // Single pass: rebuild_all handles Tantivy indexing + graph + tags + notes
+    // Signal bulk operation — file watcher will skip events
+    state.try_start_indexing().map_err(|e| e.to_string())?;
     let app2 = app.clone();
     let progress_cb: Option<ProgressCallback> = Some(Box::new(move |msg: String, pct: f32| {
         let _ = app2.emit("reindex-progress", super::ProgressEventPayload {
@@ -316,6 +318,7 @@ pub async fn reindex_vault(
         percent: 1.0,
     });
     info!("Reindexed {} pages ({} failed)", processed, failed);
+    state.finish_indexing();
     Ok(super::ReindexResult {
         processed: processed as usize,
         succeeded: succeeded as usize,
@@ -642,6 +645,7 @@ pub async fn normalize_all_files(
     state: tauri::State<'_, AppState>,
 ) -> Result<usize, String> {
     let mut state = state.lock().map_err(|e| e.to_string())?;
+    state.try_start_indexing().map_err(|e| e.to_string())?;
     let md_files = MdCollector::new()
         .include_extensionless(true)
         .skip_dirs(vec![".pkm", "templates", ".git"])
@@ -694,6 +698,7 @@ pub async fn normalize_all_files(
     );
 
     info!("Normalized {} files", count);
+    state.finish_indexing();
     Ok(count)
 }
 

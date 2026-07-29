@@ -105,6 +105,10 @@ pub fn run() {
                                 Ok(s) => s,
                                 Err(_) => return,
                             };
+                            // Skip events during bulk operations (normalize/reindex)
+                            if state.is_indexing() {
+                                return;
+                            }
                             if state.watcher_last_save != std::time::SystemTime::UNIX_EPOCH {
                                 if let Ok(elapsed) =
                                     event.timestamp.duration_since(state.watcher_last_save)
