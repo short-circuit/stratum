@@ -216,17 +216,18 @@ const GraphCanvas = memo(function GraphCanvas({
   useEffect(() => {
     const fg = graphRef.current;
     if (!fg || !enriched) return;
-    // When Web Worker has pre-computed all positions, skip reheat to preserve 3D spread
-    if (layoutReady) return;
     try {
       const charge = fg.d3Force('charge');
       if (charge) charge.strength(graphSettings.charge_strength);
       const link = fg.d3Force('link');
       if (link) link.distance(graphSettings.link_distance);
       fg.d3Force('collide', forceCollide(fg.nodeRelSize()));
+      // Remove center force — it pulls everything to z=0, collapsing the 3D spread
+      // Without center, charge repulsion works equally in x, y, z
+      try { fg.d3Force('center', null); } catch {}
       fg.d3ReheatSimulation();
     } catch {}
-  }, [enriched, graphSettings.charge_strength, graphSettings.link_distance, graphRef, layoutReady]);
+  }, [enriched, graphSettings.charge_strength, graphSettings.link_distance, graphRef]);
 
   // ── Render ───────────────────────────────────────────────────────
   return (
@@ -263,8 +264,8 @@ const GraphCanvas = memo(function GraphCanvas({
           enableNavigationControls={true}
           controlType="trackball"
           showNavInfo={false}
-          warmupTicks={0}
-          cooldownTicks={0}
+          warmupTicks={100}
+          cooldownTicks={300}
         />
       ) : !loading && !error ? (
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
