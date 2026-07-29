@@ -198,6 +198,10 @@ const GraphCanvas = memo(function GraphCanvas({
     const mesh = new THREE.InstancedMesh(geometry, material, count);
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     mesh.frustumCulled = false;
+    // Disable raycasting — the InstancedMesh is visual only.
+    // Interaction (click/drag) is handled by invisible hit spheres in nodeThreeObject
+    // which ForceGraph3D tracks for its internal raycasting.
+    mesh.raycast = () => {};
 
     const dummy = new THREE.Object3D();
     const color = new THREE.Color();
