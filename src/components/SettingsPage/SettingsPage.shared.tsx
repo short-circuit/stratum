@@ -121,12 +121,21 @@ export function useSettingsPage() {
     };
   }, [setThemeConfig]);
 
-  // Listen for reindex progress events
+  // Listen for reindex progress events (throttled to prevent UI thrashing)
   useEffect(() => {
     let unlisten: (() => void) | undefined;
+    let lastUpdate = 0;
     import('@tauri-apps/api/event').then(({ listen }) => {
       listen<{ message: string; percent: number }>('reindex-progress', (event) => {
+        const now = Date.now();
+        // Only update UI every 200ms to avoid thrashing with many files
+        if (event.payload.percent < 1.0 && now - lastUpdate < 200) return;
+        lastUpdate = now;
         setReindexProgress(event.payload);
+        if (event.payload.percent >= 1.0) {
+          // Final update always goes through
+          setReindexProgress(event.payload);
+        }
       }).then((fn) => { unlisten = fn; });
     });
     return () => { unlisten?.(); };
