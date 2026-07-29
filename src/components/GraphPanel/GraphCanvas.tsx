@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, useEffect, useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ForceGraph3D from 'react-force-graph-3d';
 import SpriteText from 'three-spritetext';
-import * as THREE from 'three';
 import { forceCollide } from 'd3-force-3d';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -25,7 +24,7 @@ function nodeColor(n: any): string {
 
 export const DEFAULT_SETTINGS = {
   show_connected: true, show_orphaned: true, show_tags: true,
-  charge_strength: -120, link_distance: 50, alpha_decay: 0.15,
+  charge_strength: -30, link_distance: 50, alpha_decay: 0.15,
   velocity_decay: 0.4, link_curvature: 0.15, node_cap: 0,
 };
 
@@ -48,11 +47,10 @@ const GraphCanvas = memo(function GraphCanvas({
   const navigate = useNavigate();
 
   // ── Highlight state ──────────────────────────────────────────────
-  const [hlRaw, setHlRaw] = useState<any>(null); // hovered node
+  const [hlRaw, setHlRaw] = useState<any>(null);
   const hlNode = hlRaw as any;
   const tweenRef = useRef<number | null>(null);
 
-  // Cancel any ongoing camera lerp
   const cancelLerp = useCallback(() => {
     if (tweenRef.current !== null) {
       cancelAnimationFrame(tweenRef.current);
@@ -60,15 +58,13 @@ const GraphCanvas = memo(function GraphCanvas({
     }
   }, []);
 
-  // Enrich data: cross-link node objects + seed 3D positions given by the hash
+  // Enrich data: cross-link node objects + seed 3D positions
   const enriched = useMemo(() => {
     if (!graphDataProp.nodes.length) return null;
     const d = {
       nodes: graphDataProp.nodes.map((n: any) => ({ ...n })),
       links: graphDataProp.links.map((l: any) => ({ ...l })),
     };
-    // Seed deterministic positions from node ID to ensure initial 3D spread.
-    // Seed deterministic positions from node ID to ensure initial 3D spread.
     d.nodes.forEach((n: any) => {
       if (n.z === undefined || n.z === 0) {
         const zh = (n.id || '').split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0);
@@ -189,7 +185,6 @@ const GraphCanvas = memo(function GraphCanvas({
       const link = fg.d3Force('link');
       if (link) link.distance(graphSettings.link_distance);
       fg.d3Force('collide', forceCollide(fg.nodeRelSize()));
-      // zSpring force preserves initial 3D spread during simulation
       const zTargets = new Map<string, number>();
       enriched.nodes.forEach((n: any) => zTargets.set(n.id, n.z || 0));
       fg.d3Force('zSpring', () => {
@@ -202,83 +197,58 @@ const GraphCanvas = memo(function GraphCanvas({
     } catch {}
   }, [enriched, graphSettings.charge_strength, graphSettings.link_distance, graphRef]);
 
-  // Configure trackball controls — slower pan, zoom toward cursor
+  // Configure trackball controls — slower pan
   useEffect(() => {
     const fg = graphRef.current;
     if (!fg) return;
     try {
       const ctrl = fg.controls();
       if (ctrl) {
-        ctrl.panSpeed = 0.15; // slower right-click pan (default ~0.3)
-        ctrl.zoomSpeed = 0.6; // slower zoom
+        ctrl.panSpeed = 0.15;
       }
     } catch {}
   }, [graphRef, enriched]);
 
-  // WASD keyboard fly movement — moves camera in look direction
-  const keysRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    const onDown = (e: KeyboardEvent) => {
-      keysRef.current.add(e.key.toLowerCase());
-    };
-    const onUp = (e: KeyboardEvent) => {
-      keysRef.current.delete(e.key.toLowerCase());
-    };
-    window.addEventListener('keydown', onDown);
-    window.addEventListener('keyup', onUp);
-    return () => {
-      window.removeEventListener('keydown', onDown);
-      window.removeEventListener('keyup', onUp);
-    };
-  }, []);
-
-  // WASD movement tick — runs each frame via rAF
-  const animRef = useRef<number | null>(null);
+  // ── WASD discrete step movement ──────────────────────────────────
   useEffect(() => {
     const fg = graphRef.current;
     if (!fg) return;
     const cam = fg.camera();
     if (!cam) return;
 
-    let running = true;
-    const tick = () => {
-      if (!running) return;
-      const keys = keysRef.current;
-      if (keys.size > 0 && (keys.has('w') || keys.has('a') || keys.has('s') || keys.has('d') || keys.has('arrowup') || keys.has('arrowleft') || keys.has('arrowdown') || keys.has('arrowright'))) {
-        const speed = 0.4;
-        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
-        forward.y = 0;
-        forward.normalize();
-        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
-        right.y = 0;
-        right.normalize();
+    const onKey = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if (!['w','a','s','d','arrowup','arrowleft','arrowdown','arrowright'].includes(key)) return;
+      e.preventDefault();
 
-        let dx = 0, dz = 0;
-        if (keys.has('w') || keys.has('arrowup')) dz -= speed;
-        if (keys.has('s') || keys.has('arrowdown')) dz += speed;
-        if (keys.has('a') || keys.has('arrowleft')) dx -= speed;
-        if (keys.has('d') || keys.has('arrowright')) dx += speed;
+      cam.updateMatrixWorld(true);
+      const el = cam.matrixWorld.elements;
+      const speed = 0.8;
 
-        cam.position.x += forward.x * dz + right.x * dx;
-        cam.position.z += forward.z * dz + right.z * dx;
+      let dx = 0, dz = 0;
+      if (key === 'w' || key === 'arrowup') { dx -= el[8]; dz -= el[10]; }
+      if (key === 's' || key === 'arrowdown') { dx += el[8]; dz += el[10]; }
+      if (key === 'a' || key === 'arrowleft') { dx -= el[0]; dz -= el[2]; }
+      if (key === 'd' || key === 'arrowright') { dx += el[0]; dz += el[2]; }
 
-        // Move controls target to keep relative offset
-        const ctrl = fg.controls();
-        if (ctrl?.target) {
-          ctrl.target.x += forward.x * dz + right.x * dx;
-          ctrl.target.z += forward.z * dz + right.z * dx;
-        }
+      // Normalize to unit length
+      const len = Math.sqrt(dx*dx + dz*dz);
+      if (len > 0) { dx = dx/len * speed; dz = dz/len * speed; }
+
+      cam.position.x += dx;
+      cam.position.z += dz;
+      const ctrl = fg.controls();
+      if (ctrl?.target) {
+        ctrl.target.x += dx;
+        ctrl.target.z += dz;
       }
-      animRef.current = requestAnimationFrame(tick);
     };
-    animRef.current = requestAnimationFrame(tick);
-    return () => {
-      running = false;
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-    };
+
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, [graphRef, enriched]);
 
-  // Listen for controls interaction start → cancel camera lerp
+  // ── Controls interaction → cancel camera lerp ───────────────────
   useEffect(() => {
     const fg = graphRef.current;
     if (!fg) return;
