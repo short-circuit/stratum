@@ -112,6 +112,11 @@ impl VaultState {
         self.indexing_in_progress.store(false, Ordering::SeqCst);
     }
 
+    /// Get the indexing-in-progress flag.
+    pub fn is_indexing(&self) -> bool {
+        self.indexing_in_progress.load(Ordering::SeqCst)
+    }
+
     /// Record a file change to trigger the auto-commit engine.
     pub fn record_change(&mut self, path: &str) {
         if let Some(ref mut engine) = self.auto_commit_engine {
