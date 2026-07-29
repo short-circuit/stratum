@@ -37,12 +37,11 @@ interface Props {
   nodes: GraphNode[]; graphData: GraphDataDto | null;
   graphSettings: typeof DEFAULT_SETTINGS;
   graphRef: React.MutableRefObject<any>;
-  layoutReady?: boolean;
 }
 
 const GraphCanvas = memo(function GraphCanvas({
   graphDataProp, width, height, bgColor, textColor,
-  handleNodeClick, loading, error, nodes, graphData, graphSettings, graphRef, layoutReady,
+  handleNodeClick, loading, error, nodes, graphData, graphSettings, graphRef,
 }: Props) {
   const navigate = useNavigate();
 
