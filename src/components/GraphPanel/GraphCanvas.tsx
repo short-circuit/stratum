@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ForceGraph3D from 'react-force-graph-3d';
 import SpriteText from 'three-spritetext';
+import * as THREE from 'three';
 import { forceCollide } from 'd3-force-3d';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -201,18 +202,81 @@ const GraphCanvas = memo(function GraphCanvas({
     } catch {}
   }, [enriched, graphSettings.charge_strength, graphSettings.link_distance, graphRef]);
 
-  // Configure fly controls — slower movement for a small graph (±60 range)
+  // Configure trackball controls — slower pan, zoom toward cursor
   useEffect(() => {
     const fg = graphRef.current;
     if (!fg) return;
     try {
       const ctrl = fg.controls();
       if (ctrl) {
-        ctrl.movementSpeed = 25;
-        ctrl.rollSpeed = Math.PI / 36;
+        ctrl.panSpeed = 0.15; // slower right-click pan (default ~0.3)
+        ctrl.zoomSpeed = 0.6; // slower zoom
       }
     } catch {}
-  }, [graphRef, enriched]); // reconfigure when graph data loads
+  }, [graphRef, enriched]);
+
+  // WASD keyboard fly movement — moves camera in look direction
+  const keysRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const onDown = (e: KeyboardEvent) => {
+      keysRef.current.add(e.key.toLowerCase());
+    };
+    const onUp = (e: KeyboardEvent) => {
+      keysRef.current.delete(e.key.toLowerCase());
+    };
+    window.addEventListener('keydown', onDown);
+    window.addEventListener('keyup', onUp);
+    return () => {
+      window.removeEventListener('keydown', onDown);
+      window.removeEventListener('keyup', onUp);
+    };
+  }, []);
+
+  // WASD movement tick — runs each frame via rAF
+  const animRef = useRef<number | null>(null);
+  useEffect(() => {
+    const fg = graphRef.current;
+    if (!fg) return;
+    const cam = fg.camera();
+    if (!cam) return;
+
+    let running = true;
+    const tick = () => {
+      if (!running) return;
+      const keys = keysRef.current;
+      if (keys.size > 0 && (keys.has('w') || keys.has('a') || keys.has('s') || keys.has('d') || keys.has('arrowup') || keys.has('arrowleft') || keys.has('arrowdown') || keys.has('arrowright'))) {
+        const speed = 0.4;
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
+        forward.y = 0;
+        forward.normalize();
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+        right.y = 0;
+        right.normalize();
+
+        let dx = 0, dz = 0;
+        if (keys.has('w') || keys.has('arrowup')) dz -= speed;
+        if (keys.has('s') || keys.has('arrowdown')) dz += speed;
+        if (keys.has('a') || keys.has('arrowleft')) dx -= speed;
+        if (keys.has('d') || keys.has('arrowright')) dx += speed;
+
+        cam.position.x += forward.x * dz + right.x * dx;
+        cam.position.z += forward.z * dz + right.z * dx;
+
+        // Move controls target to keep relative offset
+        const ctrl = fg.controls();
+        if (ctrl?.target) {
+          ctrl.target.x += forward.x * dz + right.x * dx;
+          ctrl.target.z += forward.z * dz + right.z * dx;
+        }
+      }
+      animRef.current = requestAnimationFrame(tick);
+    };
+    animRef.current = requestAnimationFrame(tick);
+    return () => {
+      running = false;
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+  }, [graphRef, enriched]);
 
   // Listen for controls interaction start → cancel camera lerp
   useEffect(() => {
@@ -261,7 +325,7 @@ const GraphCanvas = memo(function GraphCanvas({
           onNodeDragEnd={onDragEnd}
           enableNodeDrag={true}
           enableNavigationControls={true}
-          controlType="fly"
+          controlType="trackball"
           showNavInfo={false}
           nodeResolution={8}
           numDimensions={3}
