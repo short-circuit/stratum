@@ -22,7 +22,7 @@ function nodeColor(n: any): string {
   return PALETTE[key.split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0) % PALETTE.length];
 }
 
-export const DEFAULT_SETTINGS = {
+const DEFAULT_SETTINGS = {
   show_connected: true, show_orphaned: true, show_tags: true,
   charge_strength: -30, link_distance: 50, alpha_decay: 0.15,
   velocity_decay: 0.4, link_curvature: 0.15, node_cap: 0,
@@ -193,7 +193,7 @@ const GraphCanvas = memo(function GraphCanvas({
         });
       });
       fg.d3ReheatSimulation();
-    } catch {}
+    } catch { /* empty */ }
   }, [enriched, graphSettings.charge_strength, graphSettings.link_distance, graphRef]);
 
   // Configure trackball controls — slower pan
@@ -205,7 +205,7 @@ const GraphCanvas = memo(function GraphCanvas({
       if (ctrl) {
         ctrl.panSpeed = 0.15;
       }
-    } catch {}
+    } catch { /* empty */ }
   }, [graphRef, enriched]);
 
   // ── WASD discrete step movement ──────────────────────────────────
@@ -252,12 +252,12 @@ const GraphCanvas = memo(function GraphCanvas({
     const fg = graphRef.current;
     if (!fg) return;
     let ctrl: any;
-    try { ctrl = fg.controls(); } catch {}
+    try { ctrl = fg.controls(); } catch { /* empty */ }
     if (!ctrl || !ctrl.addEventListener) return;
     const onStart = () => cancelLerp();
     ctrl.addEventListener('start', onStart);
     return () => {
-      try { ctrl.removeEventListener('start', onStart); } catch {}
+      try { ctrl.removeEventListener('start', onStart); } catch { /* empty */ }
     };
   }, [graphRef, cancelLerp]);
 
