@@ -7,8 +7,9 @@ import * as api from '../../lib/commands';
 import type { GraphSettings, GraphDataDto, GraphNodeDto, ComponentDto, OrphanDto } from '../../lib/types';
 import { DEFAULT_SETTINGS, type GraphNode } from './GraphCanvas';
 
-/** Number of nodes added per progressive-rendering batch. */
-const CHUNK_SIZE = 200;
+/** Number of nodes added per progressive-rendering batch. Was 200 — increased to handle all nodes
+ *  in one batch to avoid d3 simulation restart thrashing during progressive reveal. */
+const CHUNK_SIZE = 10000;
 
 /** Minimum node count before the Web Worker layout offload kicks in. */
 const LAYOUT_WORKER_MIN_NODES = 50;

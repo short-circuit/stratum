@@ -260,8 +260,8 @@ const GraphCanvas = memo(function GraphCanvas({
           enableNavigationControls={true}
           controlType="trackball"
           showNavInfo={false}
-          warmupTicks={300}
-          cooldownTicks={100}
+          warmupTicks={0}
+          cooldownTicks={300}
         />
       ) : !loading && !error ? (
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
