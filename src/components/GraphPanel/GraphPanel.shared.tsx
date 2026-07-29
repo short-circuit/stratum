@@ -402,5 +402,6 @@ export function useGraphPanel(): UseGraphPanelReturn {
     progressiveLoading,
     progress,
     refreshKey,
+    layoutPositions,
   };
 }

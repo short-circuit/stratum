@@ -8,7 +8,7 @@
  * and returns the final {x, y, z} positions for every node.
  */
 
-import { forceSimulation, forceLink, forceManyBody, forceCenter } from 'd3-force-3d';
+import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide } from 'd3-force-3d';
 
 interface LayoutNode {
   id: string;
@@ -56,6 +56,7 @@ self.onmessage = (event: MessageEvent<LayoutMessage>) => {
         .distance(linkDistance),
     )
     .force('charge', forceManyBody().strength(chargeStrength))
+    .force('collide', forceCollide(6))
     .force('center', forceCenter())
     .alphaDecay(alphaDecay)
     .velocityDecay(velocityDecay)
