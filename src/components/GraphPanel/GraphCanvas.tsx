@@ -50,7 +50,6 @@ const GraphCanvas = memo(function GraphCanvas({
   const [hlRaw, setHlRaw] = useState<any>(null); // hovered node
   const hlNode = hlRaw as any;
   const tweenRef = useRef<number | null>(null);
-  const initialZRef = useRef<Map<string, number>>(new Map());
 
   // Cancel any ongoing camera lerp
   const cancelLerp = useCallback(() => {
@@ -83,10 +82,6 @@ const GraphCanvas = memo(function GraphCanvas({
         n.y = ((yh * 13 + 3) % 120) - 60;
       }
     });
-    // Store initial z positions for post-simulation restoration
-    const zMap = new Map<string, number>();
-    d.nodes.forEach((n: any) => { zMap.set(n.id, n.z || 0); });
-    initialZRef.current = zMap;
     const byId = new Map(d.nodes.map((n: any) => [n.id, n]));
     d.nodes.forEach((n: any) => { n.neighbors = []; n.links = []; });
     d.links.forEach((l: any) => {
@@ -193,8 +188,18 @@ const GraphCanvas = memo(function GraphCanvas({
       const link = fg.d3Force('link');
       if (link) link.distance(graphSettings.link_distance);
       fg.d3Force('collide', forceCollide(fg.nodeRelSize()));
+      // zSpring force preserves initial 3D spread during simulation
+      const zTargets = new Map<string, number>();
+      enriched.nodes.forEach((n: any) => zTargets.set(n.id, n.z || 0));
+      fg.d3Force('zSpring', (alpha: number) => {
+        const s = 0.8 * alpha;
+        fg.graphData().nodes.forEach((n: any) => {
+          const tz = zTargets.get(n.id);
+          if (tz !== undefined && n.z !== undefined) n.vz += (tz - n.z) * s;
+        });
+      });
       fg.d3ReheatSimulation();
-    } catch (e) { console.warn('Force config failed', e); }
+    } catch {}
   }, [enriched, graphSettings.charge_strength, graphSettings.link_distance, graphRef]);
 
   // Listen for controls interaction start → cancel camera lerp
@@ -250,17 +255,6 @@ const GraphCanvas = memo(function GraphCanvas({
           numDimensions={3}
           warmupTicks={0}
           cooldownTicks={300}
-          onEngineStop={() => {
-            // Restore initial z positions after simulation to prevent flattening
-            const fg = graphRef.current;
-            if (!fg || !initialZRef.current) return;
-            const data = fg.graphData();
-            if (!data?.nodes) return;
-            data.nodes.forEach((n: any) => {
-              const iz = initialZRef.current.get(n.id);
-              if (iz !== undefined) n.z = iz;
-            });
-          }}
         />
       ) : !loading && !error ? (
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
