@@ -154,11 +154,12 @@ function AppContent() {
   return (
     <Box sx={{ display: 'flex', height: '100vh', width: '100vw', bgcolor: 'background.default', color: 'text.primary' }} className="safe-area-container">
       <Sidebar />
-      <Box component="main" sx={{ flexGrow: 1, overflow: 'auto' }} className="safe-area-main">
+      <Box component="main" sx={{ flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }} className="safe-area-main">
         {error && (
-          <Alert severity="error" sx={{ borderRadius: 0 }}>{error}</Alert>
+          <Alert severity="error" sx={{ borderRadius: 0, flexShrink: 0 }}>{error}</Alert>
         )}
-        <Routes>
+        <Box sx={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
+          <Routes>
           <Route path="/" element={<Navigate to="/journal" replace />} />
           <Route path="/journal" element={<ErrorBoundary><JournalPanel /></ErrorBoundary>} />
           <Route path="/page/:pagePath" element={<ErrorBoundary><PageView /></ErrorBoundary>} />

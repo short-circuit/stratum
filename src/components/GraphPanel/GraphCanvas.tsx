@@ -211,7 +211,7 @@ const GraphCanvas = memo(function GraphCanvas({
 
   // ── Render ───────────────────────────────────────────────────────
   return (
-    <Box sx={{ flex: 1, position: 'relative', minHeight: 400 }}>
+    <Box sx={{ flex: 1, position: 'relative' }}>
       {loading && (
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
           <Typography variant="body2" color="white">Building graph...</Typography>
