@@ -201,6 +201,19 @@ const GraphCanvas = memo(function GraphCanvas({
     } catch {}
   }, [enriched, graphSettings.charge_strength, graphSettings.link_distance, graphRef]);
 
+  // Configure fly controls — slower movement for a small graph (±60 range)
+  useEffect(() => {
+    const fg = graphRef.current;
+    if (!fg) return;
+    try {
+      const ctrl = fg.controls();
+      if (ctrl) {
+        ctrl.movementSpeed = 25;
+        ctrl.rollSpeed = Math.PI / 36;
+      }
+    } catch {}
+  }, [graphRef, enriched]); // reconfigure when graph data loads
+
   // Listen for controls interaction start → cancel camera lerp
   useEffect(() => {
     const fg = graphRef.current;
@@ -248,7 +261,7 @@ const GraphCanvas = memo(function GraphCanvas({
           onNodeDragEnd={onDragEnd}
           enableNodeDrag={true}
           enableNavigationControls={true}
-          controlType="trackball"
+          controlType="fly"
           showNavInfo={false}
           nodeResolution={8}
           numDimensions={3}
