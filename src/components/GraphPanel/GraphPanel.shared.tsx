@@ -12,7 +12,9 @@ import { DEFAULT_SETTINGS, type GraphNode } from './GraphCanvas';
 const CHUNK_SIZE = 10000;
 
 /** Minimum node count before the Web Worker layout offload kicks in. */
-const LAYOUT_WORKER_MIN_NODES = 50;
+// Disabled — Web Worker positions overwrite z and cause flattening.
+// zSpring force in GraphCanvas maintains 3D spread during simulation instead.
+const LAYOUT_WORKER_MIN_NODES = 999999;
 
 /**
  * Return type for the useGraphPanel hook.

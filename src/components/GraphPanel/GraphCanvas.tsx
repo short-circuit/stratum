@@ -191,11 +191,10 @@ const GraphCanvas = memo(function GraphCanvas({
       // zSpring force preserves initial 3D spread during simulation
       const zTargets = new Map<string, number>();
       enriched.nodes.forEach((n: any) => zTargets.set(n.id, n.z || 0));
-      fg.d3Force('zSpring', (alpha: number) => {
-        const s = 0.8 * alpha;
+      fg.d3Force('zSpring', () => {
         fg.graphData().nodes.forEach((n: any) => {
           const tz = zTargets.get(n.id);
-          if (tz !== undefined && n.z !== undefined) n.vz += (tz - n.z) * s;
+          if (tz !== undefined && n.z !== undefined) n.vz += (tz - n.z) * 0.08;
         });
       });
       fg.d3ReheatSimulation();
