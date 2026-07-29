@@ -263,10 +263,13 @@ pub async fn reindex_vault(
     state.try_start_indexing().map_err(|e| e.to_string())?;
     let app2 = app.clone();
     let progress_cb: Option<ProgressCallback> = Some(Box::new(move |msg: String, pct: f32| {
-        let _ = app2.emit("reindex-progress", super::ProgressEventPayload {
-            message: msg,
-            percent: pct,
-        });
+        let _ = app2.emit(
+            "reindex-progress",
+            super::ProgressEventPayload {
+                message: msg,
+                percent: pct,
+            },
+        );
     }));
 
     let notes = state
@@ -284,7 +287,10 @@ pub async fn reindex_vault(
         let full = vault_path.join(&note.rel_path);
         let content = match std::fs::read_to_string(&full) {
             Ok(c) => c,
-            Err(_) => { failed += 1; continue; }
+            Err(_) => {
+                failed += 1;
+                continue;
+            }
         };
         let (_fm, _body, blocks) = pkm_markdown::block_parser::parse_document(&content);
         let mut page = pkm_block::Page::new(full, &vault_path);
@@ -300,23 +306,37 @@ pub async fn reindex_vault(
         store.execute_batch("BEGIN").ok();
         let result = (|| -> Result<(), String> {
             store.upsert_page(&page).map_err(|e| e.to_string())?;
-            store.delete_blocks_by_page(&rel).map_err(|e| e.to_string())?;
+            store
+                .delete_blocks_by_page(&rel)
+                .map_err(|e| e.to_string())?;
             for block in &blocks {
                 store.insert_block(block, &rel).map_err(|e| e.to_string())?;
             }
             Ok(())
         })();
         match result {
-            Ok(()) => { store.execute_batch("COMMIT").ok(); succeeded += 1; }
-            Err(_e) => { store.execute_batch("ROLLBACK").ok(); failed += 1; }
+            Ok(()) => {
+                store.execute_batch("COMMIT").ok();
+                succeeded += 1;
+            }
+            Err(_e) => {
+                store.execute_batch("ROLLBACK").ok();
+                failed += 1;
+            }
         }
     }
 
     let processed = succeeded + failed;
-    let _ = app.emit("reindex-progress", super::ProgressEventPayload {
-        message: format!("Reindexed {}/{} pages ({} failed)", succeeded, processed, failed),
-        percent: 1.0,
-    });
+    let _ = app.emit(
+        "reindex-progress",
+        super::ProgressEventPayload {
+            message: format!(
+                "Reindexed {}/{} pages ({} failed)",
+                succeeded, processed, failed
+            ),
+            percent: 1.0,
+        },
+    );
     info!("Reindexed {} pages ({} failed)", processed, failed);
     state.finish_indexing();
     // Invalidate graph cache so fresh data is served
