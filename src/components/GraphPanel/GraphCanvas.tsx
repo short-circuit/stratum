@@ -48,8 +48,8 @@ const GraphCanvas = memo(function GraphCanvas({
 
   // ── Highlight state ──────────────────────────────────────────────
   const [hlRaw, setHlRaw] = useState<any>(null); // hovered node
-  const hlNode = hlRaw as any; // for type inference in closures
-  const tweenRef = useRef<number | null>(null); // camera lerp RAF handle
+  const hlNode = hlRaw as any;
+  const tweenRef = useRef<number | null>(null);
 
   // Cancel any ongoing camera lerp
   const cancelLerp = useCallback(() => {
@@ -59,15 +59,15 @@ const GraphCanvas = memo(function GraphCanvas({
     }
   }, []);
 
-  // Enrich data: cross-link node objects with neighbors/links + seed 3D z positions
+  // Enrich data: cross-link node objects + seed 3D positions given by the hash
   const enriched = useMemo(() => {
     if (!graphDataProp.nodes.length) return null;
     const d = {
       nodes: graphDataProp.nodes.map((n: any) => ({ ...n })),
       links: graphDataProp.links.map((l: any) => ({ ...l })),
     };
-    // Seed random z positions for nodes without them — ensures 3D spread
-    // Deterministic from node ID to prevent jumping on refresh
+    // Seed deterministic positions from node ID to ensure initial 3D spread.
+    // Also store _initZ so we can restore z-spread during simulation.
     d.nodes.forEach((n: any) => {
       if (n.z === undefined || n.z === 0) {
         const zh = (n.id || '').split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0);
@@ -91,7 +91,6 @@ const GraphCanvas = memo(function GraphCanvas({
     return d;
   }, [graphDataProp]);
 
-  // Sets of highlighted nodes/links (based on hover)
   const hlNodes = useMemo(() => {
     if (!hlNode || !enriched) return new Set();
     const s = new Set([hlNode]);
@@ -106,23 +105,20 @@ const GraphCanvas = memo(function GraphCanvas({
   }, [hlNode, enriched]);
 
   // ── Node appearance ──────────────────────────────────────────────
-  // Color accessor — handles highlight dimming
   const colorAccessor = useCallback((n: any) => {
     if (!hlNode) return nodeColor(n);
     return hlNodes.has(n) ? nodeColor(n) : 'rgba(200,200,200,0.12)';
   }, [hlNode, hlNodes]);
 
-  // Custom node: sphere (default) + SpriteText label
   const nodeThreeObj = useCallback((n: any) => {
     const sprite = new SpriteText(n.title || n.id);
     sprite.material.depthWrite = false;
     sprite.color = textColor || '#ffffff';
     sprite.textHeight = 6;
-    sprite.center.y = -0.5; // shift above sphere
+    sprite.center.y = -0.5;
     return sprite;
   }, [textColor]);
 
-  // Link appearance
   const linkColorAccessor = useCallback(() => textColor, [textColor]);
   const linkWidthAcc = useCallback((l: any) => {
     if (!hlNode) return 0.5;
@@ -132,42 +128,30 @@ const GraphCanvas = memo(function GraphCanvas({
   // ── Interaction handlers ─────────────────────────────────────────
   const onClick = useCallback((n: any) => handleNodeClick(n), [handleNodeClick]);
 
-  // Right-click: smooth camera focus on node (manual lerp, cancelable on interaction)
   const onRightClick = useCallback((n: any) => {
     if (!graphRef.current || n.x === undefined || n.y === undefined) return;
-
-    // Cancel any previous lerp
     cancelLerp();
-
     const cam = graphRef.current.camera();
     const ctrl = (graphRef.current as any).controls();
     const tgt = { x: n.x, y: n.y, z: n.z || 0 };
     const lookAt = ctrl?.target || { x: 0, y: 0, z: 0 };
-
-    // Camera destination — position that places node at center of view
     const dest = {
       x: cam.position.x + tgt.x - lookAt.x,
       y: cam.position.y + tgt.y - lookAt.y,
       z: cam.position.z + tgt.z - lookAt.z,
     };
-
     const startPos = { x: cam.position.x, y: cam.position.y, z: cam.position.z };
     const startTarget = { x: lookAt.x, y: lookAt.y, z: lookAt.z };
     const duration = 500;
     const startTime = performance.now();
-
     const tick = (now: number) => {
       const t = Math.min((now - startTime) / duration, 1);
-      const e = 1 - Math.pow(1 - t, 3); // ease-out cubic
-
-      // Lerp camera position
+      const e = 1 - Math.pow(1 - t, 3);
       cam.position.set(
         startPos.x + (dest.x - startPos.x) * e,
         startPos.y + (dest.y - startPos.y) * e,
         startPos.z + (dest.z - startPos.z) * e,
       );
-
-      // Lerp controls target in sync — prevents TrackballControls fighting
       if (ctrl?.target) {
         ctrl.target.set(
           startTarget.x + (tgt.x - startTarget.x) * e,
@@ -175,28 +159,52 @@ const GraphCanvas = memo(function GraphCanvas({
           startTarget.z + (tgt.z - startTarget.z) * e,
         );
       }
-
       if (t < 1) {
         tweenRef.current = requestAnimationFrame(tick);
       } else {
         tweenRef.current = null;
       }
     };
-
     tweenRef.current = requestAnimationFrame(tick);
   }, [graphRef, cancelLerp]);
 
-  // Hover: update highlight sets (triggers re-render via state change)
   const onHover = useCallback((n: any) => {
     setHlRaw(n || null);
   }, []);
 
-  // Drag end: fix node position
   const onDragEnd = useCallback((n: any) => {
     n.fx = n.x;
     n.fy = n.y;
     n.fz = n.z;
   }, []);
+
+  // ── Force config ─────────────────────────────────────────────────
+  useEffect(() => {
+    const fg = graphRef.current;
+    if (!fg || !enriched) return;
+    try {
+      const charge = fg.d3Force('charge');
+      if (charge) charge.strength(graphSettings.charge_strength);
+      const link = fg.d3Force('link');
+      if (link) link.distance(graphSettings.link_distance);
+      fg.d3Force('collide', forceCollide(fg.nodeRelSize()));
+      // Custom z-axis spring force: pushes each node toward a target z.
+      // Without this, d3-force-3d's charge+link forces collapse into a 2D plane.
+      const targetZ = new Map<string, number>();
+      enriched.nodes.forEach((n: any) => { targetZ.set(n.id, n.z || 0); });
+      fg.d3Force('zSpring', (alpha: number) => {
+        const strength = 0.08 * alpha;
+        fg.graphData().nodes.forEach((n: any) => {
+          const tz = targetZ.get(n.id);
+          if (tz !== undefined && n.z !== undefined) {
+            n.vz += (tz - n.z) * strength;
+          }
+        });
+      });
+      fg.d3ReheatSimulation();
+    } catch (e) { console.warn('Force config failed', e); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enriched, graphSettings.charge_strength, graphSettings.link_distance, graphRef]);
 
   // Listen for controls interaction start → cancel camera lerp
   useEffect(() => {
@@ -211,23 +219,6 @@ const GraphCanvas = memo(function GraphCanvas({
       try { ctrl.removeEventListener('start', onStart); } catch {}
     };
   }, [graphRef, cancelLerp]);
-
-  // ── Force config ─────────────────────────────────────────────────
-  useEffect(() => {
-    const fg = graphRef.current;
-    if (!fg || !enriched) return;
-    try {
-      const charge = fg.d3Force('charge');
-      if (charge) charge.strength(graphSettings.charge_strength);
-      const link = fg.d3Force('link');
-      if (link) link.distance(graphSettings.link_distance);
-      fg.d3Force('collide', forceCollide(fg.nodeRelSize()));
-      // Remove center force — it pulls everything to z=0, collapsing the 3D spread
-      // Without center, charge repulsion works equally in x, y, z
-      try { fg.d3Force('center', null); } catch {}
-      fg.d3ReheatSimulation();
-    } catch {}
-  }, [enriched, graphSettings.charge_strength, graphSettings.link_distance, graphRef]);
 
   // ── Render ───────────────────────────────────────────────────────
   return (
@@ -264,8 +255,8 @@ const GraphCanvas = memo(function GraphCanvas({
           enableNavigationControls={true}
           controlType="trackball"
           showNavInfo={false}
-          numDimensions={3}
           nodeResolution={8}
+          numDimensions={3}
           warmupTicks={0}
           cooldownTicks={300}
         />
