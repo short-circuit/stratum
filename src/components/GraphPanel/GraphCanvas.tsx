@@ -58,13 +58,26 @@ const GraphCanvas = memo(function GraphCanvas({
     }
   }, []);
 
-  // Enrich data: cross-link node objects with neighbors/links
+  // Enrich data: cross-link node objects with neighbors/links + seed 3D z positions
   const enriched = useMemo(() => {
     if (!graphDataProp.nodes.length) return null;
     const d = {
       nodes: graphDataProp.nodes.map((n: any) => ({ ...n })),
       links: graphDataProp.links.map((l: any) => ({ ...l })),
     };
+    // Seed random z positions for nodes without them — ensures 3D spread
+    // Deterministic from node ID to prevent jumping on refresh
+    d.nodes.forEach((n: any) => {
+      if (n.z === undefined || n.z === 0) {
+        n.z = ((n.id || '').split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0) % 60) - 30;
+      }
+      if (n.x === undefined) {
+        n.x = ((n.id || '').split('').reduce((a: number, c: string) => a + c.charCodeAt(0) * 3, 0) % 60) - 30;
+      }
+      if (n.y === undefined) {
+        n.y = ((n.id || '').split('').reduce((a: number, c: string) => a + c.charCodeAt(0) * 7, 0) % 60) - 30;
+      }
+    });
     const byId = new Map(d.nodes.map((n: any) => [n.id, n]));
     d.nodes.forEach((n: any) => { n.neighbors = []; n.links = []; });
     d.links.forEach((l: any) => {
