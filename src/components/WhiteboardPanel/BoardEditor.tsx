@@ -31,13 +31,13 @@ export default function BoardEditor({
 }: BoardEditorProps) {
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.default' }}>
-        <IconButton size="small" onClick={onNavigateBack}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.5, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.default' }}>
+        <IconButton size="small" onClick={onNavigateBack} sx={{ p: 0.25 }}>
           <ArrowBackIcon fontSize="small" />
         </IconButton>
-        <Typography variant="body2" sx={{ fontWeight: 500 }}>{activeBoard}</Typography>
+        <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8rem' }}>{activeBoard}</Typography>
         {dirty && (
-          <Chip label="Unsaved" size="small" color="warning" variant="outlined" sx={{ fontSize: '0.65rem', height: 20 }} />
+          <Chip label="Unsaved" size="small" color="warning" variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
         )}
         <Box sx={{ flex: 1 }} />
       </Box>
