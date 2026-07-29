@@ -55,8 +55,9 @@ export default function TemplatesPanelMobile() {
   }, [activeTemplate, apply, message, handleClose]);
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+    <Box sx={{ height: '100%', overflow: 'auto' }}>
+      <Box sx={{ p: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
         Templates
       </Typography>
 
@@ -184,6 +185,7 @@ export default function TemplatesPanelMobile() {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 }
