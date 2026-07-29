@@ -22,7 +22,6 @@ export default function GraphPanelDesktop() {
     filteredNodes, filteredEdges, graphDataProp,
     nodeCapActive, preCapNodeCount,
     progressiveLoading, progress,
-    layoutPositions,
   } = useGraphPanel();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
