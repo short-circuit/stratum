@@ -2,6 +2,7 @@
 
 use crate::commands::vault::{AppState, IndexingGuard};
 use pkm_core::fs_util::MdCollector;
+use pkm_core::ProgressCallback;
 use pkm_index::block_search::BlockIndex;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -246,84 +247,80 @@ pub async fn reindex_vault(
     state: tauri::State<'_, AppState>,
 ) -> Result<super::ReindexResult, String> {
     let mut state = state.lock().map_err(|e| e.to_string())?;
-    // Drop cached writers to release Tantivy lockfiles before creating a local one
+    // Drop cached writers to release Tantivy lockfiles
     drop(state.block_index.take());
     drop(state.index_engine.take());
-    let _guard = IndexingGuard::new(&state)?;
-    let store = state.get_store().map_err(|e| e.to_string())?;
-    let md_files = MdCollector::new()
-        .include_extensionless(true)
-        .skip_dirs(vec![".pkm", "templates", ".git"])
-        .collect_relative(&state.vault_path, &state.vault_path)
+    let vault_path = state.vault_path.clone();
+
+    // Release indexing guard before rebuilding (rebuild_all handles its own locking)
+    {
+        let _guard = IndexingGuard::new(&state)?;
+        // Guard held only during initial setup — released before rebuild
+    }
+
+    // Single pass: rebuild_all handles Tantivy indexing + graph + tags + notes
+    let app2 = app.clone();
+    let progress_cb: Option<ProgressCallback> = Some(Box::new(move |msg: String, pct: f32| {
+        let _ = app2.emit("reindex-progress", super::ProgressEventPayload {
+            message: msg,
+            percent: pct,
+        });
+    }));
+
+    let notes = state
+        .ensure_index()
+        .map_err(|e| e.to_string())?
+        .rebuild_all(progress_cb)
         .map_err(|e| e.to_string())?;
 
-    let vault_path = state.vault_path.clone();
-    let total = md_files.len();
-    // Create a local BlockIndex for this reindex pass (IndexingGuard prevents state mutation)
-    let mut local_block_index =
-        BlockIndex::create(&vault_path.join(".pkm").join("search")).map_err(|e| e.to_string())?;
+    // Sync into SQLite (no Tantivy re-indexing)
+    let store = state.get_store().map_err(|e| e.to_string())?;
+    let mut succeeded: u64 = 0;
+    let mut failed: u64 = 0;
+    for note in &notes {
+        let rel = note.rel_path.to_string_lossy().to_string();
+        let full = vault_path.join(&note.rel_path);
+        let content = match std::fs::read_to_string(&full) {
+            Ok(c) => c,
+            Err(_) => { failed += 1; continue; }
+        };
+        let (_fm, _body, blocks) = pkm_markdown::block_parser::parse_document(&content);
+        let mut page = pkm_block::Page::new(full, &vault_path);
+        page.frontmatter = pkm_block::PageFrontmatter {
+            title: note.frontmatter.title.clone(),
+            created: note.frontmatter.created.clone(),
+            modified: note.frontmatter.modified.clone(),
+            tags: note.tags.iter().map(|t| t.name.clone()).collect(),
+            aliases: note.frontmatter.aliases.clone(),
+            ..Default::default()
+        };
 
-    let mut succeeded = 0;
-    let mut failed = 0;
-    let mut errors = Vec::new();
-
-    for (i, rel) in md_files.iter().enumerate() {
-        let _ = app.emit(
-            "reindex-progress",
-            super::ProgressEventPayload {
-                message: format!("Reindexing {}/{}", i + 1, total),
-                percent: if total > 0 {
-                    (i as f32 + 1.0) / total as f32
-                } else {
-                    1.0
-                },
-            },
-        );
-
-        match sync_page_from_disk(&store, rel, &vault_path, Some(&mut local_block_index)) {
-            Ok(true) => succeeded += 1,
-            Ok(false) => {}
-            Err(e) => {
-                failed += 1;
-                errors.push(format!("{}: {}", rel, e));
-                warn!("reindex_vault: failed for {}: {}", rel, e);
+        store.execute_batch("BEGIN").ok();
+        let result = (|| -> Result<(), String> {
+            store.upsert_page(&page).map_err(|e| e.to_string())?;
+            store.delete_blocks_by_page(&rel).map_err(|e| e.to_string())?;
+            for block in &blocks {
+                store.insert_block(block, &rel).map_err(|e| e.to_string())?;
             }
+            Ok(())
+        })();
+        match result {
+            Ok(()) => { store.execute_batch("COMMIT").ok(); succeeded += 1; }
+            Err(_e) => { store.execute_batch("ROLLBACK").ok(); failed += 1; }
         }
     }
 
-    local_block_index.flush().map_err(|e| e.to_string())?;
-
-    // Drop local index writer so its Tantivy lockfile is released before
-    // IndexEngine tries to open its own writer on the same directory.
-    drop(local_block_index);
-
-    // Drop indexing guard before accessing IndexEngine (&mut self)
-    drop(_guard);
-
-    // Rebuild IndexEngine so graph data stays current
-    state
-        .ensure_index()?
-        .rebuild_all(None)
-        .map_err(|e| e.to_string())?;
-
     let processed = succeeded + failed;
-    let _ = app.emit(
-        "reindex-progress",
-        super::ProgressEventPayload {
-            message: format!(
-                "Reindexed {}/{} pages ({} failed)",
-                succeeded, processed, failed
-            ),
-            percent: 1.0,
-        },
-    );
+    let _ = app.emit("reindex-progress", super::ProgressEventPayload {
+        message: format!("Reindexed {}/{} pages ({} failed)", succeeded, processed, failed),
+        percent: 1.0,
+    });
     info!("Reindexed {} pages ({} failed)", processed, failed);
-
     Ok(super::ReindexResult {
-        processed,
-        succeeded,
-        failed,
-        errors,
+        processed: processed as usize,
+        succeeded: succeeded as usize,
+        failed: failed as usize,
+        errors: vec![],
     })
 }
 
