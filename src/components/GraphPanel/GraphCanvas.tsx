@@ -264,7 +264,8 @@ const GraphCanvas = memo(function GraphCanvas({
           enableNavigationControls={true}
           controlType="trackball"
           showNavInfo={false}
-          warmupTicks={100}
+          nodeResolution={8}
+          warmupTicks={0}
           cooldownTicks={300}
         />
       ) : !loading && !error ? (
