@@ -90,7 +90,7 @@ export default function WhiteboardPanelMobile() {
 
   if (activeBoard && sceneData && libraryItems) {
     return (
-      <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
+      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.5, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.default' }}>
           <IconButton size="small" onClick={navigateBack}>
             <ArrowBackIcon fontSize="small" />
