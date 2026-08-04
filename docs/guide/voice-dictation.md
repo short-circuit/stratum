@@ -72,7 +72,7 @@ Settings → AI → **Voice Dictation (STT)**:
   Leave empty to disable dictation.
 - **Transcription model** — e.g. `whisper-1`.
 - **Diarization model** — used for speaker separation when available
-  (e.g. `vibevoice-cpp-asr`).
+  (e.g. `pyannote-diarization`, a sherpa-onnx pyannote-3.0 setup).
 - **Language hint** — optional (`en`, `de`, …); empty = auto-detect.
 - Defaults for the per-memo toggles (diarize / summarize / identify).
 - **Test Connection** — verifies the endpoint answers and lists models.
@@ -84,12 +84,41 @@ Equivalent config file entries (`.pkm/config.toml`):
 endpoint = "http://localhost:8081"
 # api_key = "..."          # optional
 model = "whisper-1"
-diarize_model = "vibevoice-cpp-asr"
+diarize_model = "pyannote-diarization"
 language = "en"            # optional
 diarize = true
 auto_summarize = true
 auto_identify = true
 ```
+
+## Setting up a diarization model (LocalAI example)
+
+Any endpoint that answers `POST /v1/audio/diarization` works. On LocalAI the
+smallest reliable option is pyannote-3.0 via the sherpa-onnx backend (two
+ONNX models, ~35 MB total — no GPU needed):
+
+```yaml
+# /models/pyannote-diarization.yaml on the LocalAI server
+name: pyannote-diarization
+backend: sherpa-onnx
+type: diarization
+parameters:
+  model: sherpa-onnx-pyannote-segmentation-3-0/model.onnx
+options:
+  - diarize.embedding_model=3dspeaker_speech_campplus_sv_zh-cn_16k-common.onnx
+  - diarize.threshold=0.5
+  - diarize.min_duration_on=0.3
+  - diarize.min_duration_off=0.5
+known_usecases:
+  - FLAG_DIARIZATION
+```
+
+Download the two models from the
+[sherpa-onnx releases](https://github.com/k2-fsa/sherpa-onnx/releases)
+(`speaker-segmentation-models` → `sherpa-onnx-pyannote-segmentation-3-0`,
+`speaker-recongition-models` → `3dspeaker_speech_campplus_sv_zh-cn_16k-common.onnx`)
+into the server's models directory, install the sherpa-onnx backend
+(`/local-ai backends install sherpa-onnx`) and restart.
 
 The summary/links/tags steps reuse the main AI provider; if it is not
 configured those steps are skipped and you get the plain transcript.

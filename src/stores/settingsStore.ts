@@ -116,7 +116,7 @@ const DEFAULT_STT: SttSettings = {
   endpoint: '',
   api_key: null,
   model: 'whisper-1',
-  diarize_model: 'vibevoice-cpp-asr',
+  diarize_model: 'pyannote-diarization',
   language: null,
   diarize: true,
   auto_summarize: true,

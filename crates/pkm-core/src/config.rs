@@ -279,7 +279,7 @@ pub struct SttConfig {
     pub api_key: Option<String>,
     /// Transcription model name (e.g. "whisper-1").
     pub model: String,
-    /// Diarization model name (e.g. "vibevoice-cpp-asr"). Falls back to
+    /// Diarization model name (e.g. "pyannote-diarization"). Falls back to
     /// `model` when the diarization endpoint 404s.
     pub diarize_model: String,
     /// Language hint (e.g. "en"). None = auto-detect.
@@ -298,7 +298,7 @@ impl Default for SttConfig {
             endpoint: String::new(),
             api_key: None,
             model: "whisper-1".to_string(),
-            diarize_model: "vibevoice-cpp-asr".to_string(),
+            diarize_model: "pyannote-diarization".to_string(),
             language: None,
             diarize: true,
             auto_summarize: true,
@@ -543,7 +543,7 @@ mod tests {
         let stt = SttConfig::default();
         assert_eq!(stt.endpoint, "");
         assert_eq!(stt.model, "whisper-1");
-        assert_eq!(stt.diarize_model, "vibevoice-cpp-asr");
+        assert_eq!(stt.diarize_model, "pyannote-diarization");
         assert!(stt.diarize);
         assert!(stt.auto_summarize);
         assert!(stt.auto_identify);
@@ -588,7 +588,7 @@ mod tests {
         let loaded = Config::load(&config_path).unwrap();
         assert_eq!(loaded.stt.endpoint, "");
         assert_eq!(loaded.theme.dark_mode, false);
-        assert_eq!(loaded.stt.diarize_model, "vibevoice-cpp-asr");
+        assert_eq!(loaded.stt.diarize_model, "pyannote-diarization");
     }
 
     #[test]
