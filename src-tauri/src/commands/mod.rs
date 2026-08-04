@@ -1,5 +1,6 @@
 pub mod ai;
 pub mod block;
+pub mod dictation;
 pub mod export;
 pub mod flashcards;
 pub mod graph;

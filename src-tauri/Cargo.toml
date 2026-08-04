@@ -32,6 +32,9 @@ pkm-query = { path = "../crates/pkm-query" }
 pkm-sync = { path = "../crates/pkm-sync" }
 pkm-ai = { path = "../crates/pkm-ai" }
 pkm-watcher = { path = "../crates/pkm-watcher" }
+pkm-audio = { path = "../crates/pkm-audio" }
+pkm-stt = { path = "../crates/pkm-stt" }
+pkm-dictation = { path = "../crates/pkm-dictation" }
 pulldown-cmark.workspace = true
 reqwest.workspace = true
 gix.workspace = true

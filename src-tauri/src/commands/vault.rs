@@ -25,6 +25,34 @@ pub struct VaultState {
     pub watcher: Option<pkm_watcher::FileWatcher>,
     pub watcher_last_save: SystemTime,
     indexing_in_progress: AtomicBool,
+    /// Active voice recording (started via `dictation_start`).
+    pub recorder: Option<ActiveRecording>,
+    /// Finished dictation sessions keyed by recording path, so speakers can
+    /// be renamed/enrolled after insertion.
+    pub dictation_sessions: std::collections::HashMap<String, DictationSession>,
+}
+
+/// An in-progress voice recording.
+pub struct ActiveRecording {
+    pub handle: pkm_audio::RecordingHandle,
+    pub recording_path: PathBuf,
+    pub page_path: String,
+}
+
+/// A completed dictation: everything needed to re-render the memo.
+#[derive(Clone)]
+pub struct DictationSession {
+    pub page_path: String,
+    pub clip_path: PathBuf,
+    pub clip_rel_path: String,
+    pub recorded_at: chrono::DateTime<chrono::Local>,
+    pub duration_secs: f64,
+    pub turns: Vec<pkm_stt::SpeakerTurn>,
+    pub speaker_names: std::collections::HashMap<String, String>,
+    pub summary: Option<String>,
+    pub related: Vec<String>,
+    pub tags: Vec<String>,
+    pub inserted_block_ids: Vec<String>,
 }
 
 impl VaultState {
@@ -48,6 +76,8 @@ impl VaultState {
             watcher: None,
             watcher_last_save: SystemTime::UNIX_EPOCH,
             indexing_in_progress: AtomicBool::new(false),
+            recorder: None,
+            dictation_sessions: std::collections::HashMap::new(),
         }
     }
 

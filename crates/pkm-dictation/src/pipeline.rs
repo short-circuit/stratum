@@ -30,10 +30,11 @@ pub enum Stage {
     Linking,
 }
 
-/// Context for one pipeline run.
+/// Context for one pipeline run. Owns the [`BlockStore`] (it is `!Sync`, so
+/// holding a reference across await points would make the future `!Send`).
 pub struct Pipeline<'a> {
     pub endpoint: SttEndpoint,
-    pub store: &'a BlockStore,
+    pub store: BlockStore,
     pub vault_path: &'a Path,
     pub index_path: &'a Path,
     pub llm: &'a dyn LlmProvider,
@@ -42,7 +43,7 @@ pub struct Pipeline<'a> {
     pub diarize_model: &'a str,
     pub language: Option<&'a str>,
     pub registry: &'a SpeakerRegistry,
-    pub on_stage: Option<&'a dyn Fn(Stage)>,
+    pub on_stage: Option<&'a (dyn Fn(Stage) + Sync)>,
 }
 
 /// Options for a single dictation run.
@@ -79,8 +80,10 @@ impl Pipeline<'_> {
     }
 }
 
-/// Run the full dictation pipeline.
-pub async fn run(p: &Pipeline<'_>, opts: &PipelineOptions<'_>) -> PkmResult<PipelineOutput> {
+/// Run the full dictation pipeline. Takes the pipeline by value: it owns a
+/// `!Sync` [`BlockStore`], so a shared reference across await points would
+/// make the future `!Send`.
+pub async fn run(p: Pipeline<'_>, opts: &PipelineOptions<'_>) -> PkmResult<PipelineOutput> {
     // 1. Transcribe
     p.stage(Stage::Transcribing);
     let transcriber = Transcriber::new(p.endpoint.clone());
@@ -146,7 +149,7 @@ pub async fn run(p: &Pipeline<'_>, opts: &PipelineOptions<'_>) -> PkmResult<Pipe
         let current_slug = Path::new(opts.page_slug).file_stem().and_then(|s| s.to_str());
         let candidates: Vec<String> = RelatedFinder::new()
             .split_predicate(split_pred)
-            .find_related(p.store, p.index_path, &transcript_text, current_slug)
+            .find_related(&p.store, p.index_path, &transcript_text, current_slug)
             .ok()
             .unwrap_or_default()
             .into_iter()
@@ -154,7 +157,7 @@ pub async fn run(p: &Pipeline<'_>, opts: &PipelineOptions<'_>) -> PkmResult<Pipe
             .collect();
         related = enrich::suggest_related(p.llm, p.llm_model, &transcript_text, &candidates).await?;
 
-        let existing = existing_tags(p.store, p.vault_path);
+        let existing = existing_tags(&p.store, p.vault_path);
         tags = enrich::suggest_tags(p.llm, p.llm_model, &transcript_text, &existing).await?;
     }
 
