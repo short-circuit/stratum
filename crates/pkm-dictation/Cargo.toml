@@ -1,0 +1,24 @@
+[package]
+name = "pkm-dictation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Voice dictation pipeline: transcribe, diarize, summarize, link, tag and render memos into Stratum notes"
+
+[dependencies]
+pkm-core = { path = "../pkm-core" }
+pkm-audio = { path = "../pkm-audio" }
+pkm-stt = { path = "../pkm-stt" }
+pkm-ai = { path = "../pkm-ai" }
+pkm-index = { path = "../pkm-index" }
+pkm-block = { path = "../pkm-block" }
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+chrono.workspace = true
+tracing.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+wiremock = "0.6"
+tempfile.workspace = true

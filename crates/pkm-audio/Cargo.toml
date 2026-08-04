@@ -1,0 +1,18 @@
+[package]
+name = "pkm-audio"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Microphone capture, FLAC/WAV encoding and decoding for Stratum voice dictation"
+
+[dependencies]
+pkm-core = { path = "../pkm-core" }
+cpal.workspace = true
+flacenc.workspace = true
+claxon.workspace = true
+hound.workspace = true
+chrono.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

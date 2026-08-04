@@ -12,6 +12,9 @@ members = [
     "crates/pkm-block",
     "crates/pkm-query",
     "crates/pkm-tests",
+    "crates/pkm-audio",
+    "crates/pkm-stt",
+    "crates/pkm-dictation",
     "src-tauri",
 ]
 
@@ -50,8 +53,15 @@ gix = { version = "0.85", features = ["comfort", "blocking-network-client", "cre
 notify = { version = "7", features = ["macos_fsevent"] }
 
 # AI
-reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "multipart", "rustls-tls"] }
 serde_with = "3"
+
+# Audio (voice dictation)
+cpal = "0.16"
+flacenc = "0.5"
+claxon = "0.4"
+hound = "3.5"
+base64 = "0.22"
 
 # Validation
 url = "2"

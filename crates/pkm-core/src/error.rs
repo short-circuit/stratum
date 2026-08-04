@@ -45,6 +45,9 @@ pub enum PkmError {
     #[error("AI provider error: {0}")]
     Ai(String),
 
+    #[error("Audio error: {0}")]
+    Audio(String),
+
     #[error("Serialization error: {0}")]
     Serialization(String),
 
@@ -152,6 +155,7 @@ mod tests {
             PkmError::Sync("sync".into()),
             PkmError::Plugin("plug".into()),
             PkmError::Ai("ai".into()),
+            PkmError::Audio("audio".into()),
             PkmError::Serialization("ser".into()),
             PkmError::Validation("val".into()),
             PkmError::NotFound("nf".into()),
