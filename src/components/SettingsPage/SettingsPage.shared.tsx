@@ -182,6 +182,8 @@ export function useSettingsPage() {
   };
   const updateSync = (patch: any) =>
     setSettings({ ...settings, sync: { ...syncSettings, ...patch } });
+  const updateStt = (patch: any) =>
+    setSettings({ ...settings, stt: { ...(settings.stt || {}), ...patch } });
 
   const handleSave = async () => {
     setSaving(true);
@@ -350,6 +352,7 @@ export function useSettingsPage() {
     research,
     theme,
     syncSettings,
+    stt: settings.stt,
 
     // Actions
     setMsg,
@@ -360,6 +363,7 @@ export function useSettingsPage() {
     updateResearch,
     updateTheme,
     updateSync,
+    updateStt,
     handleSave,
     handleFetchModels,
     handleReindex,

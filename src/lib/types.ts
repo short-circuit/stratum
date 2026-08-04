@@ -218,3 +218,64 @@ export interface ReindexResult {
   failed: number;
   errors: string[];
 }
+
+// --- Dictation (voice memos) ---
+
+export interface DictationStartDto {
+  recording_path: string;
+  device_name: string;
+  sample_rate: number;
+}
+
+export interface DictationStopDto {
+  recording_path: string;
+  duration_secs: number;
+}
+
+export interface DictationOptsDto {
+  summarize?: boolean;
+  diarize?: boolean;
+  identify?: boolean;
+}
+
+export interface SpeakerTurnDto {
+  speaker: string | null;
+  start: number;
+  end: number;
+  text: string;
+}
+
+export interface DictationResultDto {
+  markdown: string;
+  inserted_block_ids: string[];
+  turns: SpeakerTurnDto[];
+  speaker_names: Record<string, string>;
+  num_speakers: number;
+  diarized: boolean;
+  summary: string | null;
+  related: string[];
+  tags: string[];
+  clip_rel_path: string;
+  duration_secs: number;
+}
+
+export interface SttTestDto {
+  ok: boolean;
+  models: string[];
+  latency_ms: number;
+  error: string | null;
+}
+
+export interface SpeakerDto {
+  name: string;
+  clip: string | null;
+  enrolled_at: string | null;
+}
+
+export interface SpeakerAssignDto {
+  name: string;
+  enrolled: boolean;
+  markdown: string;
+  speaker_names: Record<string, string>;
+  inserted_block_ids: string[];
+}

@@ -29,12 +29,14 @@ export default function SettingsPageDesktop() {
     research,
     theme,
     syncSettings,
+    stt,
     setMsg,
     updateAi,
     updateVault,
     updateResearch,
     updateTheme,
     updateSync,
+    updateStt,
     handleSave,
     handleFetchModels,
     handleReindex,
@@ -114,6 +116,8 @@ export default function SettingsPageDesktop() {
             fetching={fetching}
             onFetchModels={handleFetchModels}
             onToggleModelCapability={toggleModelCapability}
+            stt={stt}
+            onSttChange={updateStt}
           />
         )}
         {tab === 'research' && (
