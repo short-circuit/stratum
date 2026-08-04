@@ -152,10 +152,10 @@ async fn test_pipeline_full_flow() {
     let llm = MockLlm {
         calls: Arc::new(AtomicUsize::new(0)),
     };
-    let stages = std::cell::RefCell::new(Vec::new());
+    let stages = std::sync::Mutex::new(Vec::new());
     let pipeline = Pipeline {
         endpoint: SttEndpoint::new(server.uri(), None).unwrap(),
-        store: &store,
+        store,
         vault_path: dir.path(),
         index_path: &dir.path().join(".pkm/search"),
         llm: &llm,
@@ -164,7 +164,7 @@ async fn test_pipeline_full_flow() {
         diarize_model: "vibevoice-cpp-asr",
         language: None,
         registry: &registry,
-        on_stage: Some(&|s| stages.borrow_mut().push(s)),
+        on_stage: Some(&|s| stages.lock().unwrap().push(s)),
     };
     let opts = PipelineOptions {
         clip_path: &clip,
@@ -177,7 +177,7 @@ async fn test_pipeline_full_flow() {
         identify: true,
     };
 
-    let out = run(&pipeline, &opts).await.unwrap();
+    let out = run(pipeline, &opts).await.unwrap();
 
     assert!(out.diarized);
     assert_eq!(out.num_speakers, 2);
@@ -203,7 +203,7 @@ async fn test_pipeline_full_flow() {
 
     // stage order
     assert_eq!(
-        stages.into_inner(),
+        stages.into_inner().unwrap(),
         vec![
             Stage::Transcribing,
             Stage::Diarizing,
@@ -242,7 +242,7 @@ async fn test_pipeline_falls_back_to_flat_when_no_diarization() {
 
     let pipeline = Pipeline {
         endpoint: SttEndpoint::new(server.uri(), None).unwrap(),
-        store: &store,
+        store,
         vault_path: dir.path(),
         index_path: &dir.path().join(".pkm/search"),
         llm: &llm,
@@ -264,7 +264,7 @@ async fn test_pipeline_falls_back_to_flat_when_no_diarization() {
         identify: false,
     };
 
-    let out = run(&pipeline, &opts).await.unwrap();
+    let out = run(pipeline, &opts).await.unwrap();
     assert!(!out.diarized);
     assert_eq!(out.num_speakers, 0);
     // flat fallback merges into one unlabelled paragraph
@@ -328,7 +328,7 @@ async fn test_pipeline_identifies_enrolled_speakers() {
     };
     let pipeline = Pipeline {
         endpoint: SttEndpoint::new(server.uri(), None).unwrap(),
-        store: &store,
+        store,
         vault_path: dir.path(),
         index_path: &dir.path().join(".pkm/search"),
         llm: &llm,
@@ -350,7 +350,7 @@ async fn test_pipeline_identifies_enrolled_speakers() {
         identify: true,
     };
 
-    let out = run(&pipeline, &opts).await.unwrap();
+    let out = run(pipeline, &opts).await.unwrap();
     assert_eq!(out.speaker_names.get("SPEAKER_00").map(|s| s.as_str()), Some("Alice"));
     assert!(out.markdown.contains("**Alice:** a"));
 }
