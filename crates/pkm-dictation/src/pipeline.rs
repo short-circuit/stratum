@@ -18,7 +18,9 @@ use std::collections::HashMap;
 use std::path::Path;
 
 /// Minimum cosine similarity for a voice match to be trusted.
-pub const VOICE_MATCH_MIN_SCORE: f64 = 0.75;
+/// Measured on clean mic-quality audio: same speaker ≈ 0.69, different
+/// speaker ≈ 0.02 (ECAPA-TDNN embeddings) — 0.5 leaves ample margin.
+pub const VOICE_MATCH_MIN_SCORE: f64 = 0.5;
 
 /// Pipeline stages reported through [`Pipeline::on_stage`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
