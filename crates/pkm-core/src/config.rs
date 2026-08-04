@@ -18,6 +18,8 @@ pub struct Config {
     pub theme: ThemeConfig,
     /// AI / LLM provider configuration.
     pub ai: AiConfig,
+    /// Speech-to-text (voice dictation) configuration.
+    pub stt: SttConfig,
     /// Web research configuration (SearXNG).
     pub research: ResearchConfig,
     /// Plugin enable/disable.
@@ -37,6 +39,7 @@ impl Default for Config {
             sync: SyncConfig::default(),
             theme: ThemeConfig::default(),
             ai: AiConfig::default(),
+            stt: SttConfig::default(),
             research: ResearchConfig::default(),
             plugins: Vec::new(),
             watcher: WatcherConfig::default(),
@@ -77,6 +80,8 @@ impl Default for StorageConfig {
 pub struct VaultLayout {
     pub pages_dir: String,
     pub journals_dir: String,
+    /// Vault-relative directory for voice memo audio clips.
+    pub recordings_dir: String,
 }
 
 impl Default for VaultLayout {
@@ -84,6 +89,7 @@ impl Default for VaultLayout {
         Self {
             pages_dir: "pages".to_string(),
             journals_dir: "journals".to_string(),
+            recordings_dir: "assets/recordings".to_string(),
         }
     }
 }
@@ -258,6 +264,49 @@ pub enum AiProvider {
     CustomAnthropic,
 }
 
+/// Speech-to-text configuration for voice dictation.
+///
+/// Points at an OpenAI-compatible transcription endpoint
+/// (`POST {endpoint}/v1/audio/transcriptions`), optionally extended with
+/// diarization (`POST {endpoint}/v1/audio/diarization`) and speaker
+/// recognition (`/v1/voice/*`). Empty endpoint = feature disabled.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct SttConfig {
+    /// Base URL of the transcription endpoint. Empty = disabled.
+    pub endpoint: String,
+    /// Optional bearer token for protected endpoints.
+    pub api_key: Option<String>,
+    /// Transcription model name (e.g. "whisper-1").
+    pub model: String,
+    /// Diarization model name (e.g. "vibevoice-cpp-asr"). Falls back to
+    /// `model` when the diarization endpoint 404s.
+    pub diarize_model: String,
+    /// Language hint (e.g. "en"). None = auto-detect.
+    pub language: Option<String>,
+    /// Run speaker diarization after transcription.
+    pub diarize: bool,
+    /// Generate an LLM summary of the transcript.
+    pub auto_summarize: bool,
+    /// Attempt to auto-identify speakers against the enrolled voice registry.
+    pub auto_identify: bool,
+}
+
+impl Default for SttConfig {
+    fn default() -> Self {
+        Self {
+            endpoint: String::new(),
+            api_key: None,
+            model: "whisper-1".to_string(),
+            diarize_model: "vibevoice-cpp-asr".to_string(),
+            language: None,
+            diarize: true,
+            auto_summarize: true,
+            auto_identify: true,
+        }
+    }
+}
+
 /// Graph visualization configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
@@ -380,6 +429,11 @@ impl Config {
         self.pkm_dir().join("config.toml")
     }
 
+    /// Get the voice/speaker registry file path inside the vault.
+    pub fn speakers_file_path(&self) -> PathBuf {
+        self.pkm_dir().join("speakers.toml")
+    }
+
     /// Get the history directory path.
     pub fn history_dir(&self) -> PathBuf {
         self.pkm_dir().join("history")
@@ -482,6 +536,76 @@ mod tests {
         assert_eq!(ai.provider, AiProvider::Ollama);
         assert_eq!(ai.model, "llama3.2");
         assert!(ai.rag_enabled);
+    }
+
+    #[test]
+    fn test_stt_config_defaults() {
+        let stt = SttConfig::default();
+        assert_eq!(stt.endpoint, "");
+        assert_eq!(stt.model, "whisper-1");
+        assert_eq!(stt.diarize_model, "vibevoice-cpp-asr");
+        assert!(stt.diarize);
+        assert!(stt.auto_summarize);
+        assert!(stt.auto_identify);
+        assert_eq!(stt.language, None);
+    }
+
+    #[test]
+    fn test_stt_config_roundtrip() {
+        let dir = TempDir::new().unwrap();
+        let config_path = dir.path().join("config.toml");
+
+        let cfg = Config {
+            stt: SttConfig {
+                endpoint: "http://127.0.0.1:8081".to_string(),
+                model: "whisperx-tiny".to_string(),
+                language: Some("en".to_string()),
+                auto_summarize: false,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        cfg.save(&config_path).unwrap();
+
+        let loaded = Config::load(&config_path).unwrap();
+        assert_eq!(loaded.stt.endpoint, "http://127.0.0.1:8081");
+        assert_eq!(loaded.stt.model, "whisperx-tiny");
+        assert_eq!(loaded.stt.language.as_deref(), Some("en"));
+        assert!(!loaded.stt.auto_summarize);
+        assert!(loaded.stt.diarize);
+    }
+
+    #[test]
+    fn test_old_config_without_stt_section_loads() {
+        let dir = TempDir::new().unwrap();
+        let config_path = dir.path().join("config.toml");
+        // Config TOML predating the [stt] section must still parse.
+        std::fs::write(
+            &config_path,
+            "[theme]\ndark_mode = false\n\n[ai]\nmodel = \"llama3.2\"\n",
+        )
+        .unwrap();
+        let loaded = Config::load(&config_path).unwrap();
+        assert_eq!(loaded.stt.endpoint, "");
+        assert_eq!(loaded.theme.dark_mode, false);
+        assert_eq!(loaded.stt.diarize_model, "vibevoice-cpp-asr");
+    }
+
+    #[test]
+    fn test_vault_layout_recordings_dir_default() {
+        assert_eq!(VaultLayout::default().recordings_dir, "assets/recordings");
+    }
+
+    #[test]
+    fn test_speakers_file_path() {
+        let cfg = Config {
+            vault_path: PathBuf::from("/tmp/test-vault"),
+            ..Default::default()
+        };
+        assert_eq!(
+            cfg.speakers_file_path(),
+            PathBuf::from("/tmp/test-vault/.pkm/speakers.toml")
+        );
     }
 
     #[test]
