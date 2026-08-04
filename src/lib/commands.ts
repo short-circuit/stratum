@@ -25,6 +25,13 @@ import type {
   KanbanBlockDto,
   KanbanDataDto,
   ReindexResult,
+  DictationStartDto,
+  DictationStopDto,
+  DictationOptsDto,
+  DictationResultDto,
+  SpeakerDto,
+  SpeakerAssignDto,
+  SttTestDto,
 } from './types';
 
 export async function getVaultInfo(): Promise<VaultInfo> {
@@ -239,6 +246,16 @@ export async function getSettings(): Promise<{
     max_results: number;
     max_depth: number;
   };
+  stt?: {
+    endpoint: string;
+    api_key: string | null;
+    model: string;
+    diarize_model: string;
+    language: string | null;
+    diarize: boolean;
+    auto_summarize: boolean;
+    auto_identify: boolean;
+  };
 }> {
   return invoke('get_settings');
 }
@@ -258,6 +275,16 @@ export async function saveSettings(settings: {
   };
   graph: GraphSettings;
   sync: SyncSettings;
+  stt?: {
+    endpoint: string;
+    api_key: string | null;
+    model: string;
+    diarize_model: string;
+    language: string | null;
+    diarize: boolean;
+    auto_summarize: boolean;
+    auto_identify: boolean;
+  };
 }): Promise<void> {
   return invoke('save_settings', { settings });
 }
@@ -408,4 +435,47 @@ export async function createKanbanBlock(
   marker: string,
 ): Promise<KanbanBlockDto> {
   return invoke('create_kanban_block', { content, marker });
+}
+
+// --- Dictation (voice memos) ---
+
+export async function dictationStart(pagePath: string): Promise<DictationStartDto> {
+  return invoke('dictation_start', { pagePath });
+}
+
+export async function dictationStop(): Promise<DictationStopDto> {
+  return invoke('dictation_stop');
+}
+
+export async function dictationCancel(): Promise<void> {
+  return invoke('dictation_cancel');
+}
+
+export async function dictationTranscribe(
+  recordingPath: string,
+  pagePath: string,
+  opts?: DictationOptsDto,
+): Promise<DictationResultDto> {
+  return invoke('dictation_transcribe', { recordingPath, pagePath, opts });
+}
+
+export async function speakerList(): Promise<SpeakerDto[]> {
+  return invoke('speaker_list');
+}
+
+export async function speakerAssign(
+  recordingPath: string,
+  speakerId: string,
+  name: string,
+  enroll: boolean,
+): Promise<SpeakerAssignDto> {
+  return invoke('speaker_assign', { recordingPath, speakerId, name, enroll });
+}
+
+export async function speakerDelete(name: string): Promise<void> {
+  return invoke('speaker_delete', { name });
+}
+
+export async function sttTestConnection(): Promise<SttTestDto> {
+  return invoke('stt_test_connection');
 }

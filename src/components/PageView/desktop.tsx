@@ -8,9 +8,12 @@ import MenuItem from '@mui/material/MenuItem';
 import ListSubheader from '@mui/material/ListSubheader';
 import Divider from '@mui/material/Divider';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import IconButton from '@mui/material/IconButton';
+import MicNoneIcon from '@mui/icons-material/MicNone';
 import OutlinerEditor from '../OutlinerEditor';
 import BacklinksPanel from '../BacklinksPanel';
 import SuggestedConnectionsPanel from '../SuggestedConnectionsPanel';
+import DictationPanel from '../DictationPanel';
 import { usePageView } from './shared';
 import * as api from '../../lib/commands';
 import { useStore } from '../../stores/appStore';
@@ -18,6 +21,7 @@ import { useStore } from '../../stores/appStore';
 export default function PageViewDesktop() {
   const { pagePath, currentPage, editorKey, reindexing, handleReindex, handleDelete } = usePageView();
   const [noteMenuAnchor, setNoteMenuAnchor] = useState<HTMLElement | null>(null);
+  const [dictationOpen, setDictationOpen] = useState(false);
 
   const handleNormalizeFile = useCallback(async () => {
     if (!currentPage) return;
@@ -54,6 +58,14 @@ export default function PageViewDesktop() {
         </Typography>
         <Chip label={currentPage.path} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} />
         <Box sx={{ flex: 1 }} />
+        <IconButton
+          size="small"
+          onClick={() => setDictationOpen(o => !o)}
+          title="Voice memo (dictation)"
+          color={dictationOpen ? 'primary' : 'default'}
+        >
+          <MicNoneIcon fontSize="small" />
+        </IconButton>
         <Button
           size="small"
           variant="outlined"
@@ -76,6 +88,16 @@ export default function PageViewDesktop() {
           <MenuItem onClick={() => { handleDelete(); closeMenu(); }} dense sx={{ color: 'error.main' }}>Delete Page</MenuItem>
         </Menu>
       </Box>
+
+      {dictationOpen && (
+        <DictationPanel
+          pagePath={currentPage.path}
+          onInserted={() => {
+            setDictationOpen(false);
+            void useStore.getState().openPage(currentPage.path);
+          }}
+        />
+      )}
 
       <Box sx={{ flex: 1, overflow: 'auto' }}>
         <OutlinerEditor key={editorKey} pagePath={currentPage.path} />

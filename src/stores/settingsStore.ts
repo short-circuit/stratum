@@ -28,6 +28,17 @@ export interface ResearchSettings {
   max_depth: number;
 }
 
+export interface SttSettings {
+  endpoint: string;
+  api_key: string | null;
+  model: string;
+  diarize_model: string;
+  language: string | null;
+  diarize: boolean;
+  auto_summarize: boolean;
+  auto_identify: boolean;
+}
+
 export interface AppSettings {
   vault_path: string;
   theme: ThemeSettings;
@@ -35,6 +46,7 @@ export interface AppSettings {
   graph: GraphSettings;
   sync: SyncSettings;
   research: ResearchSettings;
+  stt: SttSettings;
   [key: string]: unknown;
 }
 
@@ -49,6 +61,7 @@ export interface SettingsState {
   updateAi: (patch: Partial<AiConfig>) => void;
   updateSync: (patch: Partial<SyncSettings>) => void;
   updateResearch: (patch: Partial<ResearchSettings>) => void;
+  updateStt: (patch: Partial<SttSettings>) => void;
   setSettings: (settings: AppSettings) => void;
 }
 
@@ -99,6 +112,17 @@ const DEFAULT_AI: AiConfig = {
   rag_chunk_count: 3,
 };
 
+const DEFAULT_STT: SttSettings = {
+  endpoint: '',
+  api_key: null,
+  model: 'whisper-1',
+  diarize_model: 'vibevoice-cpp-asr',
+  language: null,
+  diarize: true,
+  auto_summarize: true,
+  auto_identify: true,
+};
+
 const DEFAULT_SETTINGS: AppSettings = {
   vault_path: '',
   theme: DEFAULT_THEME,
@@ -106,6 +130,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   graph: DEFAULT_GRAPH,
   sync: DEFAULT_SYNC_SETTINGS,
   research: DEFAULT_RESEARCH,
+  stt: DEFAULT_STT,
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -127,6 +152,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           sync: { ...DEFAULT_SYNC_SETTINGS, ...result.sync },
           // research is only merged if it exists in the response
           research: result.research ? { ...DEFAULT_RESEARCH, ...result.research } : DEFAULT_RESEARCH,
+          stt: result.stt ? { ...DEFAULT_STT, ...result.stt } : DEFAULT_STT,
         },
         loading: false,
       });
@@ -168,6 +194,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const s = get().settings;
     if (!s) return;
     set({ settings: { ...s, research: { ...s.research, ...patch } } });
+  },
+
+  updateStt: (patch) => {
+    const s = get().settings;
+    if (!s) return;
+    set({ settings: { ...s, stt: { ...s.stt, ...patch } } });
   },
 
   setSettings: (settings) => set({ settings }),

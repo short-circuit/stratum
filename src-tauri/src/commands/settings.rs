@@ -11,6 +11,19 @@ pub struct SettingsDto {
     pub research: ResearchSettingsDto,
     pub graph: GraphSettingsDto,
     pub sync: SyncSettingsDto,
+    pub stt: SttSettingsDto,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct SttSettingsDto {
+    pub endpoint: String,
+    pub api_key: Option<String>,
+    pub model: String,
+    pub diarize_model: String,
+    pub language: Option<String>,
+    pub diarize: bool,
+    pub auto_summarize: bool,
+    pub auto_identify: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -171,6 +184,16 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             ssh_key_path: config.sync.ssh_key_path.clone(),
             commit_template: config.sync.commit_template.clone(),
         },
+        stt: SttSettingsDto {
+            endpoint: config.stt.endpoint.clone(),
+            api_key: mask_api_key(&config.stt.api_key),
+            model: config.stt.model.clone(),
+            diarize_model: config.stt.diarize_model.clone(),
+            language: config.stt.language.clone(),
+            diarize: config.stt.diarize,
+            auto_summarize: config.stt.auto_summarize,
+            auto_identify: config.stt.auto_identify,
+        },
     })
 }
 
@@ -271,6 +294,34 @@ pub async fn save_settings(
             ssh_key_path: settings.sync.ssh_key_path,
             commit_template: settings.sync.commit_template,
             ..pkm_core::SyncConfig::default()
+        },
+        stt: pkm_core::SttConfig {
+            endpoint: settings.stt.endpoint,
+            api_key: {
+                // Preserve the stored key when the frontend sent a masked one.
+                let masked = settings
+                    .stt
+                    .api_key
+                    .as_ref()
+                    .is_some_and(|k| k.contains("****"));
+                if masked {
+                    if config_path.exists() {
+                        pkm_core::Config::load(&config_path)
+                            .ok()
+                            .and_then(|c| c.stt.api_key)
+                    } else {
+                        None
+                    }
+                } else {
+                    settings.stt.api_key
+                }
+            },
+            model: settings.stt.model,
+            diarize_model: settings.stt.diarize_model,
+            language: settings.stt.language,
+            diarize: settings.stt.diarize,
+            auto_summarize: settings.stt.auto_summarize,
+            auto_identify: settings.stt.auto_identify,
         },
         ..pkm_core::Config::default()
     };
