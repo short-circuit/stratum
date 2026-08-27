@@ -589,6 +589,11 @@ pub async fn create_page(
     }
     block_index.flush().map_err(|e| e.to_string())?;
 
+    // Drop BlockIndex writer to release the Tantivy directory lock before
+    // the file watcher fires on the new .md file — otherwise the watcher's
+    // own BlockIndex::create hits a lock contention error.
+    drop(state.block_index.take());
+
     Ok(PageDto {
         path: path.clone(),
         slug: std::path::Path::new(&path)
@@ -784,6 +789,9 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
             .map_err(|e| e.to_string())?;
     }
     block_index.flush().map_err(|e| e.to_string())?;
+
+    // Release Tantivy directory lock before the file watcher fires.
+    drop(state.block_index.take());
 
     Ok(PageDto {
         path,

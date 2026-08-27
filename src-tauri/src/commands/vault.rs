@@ -435,10 +435,30 @@ fn setup_vault(
     vault_path: &std::path::Path,
     vstate: &mut VaultState,
 ) -> Result<(pkm_block::BlockStore, usize, usize), String> {
-    std::fs::create_dir_all(vault_path.join(".pkm"))
+    let pkm_dir = vault_path.join(".pkm");
+    std::fs::create_dir_all(&pkm_dir)
         .map_err(|e| format!("Failed to initialize vault: {e}"))?;
 
-    let db_path = vault_path.join(".pkm").join("blocks.db");
+    // Write a .gitignore inside .pkm/ to prevent derived/indexed data from
+    // being committed — these are rebuilt from .md files and cause merge
+    // conflicts during git sync when tracked.
+    let gitignore_path = pkm_dir.join(".gitignore");
+    if !gitignore_path.exists() {
+        let contents = "\
+# Derived data — rebuilt from .md files, never commit these
+blocks.db
+blocks.db-wal
+blocks.db-shm
+cache.db
+cache.db-wal
+cache.db-shm
+search.idx/
+history/
+";
+        let _ = std::fs::write(&gitignore_path, contents);
+    }
+
+    let db_path = pkm_dir.join("blocks.db");
     let index_engine = IndexEngine::new(vault_path).ok();
     vstate.vault_path = vault_path.to_path_buf();
     vstate.db_path = db_path.clone();

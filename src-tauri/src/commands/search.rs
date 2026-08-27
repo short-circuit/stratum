@@ -91,6 +91,9 @@ pub async fn search_blocks(
         .search(&query, limit)
         .map_err(|e| e.to_string())?;
 
+    // Release Tantivy directory lock — search is read-only, no need to hold writer.
+    drop(state.block_index.take());
+
     let dtos: Vec<SearchResultDto> = results
         .into_iter()
         .map(|r| SearchResultDto {
