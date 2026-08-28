@@ -352,7 +352,7 @@ export function useSettingsPage() {
     research,
     theme,
     syncSettings,
-    stt: settings.stt,
+    stt: settings?.stt,
 
     // Actions
     setMsg,
