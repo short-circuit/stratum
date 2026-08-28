@@ -4,8 +4,8 @@ fn main() {
         // cpal links -laaudio; find the NDK's libaaudio.so and add its
         // directory to the linker search path.
         if let Ok(ndk) = std::env::var("ANDROID_NDK_HOME") {
-            let prebuilt = std::path::PathBuf::from(&ndk)
-                .join("toolchains/llvm/prebuilt/linux-x86_64");
+            let prebuilt =
+                std::path::PathBuf::from(&ndk).join("toolchains/llvm/prebuilt/linux-x86_64");
             // NDK r21+: libaaudio.so lives under sysroot/usr/lib/<target>/
             for target in &["aarch64-linux-android", "arm-linux-androideabi"] {
                 let lib_dir = prebuilt.join("sysroot/usr/lib").join(target);
