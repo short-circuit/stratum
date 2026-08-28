@@ -16,7 +16,7 @@ pub mod merge;
 pub mod parse;
 pub mod types;
 
-pub use client::{identify, cosine_similarity, Diarizer, SttEndpoint, Transcriber, VoiceIdClient};
+pub use client::{cosine_similarity, identify, Diarizer, SttEndpoint, Transcriber, VoiceIdClient};
 pub use merge::assign_speakers;
 pub use parse::{normalize_ts, parse_diarization_json, parse_transcription_json};
 pub use types::{

@@ -54,10 +54,11 @@ fn best_speaker(
     let mut best: Option<(String, f64)> = None;
     for ds in &diar.segments {
         let overlap = (end.min(ds.end) - start.max(ds.start)).max(0.0);
-        if overlap > 0.0 && overlap / duration >= min_fraction {
-            if best.as_ref().map(|(_, o)| overlap > *o).unwrap_or(true) {
-                best = Some((ds.speaker.clone(), overlap));
-            }
+        if overlap > 0.0
+            && overlap / duration >= min_fraction
+            && best.as_ref().map(|(_, o)| overlap > *o).unwrap_or(true)
+        {
+            best = Some((ds.speaker.clone(), overlap));
         }
     }
     best.map(|(s, _)| s)
@@ -130,8 +131,16 @@ mod tests {
     #[test]
     fn test_interleaved_speakers_preserved() {
         // A speaks 0-2, B speaks 2-4, A speaks 4-6
-        let t = transcript(&[(0.0, 2.0, "first"), (2.2, 4.0, "second"), (4.2, 6.0, "third")]);
-        let d = diar(&[("SPEAKER_00", 0.0, 2.1), ("SPEAKER_01", 2.1, 4.1), ("SPEAKER_00", 4.1, 6.0)]);
+        let t = transcript(&[
+            (0.0, 2.0, "first"),
+            (2.2, 4.0, "second"),
+            (4.2, 6.0, "third"),
+        ]);
+        let d = diar(&[
+            ("SPEAKER_00", 0.0, 2.1),
+            ("SPEAKER_01", 2.1, 4.1),
+            ("SPEAKER_00", 4.1, 6.0),
+        ]);
         let turns = assign_speakers(&t, &d);
         assert_eq!(turns.len(), 3);
         assert_eq!(turns[0].speaker.as_deref(), Some("SPEAKER_00"));

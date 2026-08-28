@@ -66,7 +66,9 @@ impl SpeakerRegistry {
     }
 
     pub fn get(&self, name: &str) -> Option<&SpeakerEntry> {
-        self.speakers.iter().find(|s| s.name.eq_ignore_ascii_case(name))
+        self.speakers
+            .iter()
+            .find(|s| s.name.eq_ignore_ascii_case(name))
     }
 
     /// Insert or replace an entry by name (case-insensitive).
@@ -85,8 +87,7 @@ impl SpeakerRegistry {
     /// Remove an entry by name; returns whether anything was removed.
     pub fn remove(&mut self, name: &str) -> bool {
         let before = self.speakers.len();
-        self.speakers
-            .retain(|s| !s.name.eq_ignore_ascii_case(name));
+        self.speakers.retain(|s| !s.name.eq_ignore_ascii_case(name));
         self.speakers.len() != before
     }
 }
@@ -116,7 +117,10 @@ mod tests {
 
         let loaded = SpeakerRegistry::load(&path).unwrap();
         assert_eq!(loaded.names(), vec!["Alice", "Bob"]);
-        assert_eq!(loaded.get("alice").unwrap().embedding, Some(vec![0.1, 0.2, 0.3]));
+        assert_eq!(
+            loaded.get("alice").unwrap().embedding,
+            Some(vec![0.1, 0.2, 0.3])
+        );
     }
 
     #[test]

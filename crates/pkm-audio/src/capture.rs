@@ -82,27 +82,24 @@ impl AudioRecorder {
         let err_fn = |e| warn!("audio stream error: {e}");
 
         let stream = match config.sample_format() {
-            cpal::SampleFormat::F32 => device
-                .build_input_stream(
-                    &config.into(),
-                    move |data: &[f32], _| push_mono(&buf, data, channels),
-                    err_fn,
-                    None,
-                ),
-            cpal::SampleFormat::I16 => device
-                .build_input_stream(
-                    &config.into(),
-                    move |data: &[i16], _| push_mono(&buf, data, channels),
-                    err_fn,
-                    None,
-                ),
-            cpal::SampleFormat::U16 => device
-                .build_input_stream(
-                    &config.into(),
-                    move |data: &[u16], _| push_mono(&buf, data, channels),
-                    err_fn,
-                    None,
-                ),
+            cpal::SampleFormat::F32 => device.build_input_stream(
+                &config.into(),
+                move |data: &[f32], _| push_mono(&buf, data, channels),
+                err_fn,
+                None,
+            ),
+            cpal::SampleFormat::I16 => device.build_input_stream(
+                &config.into(),
+                move |data: &[i16], _| push_mono(&buf, data, channels),
+                err_fn,
+                None,
+            ),
+            cpal::SampleFormat::U16 => device.build_input_stream(
+                &config.into(),
+                move |data: &[u16], _| push_mono(&buf, data, channels),
+                err_fn,
+                None,
+            ),
             other => {
                 return Err(PkmError::Audio(format!(
                     "unsupported sample format {other:?}"
@@ -129,8 +126,7 @@ impl AudioRecorder {
         if let Some(stream) = handle.stream.take() {
             drop(stream);
         }
-        let samples =
-            std::mem::take(&mut *handle.buffer.lock().unwrap_or_else(|p| p.into_inner()));
+        let samples = std::mem::take(&mut *handle.buffer.lock().unwrap_or_else(|p| p.into_inner()));
         let duration_secs = handle.started.elapsed().as_secs_f64();
         debug!(
             "recording stopped samples={} duration={duration_secs:.1}s",
@@ -189,14 +185,13 @@ impl Sample for u16 {
 
 impl Drop for RecordingHandle {
     fn drop(&mut self) {
-        let len = self
-            .buffer
-            .lock()
-            .map(|b| b.len())
-            .unwrap_or_default();
+        let len = self.buffer.lock().map(|b| b.len()).unwrap_or_default();
         let secs = self.started.elapsed().as_secs_f64();
         if len > 0 {
-            debug!("recording dropped without stop ({} samples, {secs:.1}s)", len);
+            debug!(
+                "recording dropped without stop ({} samples, {secs:.1}s)",
+                len
+            );
         }
     }
 }

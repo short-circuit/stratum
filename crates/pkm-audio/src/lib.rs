@@ -14,6 +14,5 @@ pub mod encode;
 
 pub use capture::{AudioRecorder, CaptureResult, DeviceInfo, RecordingHandle};
 pub use encode::{
-    decode_flac, encode_flac, encode_wav_slice, format_duration, recording_path,
-    sanitize_slug,
+    decode_flac, encode_flac, encode_wav_slice, format_duration, recording_path, sanitize_slug,
 };

@@ -83,11 +83,18 @@ impl Transcriber {
             form = form.text("language", lang.to_string());
         }
 
-        let mut req = self.ep.http().post(self.ep.url("/v1/audio/transcriptions")).multipart(form);
+        let mut req = self
+            .ep
+            .http()
+            .post(self.ep.url("/v1/audio/transcriptions"))
+            .multipart(form);
         if let Some(auth) = self.ep.auth() {
             req = req.header("Authorization", auth);
         }
-        let resp = req.send().await.map_err(|e| PkmError::Ai(format!("transcription request failed: {e}")))?;
+        let resp = req
+            .send()
+            .await
+            .map_err(|e| PkmError::Ai(format!("transcription request failed: {e}")))?;
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
         if !status.is_success() {
@@ -141,11 +148,18 @@ impl Diarizer {
             form = form.text("language", lang.to_string());
         }
 
-        let mut req = self.ep.http().post(self.ep.url("/v1/audio/diarization")).multipart(form);
+        let mut req = self
+            .ep
+            .http()
+            .post(self.ep.url("/v1/audio/diarization"))
+            .multipart(form);
         if let Some(auth) = self.ep.auth() {
             req = req.header("Authorization", auth);
         }
-        let resp = req.send().await.map_err(|e| PkmError::Ai(format!("diarization request failed: {e}")))?;
+        let resp = req
+            .send()
+            .await
+            .map_err(|e| PkmError::Ai(format!("diarization request failed: {e}")))?;
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
         if status == reqwest::StatusCode::NOT_FOUND
@@ -276,7 +290,11 @@ pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
 /// `min_score` is a cosine-similarity cutoff below which a probe is
 /// considered unknown (returns an empty result). Matches sorted by score
 /// descending.
-pub fn identify(probe: &[f32], enrolled: &[(String, Vec<f32>)], min_score: f64) -> Vec<crate::types::VoiceMatch> {
+pub fn identify(
+    probe: &[f32],
+    enrolled: &[(String, Vec<f32>)],
+    min_score: f64,
+) -> Vec<crate::types::VoiceMatch> {
     let mut matches: Vec<crate::types::VoiceMatch> = enrolled
         .iter()
         .map(|(name, emb)| crate::types::VoiceMatch {
@@ -285,7 +303,11 @@ pub fn identify(probe: &[f32], enrolled: &[(String, Vec<f32>)], min_score: f64) 
         })
         .filter(|m| m.score >= min_score)
         .collect();
-    matches.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    matches.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     matches
 }
 

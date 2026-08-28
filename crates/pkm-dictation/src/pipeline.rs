@@ -13,7 +13,9 @@ use pkm_ai::provider::LlmProvider;
 use pkm_block::BlockStore;
 use pkm_core::{PkmError, PkmResult};
 use pkm_index::related::RelatedFinder;
-use pkm_stt::{assign_speakers, identify, Diarizer, SpeakerTurn, SttEndpoint, Transcriber, VoiceIdClient};
+use pkm_stt::{
+    assign_speakers, identify, Diarizer, SpeakerTurn, SttEndpoint, Transcriber, VoiceIdClient,
+};
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -98,7 +100,10 @@ pub async fn run(p: Pipeline<'_>, opts: &PipelineOptions<'_>) -> PkmResult<Pipel
     let turns: Vec<SpeakerTurn> = if opts.diarize {
         p.stage(Stage::Diarizing);
         let diarizer = Diarizer::new(p.endpoint.clone());
-        match diarizer.diarize(opts.clip_path, p.diarize_model, p.language).await {
+        match diarizer
+            .diarize(opts.clip_path, p.diarize_model, p.language)
+            .await
+        {
             Ok(diar) => {
                 diarized = true;
                 assign_speakers(&transcript, &diar)
@@ -147,8 +152,11 @@ pub async fn run(p: Pipeline<'_>, opts: &PipelineOptions<'_>) -> PkmResult<Pipel
     let mut tags: Vec<String> = Vec::new();
     if !transcript_text.is_empty() {
         p.stage(Stage::Linking);
-        let split_pred = |c: char| c.is_whitespace() || c == '#' || c == '*' || c == '[' || c == ']';
-        let current_slug = Path::new(opts.page_slug).file_stem().and_then(|s| s.to_str());
+        let split_pred =
+            |c: char| c.is_whitespace() || c == '#' || c == '*' || c == '[' || c == ']';
+        let current_slug = Path::new(opts.page_slug)
+            .file_stem()
+            .and_then(|s| s.to_str());
         let candidates: Vec<String> = RelatedFinder::new()
             .split_predicate(split_pred)
             .find_related(&p.store, p.index_path, &transcript_text, current_slug)
@@ -157,7 +165,8 @@ pub async fn run(p: Pipeline<'_>, opts: &PipelineOptions<'_>) -> PkmResult<Pipel
             .into_iter()
             .map(|r| r.title)
             .collect();
-        related = enrich::suggest_related(p.llm, p.llm_model, &transcript_text, &candidates).await?;
+        related =
+            enrich::suggest_related(p.llm, p.llm_model, &transcript_text, &candidates).await?;
 
         let existing = existing_tags(&p.store, p.vault_path);
         tags = enrich::suggest_tags(p.llm, p.llm_model, &transcript_text, &existing).await?;
@@ -171,7 +180,14 @@ pub async fn run(p: Pipeline<'_>, opts: &PipelineOptions<'_>) -> PkmResult<Pipel
         duration_secs: opts.duration_secs,
         speakers: num_speakers,
     };
-    let markdown = render_memo(&meta, &turns, &speaker_names, summary.as_deref(), &related, &tags);
+    let markdown = render_memo(
+        &meta,
+        &turns,
+        &speaker_names,
+        summary.as_deref(),
+        &related,
+        &tags,
+    );
 
     Ok(PipelineOutput {
         markdown,
@@ -199,7 +215,11 @@ fn distinct_speakers(turns: &[SpeakerTurn]) -> Vec<String> {
 }
 
 /// Extract a short WAV slice of the first turn of a speaker for voice ID.
-fn speaker_slice(clip_path: &Path, turns: &[SpeakerTurn], speaker: &str) -> PkmResult<Option<std::path::PathBuf>> {
+fn speaker_slice(
+    clip_path: &Path,
+    turns: &[SpeakerTurn],
+    speaker: &str,
+) -> PkmResult<Option<std::path::PathBuf>> {
     const SLICE_SECS: f64 = 4.0;
     let Some(turn) = turns.iter().find(|t| t.speaker.as_deref() == Some(speaker)) else {
         return Ok(None);
@@ -233,10 +253,30 @@ mod tests {
     #[test]
     fn test_distinct_speakers_order() {
         let turns = vec![
-            SpeakerTurn { speaker: Some("SPEAKER_01".into()), start: 0.0, end: 1.0, text: "a".into() },
-            SpeakerTurn { speaker: Some("SPEAKER_00".into()), start: 1.0, end: 2.0, text: "b".into() },
-            SpeakerTurn { speaker: Some("SPEAKER_01".into()), start: 2.0, end: 3.0, text: "c".into() },
-            SpeakerTurn { speaker: None, start: 3.0, end: 4.0, text: "d".into() },
+            SpeakerTurn {
+                speaker: Some("SPEAKER_01".into()),
+                start: 0.0,
+                end: 1.0,
+                text: "a".into(),
+            },
+            SpeakerTurn {
+                speaker: Some("SPEAKER_00".into()),
+                start: 1.0,
+                end: 2.0,
+                text: "b".into(),
+            },
+            SpeakerTurn {
+                speaker: Some("SPEAKER_01".into()),
+                start: 2.0,
+                end: 3.0,
+                text: "c".into(),
+            },
+            SpeakerTurn {
+                speaker: None,
+                start: 3.0,
+                end: 4.0,
+                text: "d".into(),
+            },
         ];
         assert_eq!(distinct_speakers(&turns), vec!["SPEAKER_01", "SPEAKER_00"]);
     }

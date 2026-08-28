@@ -150,7 +150,10 @@ mod tests {
         assert_eq!(rate, 44100);
         assert!((decoded.len() as i64 - samples.len() as i64).abs() < 1000);
         let peak: f32 = decoded.iter().map(|s| s.abs()).fold(0.0, f32::max);
-        assert!((peak - 0.5).abs() < 0.1, "peak ~= original amplitude, got {peak}");
+        assert!(
+            (peak - 0.5).abs() < 0.1,
+            "peak ~= original amplitude, got {peak}"
+        );
     }
 
     #[test]

@@ -435,8 +435,7 @@ fn setup_vault(
     vstate: &mut VaultState,
 ) -> Result<(pkm_block::BlockStore, usize, usize), String> {
     let pkm_dir = vault_path.join(".pkm");
-    std::fs::create_dir_all(&pkm_dir)
-        .map_err(|e| format!("Failed to initialize vault: {e}"))?;
+    std::fs::create_dir_all(&pkm_dir).map_err(|e| format!("Failed to initialize vault: {e}"))?;
 
     // Write a .gitignore inside .pkm/ to prevent derived/indexed data from
     // being committed — these are rebuilt from .md files and cause merge

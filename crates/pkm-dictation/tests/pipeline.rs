@@ -65,7 +65,10 @@ fn fixture_vault() -> (tempfile::TempDir, BlockStore) {
         ("pages/rust-notes.md", "Notes about #rust development.\n"),
         ("pages/homelab.md", "Homelab #homelab stuff.\n"),
         ("pages/meeting.md", "meeting notes\n"),
-        ("pages/voice-dictation.md", "Voice feature design and audio notes.\n"),
+        (
+            "pages/voice-dictation.md",
+            "Voice feature design and audio notes.\n",
+        ),
     ] {
         let p = vault.join(rel);
         std::fs::create_dir_all(p.parent().unwrap()).unwrap();
@@ -77,15 +80,25 @@ fn fixture_vault() -> (tempfile::TempDir, BlockStore) {
         ("pages/rust-notes.md", "rust notes"),
         ("pages/homelab.md", "homelab stuff"),
         ("pages/meeting.md", "meeting notes"),
-        ("pages/voice-dictation.md", "Voice feature design and audio notes"),
+        (
+            "pages/voice-dictation.md",
+            "Voice feature design and audio notes",
+        ),
     ] {
         store
-            .insert_block(&pkm_block::Block::new(uuid::Uuid::new_v4(), content.to_string()), rel)
+            .insert_block(
+                &pkm_block::Block::new(uuid::Uuid::new_v4(), content.to_string()),
+                rel,
+            )
             .unwrap();
         let page = pkm_block::Page {
             path: vault.join(rel),
             rel_path: rel.into(),
-            slug: Path::new(rel).file_stem().unwrap().to_string_lossy().to_string(),
+            slug: Path::new(rel)
+                .file_stem()
+                .unwrap()
+                .to_string_lossy()
+                .to_string(),
             frontmatter: pkm_block::PageFrontmatter::default(),
             block_tree: pkm_block::tree::BlockTree::default(),
             block_order: Vec::new(),
@@ -195,11 +208,17 @@ async fn test_pipeline_full_flow() {
     assert_eq!(out.tags, vec!["meeting", "voice"]);
 
     // rendered markdown
-    assert!(out.markdown.contains("**Speaker 1:** Let's ship the voice feature."));
+    assert!(out
+        .markdown
+        .contains("**Speaker 1:** Let's ship the voice feature."));
     assert!(out.markdown.contains("**Speaker 2:** Agreed."));
-    assert!(out.markdown.contains("**Related:** [[voice dictation]], [[rust notes]]"));
+    assert!(out
+        .markdown
+        .contains("**Related:** [[voice dictation]], [[rust notes]]"));
     assert!(out.markdown.contains("#meeting #voice"));
-    assert!(out.markdown.contains("> **Summary:** Decided to ship voice dictation"));
+    assert!(out
+        .markdown
+        .contains("> **Summary:** Decided to ship voice dictation"));
 
     // stage order
     assert_eq!(
@@ -351,7 +370,10 @@ async fn test_pipeline_identifies_enrolled_speakers() {
     };
 
     let out = run(pipeline, &opts).await.unwrap();
-    assert_eq!(out.speaker_names.get("SPEAKER_00").map(|s| s.as_str()), Some("Alice"));
+    assert_eq!(
+        out.speaker_names.get("SPEAKER_00").map(|s| s.as_str()),
+        Some("Alice")
+    );
     assert!(out.markdown.contains("**Alice:** a"));
 }
 
