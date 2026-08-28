@@ -142,6 +142,7 @@ impl VaultState {
     }
 
     /// Get the indexing-in-progress flag.
+    #[allow(dead_code)] // used on desktop but not android (file watcher disabled)
     pub fn is_indexing(&self) -> bool {
         self.indexing_in_progress.load(Ordering::SeqCst)
     }
