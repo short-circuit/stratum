@@ -4,7 +4,7 @@
 //! Pure crate logic: no Tauri types. The command handler in the Tauri shell
 //! wires this into the UI and inserts the result into the current note.
 
-use crate::enrich::{self, parse_wiki_link_lines};
+use crate::enrich;
 use crate::render::{render_memo, MemoMeta};
 use crate::speakers::SpeakerRegistry;
 use crate::tags::existing_tags;
@@ -244,7 +244,7 @@ mod tests {
     #[test]
     fn test_parse_wiki_link_lines_reexport() {
         assert_eq!(
-            parse_wiki_link_lines("[[a]]\n[[b|c]]"),
+            enrich::parse_wiki_link_lines("[[a]]\n[[b|c]]"),
             vec!["a", "b"]
         );
     }

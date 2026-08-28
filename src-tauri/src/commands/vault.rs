@@ -36,7 +36,6 @@ pub struct VaultState {
 pub struct ActiveRecording {
     pub handle: pkm_audio::RecordingHandle,
     pub recording_path: PathBuf,
-    pub page_path: String,
 }
 
 /// A completed dictation: everything needed to re-render the memo.
