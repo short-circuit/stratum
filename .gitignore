@@ -60,3 +60,6 @@ Developer
 # === Vault config (may contain API keys) ===
 .pkm/config.toml
 .pkm/config*.toml
+
+# === Hermes ===
+.hermes.md
