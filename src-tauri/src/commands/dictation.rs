@@ -160,7 +160,11 @@ pub fn dictation_start(
         handle,
         recording_path: recording_path.clone(),
     });
-    info!("dictation started device={} path={}", device.name, recording_path.display());
+    info!(
+        "dictation started device={} path={}",
+        device.name,
+        recording_path.display()
+    );
     Ok(DictationStartDto {
         recording_path: recording_path.to_string_lossy().to_string(),
         device_name: device.name,
@@ -423,8 +427,7 @@ pub async fn speaker_assign(
             let start = (turn.start * rate_f).round() as usize;
             let len = ((turn.end - turn.start).min(4.0) * rate_f).round() as usize;
             if start < samples.len() && len >= (rate as usize) / 2 {
-                let slice: Vec<f32> =
-                    samples[start..(start + len).min(samples.len())].to_vec();
+                let slice: Vec<f32> = samples[start..(start + len).min(samples.len())].to_vec();
                 // Clip lives at <vault>/assets/recordings/<file>.
                 let vault = session
                     .clip_path
@@ -489,13 +492,10 @@ pub async fn speaker_assign(
     );
 
     let new_ids = replace_memo_blocks(&mut state, &session, &markdown)?;
-    state
-        .dictation_sessions
-        .get_mut(&recording_path)
-        .map(|s| {
-            s.speaker_names = names.clone();
-            s.inserted_block_ids = new_ids.clone();
-        });
+    if let Some(s) = state.dictation_sessions.get_mut(&recording_path) {
+        s.speaker_names = names.clone();
+        s.inserted_block_ids = new_ids.clone();
+    }
 
     Ok(SpeakerAssignDto {
         name,
@@ -522,9 +522,7 @@ pub fn speaker_delete(name: String, state: tauri::State<'_, AppState>) -> Result
 
 /// Probe `GET {endpoint}/v1/models` for the Settings page.
 #[tauri::command]
-pub async fn stt_test_connection(
-    state: tauri::State<'_, AppState>,
-) -> Result<SttTestDto, String> {
+pub async fn stt_test_connection(state: tauri::State<'_, AppState>) -> Result<SttTestDto, String> {
     let endpoint = {
         let state = state.lock().map_err(|e| e.to_string())?;
         let config = load_config(&state)?;
@@ -583,9 +581,7 @@ fn insert_memo_blocks(
         .map_err(|e| e.to_string())?;
     let anchor = existing.last().map(|b| b.id);
 
-    store
-        .execute_batch("BEGIN")
-        .map_err(|e| e.to_string())?;
+    store.execute_batch("BEGIN").map_err(|e| e.to_string())?;
     let result = (|| -> Result<Vec<String>, String> {
         let mut ids = Vec::new();
         let mut prev = anchor;
@@ -623,14 +619,15 @@ fn replace_memo_blocks(
     let store = state.get_store().map_err(|e| e.to_string())?;
 
     // Anchor = the block before the first memo block (its left_id).
-    let first_id = session.inserted_block_ids.first().and_then(|s| uuid::Uuid::parse_str(s).ok());
+    let first_id = session
+        .inserted_block_ids
+        .first()
+        .and_then(|s| uuid::Uuid::parse_str(s).ok());
     let anchor = first_id
         .and_then(|id| store.get_block(id).ok())
         .and_then(|b| b.left_id);
 
-    store
-        .execute_batch("BEGIN")
-        .map_err(|e| e.to_string())?;
+    store.execute_batch("BEGIN").map_err(|e| e.to_string())?;
     let result = (|| -> Result<Vec<String>, String> {
         for id_str in &session.inserted_block_ids {
             if let Ok(id) = uuid::Uuid::parse_str(id_str) {
@@ -674,7 +671,9 @@ fn parse_blocks(markdown: &str) -> Result<Vec<pkm_block::Block>, String> {
 fn refresh_page_index(state: &mut VaultState, page_path: &str) -> Result<(), String> {
     state.record_change(page_path);
     let store = state.get_store().map_err(|e| e.to_string())?;
-    let blocks = store.get_blocks_by_page(page_path).map_err(|e| e.to_string())?;
+    let blocks = store
+        .get_blocks_by_page(page_path)
+        .map_err(|e| e.to_string())?;
     let block_index = state.ensure_block_index()?;
     for block in blocks {
         block_index

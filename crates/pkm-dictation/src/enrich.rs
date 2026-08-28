@@ -145,13 +145,19 @@ mod tests {
             vec!["a", "b"],
             "dedupe + dedupe order"
         );
-        let many = (0..6).map(|i| format!("[[n{i}]]")).collect::<Vec<_>>().join("\n");
+        let many = (0..6)
+            .map(|i| format!("[[n{i}]]"))
+            .collect::<Vec<_>>()
+            .join("\n");
         assert_eq!(parse_wiki_link_lines(&many).len(), 3, "capped at 3");
     }
 
     #[test]
     fn test_parse_tag_json() {
-        assert_eq!(parse_tag_json("[\"meeting\", \"voice\"]"), vec!["meeting", "voice"]);
+        assert_eq!(
+            parse_tag_json("[\"meeting\", \"voice\"]"),
+            vec!["meeting", "voice"]
+        );
         assert_eq!(
             parse_tag_json("```json\n[\"a\", \"b\", \"c\", \"d\"]\n```"),
             vec!["a", "b", "c"],
@@ -159,6 +165,10 @@ mod tests {
         );
         assert_eq!(parse_tag_json("nothing"), Vec::<String>::new());
         assert_eq!(parse_tag_json("{}"), Vec::<String>::new());
-        assert_eq!(parse_tag_json("[\"a\", 42]"), vec!["a"], "non-strings ignored");
+        assert_eq!(
+            parse_tag_json("[\"a\", 42]"),
+            vec!["a"],
+            "non-strings ignored"
+        );
     }
 }
