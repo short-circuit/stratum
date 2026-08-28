@@ -102,7 +102,7 @@ fn make_clip(dir: &Path) -> std::path::PathBuf {
     // content is irrelevant; the mock endpoint ignores it).
     let rate = 16000u32;
     let samples: Vec<f32> = (0..rate as usize * 3)
-        .map(|i| ((i as f32 * 220.0 * std::f32::consts::TAU / rate as f32).sin() * 0.4))
+        .map(|i| (i as f32 * 220.0 * std::f32::consts::TAU / rate as f32).sin() * 0.4)
         .collect();
     let clip = dir.join("recording.flac");
     pkm_audio::encode_flac(&samples, rate, &clip).unwrap();

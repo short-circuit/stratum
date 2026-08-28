@@ -159,7 +159,6 @@ pub fn dictation_start(
     state.recorder = Some(super::vault::ActiveRecording {
         handle,
         recording_path: recording_path.clone(),
-        page_path,
     });
     info!("dictation started device={} path={}", device.name, recording_path.display());
     Ok(DictationStartDto {
@@ -224,7 +223,7 @@ pub async fn dictation_transcribe(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<DictationResultDto, String> {
-    let (config, vault_path, index_path, store, registry_path, registry) = {
+    let (config, vault_path, index_path, store, _registry_path, registry) = {
         let state = state.lock().map_err(|e| e.to_string())?;
         let config = load_config(&state)?;
         endpoint_for(&config)?; // early validation
