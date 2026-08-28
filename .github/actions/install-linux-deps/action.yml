@@ -15,4 +15,5 @@ runs:
           libjavascriptcoregtk-4.1-dev \
           librsvg2-dev \
           libssl-dev \
+          libasound2-dev \
           pkg-config
