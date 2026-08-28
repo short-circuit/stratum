@@ -32,9 +32,20 @@ pub struct CaptureResult {
     pub duration_secs: f64,
 }
 
+/// Wrapper around `cpal::Stream` to provide `Send + Sync` across all platforms.
+///
+/// `cpal::Stream` itself doesn't implement `Send` on Android (AAudio) or
+/// `Send` on macOS (CoreAudio), but dropping it from any thread is safe and
+/// we only hold it to keep the audio pipeline alive.
+struct SendableStream(#[allow(dead_code)] Option<cpal::Stream>);
+// SAFETY: cpal::Stream can be dropped from any thread; we never access
+// the audio callback from Rust — it lives in the audio subsystem.
+unsafe impl Send for SendableStream {}
+unsafe impl Sync for SendableStream {}
+
 /// An active recording. Drop or call [`AudioRecorder::stop`] to finish.
 pub struct RecordingHandle {
-    stream: Option<Box<dyn Send + Sync + 'static>>,
+    stream: Option<SendableStream>,
     buffer: Arc<Mutex<Vec<f32>>>,
     sample_rate: u32,
     started: Instant,
@@ -114,7 +125,7 @@ impl AudioRecorder {
         debug!("recording started rate={sample_rate} channels={channels}");
 
         Ok(RecordingHandle {
-            stream: Some(Box::new(stream)),
+            stream: Some(SendableStream(Some(stream))),
             buffer,
             sample_rate,
             started: Instant::now(),
