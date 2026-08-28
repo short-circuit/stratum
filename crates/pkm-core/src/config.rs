@@ -587,7 +587,7 @@ mod tests {
         .unwrap();
         let loaded = Config::load(&config_path).unwrap();
         assert_eq!(loaded.stt.endpoint, "");
-        assert_eq!(loaded.theme.dark_mode, false);
+        assert!(!loaded.theme.dark_mode);
         assert_eq!(loaded.stt.diarize_model, "pyannote-diarization");
     }
 
