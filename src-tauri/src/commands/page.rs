@@ -731,6 +731,35 @@ pub async fn normalize_all_files(
     Ok(count)
 }
 
+/// Ensure the journal page for `today` (`YYYY-MM-DD`) is registered in the store
+/// and return its `PageDto`. If the file already exists on disk but is not in
+/// SQLite (e.g. a stale `blocks.db`), it is synced from disk so the page and blocks
+/// become queryable. Idempotent — safe to call repeatedly.
+///
+/// Extracted from the `ensure_today_journal` command so it can be tested without a
+/// Tauri runtime.
+pub fn ensure_today_journal_core(
+    store: &pkm_block::BlockStore,
+    vault_path: &Path,
+    today: &str,
+) -> Result<PageDto, String> {
+    let path = format!("journals/{}.md", today);
+    let full_path = resolve_safe_write_path(vault_path, &path)?;
+    let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
+    let (fm, _, _) = pkm_markdown::block_parser::parse_document(&content);
+    // Register an on-disk journal into SQLite (page + blocks). This recovers a stale
+    // DB where the file exists on disk but is not indexed, and converges idempotently.
+    sync_page_from_disk(store, &path, vault_path, None)?;
+    let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
+    Ok(PageDto {
+        path,
+        slug: today.to_string(),
+        title: fm.title.or_else(|| Some(today.to_string())),
+        block_count: blocks.len(),
+        modified_at: get_file_mtime(&full_path),
+    })
+}
+
 /// Atomically ensure today's journal page exists.
 ///
 /// Computes the current local date (`YYYY-MM-DD`), checks if `journals/YYYY-MM-DD.md`
@@ -747,18 +776,21 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
     let full_path = resolve_safe_write_path(&state.vault_path, &path)?;
 
     if full_path.exists() {
-        let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
-        let (fm, _, _) = pkm_markdown::block_parser::parse_document(&content);
         let store = state.get_store().map_err(|e| e.to_string())?;
+        let page = ensure_today_journal_core(&store, &state.vault_path, &today)?;
+        // Index the synced blocks into Tantivy, then release the directory lock
+        // before the file watcher can fire on the just-written page.
+        let block_index = state.ensure_block_index()?;
         let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
+        for block in &blocks {
+            block_index
+                .index_block(block, &path)
+                .map_err(|e| e.to_string())?;
+        }
+        block_index.flush().map_err(|e| e.to_string())?;
+        drop(state.block_index.take());
 
-        return Ok(PageDto {
-            path: path.clone(),
-            slug: today.clone(),
-            title: fm.title.or_else(|| Some(today.clone())),
-            block_count: blocks.len(),
-            modified_at: get_file_mtime(&full_path),
-        });
+        return Ok(page);
     }
 
     let title = today.clone();

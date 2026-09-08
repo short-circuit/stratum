@@ -90,3 +90,38 @@ fn test_template_applied_to_page() {
     assert!(content.contains("Meeting Notes"));
     assert!(content.contains("2026-07-28"));
 }
+
+#[test]
+fn test_ensure_today_journal_syncs_stale_file_from_disk() {
+    use app_lib::commands::page::ensure_today_journal_core;
+
+    let tv = create_test_vault();
+    // Stale state: the journal exists on disk but is NOT registered in SQLite.
+    tv.create_md_file(
+        "journals/2026-09-06.md",
+        "---\ntitle: 2026-09-06\n---\n- entry\n",
+    );
+
+    let page = ensure_today_journal_core(&tv.store, &tv.vault_path, "2026-09-06").unwrap();
+    assert!(page.path.ends_with("journals/2026-09-06.md"));
+    let pages = tv.store.list_pages().unwrap();
+    assert!(pages.contains(&"journals/2026-09-06.md".to_string()));
+    let blocks = tv
+        .store
+        .get_blocks_by_page("journals/2026-09-06.md")
+        .unwrap();
+    assert_eq!(blocks.len(), 1);
+    assert_eq!(page.block_count, blocks.len());
+
+    // Idempotent: a second call converges without error and without duplicates.
+    let page2 = ensure_today_journal_core(&tv.store, &tv.vault_path, "2026-09-06").unwrap();
+    assert_eq!(page2.block_count, 1);
+    let pages2 = tv.store.list_pages().unwrap();
+    assert_eq!(
+        pages2
+            .iter()
+            .filter(|p| *p == "journals/2026-09-06.md")
+            .count(),
+        1
+    );
+}

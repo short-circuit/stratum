@@ -1,4 +1,4 @@
-mod commands;
+pub mod commands;
 
 use commands::vault::{AppState, VaultState};
 use std::path::PathBuf;
