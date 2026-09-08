@@ -146,6 +146,7 @@ pub(crate) fn sync_page_from_disk(
 ) -> Result<bool, String> {
     let full = vault_path.join(rel);
     let content = std::fs::read_to_string(&full).map_err(|e| e.to_string())?;
+    let file_mtime = get_file_mtime(&full);
     let (fm, _, blocks) = pkm_markdown::block_parser::parse_document(&content);
 
     let mut page = pkm_block::Page::new(full, vault_path);
@@ -157,6 +158,12 @@ pub(crate) fn sync_page_from_disk(
         aliases: fm.aliases,
         ..Default::default()
     };
+    page.set_blocks(&blocks);
+    // Persist the on-disk modification time so the DB `modified_at` tracks disk;
+    // this makes subsequent drift detection meaningful.
+    if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&file_mtime) {
+        page.modified_at = dt.with_timezone(&chrono::Utc);
+    }
 
     // Wrap SQLite operations in an explicit transaction for atomicity
     store.execute_batch("BEGIN").map_err(|e| e.to_string())?;
@@ -302,6 +309,7 @@ pub async fn reindex_vault(
             aliases: note.frontmatter.aliases.clone(),
             ..Default::default()
         };
+        page.set_blocks(&blocks);
 
         store.execute_batch("BEGIN").ok();
         let result = (|| -> Result<(), String> {
@@ -483,6 +491,7 @@ pub async fn save_page(
         aliases: frontmatter.aliases,
         ..Default::default()
     };
+    page.set_blocks(&blocks);
 
     // SQLite first (inside a transaction), then write .md file
     // This ensures the database is the source of truth.
@@ -573,6 +582,7 @@ pub async fn create_page(
     let store = state.get_store().map_err(|e| e.to_string())?;
     let mut page = pkm_block::Page::new(full_path.clone(), &state.vault_path);
     page.frontmatter.title = title.clone();
+    page.set_blocks(&blocks);
     for block in &blocks {
         store
             .insert_block(block, &path)
@@ -731,6 +741,35 @@ pub async fn normalize_all_files(
     Ok(count)
 }
 
+/// Ensure the journal page for `today` (`YYYY-MM-DD`) is registered in the store
+/// and return its `PageDto`. If the file already exists on disk but is not in
+/// SQLite (e.g. a stale `blocks.db`), it is synced from disk so the page and blocks
+/// become queryable. Idempotent — safe to call repeatedly.
+///
+/// Extracted from the `ensure_today_journal` command so it can be tested without a
+/// Tauri runtime.
+pub fn ensure_today_journal_core(
+    store: &pkm_block::BlockStore,
+    vault_path: &Path,
+    today: &str,
+) -> Result<PageDto, String> {
+    let path = format!("journals/{}.md", today);
+    let full_path = resolve_safe_write_path(vault_path, &path)?;
+    let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
+    let (fm, _, _) = pkm_markdown::block_parser::parse_document(&content);
+    // Register an on-disk journal into SQLite (page + blocks). This recovers a stale
+    // DB where the file exists on disk but is not indexed, and converges idempotently.
+    sync_page_from_disk(store, &path, vault_path, None)?;
+    let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
+    Ok(PageDto {
+        path,
+        slug: today.to_string(),
+        title: fm.title.or_else(|| Some(today.to_string())),
+        block_count: blocks.len(),
+        modified_at: get_file_mtime(&full_path),
+    })
+}
+
 /// Atomically ensure today's journal page exists.
 ///
 /// Computes the current local date (`YYYY-MM-DD`), checks if `journals/YYYY-MM-DD.md`
@@ -747,18 +786,21 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
     let full_path = resolve_safe_write_path(&state.vault_path, &path)?;
 
     if full_path.exists() {
-        let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
-        let (fm, _, _) = pkm_markdown::block_parser::parse_document(&content);
         let store = state.get_store().map_err(|e| e.to_string())?;
+        let page = ensure_today_journal_core(&store, &state.vault_path, &today)?;
+        // Index the synced blocks into Tantivy, then release the directory lock
+        // before the file watcher can fire on the just-written page.
+        let block_index = state.ensure_block_index()?;
         let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
+        for block in &blocks {
+            block_index
+                .index_block(block, &path)
+                .map_err(|e| e.to_string())?;
+        }
+        block_index.flush().map_err(|e| e.to_string())?;
+        drop(state.block_index.take());
 
-        return Ok(PageDto {
-            path: path.clone(),
-            slug: today.clone(),
-            title: fm.title.or_else(|| Some(today.clone())),
-            block_count: blocks.len(),
-            modified_at: get_file_mtime(&full_path),
-        });
+        return Ok(page);
     }
 
     let title = today.clone();
@@ -775,6 +817,7 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
     let store = state.get_store().map_err(|e| e.to_string())?;
     let mut page = pkm_block::Page::new(full_path.clone(), &state.vault_path);
     page.frontmatter.title = Some(title.clone());
+    page.set_blocks(&blocks);
     for block in &blocks {
         store
             .insert_block(block, &path)
@@ -800,4 +843,157 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
         block_count: blocks.len(),
         modified_at: get_file_mtime(&full_path),
     })
+}
+
+/// First-class repair for a stale `blocks.db`: reconcile every .md file on disk
+/// into SQLite. A page is re-synced from disk when it is missing from the store,
+/// registered with zero blocks (a partial-import or stale shape), or its on-disk
+/// mtime is strictly newer than its DB record (true drift). After the file pass,
+/// DB page rows with no on-disk file are pruned (orphan sweep).
+///
+/// Extracted from the `repair_db_from_disk` command so it can be tested without a
+/// Tauri runtime. This is the pure, DB-scoped contract; progress emission lives in
+/// the command wrapper.
+pub fn repair_db_core(
+    store: &pkm_block::BlockStore,
+    vault_path: &Path,
+) -> Result<super::ReindexResult, String> {
+    Ok(repair_db_inner(store, vault_path, None)?.0)
+}
+
+/// Underlying repair that also returns the number of orphan rows removed, so the
+/// command wrapper can report it in its final progress message. `block_index` is
+/// forwarded to [`sync_page_from_disk`] so repaired pages also land in the Tantivy
+/// search index; pass `None` for a DB-scoped run (tests).
+fn repair_db_inner(
+    store: &pkm_block::BlockStore,
+    vault_path: &Path,
+    mut block_index: Option<&mut BlockIndex>,
+) -> Result<(super::ReindexResult, usize), String> {
+    let db_paths = store.list_pages().map_err(|e| e.to_string())?;
+    let md_files = MdCollector::new()
+        .include_extensionless(true)
+        .skip_dirs(vec![".pkm", "templates", ".git"])
+        .collect_relative(vault_path, vault_path)
+        .map_err(|e| e.to_string())?;
+
+    let mut succeeded: usize = 0;
+    let mut failed: usize = 0;
+    let mut errors: Vec<String> = Vec::new();
+
+    for rel in &md_files {
+        let needs_sync = if !db_paths.iter().any(|p| p == rel) {
+            true
+        } else {
+            let blocks = store.get_blocks_by_page(rel).unwrap_or_default();
+            if blocks.is_empty() {
+                true
+            } else {
+                let db_modified = store.get_page_modified_at(rel).unwrap_or(None);
+                match db_modified {
+                    Some(db_str) => {
+                        let file_dt = chrono::DateTime::parse_from_rfc3339(&get_file_mtime(
+                            &vault_path.join(rel),
+                        ));
+                        let db_dt = chrono::DateTime::parse_from_rfc3339(&db_str);
+                        match (file_dt, db_dt) {
+                            (Ok(file_dt), Ok(db_dt)) => file_dt > db_dt,
+                            _ => true,
+                        }
+                    }
+                    None => true,
+                }
+            }
+        };
+
+        if needs_sync {
+            match sync_page_from_disk(store, rel, vault_path, block_index.as_deref_mut()) {
+                Ok(true) => succeeded += 1,
+                Ok(false) => {}
+                Err(e) => {
+                    failed += 1;
+                    errors.push(format!("{rel}: {e}"));
+                    warn!("repair_db_core: failed for {}: {}", rel, e);
+                }
+            }
+        }
+    }
+
+    // Orphan sweep: prune DB page rows with no on-disk .md file.
+    let mut orphans_removed = 0usize;
+    for rel in &db_paths {
+        if rel.starts_with(".git/") || rel.contains("/.git/") {
+            continue;
+        }
+        if !md_files.contains(rel) {
+            match store.delete_page(rel) {
+                Ok(()) => orphans_removed += 1,
+                Err(e) => {
+                    failed += 1;
+                    errors.push(format!("{rel}: {e}"));
+                }
+            }
+        }
+    }
+
+    Ok((
+        super::ReindexResult {
+            processed: succeeded + failed,
+            succeeded,
+            failed,
+            errors,
+        },
+        orphans_removed,
+    ))
+}
+
+/// Run [`repair_db_core`] as a Tauri command, mirroring `reindex_vault`'s
+/// indexing-guard / progress-emission pattern and `reindex_page`'s local-search-index
+/// pattern: repaired pages are also indexed into Tantivy so full-text search stays
+/// consistent with the healed DB.
+#[tauri::command]
+pub async fn repair_db_from_disk(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<super::ReindexResult, String> {
+    let mut state = state.lock().map_err(|e| e.to_string())?;
+    // Drop cached writers to release Tantivy lockfiles before opening a local writer
+    drop(state.block_index.take());
+    drop(state.index_engine.take());
+    let vault_path = state.vault_path.clone();
+
+    // Release indexing guard before running (mirrors reindex_vault)
+    {
+        let _guard = IndexingGuard::new(&state)?;
+    }
+
+    state.try_start_indexing().map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
+    let mut local_block_index = BlockIndex::create(&state.vault_path.join(".pkm").join("search"))
+        .map_err(|e| e.to_string())?;
+    let (result, orphans_removed) =
+        repair_db_inner(&store, &vault_path, Some(&mut local_block_index))?;
+    local_block_index.flush().map_err(|e| e.to_string())?;
+    // Drop the local writer so its Tantivy lockfile is released before any later
+    // IndexEngine / BlockIndex::create for the same directory.
+    drop(local_block_index);
+
+    let _ = app.emit(
+        "reindex-progress",
+        super::ProgressEventPayload {
+            message: format!(
+                "Repaired {}/{} pages ({} failed, {} orphans removed)",
+                result.succeeded, result.processed, result.failed, orphans_removed
+            ),
+            percent: 1.0,
+        },
+    );
+    info!(
+        "Repaired {} pages ({} failed, {} orphans removed)",
+        result.processed, result.failed, orphans_removed
+    );
+    state.finish_indexing();
+    // Invalidate graph cache so fresh data is served
+    crate::commands::graph::invalidate_graph_cache();
+    Ok(result)
 }

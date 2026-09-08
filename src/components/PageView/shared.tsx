@@ -31,8 +31,8 @@ export interface PageViewState {
  */
 export function usePageView(): PageViewState {
   const { pagePath: rawPath } = useParams<{ pagePath: string }>();
-  const { currentPage, openPage, deletePage } = useStore(useShallow(
-    s => ({ currentPage: s.currentPage, openPage: s.openPage, deletePage: s.deletePage }),
+  const { currentPage, openPage, deletePage, loadPages } = useStore(useShallow(
+    s => ({ currentPage: s.currentPage, openPage: s.openPage, deletePage: s.deletePage, loadPages: s.loadPages }),
   ));
   const [editorKey, setEditorKey] = useState(0);
   const [reindexing, setReindexing] = useState(false);
@@ -53,6 +53,7 @@ export function usePageView(): PageViewState {
     try {
       const result = await api.reindexPage(currentPage.path);
       setEditorKey(k => k + 1);
+      await loadPages();
       if (result.succeeded > 0) {
         useStore.setState({ error: `Reindexed page — ${result.succeeded} block(s)` });
         setTimeout(() => useStore.setState({ error: null }), 2000);
@@ -65,7 +66,7 @@ export function usePageView(): PageViewState {
     } finally {
       setReindexing(false);
     }
-  }, [currentPage]);
+  }, [currentPage, loadPages]);
 
   const handleDelete = useCallback(async () => {
     if (!currentPage) return;

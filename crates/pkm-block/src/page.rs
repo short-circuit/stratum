@@ -87,6 +87,20 @@ impl Page {
         path_str.starts_with("pages/") || path_str.starts_with("pages\\")
     }
 
+    /// Replace the block tree with a parsed/loaded set of blocks and rebuild the
+    /// depth-first ordering. `block_count()` then reflects the given blocks; a
+    /// freshly-created `Page` starts empty, so callers that build a page from
+    /// parsed blocks must invoke this before `upsert_page` to persist a truthful
+    /// `block_count`.
+    pub fn set_blocks(&mut self, blocks: &[crate::block::Block]) {
+        let mut tree = BlockTree::new();
+        for block in blocks {
+            tree.insert(block.clone());
+        }
+        self.block_tree = tree;
+        self.rebuild_order();
+    }
+
     /// Rebuild block_order from depth-first traversal.
     pub fn rebuild_order(&mut self) {
         self.block_order = self
@@ -143,5 +157,17 @@ mod tests {
         assert!(fm.tags.is_empty());
         assert!(fm.aliases.is_empty());
         assert!(fm.extra.is_empty());
+    }
+
+    #[test]
+    fn test_page_set_blocks_reflects_block_count() {
+        let mut page = Page::new(
+            PathBuf::from("/vault/pages/my-note.md"),
+            std::path::Path::new("/vault"),
+        );
+        let block = crate::block::Block::new(uuid::Uuid::new_v4(), "Content".into());
+        page.set_blocks(&[block]);
+        assert_eq!(page.block_count(), 1);
+        assert_eq!(page.block_order.len(), 1);
     }
 }
