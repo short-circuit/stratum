@@ -858,14 +858,17 @@ pub fn repair_db_core(
     store: &pkm_block::BlockStore,
     vault_path: &Path,
 ) -> Result<super::ReindexResult, String> {
-    Ok(repair_db_inner(store, vault_path)?.0)
+    Ok(repair_db_inner(store, vault_path, None)?.0)
 }
 
 /// Underlying repair that also returns the number of orphan rows removed, so the
-/// command wrapper can report it in its final progress message.
+/// command wrapper can report it in its final progress message. `block_index` is
+/// forwarded to [`sync_page_from_disk`] so repaired pages also land in the Tantivy
+/// search index; pass `None` for a DB-scoped run (tests).
 fn repair_db_inner(
     store: &pkm_block::BlockStore,
     vault_path: &Path,
+    mut block_index: Option<&mut BlockIndex>,
 ) -> Result<(super::ReindexResult, usize), String> {
     let db_paths = store.list_pages().map_err(|e| e.to_string())?;
     let md_files = MdCollector::new()
@@ -904,7 +907,7 @@ fn repair_db_inner(
         };
 
         if needs_sync {
-            match sync_page_from_disk(store, rel, vault_path, None) {
+            match sync_page_from_disk(store, rel, vault_path, block_index.as_deref_mut()) {
                 Ok(true) => succeeded += 1,
                 Ok(false) => {}
                 Err(e) => {
@@ -945,15 +948,16 @@ fn repair_db_inner(
 }
 
 /// Run [`repair_db_core`] as a Tauri command, mirroring `reindex_vault`'s
-/// indexing-guard / progress-emission pattern. DB-scoped: it does not rebuild
-/// Tantivy (the per-page sync already refreshes the search index when one is held).
+/// indexing-guard / progress-emission pattern and `reindex_page`'s local-search-index
+/// pattern: repaired pages are also indexed into Tantivy so full-text search stays
+/// consistent with the healed DB.
 #[tauri::command]
 pub async fn repair_db_from_disk(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<super::ReindexResult, String> {
     let mut state = state.lock().map_err(|e| e.to_string())?;
-    // Drop cached writers to release Tantivy lockfiles
+    // Drop cached writers to release Tantivy lockfiles before opening a local writer
     drop(state.block_index.take());
     drop(state.index_engine.take());
     let vault_path = state.vault_path.clone();
@@ -965,7 +969,14 @@ pub async fn repair_db_from_disk(
 
     state.try_start_indexing().map_err(|e| e.to_string())?;
     let store = state.get_store().map_err(|e| e.to_string())?;
-    let (result, orphans_removed) = repair_db_inner(&store, &vault_path)?;
+    let mut local_block_index = BlockIndex::create(&state.vault_path.join(".pkm").join("search"))
+        .map_err(|e| e.to_string())?;
+    let (result, orphans_removed) =
+        repair_db_inner(&store, &vault_path, Some(&mut local_block_index))?;
+    local_block_index.flush().map_err(|e| e.to_string())?;
+    // Drop the local writer so its Tantivy lockfile is released before any later
+    // IndexEngine / BlockIndex::create for the same directory.
+    drop(local_block_index);
 
     let _ = app.emit(
         "reindex-progress",
