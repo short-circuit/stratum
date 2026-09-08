@@ -55,6 +55,7 @@ __pycache__/
 .sisyphus/
 .hermes/
 .opencode/
+.omo/
 Developer
 
 # === Vault config (may contain API keys) ===

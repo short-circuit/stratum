@@ -34,6 +34,7 @@ export default function JournalPanelMobile() {
     journalLoading,
     journalError,
     retryJournal,
+    repairJournal,
     targetDate,
     allJournalDates,
     pastDates,
@@ -98,6 +99,9 @@ export default function JournalPanelMobile() {
           </Alert>
           <Button variant="outlined" size="small" onClick={retryJournal}>
             Retry
+          </Button>
+          <Button variant="outlined" size="small" onClick={repairJournal} sx={{ ml: 1 }}>
+            Repair database
           </Button>
         </Box>
       ) : journalLoading || !todayExists ? (

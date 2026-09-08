@@ -73,6 +73,7 @@ export default function SettingsPageMobile() {
     updateTheme,
     handleSave,
     handleReindex,
+    handleRepair,
     handleSyncNow,
     pickVaultDirectory,
   } = useSettingsPage();
@@ -324,6 +325,16 @@ export default function SettingsPageMobile() {
           sx={{ textTransform: 'none' }}
         >
           {fetching ? 'Reindexing...' : 'Rebuild Index'}
+        </Button>
+        <Button
+          variant="outlined"
+          color="error"
+          onClick={handleRepair}
+          disabled={fetching}
+          size="small"
+          sx={{ textTransform: 'none', ml: 1 }}
+        >
+          {fetching ? 'Repairing...' : 'Repair DB'}
         </Button>
       </Box>
 

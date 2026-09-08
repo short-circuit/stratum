@@ -47,8 +47,8 @@ export interface SettingsData {
 }
 
 export function useSettingsPage() {
-  const { pickVaultDirectory, setThemeConfig } = useStore(useShallow(
-    s => ({ pickVaultDirectory: s.pickVaultDirectory, setThemeConfig: s.setThemeConfig }),
+  const { pickVaultDirectory, setThemeConfig, loadPages } = useStore(useShallow(
+    s => ({ pickVaultDirectory: s.pickVaultDirectory, setThemeConfig: s.setThemeConfig, loadPages: s.loadPages }),
   ));
   const [settings, setSettings] = useState<any>(null);
   const [saving, setSaving] = useState(false);
@@ -235,8 +235,30 @@ export function useSettingsPage() {
       } else {
         setMsg(`Reindexed ${result.succeeded} pages.`);
       }
+      await loadPages();
     } catch (e) {
       setMsg(`Reindex failed: ${e}`);
+      setMsgSeverity('error');
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  const handleRepair = async () => {
+    setFetching(true);
+    setMsg('');
+    setMsgSeverity('success');
+    try {
+      const result = await api.repairDbFromDisk();
+      if (result.failed > 0) {
+        setMsg(`Repaired: ${result.succeeded} ok, ${result.failed} failed out of ${result.processed}`);
+        setMsgSeverity('error');
+      } else {
+        setMsg(`Repaired ${result.succeeded} pages.`);
+      }
+      await loadPages();
+    } catch (e) {
+      setMsg(`Repair failed: ${e}`);
       setMsgSeverity('error');
     } finally {
       setFetching(false);
@@ -367,6 +389,7 @@ export function useSettingsPage() {
     handleSave,
     handleFetchModels,
     handleReindex,
+    handleRepair,
     handleNormalizeAll,
     reindexProgress,
     setReindexProgress,

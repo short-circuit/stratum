@@ -118,6 +118,23 @@ export function useJournalPanel() {
       });
   }, [loadPages]);
 
+  const repairJournal = useCallback(() => {
+    setJournalError(null);
+    setJournalLoading(true);
+    api
+      .repairDbFromDisk()
+      .then(() => loadPages())
+      .then(() => api.ensureTodayJournal())
+      .then(() => {
+        setJournalLoading(false);
+        loadPages();
+      })
+      .catch((err) => {
+        setJournalError(String(err));
+        setJournalLoading(false);
+      });
+  }, [loadPages]);
+
   const getObserver = useCallback(() => {
     if (!observerRef.current) {
       observerRef.current = new IntersectionObserver(
@@ -243,6 +260,7 @@ export function useJournalPanel() {
     journalLoading,
     journalError,
     retryJournal,
+    repairJournal,
     targetDate,
     allJournalDates,
     pastDates,
