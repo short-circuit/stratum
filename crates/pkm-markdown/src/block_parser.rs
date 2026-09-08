@@ -585,6 +585,33 @@ pub fn serialize_blocks(blocks: &[Block]) -> String {
     serialize_ordered_blocks(&ordered, 0)
 }
 
+/// Assemble a full `.md` document from a serialized body, preserving any existing
+/// YAML frontmatter found in `existing`.
+///
+/// When `existing` begins with a `---` frontmatter block, all of its fields
+/// (title/created/modified/tags/aliases/extra) are re-serialized and prepended to
+/// `body`; if `title` is provided it overwrites the preserved title. Otherwise the
+/// output follows the legacy behaviour: title-only frontmatter when a `title` is
+/// given, or the bare `body` when it is not.
+///
+/// Block-editor saves are issued without a `title`, so rebuilding a file from
+/// `title` alone would strip every other frontmatter field from disk — and the file
+/// watcher would then sync that stripped file back into SQLite, erasing the metadata.
+pub fn assemble_blocks_markdown(existing: &str, body: &str, title: Option<&str>) -> String {
+    if existing.trim_start().starts_with("---") {
+        let (mut fm, _, _) = parse_document(existing);
+        if let Some(t) = title {
+            fm.title = Some(t.to_string());
+        }
+        let yaml_str = serde_yaml::to_string(&fm).unwrap_or_default();
+        format!("---\n{}---\n\n{}", yaml_str, body)
+    } else if let Some(t) = title {
+        format!("---\ntitle: {}\n---\n\n{}", t, body)
+    } else {
+        body.to_string()
+    }
+}
+
 fn serialize_ordered_blocks(blocks: &[Block], depth: usize) -> String {
     let mut output = String::new();
 
@@ -999,5 +1026,50 @@ mod tests {
         assert!(serialized.contains("- World"));
         assert!(serialized.contains(&format!(".id: {}", id1)));
         assert!(serialized.contains(&format!(".id: {}", id2)));
+    }
+
+    #[test]
+    fn test_assemble_blocks_markdown_preserves_frontmatter() {
+        let existing = "---\ntitle: Keep Me\ntags:\n  - alpha\naliases:\n  - alt\ncreated: 2026-01-01\n---\n\n- Old body\n";
+        let body = "- New body\n";
+        let out = assemble_blocks_markdown(existing, body, None);
+        // Body replaced, frontmatter fields retained.
+        assert!(out.contains("- New body"));
+        assert!(!out.contains("Old body"));
+        assert!(out.contains("alpha"));
+        assert!(out.contains("alt"));
+        assert!(out.contains("created: 2026-01-01"));
+
+        // Reparse: tags/aliases/created are preserved.
+        let (fm, parsed_body, blocks) = parse_document(&out);
+        assert_eq!(fm.tags, vec!["alpha"]);
+        assert_eq!(fm.aliases, vec!["alt"]);
+        assert_eq!(fm.created.as_deref(), Some("2026-01-01"));
+        assert_eq!(fm.title.as_deref(), Some("Keep Me"));
+        assert_eq!(parsed_body.trim(), "- New body");
+        assert_eq!(blocks.len(), 1);
+        assert!(blocks[0].content.contains("New body"));
+    }
+
+    #[test]
+    fn test_assemble_blocks_markdown_updates_title() {
+        let existing = "---\ntitle: Old\ntags:\n  - beta\n---\n\n- old\n";
+        let out = assemble_blocks_markdown(existing, "- new\n", Some("Renamed"));
+        let (fm, _, _) = parse_document(&out);
+        assert_eq!(fm.title.as_deref(), Some("Renamed"));
+        // Non-title fields survive a title update.
+        assert_eq!(fm.tags, vec!["beta"]);
+        assert!(out.contains("- new"));
+    }
+
+    #[test]
+    fn test_assemble_blocks_markdown_no_frontmatter() {
+        // No existing frontmatter + no title => body only.
+        assert_eq!(assemble_blocks_markdown("hello", "- b\n", None), "- b\n");
+        // No existing frontmatter + title => title-only frontmatter.
+        assert_eq!(
+            assemble_blocks_markdown("hello", "- b\n", Some("T")),
+            "---\ntitle: T\n---\n\n- b\n"
+        );
     }
 }
