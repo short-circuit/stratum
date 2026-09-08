@@ -125,3 +125,56 @@ fn test_ensure_today_journal_syncs_stale_file_from_disk() {
         1
     );
 }
+
+#[test]
+fn test_repair_db_syncs_stale_and_prunes_orphans() {
+    use app_lib::commands::page::repair_db_core;
+
+    let tv = create_test_vault();
+    // Two real pages on disk with parseable block content.
+    tv.create_md_file("pages/a.md", "Alpha block one\n\nAlpha block two\n");
+    tv.create_md_file("pages/b.md", "Beta entry\n");
+    // pages/c.md is registered in SQLite only — no file on disk (orphan).
+    tv.add_page("pages/c.md");
+    // pages/a.md is registered in SQLite with zero blocks (the stale shape).
+    tv.add_page("pages/a.md");
+
+    let result = repair_db_core(&tv.store, &tv.vault_path).unwrap();
+    assert_eq!(result.failed, 0);
+
+    let pages = tv.store.list_pages().unwrap();
+    assert!(pages.contains(&"pages/a.md".to_string()));
+    assert!(pages.contains(&"pages/b.md".to_string()));
+    assert!(!pages.contains(&"pages/c.md".to_string()));
+
+    // Block content on disk was synced into the store.
+    let a_blocks = tv.store.get_blocks_by_page("pages/a.md").unwrap();
+    assert_eq!(a_blocks.len(), 2);
+    let b_blocks = tv.store.get_blocks_by_page("pages/b.md").unwrap();
+    assert_eq!(b_blocks.len(), 1);
+}
+
+#[test]
+fn test_repair_db_is_idempotent() {
+    use app_lib::commands::page::repair_db_core;
+
+    let tv = create_test_vault();
+    tv.create_md_file("pages/a.md", "Content one\n\nContent two\n");
+    tv.create_md_file("pages/b.md", "Beta content\n");
+    tv.add_page("pages/a.md");
+
+    let first = repair_db_core(&tv.store, &tv.vault_path).unwrap();
+    assert_eq!(first.failed, 0);
+
+    // A second run must not produce errors or duplicate rows.
+    let second = repair_db_core(&tv.store, &tv.vault_path).unwrap();
+    assert_eq!(second.failed, 0);
+
+    let pages = tv.store.list_pages().unwrap();
+    assert_eq!(pages.iter().filter(|p| *p == "pages/a.md").count(), 1);
+    assert_eq!(pages.iter().filter(|p| *p == "pages/b.md").count(), 1);
+    let a_blocks = tv.store.get_blocks_by_page("pages/a.md").unwrap();
+    assert_eq!(a_blocks.len(), 2);
+    let b_blocks = tv.store.get_blocks_by_page("pages/b.md").unwrap();
+    assert_eq!(b_blocks.len(), 1);
+}

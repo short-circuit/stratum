@@ -6,11 +6,12 @@ import LinearProgress from '@mui/material/LinearProgress';
 interface DeveloperTabProps {
   fetching: boolean;
   onReindex: () => Promise<void>;
+  onRepair: () => Promise<void>;
   onNormalizeAll: () => Promise<void>;
   reindexProgress: { message: string; percent: number } | null;
 }
 
-export default function DeveloperTab({ fetching, onReindex, onNormalizeAll, reindexProgress }: DeveloperTabProps) {
+export default function DeveloperTab({ fetching, onReindex, onRepair, onNormalizeAll, reindexProgress }: DeveloperTabProps) {
   return (
     <Box>
       <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>Developer Tools</Typography>
@@ -28,6 +29,15 @@ export default function DeveloperTab({ fetching, onReindex, onNormalizeAll, rein
           disabled={fetching}
         >
           {fetching ? 'Reindexing...' : 'Reindex All'}
+        </Button>
+        <Button
+          variant="outlined"
+          color="error"
+          onClick={onRepair}
+          disabled={fetching}
+          sx={{ ml: 1 }}
+        >
+          {fetching ? 'Repairing...' : 'Repair DB from disk'}
         </Button>
         {reindexProgress && (
           <Box sx={{ mt: 1.5 }}>

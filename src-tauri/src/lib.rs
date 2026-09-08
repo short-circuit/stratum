@@ -223,6 +223,7 @@ pub fn run() {
             commands::page::delete_page,
             commands::page::reindex_vault,
             commands::page::reindex_page,
+            commands::page::repair_db_from_disk,
             commands::page::normalize_file,
             commands::page::normalize_all_files,
             // Blocks

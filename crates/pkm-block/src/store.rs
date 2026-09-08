@@ -553,6 +553,22 @@ impl BlockStore {
         Ok(())
     }
 
+    /// Read the `modified_at` TEXT column for a page row. Returns `None` when the
+    /// page is not registered (or the value is NULL). Used to detect whether a
+    /// file on disk is newer than the database's record during drift repair.
+    pub fn get_page_modified_at(&self, path: &str) -> StoreResult<Option<String>> {
+        let result = self.conn.query_row(
+            "SELECT modified_at FROM pages WHERE path = ?1",
+            params![path],
+            |row| row.get::<_, String>(0),
+        );
+        match result {
+            Ok(v) => Ok(Some(v)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(PkmError::Internal(format!("SQLite error: {e}"))),
+        }
+    }
+
     // --- Link CRUD ---
 
     pub fn insert_link(

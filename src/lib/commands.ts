@@ -414,6 +414,10 @@ export async function reindexPage(path: string): Promise<ReindexResult> {
   return invoke('reindex_page', { path });
 }
 
+export async function repairDbFromDisk(): Promise<ReindexResult> {
+  return invoke('repair_db_from_disk');
+}
+
 // --- Normalize ---
 
 export async function normalizeFile(path: string): Promise<void> {
