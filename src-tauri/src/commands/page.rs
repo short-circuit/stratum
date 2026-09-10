@@ -175,6 +175,7 @@ pub(crate) fn sync_page_from_disk(
         for block in &blocks {
             store.insert_block(block, rel).map_err(|e| e.to_string())?;
         }
+        reconcile_page_links(store, rel, &blocks)?;
         Ok(())
     })();
     match result {
@@ -193,6 +194,33 @@ pub(crate) fn sync_page_from_disk(
     }
 
     Ok(true)
+}
+
+/// Reconcile the `links` table for a page so block-level backlinks stay convergent
+/// with the wiki-links actually present in the page's blocks: delete every prior link
+/// row sourced by this page, then insert one row per extracted `[[Target]]` wiki-link.
+/// Must be invoked inside the same transaction that rewrites the page's blocks.
+///
+/// The table drives block-level backlink queries and was previously populated only by
+/// tests, leaving production backlinks permanently empty. Wiring this into the shared
+/// write/sync paths lets repair, reindex, and startup sync heal the table.
+pub(crate) fn reconcile_page_links(
+    store: &pkm_block::BlockStore,
+    page_path: &str,
+    blocks: &[pkm_block::Block],
+) -> Result<(), String> {
+    store
+        .delete_links_for_page(page_path)
+        .map_err(|e| e.to_string())?;
+    for block in blocks {
+        let links = pkm_markdown::linker::extract_links(&block.content);
+        for link in links {
+            store
+                .insert_link(block.id, "page_ref", Some(&link.target), None)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
 }
 
 /// Scan the vault filesystem for .md files and upsert any missing or empty ones into SQLite.
@@ -259,15 +287,12 @@ pub async fn reindex_vault(
     drop(state.index_engine.take());
     let vault_path = state.vault_path.clone();
 
-    // Release indexing guard before rebuilding (rebuild_all handles its own locking)
-    {
-        let _guard = IndexingGuard::new(&state)?;
-        // Guard held only during initial setup — released before rebuild
-    }
+    // Signal a bulk operation — the file watcher skips events while the indexing
+    // flag is held. IndexingGuard clears the flag even when an early `?` returns,
+    // so an error can never leak the flag and permanently disable the watcher.
+    let _guard = IndexingGuard::new(&state)?;
 
     // Single pass: rebuild_all handles Tantivy indexing + graph + tags + notes
-    // Signal bulk operation — file watcher will skip events
-    state.try_start_indexing().map_err(|e| e.to_string())?;
     let app2 = app.clone();
     let progress_cb: Option<ProgressCallback> = Some(Box::new(move |msg: String, pct: f32| {
         let _ = app2.emit(
@@ -320,6 +345,7 @@ pub async fn reindex_vault(
             for block in &blocks {
                 store.insert_block(block, &rel).map_err(|e| e.to_string())?;
             }
+            reconcile_page_links(&store, &rel, &blocks)?;
             Ok(())
         })();
         match result {
@@ -346,7 +372,6 @@ pub async fn reindex_vault(
         },
     );
     info!("Reindexed {} pages ({} failed)", processed, failed);
-    state.finish_indexing();
     // Invalidate graph cache so fresh data is served
     crate::commands::graph::invalidate_graph_cache();
     Ok(super::ReindexResult {
@@ -682,7 +707,9 @@ pub async fn normalize_all_files(
     state: tauri::State<'_, AppState>,
 ) -> Result<usize, String> {
     let mut state = state.lock().map_err(|e| e.to_string())?;
-    state.try_start_indexing().map_err(|e| e.to_string())?;
+    // IndexingGuard clears the flag even when an early `?` returns, so an error
+    // cannot leave the watcher permanently disabled.
+    let _guard = IndexingGuard::new(&state)?;
     let md_files = MdCollector::new()
         .include_extensionless(true)
         .skip_dirs(vec![".pkm", "templates", ".git"])
@@ -735,7 +762,6 @@ pub async fn normalize_all_files(
     );
 
     info!("Normalized {} files", count);
-    state.finish_indexing();
     // Invalidate graph cache so fresh data is served
     crate::commands::graph::invalidate_graph_cache();
     Ok(count)
@@ -962,12 +988,9 @@ pub async fn repair_db_from_disk(
     drop(state.index_engine.take());
     let vault_path = state.vault_path.clone();
 
-    // Release indexing guard before running (mirrors reindex_vault)
-    {
-        let _guard = IndexingGuard::new(&state)?;
-    }
-
-    state.try_start_indexing().map_err(|e| e.to_string())?;
+    // IndexingGuard clears the flag even when an early `?` returns, so an error
+    // cannot leave the watcher permanently disabled.
+    let _guard = IndexingGuard::new(&state)?;
     let store = state.get_store().map_err(|e| e.to_string())?;
     let mut local_block_index = BlockIndex::create(&state.vault_path.join(".pkm").join("search"))
         .map_err(|e| e.to_string())?;
@@ -992,7 +1015,6 @@ pub async fn repair_db_from_disk(
         "Repaired {} pages ({} failed, {} orphans removed)",
         result.processed, result.failed, orphans_removed
     );
-    state.finish_indexing();
     // Invalidate graph cache so fresh data is served
     crate::commands::graph::invalidate_graph_cache();
     Ok(result)

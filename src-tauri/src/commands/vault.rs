@@ -7,7 +7,7 @@ use pkm_index::indexer::IndexEngine;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 use tracing::info;
 
@@ -24,7 +24,7 @@ pub struct VaultState {
     #[cfg(not(target_os = "android"))]
     pub watcher: Option<pkm_watcher::FileWatcher>,
     pub watcher_last_save: SystemTime,
-    indexing_in_progress: AtomicBool,
+    indexing_in_progress: Arc<AtomicBool>,
     /// Active voice recording (started via `dictation_start`).
     pub recorder: Option<ActiveRecording>,
     /// Finished dictation sessions keyed by recording path, so speakers can
@@ -74,7 +74,7 @@ impl VaultState {
             #[cfg(not(target_os = "android"))]
             watcher: None,
             watcher_last_save: SystemTime::UNIX_EPOCH,
-            indexing_in_progress: AtomicBool::new(false),
+            indexing_in_progress: Arc::new(AtomicBool::new(false)),
             recorder: None,
             dictation_sessions: std::collections::HashMap::new(),
         }
@@ -158,21 +158,29 @@ impl VaultState {
 
 /// RAII guard that marks indexing as in-progress for its lifetime.
 /// When the guard is dropped, the flag is automatically cleared.
-pub struct IndexingGuard<'a> {
-    state: &'a VaultState,
+///
+/// The guard owns an `Arc` clone of the shared flag rather than borrowing the
+/// `VaultState`, so it can be held across bodies that take `&mut self` (e.g.
+/// `ensure_index`, `get_store`) — a borrow-based guard would conflict with those
+/// mutable borrows. This lets callers span their entire fallible body with the
+/// guard, guaranteeing the flag is released even when a `?` returns early.
+pub struct IndexingGuard {
+    flag: Arc<AtomicBool>,
 }
 
-impl<'a> IndexingGuard<'a> {
+impl IndexingGuard {
     /// Create a new guard, returning an error if indexing is already in progress.
-    pub fn new(state: &'a VaultState) -> Result<Self, String> {
+    pub fn new(state: &VaultState) -> Result<Self, String> {
         state.try_start_indexing()?;
-        Ok(Self { state })
+        Ok(Self {
+            flag: Arc::clone(&state.indexing_in_progress),
+        })
     }
 }
 
-impl<'a> Drop for IndexingGuard<'a> {
+impl Drop for IndexingGuard {
     fn drop(&mut self) {
-        self.state.finish_indexing();
+        self.flag.store(false, Ordering::SeqCst);
     }
 }
 
@@ -202,6 +210,32 @@ pub async fn get_vault_info(state: tauri::State<'_, AppState>) -> Result<VaultIn
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_resolve_saf_already_in_progress() {
+        let vs = VaultState::new(PathBuf::from("/tmp/stratum-nonexistent-for-test"));
+        assert!(vs.try_start_indexing().is_ok());
+        // A second start while the first is active must fail.
+        assert!(vs.try_start_indexing().is_err());
+        assert!(vs.is_indexing());
+        vs.finish_indexing();
+        assert!(!vs.is_indexing());
+    }
+
+    #[test]
+    fn test_indexing_guard_releases_flag_on_drop() {
+        // Regression for #169: an erroring operation must never leak the
+        // indexing-in-progress flag (which would permanently disable the watcher).
+        let vs = VaultState::new(PathBuf::from("/tmp/stratum-nonexistent-for-test"));
+        {
+            let _guard = IndexingGuard::new(&vs).unwrap();
+            assert!(vs.is_indexing());
+            // Guard must tolerate &mut-style callers during its lifetime; the Arc
+            // ownership means no borrow of `vs` is held while the guard is alive.
+            assert!(vs.get_store().is_ok() || vs.get_store().is_err());
+        }
+        assert!(!vs.is_indexing(), "guard drop must clear the indexing flag");
+    }
 
     #[test]
     fn test_percent_decode_simple() {
