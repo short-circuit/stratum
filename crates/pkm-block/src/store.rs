@@ -629,6 +629,23 @@ impl BlockStore {
         Ok(())
     }
 
+    /// Delete every link row whose source block belongs to the given page.
+    ///
+    /// Used to reconcile the `links` table when a page's blocks are rewritten (save or
+    /// sync), so stale backlinks never survive a write. The `links` table drives
+    /// block-level backlink queries and was previously populated only by tests, which
+    /// left production backlinks permanently empty.
+    pub fn delete_links_for_page(&self, page_path: &str) -> StoreResult<()> {
+        self.conn
+            .execute(
+                "DELETE FROM links WHERE source_block IN \
+                 (SELECT id FROM blocks WHERE page_path = ?1)",
+                params![page_path],
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+        Ok(())
+    }
+
     // --- Query helpers ---
 
     pub fn find_blocks_by_marker(&self, marker: &str) -> StoreResult<Vec<Block>> {
@@ -936,6 +953,30 @@ mod tests {
         // Query with empty markers — returns empty
         let empty2 = store.find_blocks_by_markers(&[]).unwrap();
         assert_eq!(empty2.len(), 0);
+    }
+
+    #[test]
+    fn test_delete_links_for_page() {
+        let store = BlockStore::open_in_memory().unwrap();
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+
+        store
+            .insert_block(&Block::new(a, "links to [[x]]".into()), "pages/a.md")
+            .unwrap();
+        store
+            .insert_block(&Block::new(b, "links to [[y]]".into()), "pages/b.md")
+            .unwrap();
+        store.insert_link(a, "page_ref", Some("x"), None).unwrap();
+        store.insert_link(b, "page_ref", Some("y"), None).unwrap();
+
+        assert_eq!(store.get_backlinks_for_page("x").unwrap().len(), 1);
+        assert_eq!(store.get_backlinks_for_page("y").unwrap().len(), 1);
+
+        // Deleting links for page a must clear only a's links, leaving b's intact.
+        store.delete_links_for_page("pages/a.md").unwrap();
+        assert_eq!(store.get_backlinks_for_page("x").unwrap().len(), 0);
+        assert_eq!(store.get_backlinks_for_page("y").unwrap().len(), 1);
     }
 
     #[test]

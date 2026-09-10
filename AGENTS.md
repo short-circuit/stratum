@@ -56,16 +56,20 @@ stratum/
 │   ├── flake.nix
 │   └── flake.lock
 ├── crates/
-│   ├── pkm-core/               # Core types, config, errors
-│   ├── pkm-block/              # Block model, tree, ops, SQLite store
-│   ├── pkm-markdown/           # Block-based markdown parser + serializer
-│   ├── pkm-index/              # Backlinks, graph, search (Tantivy)
-│   ├── pkm-query/              # Datalog query engine
-│   ├── pkm-sync/               # Git sync engine (git2)
-│   ├── pkm-watcher/            # File system watcher
 │   ├── pkm-ai/                 # Embeddings, RAG, LLM provider
+│   ├── pkm-audio/              # Microphone capture, FLAC/WAV codecs (dictation)
+│   ├── pkm-block/              # Block model, tree, ops, SQLite store
+│   ├── pkm-cli/                # CLI binary (cargo run -p pkm-cli)
+│   ├── pkm-core/               # Core types, config, errors
+│   ├── pkm-dictation/          # Voice dictation: transcribe, summarize, render
+│   ├── pkm-index/              # Backlinks, graph, search (Tantivy)
+│   ├── pkm-markdown/           # Block-based markdown parser + serializer
 │   ├── pkm-plugin/             # WASM plugin runtime
-│   └── pkm-cli/                # CLI binary (cargo run -p pkm-cli)
+│   ├── pkm-query/              # Datalog query engine
+│   ├── pkm-stt/                # Speech-to-text, diarization, speaker recognition
+│   ├── pkm-sync/               # Git sync engine (git2)
+│   ├── pkm-tests/              # Integration tests for the Rust crates
+│   └── pkm-watcher/            # File system watcher
 ├── src/                        # React + TypeScript frontend
 │   ├── main.tsx                # App bootstrap, settings load
 │   ├── App.tsx                 # Root layout, routes, close handler
@@ -116,6 +120,7 @@ stratum/
 │   │   ├── SettingsPage/
 │   │   ├── AISlashMenu.tsx
 │   │   ├── AIFormattingToolbar.tsx
+│   │   ├── DictationPanel.tsx
 │   │   ├── AutocompletePopup.tsx
 │   │   ├── LinkPreviewPopup.tsx
 │   │   ├── MathEditorModal.tsx
@@ -160,7 +165,7 @@ stratum/
 │   │   ├── installation.md
 │   │   ├── quickstart.md
 │   │   └── configuration.md
-│   ├── guide/                  # 19 user guides (one per feature)
+│   ├── guide/                  # 20 user guides (one per feature)
 │   │   ├── vault-management.md
 │   │   ├── block-editor.md
 │   │   ├── linking-and-backlinks.md
@@ -179,6 +184,7 @@ stratum/
 │   │   ├── ai-features.md
 │   │   ├── web-research.md
 │   │   ├── git-sync.md
+│   │   ├── voice-dictation.md
 │   │   └── export.md
 │   ├── cli/
 │   │   └── command-reference.md

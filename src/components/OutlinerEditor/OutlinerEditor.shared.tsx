@@ -247,29 +247,69 @@ export function useEditorData(
   }, [pagePath, editor]);
 
   // -----------------------------------------------------------------------
-  // Step 2: Debounced auto-save on document change
+  // Step 2: Debounced auto-save on document change with flush-on-unmount.
+  //
+  // The most recent blocks (and the page they belong to) are kept in a ref so a
+  // flush can persist the latest edit with the correct pagePath even after the
+  // component unmounts or navigates away. performSave consumes the ref, so a
+  // pending timer and a flush can never double-save: only the first of a racing
+  // timer/flush actually runs, and a clean-up on unmount / page change flushes
+  // whatever is still pending.
   // -----------------------------------------------------------------------
+  const pendingSaveRef = useRef<{ blocks: any[]; pagePath: string } | null>(null);
+
+  const performSave = useCallback(async () => {
+    const pending = pendingSaveRef.current;
+    if (!pending) return;
+    pendingSaveRef.current = null;
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    const { blocks, pagePath: ctxPath } = pending;
+    try {
+      // Clone blocks before marker detection so the editor document is never
+      // mutated if saveBlocks() fails — prevents marker keyword data loss.
+      detectAndApplyMarkers(
+        structuredClone(blocks),
+        ctxPath,
+        blockMetaRef.current,
+      );
+      const dtos = blockNoteToDto(blocks, blockMetaRef.current);
+      await api.saveBlocks(ctxPath, dtos);
+    } catch (e) {
+      console.error('[OutlinerEditor] save failed:', e);
+    }
+  }, []);
+
   const persistBlocks = useCallback(
     (blockNoteBlocks: any[]) => {
+      pendingSaveRef.current = { blocks: blockNoteBlocks, pagePath };
       if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(async () => {
-        try {
-          // Clone blocks before marker detection so the editor document is never
-          // mutated if saveBlocks() fails — prevents marker keyword data loss.
-          detectAndApplyMarkers(
-            structuredClone(blockNoteBlocks),
-            pagePath,
-            blockMetaRef.current,
-          );
-          const dtos = blockNoteToDto(blockNoteBlocks, blockMetaRef.current);
-          await api.saveBlocks(pagePath, dtos);
-        } catch (e) {
-          console.error('[OutlinerEditor] save failed:', e);
-        }
+      saveTimer.current = setTimeout(() => {
+        saveTimer.current = null;
+        void performSave();
       }, 500);
     },
-    [pagePath],
+    [pagePath, performSave],
   );
+
+  // Flush any pending autosave when the page changes or the component unmounts,
+  // so typing-then-navigating within the debounce window is never lost. The save
+  // uses the pagePath captured in pendingSaveRef, so it targets the correct page
+  // even across a navigation. api.saveBlocks is module-level, so the async call
+  // survives unmount.
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+      }
+      if (pendingSaveRef.current) {
+        void performSave();
+      }
+    };
+  }, [pagePath, performSave]);
 
   useEffect(() => {
     if (!editor || status !== 'ready') return;

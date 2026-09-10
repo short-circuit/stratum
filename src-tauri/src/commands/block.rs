@@ -91,24 +91,34 @@ pub async fn save_blocks(
         })
         .collect();
 
-    // Build markdown content first (do this before touching SQLite or disk)
+    // Build markdown content first (do this before touching SQLite or disk).
+    let full_path = state.vault_path.join(&page_path);
     let body = pkm_markdown::block_parser::serialize_blocks(&pkm_blocks);
-    let markdown = if let Some(t) = &title {
-        format!("---\ntitle: {}\n---\n\n{}", t, body)
-    } else {
-        body
-    };
+
+    // Preserve the on-disk frontmatter (tags/aliases/created/modified/extra) when
+    // rewriting the .md file on a block save. The outliner issues saves without a
+    // `title`, so rebuilding from `title` alone would strip every other frontmatter
+    // field from the FILE — and the watcher would then sync that stripped file back
+    // into SQLite, erasing the metadata. If a `title` is provided here, it overwrites
+    // the preserved title.
+    let existing_content = std::fs::read_to_string(&full_path).unwrap_or_default();
+    let markdown = pkm_markdown::block_parser::assemble_blocks_markdown(
+        &existing_content,
+        &body,
+        title.as_deref(),
+    );
 
     // Step 1: Write .md file atomically via temp+rename BEFORE touching SQLite.
     // This ensures the on-disk .md file is always at least as fresh as SQLite,
     // preventing data divergence on crash between steps.
-    let full_path = state.vault_path.join(&page_path);
     if let Some(parent) = full_path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     let temp_path = full_path.with_extension("md.tmp");
     std::fs::write(&temp_path, &markdown).map_err(|e| e.to_string())?;
     std::fs::rename(&temp_path, &full_path).map_err(|e| e.to_string())?;
+    // Mark this as our own save so the file watcher can skip it
+    state.watcher_last_save = std::time::SystemTime::now();
 
     // Step 2: Update SQLite in a transaction. If this fails, delete the .md
     // file so a future sync doesn't load stale data into SQLite.
@@ -124,6 +134,7 @@ pub async fn save_blocks(
                 .insert_block(block, &page_path)
                 .map_err(|e| e.to_string())?;
         }
+        crate::commands::page::reconcile_page_links(&store, &page_path, &pkm_blocks)?;
         Ok(())
     })();
     match result {
