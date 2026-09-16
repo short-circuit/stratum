@@ -299,7 +299,27 @@ jobs:
           java-version: 17
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        shell: bash
+        run: |
+          # GitHub-hosted runners ship a preinstalled Android SDK; setup-android@v3
+          # intermittently hangs on interactive sdkmanager --licenses (6/7 licenses
+          # unaccepted, waits on y/N in a no-TTY context). Set the env explicitly and
+          # accept every license non-interactively so the NDK step below is reliable.
+          if [ -d /usr/local/lib/android/sdk ]; then
+            echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+            echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          fi
+          # Locate sdkmanager from the preinstalled cmdline-tools
+          SDKMANAGER=$(find /usr/local/lib/android/sdk/cmdline-tools -name sdkmanager -type f 2>/dev/null | head -1 || true)
+          if [ -z "$SDKMANAGER" ]; then SDKMANAGER=$(command -v sdkmanager || true); fi
+          if [ -n "$SDKMANAGER" ]; then
+            # Expose sdkmanager's directory so subsequent steps (Install NDK)
+            # can call it on PATH without setup-android@v3.
+            echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+            # Random tips count as progress; leftover license groups of the
+            # form '^[0-9]+/.*License' would otherwise stall waiting on input.
+            yes | "$SDKMANAGER" --licenses >/dev/null || true
+          fi
 
       - name: Install NDK
         run: |
