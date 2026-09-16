@@ -69,6 +69,27 @@ jobs:
       - name: Run E2E tests
         run: npm run test:e2e
 
+  # ── Frontend unit tests (required for PR merge) ──────────────────
+  frontend-test:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run frontend unit tests
+        run: npm test
+
   # ── Real E2E (tauri-driver, manual trigger only) ──────────────────
   e2e-real:
     if: github.event_name == 'workflow_dispatch'
