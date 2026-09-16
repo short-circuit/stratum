@@ -4644,7 +4644,7 @@ checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
 
 [[package]]
 name = "pkm-ai"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -4664,7 +4664,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-audio"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "chrono",
  "claxon",
@@ -4678,7 +4678,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-block"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "chrono",
  "pkm-core",
@@ -4695,7 +4695,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-cli"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4716,7 +4716,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-core"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "chrono",
  "dirs 5.0.1",
@@ -4737,7 +4737,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-dictation"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -4761,7 +4761,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-index"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "chrono",
  "pkm-block",
@@ -4779,7 +4779,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-markdown"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "chrono",
  "pkm-block",
@@ -4797,7 +4797,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-plugin"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "hex",
@@ -4813,7 +4813,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-query"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "pkm-block",
  "rusqlite",
@@ -4827,7 +4827,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-stt"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "base64 0.22.1",
  "futures",
@@ -4843,7 +4843,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-sync"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "chrono",
  "gix",
@@ -4858,7 +4858,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-tests"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "chrono",
  "pkm-ai",
@@ -4878,7 +4878,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-watcher"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "crossbeam-channel",
  "notify",
@@ -6214,7 +6214,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "stratum-tauri"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "chrono",
  "dirs 5.0.1",
