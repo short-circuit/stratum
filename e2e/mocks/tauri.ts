@@ -202,6 +202,34 @@ export const MOCK_SETTINGS = {
     max_results: 3,
     max_depth: 2,
   },
+  stt: {
+    endpoint: 'http://localhost:8081',
+    api_key: null,
+    model: 'whisper-1',
+    diarize_model: 'pyannote-diarization',
+    language: null,
+    diarize: true,
+    auto_summarize: true,
+    auto_identify: true,
+  },
+};
+
+/** Transcript produced by the mocked `dictation_transcribe` command. */
+export const MOCK_DICTATION_RESULT = {
+  markdown: '## Voice memo\n\nAlice: hello there\nBob: how are you',
+  inserted_block_ids: ['blk-dict-1', 'blk-dict-2'],
+  turns: [
+    { speaker: 'speaker_0', start: 0, end: 2, text: 'hello there' },
+    { speaker: 'speaker_1', start: 2, end: 4, text: 'how are you' },
+  ],
+  speaker_names: {},
+  num_speakers: 2,
+  diarized: true,
+  summary: 'Greetings exchanged.',
+  related: ['Projects'],
+  tags: ['voice-memo'],
+  clip_rel_path: 'recordings/memo-2026-07-28.flac',
+  duration_secs: 42,
 };
 
 // ---------------------------------------------------------------------------
@@ -234,6 +262,12 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
   await page.addInitScript({
     content: `(function() {
       const config = ${JSON.stringify(config)};
+
+      // In-page settings store so save_settings -> get_settings round-trips.
+      // Persisted via localStorage so it survives navigation/reload within the
+      // test's browser context (mirrors real backend disk persistence).
+      const persisted = window.localStorage.getItem('mock_settings');
+      let mockSettings = persisted ? JSON.parse(persisted) : ${JSON.stringify(MOCK_SETTINGS)};
 
       // Command handler registry
       const handlers = {
@@ -330,8 +364,13 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
         save_library: () => {},
         load_library: () => '{"elements":[]}',
         load_extra_libraries: () => '{}',
-        get_settings: () => (${JSON.stringify(MOCK_SETTINGS)}),
-        save_settings: () => {},
+        get_settings: () => mockSettings,
+        save_settings: (args) => {
+          if (args && args.settings) {
+            mockSettings = args.settings;
+            window.localStorage.setItem('mock_settings', JSON.stringify(args.settings));
+          }
+        },
         save_graph_settings: () => {},
         fetch_models: () => [],
         run_query: () => ({ columns: ['col1', 'col2'], rows: [['a', 'b']] }),
@@ -381,6 +420,33 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
           heading_level: null,
           page_path: 'Projects',
           page_title: 'Projects',
+        }),
+        // --- Dictation (voice memos) ---
+        dictation_start: () => ({
+          recording_path: '/mock/vault/recordings/memo-2026-07-28.flac',
+          device_name: 'Mock Microphone',
+          sample_rate: 48000,
+        }),
+        dictation_stop: () => ({
+          recording_path: '/mock/vault/recordings/memo-2026-07-28.flac',
+          duration_secs: 42,
+        }),
+        dictation_cancel: () => {},
+        dictation_transcribe: () => (${JSON.stringify(MOCK_DICTATION_RESULT)}),
+        speaker_list: () => [],
+        speaker_assign: (args) => ({
+          name: args && args.name,
+          enrolled: !!(args && args.enroll),
+          markdown: '## Voice memo\\n\\nAlice: hello there\\nBob: how are you',
+          speaker_names: args && args.speakerId ? { [args.speakerId]: args.name } : {},
+          inserted_block_ids: ['blk-dict-1', 'blk-dict-2'],
+        }),
+        speaker_delete: () => {},
+        stt_test_connection: () => ({
+          ok: true,
+          models: ['whisper-1'],
+          latency_ms: 320,
+          error: null,
         }),
       };
 
