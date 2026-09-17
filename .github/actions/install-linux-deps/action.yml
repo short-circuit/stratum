@@ -18,4 +18,5 @@ runs:
           libasound2-dev \
           pkg-config \
           webkit2gtk-driver \
-          xvfb
+          xvfb \
+          dbus
