@@ -1,5 +1,5 @@
 name: Install Linux dependencies
-description: Install system packages required for Tauri builds on Linux (webkit, gtk, openssl, etc.)
+description: Install system packages required for Tauri builds on Linux (webkit, gtk, openssl, etc.) and the headless WebDriver stack (webkit2gtk-driver, xvfb)
 
 runs:
   using: composite
@@ -16,4 +16,6 @@ runs:
           librsvg2-dev \
           libssl-dev \
           libasound2-dev \
-          pkg-config
+          pkg-config \
+          webkit2gtk-driver \
+          xvfb

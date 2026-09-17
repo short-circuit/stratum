@@ -26,7 +26,7 @@ import { spawn, spawnSync, execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createSession, waitForApp, deleteSession, elementId } from '../lib/driver.js';
+import { createSession, waitForApp, deleteSession, elementId, sleep } from '../lib/driver.js';
 import { beginRun, recordTest, writeResults, resultsPaths } from '../lib/results.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -58,9 +58,22 @@ function findWebKitWebDriver() {
     // system paths
     '/usr/lib/webkit2gtk-4.1/WebKitWebDriver',
     '/usr/lib64/webkit2gtk-4.1/WebKitWebDriver',
+    // Debian/Ubuntu: the webkit2gtk-driver package installs the driver at
+    // /usr/bin/WebKitWebDriver (NOT inside the webkit2gtk-4.1 lib dir).
+    '/usr/bin/WebKitWebDriver',
+    // Ubuntu multiarch lib dirs (e.g. x86_64).
+    '/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebDriver',
+    '/usr/lib/aarch64-linux-gnu/webkit2gtk-4.1/WebKitWebDriver',
   ];
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
+  }
+  // Last resort: search PATH (covers other distros / custom installs).
+  try {
+    const onPath = execFileSync('which', ['WebKitWebDriver'], { encoding: 'utf8' }).trim();
+    if (onPath && fs.existsSync(onPath)) return onPath;
+  } catch {
+    /* not on PATH */
   }
   return null;
 }
@@ -220,6 +233,12 @@ async function main() {
     WAYLAND_DISPLAY: '',
     WEBKIT_DISABLE_DMABUF_RENDERER: '1',
     WEBKIT_DISABLE_COMPOSITING_MODE: '1',
+    // WebKitGTK >= 2.44 forces a bubblewrap sandbox; on CI/container runners
+    // without a usable bwrap config this makes the web process crash on launch.
+    // (WEBKIT_FORCE_SANDBOX=0 is deprecated and no longer disables it.)
+    WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS: '1',
+    // Headless/CI runners have no GPU; force Mesa software rendering.
+    LIBGL_ALWAYS_SOFTWARE: '1',
   };
 
   try {

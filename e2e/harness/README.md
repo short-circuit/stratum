@@ -135,22 +135,15 @@ to the report and to CI.
 
 ## CI wiring
 
-The harness is packaged so an `e2e-real` CI job can invoke it with a single
-command. The job itself is wired into `.github/workflows/ci.yml` by the
-separate "Add E2E test job to CI" task (t_20d4e32c); the harness side makes
-that job a thin wrapper:
+The `e2e-harness` job in `.github/workflows/ci.yml` runs this harness on every
+push to `master` and every pull request targeting `master`. The job is a thin
+wrapper around this single command:
 
 ```bash
-# From the repo root in CI (Ubuntu runner):
-npm ci                                  # install deps (webdriver, tauri toolchain)
-npm run build                           # build frontend -> dist/
-cargo build -p stratum-tauri            # prod-mode binary with embedded assets
-cargo install tauri-driver              # WebDriver intermediary
-sudo apt-get install -y xvfb            # headless display (install-linux-deps already installs webkit2gtk-4.1)
-xvfb-run -a node e2e/harness/bin/run.mjs
+npm run test:e2e:harness
 ```
 
-What the runner does in CI, in order:
+which, on the job's Ubuntu runner:
 
 1. Validates prerequisites (`tauri-driver`, `WebKitWebDriver`, built app) and
    exits `2` with a clear message if any are missing — a misconfigured job
@@ -164,8 +157,22 @@ What the runner does in CI, in order:
    repo's gitignored `test-results/` directory.
 5. Exits non-zero on any failure.
 
-CI should upload `test-results/**` (and optionally
-`/tmp/stratum-harness-last.png`) as an artifact **on failure** so a broken run
-is actionable without a manual reproduction. `WebKitWebDriver` is provided by
-the `webkit2gtk-4.1` package that install-linux-deps already installs; on
-runners where it lands elsewhere, set `HARNESS_DRIVER` to its absolute path.
+The job builds the app with `npm run build && cargo build -p stratum-tauri`
+and installs `tauri-driver` via `cargo install`. System prerequisites on the
+runner come from `.github/actions/install-linux-deps`, which installs
+`webkit2gtk-driver` **and** `xvfb` in **addition** to the webkit2gtk-4.1 build
+libraries — these are deliberately separate packages on Debian/Ubuntu: the
+`WebKitWebDriver` binary ships in `webkit2gtk-driver`, not in
+`libwebkit2gtk-4.1-dev`.
+
+On failure the job uploads `test-results/**` (JSON manifest + JUnit XML) plus
+the built binary and any screenshot as the `e2e-harness-artifacts` artifact so
+a broken run is actionable without a manual reproduction. The job also sets
+the `WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1` env var (the harness sets it
+internally too): WebKitGTK ≥ 2.44 forces a bubblewrap sandbox that crashes the
+web process on containerized runners — a known blocker for WebDriver tests in
+CI. `WEBKIT_FORCE_SANDBOX=0` is deprecated and no longer disables it.
+
+For local runs: `WebKitWebDriver` is found automatically on supported distros
+(Nix store, Arch, Debian/Ubuntu `/usr/bin`, Ubuntu multiarch). On any runner
+where it lands elsewhere, set `HARNESS_DRIVER` to its absolute path.
