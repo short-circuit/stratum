@@ -90,17 +90,25 @@ jobs:
       - name: Run frontend unit tests
         run: npm test
 
-  # ── Real E2E (tauri-driver, manual trigger only) ──────────────────
-  e2e-real:
-    if: github.event_name == 'workflow_dispatch'
+  # ── tauri-driver E2E harness (automatic on push/PR; required after merge) ──
+  e2e-harness:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # WebKitGTK >= 2.44 forces a bubblewrap sandbox that crashes the web
+      # process on containerized runners; disabling it is required for
+      # WebDriver tests in CI (the harness sets this internally too).
+      # WEBKIT_FORCE_SANDBOX=0 is deprecated and no longer works.
+      WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS: '1'
+      LIBGL_ALWAYS_SOFTWARE: '1'
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
+          components: clippy, rustfmt
           cache: false
 
       - name: Cache Rust dependencies
@@ -112,25 +120,34 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install Linux deps (webkit, gtk, xvfb)
+      - name: Install Linux dependencies (webkit, gtk, webkit2gtk-driver, xvfb)
         uses: ./.github/actions/install-linux-deps
-      - name: Install xvfb
-        run: sudo apt-get install -y xvfb
 
-      - name: Install frontend deps
+      - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build frontend
-        run: npm run build
-
-      - name: Build Tauri app
-        run: cargo build -p stratum-tauri
+      - name: Build Tauri app (production / custom-protocol)
+        run: |
+          npm run build
+          cargo build -p stratum-tauri
 
       - name: Install tauri-driver
         run: cargo install tauri-driver
 
-      - name: Run real E2E tests
-        run: xvfb-run -a bash e2e/real/run.sh
+      - name: Run E2E harness
+        run: dbus-run-session -- npm run test:e2e:harness
+
+      - name: Upload E2E artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-harness-artifacts
+          path: |
+            test-results/*
+            target/debug/stratum-tauri
+            /tmp/stratum-harness-last.png
+          if-no-files-found: warn
+          retention-days: 7
 
   # ── Frontend build (tag only, decoupled from test for parallelism) ──
   frontend:
