@@ -56,9 +56,20 @@ cargo test -p pkm-index
 # Run a specific test
 cargo test -p pkm-index -- graph::tests::test_get_backlinks
 
+# Run frontend tests
+npm run test
+
 # Frontend linting
 npm run lint
+
+# Run the tauri-driver E2E harness (requires: the app built to
+# target/debug/stratum-tauri, tauri-driver, WebKitWebDriver, Xvfb)
+npm run test:e2e:harness
 ```
+
+The `test:e2e:harness` suite runs automatically in CI (`.github/workflows/ci.yml`,
+`e2e-harness` job) on every push to `master` and on every PR to `master` — no
+manual E2E step is required for normal PRs.
 
 ## Project Conventions
 
@@ -106,7 +117,7 @@ The project uses GitHub Actions:
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
-| CI | Push/PR to master | Build, test, clippy, fmt, lint |
+| CI | Push/PR to master | Build, test, clippy, fmt, lint, frontend unit tests, tauri-driver E2E harness (artifact-uploading on failure) |
 | Release | Tag `v*` | Build and publish binaries |
 
 ## License
