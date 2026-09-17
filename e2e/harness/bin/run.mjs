@@ -36,6 +36,11 @@ const TDRIVER_PORT = 4444;
 const DISPLAY = process.env.HARNESS_DISPLAY || '99';
 const KEEP = process.env.HARNESS_NO_CLEAN === '1';
 
+// tauri-driver relays to the native WebDriver it spawns on the next port up.
+function nativeDriverPort() {
+  return TDRIVER_PORT + 1;
+}
+
 // ---------------------------------------------------------------------------
 // Environment & binary resolution
 // ---------------------------------------------------------------------------
@@ -261,9 +266,26 @@ async function main() {
       process.exit(1);
     }
     console.log('✅ tauri-driver ready');
+    // tauri-driver can report ready before the native WebDriver has finished
+    // initializing; a session POST issued in that window stalls (tauri-apps/tauri#3576).
+    // Wait briefly for the native driver to also be reachable before POSTing.
+    const nativeReady = await pollPort(nativeDriverPort(), 15000);
+    if (!nativeReady) {
+      console.error('⚠️ native WebDriver did not become reachable; continuing (best effort)');
+    }
 
     console.log('Creating WebDriver session (launches the app)...');
-    const driver = await createSession(appBinary, { port: TDRIVER_PORT });
+    let driver;
+    try {
+      driver = await createSession(appBinary, { port: TDRIVER_PORT });
+    } catch (e) {
+      console.error('❌ Failed to create WebDriver session.');
+      if (tdLog.trim()) {
+        console.error('\n── tauri-driver / app stderr (for debugging) ──');
+        console.error(tdLog.slice(-4000));
+      }
+      throw e;
+    }
     console.log(`   session: ${driver.sessionId}`);
 
     try {
