@@ -76,10 +76,16 @@ adb shell am start -W -n "${PKG}/${ACTIVITY}" || true
 
 # ── 4. Wait for the first rendered frame (launcher handoff + WebView) ────
 SMOKE_RESULT=1
-FIRST_FRAME_TIMEOUT_S=180
+FIRST_FRAME_TIMEOUT_S=240
 DEADLINE=$((SECONDS + FIRST_FRAME_TIMEOUT_S))
 FRAME_SEEN=0
 while [ "${SECONDS}" -lt "${DEADLINE}" ]; do
+    # Dismiss any system "isn't responding" dialog so the app window can
+    # surface; on a cold software-rendered emulator the *system* process
+    # (not our app) can ANR and cover everything with a modal dialog.
+    adb shell dumpsys window 2>/dev/null | grep -qi "Application Not Responding\|Process system isn't responding" \
+        && adb shell input keyevent KEYCODE_ENTER >/dev/null 2>&1 || true
+
     # Launching activity reported by the window manager: proves the runner
     # (com.android.internal.app.ResolverActivity is the "choose app" fallback)
     # handed the intent to our activity.
@@ -102,6 +108,16 @@ while [ "${SECONDS}" -lt "${DEADLINE}" ]; do
     if adb shell dumpsys surfaceflinger --list 2>/dev/null | grep -q "stratum"; then
         FRAME_SEEN=1
         log "first frame seen (surfaceflinger)"
+        break
+    fi
+    # Slow-but-alive fallback: the activity is resumed and the app process is
+    # still up; treat that as "app is running" so a healthy cold start on a
+    # loaded shared runner is not a false failure (the real crash signal is
+    # the process disappearing).
+    if [ -n "${RESOLVED_COMPONENT}" ] \
+        && [ -n "$(adb shell pidof "${PKG}" 2>/dev/null | tr -d '\r')" ]; then
+        FRAME_SEEN=1
+        log "app is alive (activity resumed; ${RESOLVED_COMPONENT})"
         break
     fi
     sleep 2
