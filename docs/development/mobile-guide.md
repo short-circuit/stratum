@@ -571,13 +571,18 @@ The CI pipeline runs Android and iOS builds on every tagged release (see `.githu
 The `ios` job:
 
 1. Installs iOS Rust targets
-2. Runs `tauri ios init` (if not already initialized)
+2. Runs `tauri ios init` (generates `src-tauri/gen/apple` on first run)
 3. Patches the Xcode project for Tauri compatibility
-4. Runs `tauri ios build --target aarch64-sim --ci`
+4. Runs `tauri ios build --debug --target aarch64-sim --ci`
 5. Zips the built app
 6. Uploads as a build artifact
 
-Both jobs run on tag pushes (`v*`) and require the `test` job to pass first.
+iOS is built **for the simulator only** (`aarch64-sim`) — this requires **no Apple
+Developer signing certificate or provisioning profile**, so it runs on every
+pull request and push to `master` as a CI gate (debug build, artifact
+`ios-sim-app`) as well as on tagged releases (`v*`, release build, artifact
+`ios`). The `test` job must pass first. Physical-device builds still require a
+paid Apple Developer account and are done locally by developers.
 
 ### Manual Test Checklist
 
