@@ -12,6 +12,28 @@ pub struct SettingsDto {
     pub graph: GraphSettingsDto,
     pub sync: SyncSettingsDto,
     pub stt: SttSettingsDto,
+    pub tts: TtsSettingsDto,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TtsSettingsDto {
+    pub endpoint: String,
+    pub api_key: Option<String>,
+    pub voice: String,
+    pub format: String,
+    pub speed: f32,
+}
+
+impl Default for TtsSettingsDto {
+    fn default() -> Self {
+        Self {
+            endpoint: String::new(),
+            api_key: None,
+            voice: "alloy".to_string(),
+            format: "mp3".to_string(),
+            speed: 1.0,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -194,6 +216,13 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             auto_summarize: config.stt.auto_summarize,
             auto_identify: config.stt.auto_identify,
         },
+        tts: TtsSettingsDto {
+            endpoint: config.tts.endpoint.clone(),
+            api_key: mask_api_key(&config.tts.api_key),
+            voice: config.tts.voice.clone(),
+            format: config.tts.format.clone(),
+            speed: config.tts.speed,
+        },
     })
 }
 
@@ -322,6 +351,31 @@ pub async fn save_settings(
             diarize: settings.stt.diarize,
             auto_summarize: settings.stt.auto_summarize,
             auto_identify: settings.stt.auto_identify,
+        },
+        tts: pkm_core::TtsConfig {
+            endpoint: settings.tts.endpoint,
+            api_key: {
+                // Preserve the stored key when the frontend sent a masked one.
+                let masked = settings
+                    .tts
+                    .api_key
+                    .as_ref()
+                    .is_some_and(|k| k.contains("****"));
+                if masked {
+                    if config_path.exists() {
+                        pkm_core::Config::load(&config_path)
+                            .ok()
+                            .and_then(|c| c.tts.api_key)
+                    } else {
+                        None
+                    }
+                } else {
+                    settings.tts.api_key
+                }
+            },
+            voice: settings.tts.voice,
+            format: settings.tts.format,
+            speed: settings.tts.speed,
         },
         ..pkm_core::Config::default()
     };

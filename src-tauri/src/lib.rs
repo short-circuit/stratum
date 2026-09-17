@@ -25,6 +25,7 @@ fn resolve_default_vault_path(_app: &tauri::AppHandle) -> PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let _ = pkm_core::init_logging();
     let builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init());
 
     #[cfg(target_os = "android")]
@@ -40,9 +41,9 @@ pub fn run() {
             let db_path = vault_path.join(".pkm").join("blocks.db");
             match commands::page::sync_filesystem_to_db(&vault_path, &db_path) {
                 Ok(n) if n > 0 => {
-                    eprintln!("[stratum] Synced {} existing pages from filesystem", n)
+                    tracing::info!("[stratum] Synced {} existing pages from filesystem", n)
                 }
-                Err(e) => eprintln!("[stratum] Filesystem sync skipped: {}", e),
+                Err(e) => tracing::warn!("[stratum] Filesystem sync skipped: {}", e),
                 _ => {}
             }
 
@@ -62,7 +63,7 @@ pub fn run() {
                             );
                             if let Ok(mut state) = app.state::<AppState>().lock() {
                                 state.auto_commit_engine = Some(auto_commit);
-                                eprintln!(
+                                tracing::info!(
                                     "[stratum] Auto-commit engine initialized (interval={}s)",
                                     config.sync.auto_commit_interval_secs
                                 );
@@ -88,7 +89,7 @@ pub fn run() {
                             scheduler.start();
                             if let Ok(mut state) = app.state::<AppState>().lock() {
                                 state.sync_scheduler = Some(scheduler);
-                                eprintln!("[stratum] Sync scheduler started");
+                                tracing::info!("[stratum] Sync scheduler started");
                             }
                         }
                     }
@@ -182,13 +183,13 @@ pub fn run() {
                                 if let Ok(mut state) = app.state::<AppState>().lock() {
                                     state.watcher = Some(watcher);
                                 }
-                                eprintln!(
+                                tracing::info!(
                                     "[stratum] File watcher started (debounce={}ms)",
                                     config.watcher.debounce_ms
                                 );
                             }
                             Err(e) => {
-                                eprintln!("[stratum] Failed to start file watcher: {}", e);
+                                tracing::error!("[stratum] Failed to start file watcher: {}", e);
                             }
                         }
                     }
@@ -289,6 +290,7 @@ pub fn run() {
             commands::ai::ai_research,
             commands::ai::ai_interlink_notes,
             commands::ai::generate_mermaid,
+            commands::ai::ai_rag_query,
             // Dictation
             commands::dictation::dictation_start,
             commands::dictation::dictation_stop,
@@ -298,6 +300,9 @@ pub fn run() {
             commands::dictation::speaker_assign,
             commands::dictation::speaker_delete,
             commands::dictation::stt_test_connection,
+            // TTS
+            commands::tts::tts_synthesize,
+            commands::tts::tts_speak,
             // Settings
             commands::settings::get_settings,
             commands::settings::save_settings,

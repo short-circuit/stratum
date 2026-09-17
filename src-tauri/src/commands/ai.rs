@@ -1,5 +1,7 @@
 use crate::commands::vault::AppState;
+use pkm_ai::embedding::OpenAIEmbeddingClient;
 use pkm_ai::provider::{ChatConfig, ChatMessage, ProviderFactory};
+use pkm_ai::rag::RagEngine;
 use pkm_ai::research::ResearchEngine;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info, warn};
@@ -357,4 +359,96 @@ pub async fn ai_interlink_notes(
     }
 
     Ok(AiTransformResult { content: result })
+}
+
+// ── RAG ("Ask your notes") ────────────────────────────────────────────────
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RagCitationDto {
+    /// Vault-relative path to the source note.
+    pub path: String,
+    /// Snippet of the relevant content.
+    pub snippet: String,
+    /// Relevance score (0.0 to 1.0).
+    pub score: f32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RagQueryResultDto {
+    /// The LLM-generated answer.
+    pub answer: String,
+    /// Ranked source citations that informed the answer.
+    pub citations: Vec<RagCitationDto>,
+    /// Total token usage for the LLM call.
+    pub total_tokens: u32,
+    /// Whether the vault index contained retrievable chunks.
+    pub had_sources: bool,
+}
+
+/// Run the RAG pipeline against the user's notes.
+///
+/// Embeds the question, retrieves relevant blocks from the vault index,
+/// re-ranks them by semantic similarity, and asks the configured LLM to
+/// answer with citations to the source notes. This is the app-surface
+/// consumer of `pkm_ai::rag::RagEngine` (the CLI already exposes it as
+/// `stratum rag`).
+#[tauri::command]
+pub async fn ai_rag_query(
+    question: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<RagQueryResultDto, String> {
+    info!("rag_query question_len={}", question.len());
+
+    let config_path = {
+        let s = state.lock().map_err(|e| e.to_string())?;
+        s.vault_path.join(".pkm").join("config.toml")
+    };
+
+    let config = if config_path.exists() {
+        pkm_core::Config::load(&config_path).map_err(|e| e.to_string())?
+    } else {
+        return Err("AI not configured. Configure the AI provider in Settings → AI.".into());
+    };
+
+    if !config.ai.rag_enabled {
+        warn!("RAG query issued while rag_enabled=false in config");
+    }
+
+    let embedding = OpenAIEmbeddingClient::from_ai_config(&config.ai).map_err(|e| e.to_string())?;
+    let provider = ProviderFactory::create(&config.ai).map_err(|e| e.to_string())?;
+    let engine = pkm_index::indexer::IndexEngine::new(&config.vault_path)
+        .map_err(|e| format!("Failed to open vault index: {e}"))?;
+
+    let rag = RagEngine::new(engine, Box::new(embedding), provider);
+
+    let top_k = config.ai.rag_chunk_count.max(1);
+    let chat_config = ChatConfig::new(&config.ai.model);
+
+    let response = rag
+        .query(&question, &chat_config, top_k)
+        .await
+        .map_err(|e| format!("RAG query failed: {e}"))?;
+
+    debug!(
+        "rag_query done: answer_len={} citations={} tokens={}",
+        response.answer.len(),
+        response.citations.len(),
+        response.usage.total()
+    );
+
+    let had_sources = !response.citations.is_empty();
+    Ok(RagQueryResultDto {
+        answer: response.answer,
+        citations: response
+            .citations
+            .into_iter()
+            .map(|c| RagCitationDto {
+                path: c.path,
+                snippet: c.snippet,
+                score: c.score,
+            })
+            .collect(),
+        total_tokens: response.usage.total(),
+        had_sources,
+    })
 }

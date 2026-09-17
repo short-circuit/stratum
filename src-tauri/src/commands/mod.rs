@@ -11,6 +11,7 @@ pub mod search;
 pub mod settings;
 pub mod sync;
 pub mod template;
+pub mod tts;
 pub mod vault;
 pub mod whiteboard;
 

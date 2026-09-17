@@ -244,7 +244,6 @@ impl RagEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::embedding::{EmbeddingConfig, LocalEmbedding};
     use crate::provider::{ChatDelta, ProviderFactory};
     use futures::stream::BoxStream;
     use mockall::mock;
@@ -519,19 +518,25 @@ mod tests {
     }
 
     fn create_mock_embedding() -> Box<dyn Embedding> {
-        let config = EmbeddingConfig {
-            dimensions: 4,
-            ..Default::default()
-        };
-        Box::new(LocalEmbedding::new(&config))
+        let mut embedding = MockEmbeddingMock::new();
+        embedding.expect_dimensions().return_const(4usize);
+        embedding.expect_embed().returning(|texts| {
+            // Deterministic unit vectors so cosine similarity is well-defined.
+            Ok(texts
+                .iter()
+                .enumerate()
+                .map(|(i, _)| {
+                    let mut v = vec![0.0f32; 4];
+                    v[i % 4] = 1.0;
+                    v
+                })
+                .collect())
+        });
+        Box::new(embedding)
     }
 
     fn create_mock_components() -> (Box<dyn Embedding>, Box<dyn LlmProvider>) {
-        let config = EmbeddingConfig {
-            dimensions: 4,
-            ..Default::default()
-        };
-        let embedding = Box::new(LocalEmbedding::new(&config));
+        let embedding = create_mock_embedding();
 
         let ai_config = pkm_core::AiConfig {
             provider: pkm_core::AiProvider::Ollama,
