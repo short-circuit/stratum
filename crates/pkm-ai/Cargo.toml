@@ -11,6 +11,7 @@ serde_with.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 reqwest.workspace = true
+tokio.workspace = true
 async-trait = "0.1"
 futures.workspace = true
 pkm-core = { path = "../pkm-core" }
@@ -21,3 +22,4 @@ tempfile.workspace = true
 mockall.workspace = true
 tokio.workspace = true
 chrono.workspace = true
+wiremock = "0.6"

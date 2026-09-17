@@ -194,6 +194,19 @@ export interface ResearchSource {
   snippet: string;
 }
 
+export interface RagCitationDto {
+  path: string;
+  snippet: string;
+  score: number;
+}
+
+export interface RagQueryResultDto {
+  answer: string;
+  citations: RagCitationDto[];
+  total_tokens: number;
+  had_sources: boolean;
+}
+
 export interface KanbanBlockDto {
   id: string;
   content: string;
@@ -264,6 +277,23 @@ export interface SttTestDto {
   models: string[];
   latency_ms: number;
   error: string | null;
+}
+
+// --- Text-to-speech ---
+
+export interface TtsResult {
+  audio_b64: string;
+  mime: string;
+  byte_len: number;
+  model: string;
+}
+
+export interface TtsSettings {
+  endpoint: string;
+  api_key: string | null;
+  voice: string;
+  format: string;
+  speed: number;
 }
 
 export interface SpeakerDto {

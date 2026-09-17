@@ -23,4 +23,8 @@ pkm-sync = { path = "../pkm-sync" }
 pkm-watcher = { path = "../pkm-watcher" }
 pkm-ai = { path = "../pkm-ai" }
 pkm-plugin = { path = "../pkm-plugin" }
+tokio.workspace = true
 gix.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
