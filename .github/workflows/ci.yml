@@ -427,12 +427,20 @@ jobs:
           path: ${{ runner.temp }}/tauri-build.log
           if-no-files-found: warn
 
-  # ── iOS build (tag only) ───────────────────────────────────────────
-  # SKIPPED: requires macOS runner + provisioning certs; revisit when ready for iOS distribution
+  # ── iOS build (PR / push to master / tag) ─────────────────────────
+  # Builds the iOS app for the simulator (aarch64-apple-ios-sim). Simulator
+  # builds require no Apple signing certificate or provisioning profile, so
+  # this runs on pull requests and pushes to master as an installable CI
+  # gate (debug build, uploaded as `ios-sim-app`) and on v* tags to produce
+  # the release simulator build (uploaded as `ios`). The frontend is built
+  # inline by `tauri ios build` (beforeBuildCommand runs `npm run build`),
+  # so this job has no dependency on the tag-only `frontend` artifact and
+  # can run on any trigger.
   ios:
     needs: [test]
-    if: false  # disabled per https://github.com/short-circuit/stratum/issues/…
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: macos-latest
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -443,16 +451,7 @@ jobs:
           cache: false
 
       - name: Cache Rust dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/release/.fingerprint
-            target/release/build
-            target/release/deps
-            target/release/.cargo-lock
-          key: ${{ runner.os }}-cargo-release-${{ hashFiles('Cargo.lock') }}
+        uses: Swatinem/rust-cache@v2
 
       - name: Add iOS targets
         run: |
@@ -470,46 +469,81 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Download pre-built frontend
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: dist/
-
       - name: Initialize iOS project
         run: |
-          if [ ! -d "src-tauri/gen/ios" ]; then
+          if [ ! -d "src-tauri/gen/apple" ]; then
             npx tauri ios init
           fi
 
-      - name: Patch Xcode project & build
+      - name: Patch Xcode project (link flags for old SDKs)
         shell: bash
         run: |
-          python3 -c "import sys;c=open(sys.argv[1]).read();c=c.replace('VALID_ARCHS = arm64;','VALID_ARCHS = arm64;\n\t\t\t\tOTHER_LDFLAGS = \"-lz -liconv\";');open(sys.argv[1],'w').write(c)" "${{ github.workspace }}/src-tauri/gen/apple/stratum-tauri.xcodeproj/project.pbxproj"
-          npx tauri ios build --target aarch64-sim --ci 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
+          PBXPROJ=$(find src-tauri/gen/apple -name project.pbxproj -path '*.xcodeproj/*' 2>/dev/null | head -1)
+          if [ -z "$PBXPROJ" ]; then
+            echo "::warning::No generated Xcode project found under src-tauri/gen/apple; skipping link-flag patch"
+          else
+            python3 - "$PBXPROJ" <<'PY'
+            import sys
+            p = sys.argv[1]
+            c = open(p).read()
+            if 'VALID_ARCHS = arm64;' in c:
+                c = c.replace('VALID_ARCHS = arm64;', 'VALID_ARCHS = arm64;\n\t\t\t\tOTHER_LDFLAGS = "-lz -liconv";')
+                open(p, 'w').write(c)
+                print("patched", p)
+            else:
+                print("no VALID_ARCHS anchor in", p, "- skipping (not needed for this SDK)")
+            PY
+          fi
+
+      - name: Build iOS simulator app (debug; PRs / pushes)
+        if: github.event_name == 'pull_request' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/'))
+        shell: bash
+        run: npx tauri ios build --debug --target aarch64-sim --ci 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
 
-      - name: Zip iOS app
+      - name: Build iOS simulator app (release; tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: npx tauri ios build --target aarch64-sim --ci 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+
+      - name: Zip iOS simulator app
         shell: bash
         run: |
-          cd src-tauri/gen/apple/build
-          APP_PATH=$(find . -name "*.app" -maxdepth 3 | head -1)
-          if [ -n "$APP_PATH" ]; then
-            APP_NAME=$(basename "$APP_PATH")
-            ditto -c -k --keepParent "$APP_PATH" "${APP_NAME%.app}.zip"
+          if [ -d src-tauri/gen/apple/build ]; then
+            cd src-tauri/gen/apple/build
+            APP_PATH=$(find . -name "*.app" -maxdepth 3 | head -1)
+            if [ -n "$APP_PATH" ]; then
+              APP_NAME=$(basename "$APP_PATH")
+              ditto -c -k --keepParent "$APP_PATH" "${APP_NAME%.app}.zip"
+            fi
           fi
 
-      - name: Upload iOS artifacts
+      - name: Upload iOS simulator app (PRs / pushes)
+        if: github.event_name == 'pull_request' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/'))
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-sim-app
+          path: src-tauri/gen/apple/build/**/*.zip
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload iOS artifact (tags)
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v4
         with:
           name: ios
-          path: |
-            src-tauri/gen/apple/build/**/*.zip
+          path: src-tauri/gen/apple/build/**/*.zip
           if-no-files-found: warn
+          retention-days: 7
 
       - name: Upload build log
         if: failure()
