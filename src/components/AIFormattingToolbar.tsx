@@ -6,15 +6,35 @@ import {
   getFormattingToolbarItems,
 } from '@blocknote/react';
 import { useAbortableInvoke } from '../lib/hooks/useAbortableInvoke';
-import type { AiTransformResult, ResearchResult } from '../lib/types';
+import type { AiTransformResult, ResearchResult, TtsResult } from '../lib/types';
 import { createMermaidBlock } from '../lib/mermaidBlock';
 import AILoadingOverlay from './ui/AILoadingOverlay';
+import { playAudio } from '../lib/audio';
 
 export default function AIFormattingToolbar() {
   const editor = useBlockNoteEditor();
   const Components = useComponentsContext();
   const [busy, setBusy] = useState<string | null>(null);
+  const [speaking, setSpeaking] = useState(false);
   const { abortableInvoke } = useAbortableInvoke();
+
+  // Read the currently selected block aloud via the configured TTS endpoint.
+  const readAloud = async () => {
+    const { from, to } = editor.prosemirrorView.state.selection;
+    if (from === to) return;
+    const text = editor.prosemirrorView.state.doc.textBetween(from, to);
+    if (!text.trim()) return;
+    setSpeaking(true);
+    try {
+      const res = await abortableInvoke<TtsResult>('tts_speak', { text });
+      await playAudio(res.audio_b64, res.mime);
+    } catch (e) {
+      console.error('[TTS] read-aloud failed:', e);
+      alert(`Read-aloud failed: ${String(e)}`);
+    } finally {
+      setSpeaking(false);
+    }
+  };
 
   const runAiTransform = async (
     ed: { prosemirrorView: { state: { selection: { from: number; to: number }; doc: { textBetween: (f: number, t: number) => string } } }; pasteMarkdown: (md: string) => void },
@@ -113,6 +133,13 @@ export default function AIFormattingToolbar() {
               isDisabled={busy !== null}
             >
               📊
+            </Btn>
+            <Btn
+              mainTooltip={speaking ? 'Reading aloud…' : 'Read selected text aloud'}
+              onClick={readAloud}
+              isDisabled={busy !== null || speaking}
+            >
+              🔊
             </Btn>
           </FormattingToolbar>
         )}
