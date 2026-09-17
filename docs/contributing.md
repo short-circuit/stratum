@@ -69,7 +69,10 @@ npm run test:e2e:harness
 
 The `test:e2e:harness` suite runs automatically in CI (`.github/workflows/ci.yml`,
 `e2e-harness` job) on every push to `master` and on every PR to `master` — no
-manual E2E step is required for normal PRs.
+manual E2E step is required for normal PRs. The `e2e-harness` check is
+**required** for merges to `master` (alongside `frontend-test`), and the job
+uploads `test-results/*`, the built binary, and a last-frame screenshot as
+`e2e-harness-artifacts` when it fails.
 
 ## Project Conventions
 
