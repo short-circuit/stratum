@@ -565,8 +565,10 @@ The CI pipeline builds Android on every pull request and push to `master` (a deb
 3. Runs `tauri android init`
 4. Applies Android patches
 5. On tags: runs `tauri android build --target aarch64 --apk --aab` to produce a **release** APK and AAB **signed with the release keystore from CI secrets**
-6. On PRs/pushes: runs `tauri android build --debug --target aarch64 --apk` to produce a **debug** APK for the CI gate and on-device smoke test
+6. On PRs/pushes: runs `tauri android build --debug --target aarch64 x86_64 --apk` to produce a **debug** APK for the CI gate and on-device smoke test (the emulator is x86_64, so the debug APK must ship the x86_64 ABI)
 7. Uploads the APK/AAB (tags) or debug APK (PRs/pushes) as build artifacts
+
+A separate `android-smoke` job (PRs / pushes to master) then boots a headless x86_64 emulator (API 34), installs the debug APK, launches the app and waits for the first rendered frame. It archives a screenshot (`screencap`) and a logcat dump as `android-smoke-evidence` so reviewers have proof the app starts, and it **fails the run** if the app crashes, never reaches a first frame (timeout), or the APK cannot be installed. No physical device is required — the emulator runs on the same GitHub-hosted runner.
 
 The `ios` job:
 
