@@ -26,7 +26,7 @@ import { spawn, spawnSync, execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createSession, waitForApp, deleteSession, elementId, sleep } from '../lib/driver.js';
+import { createSession, waitForApp, deleteSession, sleep } from '../lib/driver.js';
 import { beginRun, recordTest, writeResults, resultsPaths } from '../lib/results.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -163,20 +163,39 @@ async function runTests(driver) {
   }
 
   console.log('\n── Test 2: Real UI content is present ──');
-  const anchors = await driver.findElements('css selector', 'a');
-  if (anchors.length > 0) {
-    ok(`found ${anchors.length} anchor elements`);
+  // The app's navigation is MUI ListItemButton (renders role="button"), and
+  // there are no <a> elements in the app shell at all. On a pristine vault
+  // (fresh CI run) note-content links are absent, so asserting on anchors is
+  // environment-dependent and would fail a healthy app. Assert instead that the
+  // app shell rendered its interactive UI, which is deterministic regardless of
+  // vault contents.
+  const ui = await driver.executeScript(
+    `const d = document;
+     const root = d.getElementById('root');
+     return {
+       hasRoot: !!root,
+       rootChildren: root ? root.children.length : 0,
+       interactive: d.querySelectorAll(
+         'button, a, input, select, textarea, [role="button"], [role="link"], [role="menuitem"], [role="tab"], [role="checkbox"]'
+       ).length,
+       bodyText: (d.body && d.body.innerText || '').length,
+     };`,
+    [],
+  );
+  if (ui && ui.hasRoot && (ui.rootChildren || 0) > 0) {
+    ok(`app shell rendered (${ui.rootChildren} top-level node(s))`);
   } else {
-    bad('Rendered at least one anchor element');
+    bad('app shell rendered (root has children)');
   }
-
-  if (anchors.length) {
-    const t = await driver.getElementText(elementId(anchors[0]));
-    if (t && t.length > 0) {
-      ok(`first anchor has text "${t}"`);
-    } else {
-      bad('first anchor has non-empty text');
-    }
+  if (ui && (ui.interactive || 0) > 0) {
+    ok(`app rendered ${ui.interactive} interactive control(s)`);
+  } else {
+    bad(`app rendered interactive controls (got ${ui?.interactive})`);
+  }
+  if (ui && ui.bodyText > 100) {
+    ok(`page body has ${ui.bodyText} chars of rendered text`);
+  } else {
+    bad(`page body has rendered text (got ${ui?.bodyText})`);
   }
 
   console.log('\n── Test 3: IPC round-trip (query real app state) ──');
