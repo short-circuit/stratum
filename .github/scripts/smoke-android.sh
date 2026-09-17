@@ -48,13 +48,14 @@ SMOKE_RESULT=0
 
 # Overall ceiling for the whole first-frame wait (a generous cushion over the
 # per-attempt wait; guards against an adb/emulator hang).
-FIRST_FRAME_TIMEOUT_S=240
-# Per-attempt ceiling waiting for the platform's `Displayed` logcat signal
-# (evidence: a cold software-emulated first frame took ~23s). Bounded so a
-# genuinely dead/hung launch is not waited on forever, but long enough to
-# absorb a slow cold start without a false failure. Env-overridable so tests
-# can shorten it.
-: "${PER_ATTEMPT_TIMEOUT_S:=90}"
+FIRST_FRAME_TIMEOUT_S=420
+# Per-attempt ceiling waiting for the platform's `Displayed` logcat signal.
+# A cold software-emulated app takes a long time to reach its first frame
+# (observed: 23s to Displayed in one run; the app's VM alone took 30s+ to
+# start in another). Bounded so a genuinely dead/hung launch is not waited on
+# forever, but long enough to absorb a slow cold start without a false
+# failure. Env-overridable so tests can shorten it.
+: "${PER_ATTEMPT_TIMEOUT_S:=180}"
 # After the system force-finishes our activity (the input-dispatch ANR hiccup),
 # we relaunch the app up to this many times before declaring a failure.
 MAX_LAUNCH_ATTEMPTS=3
@@ -77,7 +78,19 @@ harvest_logcat() {
         > "${CI_HARVEST_DIR}/logcat-app-${PKG}.log" 2>/dev/null || true
 }
 
+# Authoritative process liveness check. `pidof` is NOT reliable on a busy
+# software-emulated device (the `adb shell` round-trip can transiently return
+# empty for an alive process, as observed in CI), so a single empty pidof is
+# never treated as a crash. We only declare the app dead when the platform's
+# own process registry (`dumpsys activity processes`) stops listing the
+# package AND pidof also reports nothing.
 app_process_dead() {
+    if adb shell dumpsys activity processes 2>/dev/null \
+        | grep -q "app.stratum.debug"; then
+        return 1   # process registry still lists it → alive
+    fi
+    # Registry does not list it. Require pidof to ALSO be empty before
+    # declaring a crash, so a transient pidof hiccup cannot false-fail.
     [ -z "$(adb shell pidof "${PKG}" 2>/dev/null | tr -d '\r ')" ]
 }
 
@@ -96,7 +109,7 @@ launch_once() {
     # Clear any stale Displayed line from a previous attempt so it is not
     # mistaken for the current launch (logcat is per-device, not per-process).
     adb logcat -c 2>/dev/null || true
-    out="$(timeout 90 adb shell am start -n "${ACTIVITY_PATH}" 2>&1)"
+    out="$(timeout "${PER_ATTEMPT_TIMEOUT_S}" adb shell am start -n "${ACTIVITY_PATH}" 2>&1)"
     rc=$?
     if [ "${rc}" -ne 0 ]; then
         log "WARN: am start exited ${rc}: ${out}"
