@@ -159,6 +159,22 @@ stratum ask "What are my notes about project X?"
 
 Requires a configured LLM provider in `.pkm/config.toml`.
 
+### `rag`
+
+Retrieve relevant notes and answer a question using retrieval-augmented
+generation against the configured AI endpoint.
+
+```bash
+stratum rag "What are my notes about project X?"
+stratum rag "What are my notes about project X?" --index   # rebuild index first
+stratum rag "Question" --top-k 10                         # retrieve up to 10 chunks
+```
+
+Indexes the vault (unless `--index` is omitted and the index already exists
+from the desktop app) and answers the question with ranked source citations.
+Requires a configured LLM provider and an `embedding`-capable model in
+`.pkm/config.toml`, plus `rag_enabled = true`.
+
 ### `config`
 
 Display the current configuration.

@@ -3,7 +3,6 @@ import type { GraphSettings, SyncSettings } from '../lib/types';
 import * as api from '../lib/commands';
 
 // --- Types ---
-
 export interface AiConfig {
   provider: string;
   endpoint: string | null;
@@ -39,6 +38,14 @@ export interface SttSettings {
   auto_identify: boolean;
 }
 
+export interface TtsSettings {
+  endpoint: string;
+  api_key: string | null;
+  voice: string;
+  format: string;
+  speed: number;
+}
+
 export interface AppSettings {
   vault_path: string;
   theme: ThemeSettings;
@@ -47,6 +54,7 @@ export interface AppSettings {
   sync: SyncSettings;
   research: ResearchSettings;
   stt: SttSettings;
+  tts: TtsSettings;
   [key: string]: unknown;
 }
 
@@ -62,6 +70,7 @@ export interface SettingsState {
   updateSync: (patch: Partial<SyncSettings>) => void;
   updateResearch: (patch: Partial<ResearchSettings>) => void;
   updateStt: (patch: Partial<SttSettings>) => void;
+  updateTts: (patch: Partial<TtsSettings>) => void;
   setSettings: (settings: AppSettings) => void;
 }
 
@@ -123,6 +132,14 @@ const DEFAULT_STT: SttSettings = {
   auto_identify: true,
 };
 
+const DEFAULT_TTS: TtsSettings = {
+  endpoint: '',
+  api_key: null,
+  voice: 'alloy',
+  format: 'mp3',
+  speed: 1.0,
+};
+
 const DEFAULT_SETTINGS: AppSettings = {
   vault_path: '',
   theme: DEFAULT_THEME,
@@ -131,6 +148,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   sync: DEFAULT_SYNC_SETTINGS,
   research: DEFAULT_RESEARCH,
   stt: DEFAULT_STT,
+  tts: DEFAULT_TTS,
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -153,6 +171,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           // research is only merged if it exists in the response
           research: result.research ? { ...DEFAULT_RESEARCH, ...result.research } : DEFAULT_RESEARCH,
           stt: result.stt ? { ...DEFAULT_STT, ...result.stt } : DEFAULT_STT,
+          tts: result.tts ? { ...DEFAULT_TTS, ...result.tts } : DEFAULT_TTS,
         },
         loading: false,
       });
@@ -200,6 +219,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const s = get().settings;
     if (!s) return;
     set({ settings: { ...s, stt: { ...s.stt, ...patch } } });
+  },
+
+  updateTts: (patch) => {
+    const s = get().settings;
+    if (!s) return;
+    set({ settings: { ...s, tts: { ...s.tts, ...patch } } });
   },
 
   setSettings: (settings) => set({ settings }),

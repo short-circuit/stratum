@@ -11,7 +11,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import ToggleButton from '@mui/material/ToggleButton';
 import Divider from '@mui/material/Divider';
-import * as api from '../../lib/commands';
+import { SttTestButton, TtsTestButton } from './AiTestButtons';
 
 const PROVIDERS = [
   { value: 'ollama', label: 'Ollama (Local)' },
@@ -53,6 +53,14 @@ interface AITabProps {
     auto_identify: boolean;
   };
   onSttChange?: (patch: Partial<NonNullable<AITabProps['stt']>>) => void;
+  tts?: {
+    endpoint: string;
+    api_key: string | null;
+    voice: string;
+    format: string;
+    speed: number;
+  };
+  onTtsChange?: (patch: Partial<NonNullable<AITabProps['tts']>>) => void;
 }
 
 function envVarForProvider(provider: string): string {
@@ -79,6 +87,8 @@ export default function AITab({
   onToggleModelCapability,
   stt,
   onSttChange,
+  tts,
+  onTtsChange,
 }: AITabProps) {
   const modelCaps = (name: string) =>
     (ai.models || []).find(m => m.name === name)?.capabilities || [];
@@ -302,46 +312,59 @@ export default function AITab({
           </Box>
         </Box>
       )}
-    </Box>
-  );
-}
 
-function SttTestButton() {
-  const [state, setState] = useState<'idle' | 'testing' | 'ok' | 'error'>('idle');
-  const [detail, setDetail] = useState('');
-
-  const test = async () => {
-    setState('testing');
-    setDetail('');
-    try {
-      const res = await api.sttTestConnection();
-      if (res.ok) {
-        setState('ok');
-        setDetail(`${res.models.length} model(s) · ${res.latency_ms}ms`);
-      } else {
-        setState('error');
-        setDetail(res.error || 'Failed');
-      }
-    } catch (e) {
-      setState('error');
-      setDetail(String(e));
-    }
-  };
-
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-      <Button variant="outlined" size="small" onClick={test} disabled={state === 'testing'}>
-        {state === 'testing' ? 'Testing…' : 'Test Connection'}
-      </Button>
-      {state === 'ok' && (
-        <Typography variant="caption" color="success.main">
-          Connected — {detail}
-        </Typography>
-      )}
-      {state === 'error' && (
-        <Typography variant="caption" color="error.main">
-          {detail}
-        </Typography>
+      {tts && onTtsChange && (
+        <Box sx={{ mt: 3 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>
+            Text-to-Speech
+          </Typography>
+          <Box sx={{ maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              label="TTS Endpoint (optional)"
+              placeholder="Uses the AI endpoint when empty"
+              value={tts.endpoint || ''}
+              onChange={e => onTtsChange({ endpoint: e.target.value })}
+              size="small"
+            />
+            <TextField
+              label="API Key (optional)"
+              type="password"
+              placeholder={tts.api_key?.includes('****') ? 'Key saved - enter new value to change' : ''}
+              value={tts.api_key?.includes('****') ? '' : (tts.api_key || '')}
+              onChange={e => onTtsChange({ api_key: e.target.value || null })}
+              size="small"
+              sx={{ '& .MuiInputBase-input': { fontFamily: 'monospace' } }}
+            />
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                label="Voice"
+                placeholder="alloy"
+                value={tts.voice || ''}
+                onChange={e => onTtsChange({ voice: e.target.value })}
+                size="small"
+                sx={{ flex: 1 }}
+              />
+              <TextField
+                label="Format"
+                placeholder="mp3"
+                value={tts.format || ''}
+                onChange={e => onTtsChange({ format: e.target.value })}
+                size="small"
+                sx={{ flex: 1 }}
+              />
+            </Box>
+            <TextField
+              label="Speed"
+              type="number"
+              slotProps={{ htmlInput: { min: 0.25, max: 4.0, step: 0.1 } }}
+              value={tts.speed ?? 1.0}
+              onChange={e => onTtsChange({ speed: parseFloat(e.target.value) || 1.0 })}
+              size="small"
+              helperText="Playback speed multiplier (0.25–4.0)"
+            />
+            <TtsTestButton />
+          </Box>
+        </Box>
       )}
     </Box>
   );

@@ -16,104 +16,14 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
-  useDroppable,
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import KanbanEditDialog from '../KanbanEditDialog';
-import KanbanCard from './KanbanCard';
 import { COLUMNS, COLUMN_CONFIG, type ColumnId } from './constants';
 import { useKanbanPanel } from './KanbanPanel.shared';
-
-// ---------------------------------------------------------------------------
-// Section — a single marker group rendered as a vertical list (droppable)
-// ---------------------------------------------------------------------------
-
-function Section({
-  columnId,
-  blocks,
-  onCardClick,
-  onCardContextMenu,
-}: {
-  columnId: ColumnId;
-  blocks: { id: string }[];
-  onCardClick?: (block: any) => void;
-  onCardContextMenu?: (block: any, e: React.MouseEvent) => void;
-}) {
-  const config = COLUMN_CONFIG[columnId];
-  const { setNodeRef, isOver } = useDroppable({ id: columnId });
-
-  return (
-    <Box sx={{ mb: 1.5 }}>
-      {/* Section header */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          px: 2,
-          py: 1,
-          bgcolor: isOver ? 'action.selected' : 'transparent',
-          borderRadius: 1,
-        }}
-      >
-        <Box
-          sx={{
-            width: 10,
-            height: 10,
-            borderRadius: '50%',
-            bgcolor: config.color,
-            flexShrink: 0,
-          }}
-        />
-        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-          {config.label}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {blocks.length}
-        </Typography>
-      </Box>
-
-      {/* Cards */}
-      <Box
-        ref={setNodeRef}
-        sx={{
-          px: 2,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 0.5,
-          minHeight: 48,
-          transition: 'background-color 0.15s ease',
-          bgcolor: isOver ? 'action.hover' : 'transparent',
-          borderRadius: 1,
-          py: 0.5,
-        }}
-      >
-        <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
-          {blocks.map((block: any) => (
-            <KanbanCard
-              key={block.id}
-              block={block}
-              onClick={onCardClick}
-              onContextMenu={onCardContextMenu}
-            />
-          ))}
-        </SortableContext>
-
-        {blocks.length === 0 && (
-          <Typography
-            variant="caption"
-            color="text.disabled"
-            sx={{ textAlign: 'center', py: 2 }}
-          >
-            No tasks
-          </Typography>
-        )}
-      </Box>
-    </Box>
-  );
-}
+import Section from './KanbanSection';
+import CardContextMenu from './CardContextMenu';
 
 // ---------------------------------------------------------------------------
 // Mobile KanbanPanel
@@ -369,48 +279,17 @@ export default function KanbanPanelMobile() {
 
       {/* Context Menu */}
       {contextMenuBlock && (
-        <Box
-          sx={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            bgcolor: 'background.paper',
-            borderTop: 1,
-            borderColor: 'divider',
-            zIndex: 1300,
-            display: 'flex',
-            flexDirection: 'column',
+        <CardContextMenu
+          onEdit={() => {
+            handleEditFromContextMenu(contextMenuBlock);
+            setContextMenuBlock(null);
           }}
-        >
-          <Button
-            fullWidth
-            sx={{ textTransform: 'none', py: 1.5, borderBottom: 1, borderColor: 'divider' }}
-            onClick={() => {
-              handleEditFromContextMenu(contextMenuBlock);
-              setContextMenuBlock(null);
-            }}
-          >
-            Edit
-          </Button>
-          <Button
-            fullWidth
-            sx={{ textTransform: 'none', py: 1.5, color: 'error.main' }}
-            onClick={() => {
-              handleDeleteBlock(contextMenuBlock);
-              setContextMenuBlock(null);
-            }}
-          >
-            Delete
-          </Button>
-          <Button
-            fullWidth
-            sx={{ textTransform: 'none', py: 1 }}
-            onClick={() => setContextMenuBlock(null)}
-          >
-            Cancel
-          </Button>
-        </Box>
+          onDelete={() => {
+            handleDeleteBlock(contextMenuBlock);
+            setContextMenuBlock(null);
+          }}
+          onClose={() => setContextMenuBlock(null)}
+        />
       )}
     </Box>
   );

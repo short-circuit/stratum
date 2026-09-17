@@ -20,6 +20,7 @@ import FlashcardsPanel from './components/FlashcardsPanel';
 import KanbanPanel from './components/KanbanPanel';
 import WhiteboardPanel from './components/WhiteboardPanel';
 import GraphPanel from './components/GraphPanel';
+import AskNotesPanel from './components/AskNotesPanel';
 import SettingsPage from './components/SettingsPage';
 import MobileLayout from './components/MobileLayout';
 import VaultPicker from './components/VaultPicker';
@@ -125,6 +126,7 @@ function AppContent() {
           <Route path="/page/:pagePath" element={<ErrorBoundary><PageView /></ErrorBoundary>} />
           <Route path="/search" element={<ErrorBoundary><SearchPanel /></ErrorBoundary>} />
           <Route path="/query" element={<ErrorBoundary><QueryPanel /></ErrorBoundary>} />
+          <Route path="/ask-notes" element={<ErrorBoundary><AskNotesPanel /></ErrorBoundary>} />
           <Route path="/templates" element={<ErrorBoundary><TemplatesPanel /></ErrorBoundary>} />
           <Route path="/flashcards" element={<ErrorBoundary><FlashcardsPanel /></ErrorBoundary>} />
           <Route path="/kanban" element={<ErrorBoundary><KanbanPanel /></ErrorBoundary>} />
@@ -165,6 +167,7 @@ function AppContent() {
           <Route path="/page/:pagePath" element={<ErrorBoundary><PageView /></ErrorBoundary>} />
           <Route path="/search" element={<ErrorBoundary><SearchPanel /></ErrorBoundary>} />
           <Route path="/query" element={<ErrorBoundary><QueryPanel /></ErrorBoundary>} />
+          <Route path="/ask-notes" element={<ErrorBoundary><AskNotesPanel /></ErrorBoundary>} />
           <Route path="/templates" element={<ErrorBoundary><TemplatesPanel /></ErrorBoundary>} />
           <Route path="/flashcards" element={<ErrorBoundary><FlashcardsPanel /></ErrorBoundary>} />
           <Route path="/kanban" element={<ErrorBoundary><KanbanPanel /></ErrorBoundary>} />
