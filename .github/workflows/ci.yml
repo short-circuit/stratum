@@ -513,8 +513,10 @@ jobs:
           # No skinned boot (headless CI); hardware acceleration stays enabled
           # (default `auto` → KVM on GH-hosted Linux runners).
           emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
+          # The action wraps this in `sh -c` (dash) where `set -euo pipefail`
+          # is illegal — so keep it to a plain bash invocation; the script sets
+          # its own strict options and fails the job on any crash/timeout.
           script: |
-            set -euo pipefail
             bash .github/scripts/smoke-android.sh
         env:
           # Debug APK download location; harvested evidence is always archived.
