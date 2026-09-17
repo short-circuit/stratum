@@ -1,8 +1,9 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button';
 import type { SyncStatusDto, CommitLogEntry } from '../../lib/types';
+import CommitLogPanel from './CommitLogPanel';
+import SyncControlsPanel from './SyncControlsPanel';
 
 interface SyncTabProps {
   syncSettings: {
@@ -283,199 +284,20 @@ export default function SyncTab({
         )}
 
         {/* Section 6 — Controls */}
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.75 }}>
-            <Button
-              variant="contained"
-              onClick={onSyncNow}
-              disabled={syncing}
-              sx={{
-                textTransform: 'none',
-                bgcolor: 'var(--primary-500)',
-                '&:hover': { opacity: 0.85 },
-              }}
-            >
-              {syncing ? 'Syncing...' : 'Sync Now'}
-            </Button>
-            {syncStatus && (
-              <Box
-                sx={{
-                  px: 1.5,
-                  py: 0.25,
-                  borderRadius: 1,
-                  fontSize: '0.65rem',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  color: '#fff',
-                  bgcolor:
-                    syncStatus.status === 'ok'
-                      ? '#10b981'
-                      : syncStatus.status === 'conflicts'
-                        ? '#ef4444'
-                        : syncStatus.status === 'no_repo'
-                          ? '#eab308'
-                          : '#6b7280',
-                }}
-              >
-                {syncStatus.status === 'ok' && 'OK'}
-                {syncStatus.status === 'conflicts' &&
-                  `Conflicts (${syncStatus.conflicts.length})`}
-                {syncStatus.status === 'no_repo' && 'No Repo'}
-                {syncStatus.status !== 'ok' &&
-                  syncStatus.status !== 'conflicts' &&
-                  syncStatus.status !== 'no_repo' &&
-                  syncStatus.status}
-                {(syncStatus.ahead > 0 || syncStatus.behind > 0) && (
-                  <Box component="span" sx={{ ml: 0.5, fontWeight: 400 }}>
-                    +{syncStatus.ahead}/-{syncStatus.behind}
-                  </Box>
-                )}
-              </Box>
-            )}
-            {['auto_commit', 'auto_sync', 'background'].includes(syncSettings.mode) && (
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={onStartScheduler}
-                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-              >
-                Start Scheduler
-              </Button>
-            )}
-          </Box>
-          {syncStatus && (
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-              {syncStatus.branch && (
-                <Typography
-                  variant="caption"
-                  color="text.disabled"
-                  sx={{ fontFamily: 'monospace' }}
-                >
-                  {syncStatus.branch}
-                </Typography>
-              )}
-              {syncStatus.last_sync_time && (
-                <Typography variant="caption" color="text.disabled">
-                  Last sync: {new Date(syncStatus.last_sync_time).toLocaleString()}
-                </Typography>
-              )}
-            </Box>
-          )}
-        </Box>
+        <SyncControlsPanel
+          syncSettings={syncSettings}
+          syncStatus={syncStatus}
+          syncing={syncing}
+          onSyncNow={onSyncNow}
+          onStartScheduler={onStartScheduler}
+        />
 
         {/* Section 7 — Recent Commits */}
-        <Box>
-          <Box
-            component="button"
-            onClick={onToggleCommits}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-              bgcolor: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'text.secondary',
-              fontSize: '0.8rem',
-              fontWeight: 500,
-              p: 0,
-              '&:hover': { color: 'text.primary' },
-            }}
-          >
-            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-              {commitsOpen ? '▼' : '▶'} Recent Commits
-            </Typography>
-          </Box>
-          {commitsOpen && (
-            <Box sx={{ mt: 0.75, overflow: 'auto' }}>
-              {commits.length === 0 ? (
-                <Typography variant="caption" color="text.disabled">
-                  No commits yet.
-                </Typography>
-              ) : (
-                <Box sx={{ minWidth: 500 }}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      borderBottom: 1,
-                      borderColor: 'divider',
-                      pb: 0.5,
-                      mb: 0.5,
-                    }}
-                  >
-                    {['Hash', 'Author', 'Message', 'Date'].map(h => (
-                      <Typography
-                        key={h}
-                        variant="caption"
-                        sx={{
-                          fontWeight: 600,
-                          color: 'text.secondary',
-                          flex:
-                            h === 'Hash'
-                              ? '0 0 80px'
-                              : h === 'Author'
-                                ? '0 0 120px'
-                                : h === 'Date'
-                                  ? '0 0 160px'
-                                  : 1,
-                        }}
-                      >
-                        {h}
-                      </Typography>
-                    ))}
-                  </Box>
-                  {commits.map(entry => (
-                    <Box
-                      key={entry.hash}
-                      sx={{ display: 'flex', py: 0.5, '&:hover': { bgcolor: 'action.hover' } }}
-                    >
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          flex: '0 0 80px',
-                          fontFamily: 'monospace',
-                          color: 'var(--primary-500)',
-                        }}
-                      >
-                        {entry.hash.slice(0, 7)}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          flex: '0 0 120px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {entry.author}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          flex: 1,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          maxWidth: 200,
-                        }}
-                      >
-                        {entry.message}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        sx={{ flex: '0 0 160px', color: 'text.disabled' }}
-                      >
-                        {new Date(entry.timestamp).toLocaleString()}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-              )}
-            </Box>
-          )}
-        </Box>
+        <CommitLogPanel
+          commits={commits}
+          commitsOpen={commitsOpen}
+          onToggleCommits={onToggleCommits}
+        />
       </Box>
     </Box>
   );
