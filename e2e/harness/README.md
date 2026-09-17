@@ -8,6 +8,7 @@ UI rendering — no mocks.
 e2e/harness/
 ├── bin/run.mjs        # one-command runner: starts Xvfb + tauri-driver, runs the suite, tears down
 ├── lib/driver.js      # WebDriver session management (create/attach/wait-for-render/teardown)
+├── lib/results.js     # machine-readable results reporting (JSON manifest + JUnit XML)
 ├── tests/             # (add more test modules here; runTests() in bin/run.mjs is the entry point)
 └── README.md          # this file
 ```
@@ -53,12 +54,17 @@ still uses the vite server.)
 
 ```bash
 # From the repo root (app must already be built in production mode)
-node e2e/harness/bin/run.mjs
+npm run test:e2e:harness            # same as: node e2e/harness/bin/run.mjs
 
 # Force a fresh production build first
 cargo build -p stratum-tauri
-node e2e/harness/bin/run.mjs
+npm run test:e2e:harness
 ```
+
+The runner is deliberately self-contained: it validates prerequisites, starts
+Xvfb + tauri-driver, runs the suite, writes results, and tears everything
+down — so the single command above is the full flow (no manual driver/Xvfb
+setup).
 
 ### Environment variables
 
@@ -84,6 +90,36 @@ node e2e/harness/bin/run.mjs
 
 Exit code is non-zero on any failure so it can gate CI.
 
+## Results (machine-readable)
+
+Every run writes machine-readable results into the repo's **gitignored**
+`test-results/` directory:
+
+| File                              | Format     | Purpose                               |
+|-----------------------------------|------------|---------------------------------------|
+| `test-results/e2e-harness-manifest.json` | JSON   | **Authoritative** report: per-test outcome (`pass`/`fail`), counts, environment, timing |
+| `test-results/e2e-harness-junit.xml`     | JUnit XML | Convenience for CI tooling that only speaks JUnit (the JSON is definitive) |
+
+```json
+// test-results/e2e-harness-manifest.json (abridged)
+{
+  "schema": "stratum-e2e-harness/manifest/v1",
+  "app": "stratum-tauri",
+  "suite": "stratum automated e2e (tauri-driver)",
+  "status": "pass",
+  "counts": { "passed": 8, "failed": 0, "skipped": 0, "total": 8 },
+  "tests": [
+    { "suite": "harness", "name": "App window is on tauri://localhost", "status": "pass", "detail": "", "durationMs": 0 }
+  ]
+}
+```
+
+The runner's exit code already reflects pass/fail, so the manifest is
+additional structured evidence — CI failure artifact upload follows the same
+`test-results/` directory. The JSON `status` field is derived from the same
+outcomes that drive the exit code; the JUnit XML is regenerated from the same
+in-memory results and is never the source of truth.
+
 ## Adding tests
 
 Extend `runTests(driver)` in `bin/run.mjs`, or import `createSession` /
@@ -91,6 +127,45 @@ Extend `runTests(driver)` in `bin/run.mjs`, or import `createSession` /
 commands (find/click/type/getText/screenshot) are all available on the driver
 object from `webdriver` v9.
 
+Tests MUST record their outcome through the `ok(...)` / `bad(...)` helpers in
+`bin/run.mjs` (or call `recordTest()` directly) — the helpers both print to
+stdout **and** feed `lib/results.js`, so every assertion appears in the
+machine-readable manifest. A test that does not call `ok`/`bad` is invisible
+to the report and to CI.
+
 ## CI wiring
 
-See the `e2e` CI job (t_20d4e32c) for wiring this into GitHub Actions.
+The harness is packaged so an `e2e-real` CI job can invoke it with a single
+command. The job itself is wired into `.github/workflows/ci.yml` by the
+separate "Add E2E test job to CI" task (t_20d4e32c); the harness side makes
+that job a thin wrapper:
+
+```bash
+# From the repo root in CI (Ubuntu runner):
+npm ci                                  # install deps (webdriver, tauri toolchain)
+npm run build                           # build frontend -> dist/
+cargo build -p stratum-tauri            # prod-mode binary with embedded assets
+cargo install tauri-driver              # WebDriver intermediary
+sudo apt-get install -y xvfb            # headless display (install-linux-deps already installs webkit2gtk-4.1)
+xvfb-run -a node e2e/harness/bin/run.mjs
+```
+
+What the runner does in CI, in order:
+
+1. Validates prerequisites (`tauri-driver`, `WebKitWebDriver`, built app) and
+   exits `2` with a clear message if any are missing — a misconfigured job
+   fails fast instead of silently passing.
+2. Starts `Xvfb` on an unused display, then `tauri-driver` (which spawns
+   `WebKitWebDriver` on its native port).
+3. Creates a WebDriver session against the **compiled app binary**
+   (`target/debug/stratum-tauri`, production/embed mode) and runs the suite.
+4. Writes machine-readable results to `test-results/e2e-harness-manifest.json`
+   (JSON) and `test-results/e2e-harness-junit.xml` (JUnit XML) — both in the
+   repo's gitignored `test-results/` directory.
+5. Exits non-zero on any failure.
+
+CI should upload `test-results/**` (and optionally
+`/tmp/stratum-harness-last.png`) as an artifact **on failure** so a broken run
+is actionable without a manual reproduction. `WebKitWebDriver` is provided by
+the `webkit2gtk-4.1` package that install-linux-deps already installs; on
+runners where it lands elsewhere, set `HARNESS_DRIVER` to its absolute path.

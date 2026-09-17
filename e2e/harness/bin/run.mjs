@@ -25,9 +25,9 @@
 import { spawn, spawnSync, execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import { fileURLToPath } from 'url';
-import { createSession, waitForApp, deleteSession, elementId, sleep } from '../lib/driver.js';
+import { createSession, waitForApp, deleteSession, elementId } from '../lib/driver.js';
+import { beginRun, recordTest, writeResults, resultsPaths } from '../lib/results.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '../../..');
@@ -62,11 +62,7 @@ function findWebKitWebDriver() {
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
   }
-  // PATH lookup
-  const which = process.env.PATH.split(':')
-    .map((d) => path.join(d, 'WebKitWebDriver'))
-    .find((p) => fs.existsSync(p));
-  return which || null;
+  return null;
 }
 
 function runCapture(cmd, args, { timeoutMs = 120000 } = {}) {
@@ -125,8 +121,16 @@ async function ensureXvfb() {
 let passed = 0;
 let failed = 0;
 
-function ok(name) { passed++; console.log(`  ✅ ${name}`); }
-function bad(name, detail) { failed++; console.log(`  ❌ ${name}${detail ? ` — ${detail}` : ''}`); }
+function ok(name) {
+  passed++;
+  console.log(`  ✅ ${name}`);
+  recordTest({ suite: 'harness', name, status: 'pass' });
+}
+function bad(name, detail) {
+  failed++;
+  console.log(`  ❌ ${name}${detail ? ` — ${detail}` : ''}`);
+  recordTest({ suite: 'harness', name, status: 'fail', detail });
+}
 
 async function runTests(driver) {
   console.log('\n── Test 1: App boots and renders the journal ──');
@@ -179,6 +183,7 @@ async function runTests(driver) {
 async function main() {
   console.log('=== Stratum Automated E2E Harness ===');
   console.log(`Workspace: ${REPO_ROOT}`);
+  beginRun({ appBinary: process.env.HARNESS_APP || repoDefaultBinary() });
 
   const appBinary = process.env.HARNESS_APP || repoDefaultBinary();
   if (!fs.existsSync(appBinary)) {
@@ -258,6 +263,18 @@ async function main() {
     }
 
     console.log(`\n📊 ${passed} passed, ${failed} failed out of ${passed + failed}`);
+
+    // Machine-readable capture (acceptance criterion) — written to the repo's
+    // gitignored test-results/ directory.
+    const manifest = await writeResults({
+      status: failed > 0 ? 'fail' : 'pass',
+      summary: 'stratum automated e2e (tauri-driver)',
+      startedAt: undefined,
+    });
+    const rp = resultsPaths();
+    console.log(`📄 results written:`);
+    console.log(`   JSON : ${rp.manifest} (counts=${JSON.stringify(manifest.counts)})`);
+    console.log(`   JUnit: ${rp.junit}`);
   } finally {
     cleanup();
   }
@@ -282,8 +299,20 @@ function pollPort(port, timeoutMs) {
   });
 }
 
-main().catch((e) => {
+main().catch(async (e) => {
   console.error('\nFATAL:', e.message);
   cleanup();
+  // Still emit a machine-readable record so CI/artifact capture sees the
+  // failure even on a hard crash (session create, driver readiness, etc).
+  try {
+    const manifest = await writeResults({
+      status: 'fail',
+      summary: 'stratum automated e2e (tauri-driver) — fatal error',
+      fatal: e.message,
+    });
+    console.log(`📄 failure results written: ${resultsPaths().manifest} (counts=${JSON.stringify(manifest.counts)})`);
+  } catch (ee) {
+    /* best-effort only */
+  }
   process.exit(1);
 });
