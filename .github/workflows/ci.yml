@@ -510,8 +510,11 @@ jobs:
           arch: x86_64
           target: default
           disable-animations: true
-          # No skinned boot (headless CI); hardware acceleration stays enabled
-          # (default `auto` → KVM on GH-hosted Linux runners).
+          # No skinned boot (headless CI). GitHub-hosted Linux runners do NOT
+          # expose a working /dev/kvm to the runner user, so `disable-linux-hw-accel`
+          # auto-detects software emulation (`-accel off`); the smoke script is
+          # deliberately robust to that (see smoke-android.sh header). The
+          # emulator still boots an x86_64 image under swiftshader rendering.
           emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
           # The action wraps this in `sh -c` (dash) where `set -euo pipefail`
           # is illegal — so keep it to a plain bash invocation; the script sets
