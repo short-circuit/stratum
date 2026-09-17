@@ -27,7 +27,7 @@
     
     
       
-        <title>Plugins - Stratum</title>
+        <title>Plugins API Specification - Stratum</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#plugins" class="md-skip">
+        <a href="#plugins-api-specification" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Plugins
+              Plugins API Specification
             
           </span>
         </div>
@@ -1437,7 +1437,7 @@
   <span class="md-ellipsis">
     
   
-    Plugins
+    Plugins API Specification
   
 
     
@@ -1455,7 +1455,7 @@
   <span class="md-ellipsis">
     
   
-    Plugins
+    Plugins API Specification
   
 
     
@@ -1481,10 +1481,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
+  <a href="#1-overview" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Architecture
+        1. Overview
       
     </span>
   </a>
@@ -1492,33 +1492,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
+  <a href="#2-plugin-packaging" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Configuration
+        2. Plugin packaging
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#developing-plugins" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Developing Plugins
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Developing Plugins">
+    <nav class="md-nav" aria-label="2. Plugin packaging">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#rust-plugin-example" class="md-nav__link">
+  <a href="#21-single-file-format-canonical" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Rust Plugin Example
+        2.1 Single-file format (canonical)
       
     </span>
   </a>
@@ -1526,10 +1515,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#building" class="md-nav__link">
+  <a href="#22-legacy-sidecar-manifest" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Building
+        2.2 Legacy sidecar manifest
       
     </span>
   </a>
@@ -1537,10 +1526,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#installing" class="md-nav__link">
+  <a href="#23-manifest-schema" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installing
+        2.3 Manifest schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-example-manifest-embedded-custom-section-json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Example manifest (embedded custom section, JSON)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-rust-manifest-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Rust manifest type
       
     </span>
   </a>
@@ -1553,10 +1564,282 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#permissions" class="md-nav__link">
+  <a href="#3-host-function-abi" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Permissions
+        3. Host function ABI
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Host function ABI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-module-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Module layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-imported-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Imported functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-envelope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Envelope
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-guest-side-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Guest-side contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-host-function-specifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Host function specifications
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Host function specifications">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-pkmlog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 pkm.log
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-pkmnote_read" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 pkm.note_read
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-pkmnote_write" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 pkm.note_write
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-pkmhttp_request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 pkm.http_request
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-permission-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Permission model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Permission model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-permission-vocabulary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Permission vocabulary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Enforcement
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Error handling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Error handling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-canonical-error-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Canonical error codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-envelope-error-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Envelope error shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-mapping-from-crate-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 Mapping from crate errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-logging-visibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4 Logging &amp; visibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-runtime-instantiation-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Runtime instantiation &amp; lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Runtime instantiation &amp; lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-instantiation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Instantiation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-lifecycle-states" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Lifecycle states
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-startup-scan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Startup scan
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Hooks
       
     </span>
   </a>
@@ -1564,10 +1847,137 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#current-limitations" class="md-nav__link">
+  <a href="#9-tauri-command-surface" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Current Limitations
+        9. Tauri command surface
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Tauri command surface">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91-plugins_list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 plugins_list
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92-plugins_enable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 plugins_enable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93-plugins_disable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 plugins_disable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#94-plugins_reload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.4 plugins_reload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#95-plugins_status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.5 plugins_status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#96-plugin_note_read-host-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.6 plugin_note_read (host test)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#97-plugin_http_request-host-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.7 plugin_http_request (host test)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-ssrf-guard-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. SSRF guard details
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-out-of-scope-v07x" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Out of scope (v0.7.x)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-rust-typetrait-definitions-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Rust type/trait definitions (reference)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-glossary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Glossary
       
     </span>
   </a>
@@ -1625,6 +2035,8 @@
   
     
     
+      
+        
       
         
       
@@ -1763,6 +2175,100 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0004 WASM Plugin ABI
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ADR-0004 WASM Plugin ABI
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/adr/0004-wasm-plugin-abi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0004: WASM Plugin System — API Contract and Host Function ABI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1797,10 +2303,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#architecture" class="md-nav__link">
+  <a href="#1-overview" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Architecture
+        1. Overview
       
     </span>
   </a>
@@ -1808,33 +2314,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
+  <a href="#2-plugin-packaging" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Configuration
+        2. Plugin packaging
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#developing-plugins" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Developing Plugins
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Developing Plugins">
+    <nav class="md-nav" aria-label="2. Plugin packaging">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#rust-plugin-example" class="md-nav__link">
+  <a href="#21-single-file-format-canonical" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Rust Plugin Example
+        2.1 Single-file format (canonical)
       
     </span>
   </a>
@@ -1842,10 +2337,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#building" class="md-nav__link">
+  <a href="#22-legacy-sidecar-manifest" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Building
+        2.2 Legacy sidecar manifest
       
     </span>
   </a>
@@ -1853,10 +2348,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#installing" class="md-nav__link">
+  <a href="#23-manifest-schema" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installing
+        2.3 Manifest schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-example-manifest-embedded-custom-section-json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Example manifest (embedded custom section, JSON)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-rust-manifest-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Rust manifest type
       
     </span>
   </a>
@@ -1869,10 +2386,282 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#permissions" class="md-nav__link">
+  <a href="#3-host-function-abi" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Permissions
+        3. Host function ABI
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Host function ABI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-module-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Module layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-imported-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Imported functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-envelope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Envelope
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-guest-side-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Guest-side contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-host-function-specifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Host function specifications
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Host function specifications">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-pkmlog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 pkm.log
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-pkmnote_read" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 pkm.note_read
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-pkmnote_write" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 pkm.note_write
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-pkmhttp_request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 pkm.http_request
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-permission-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Permission model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Permission model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-permission-vocabulary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Permission vocabulary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Enforcement
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Error handling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Error handling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-canonical-error-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Canonical error codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-envelope-error-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Envelope error shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-mapping-from-crate-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 Mapping from crate errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-logging-visibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4 Logging &amp; visibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-runtime-instantiation-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Runtime instantiation &amp; lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Runtime instantiation &amp; lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-instantiation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Instantiation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-lifecycle-states" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Lifecycle states
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-startup-scan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Startup scan
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Hooks
       
     </span>
   </a>
@@ -1880,10 +2669,137 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#current-limitations" class="md-nav__link">
+  <a href="#9-tauri-command-surface" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Current Limitations
+        9. Tauri command surface
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Tauri command surface">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91-plugins_list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 plugins_list
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92-plugins_enable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 plugins_enable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93-plugins_disable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 plugins_disable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#94-plugins_reload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.4 plugins_reload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#95-plugins_status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.5 plugins_status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#96-plugin_note_read-host-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.6 plugin_note_read (host test)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#97-plugin_http_request-host-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.7 plugin_http_request (host test)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-ssrf-guard-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. SSRF guard details
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-out-of-scope-v07x" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Out of scope (v0.7.x)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-rust-typetrait-definitions-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Rust type/trait definitions (reference)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-glossary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Glossary
       
     </span>
   </a>
@@ -1910,79 +2826,854 @@
   
 
 
-<h1 id="plugins">Plugins<a class="headerlink" href="#plugins" title="Permanent link">&para;</a></h1>
-<p>Stratum supports a WASM plugin runtime for extensibility.</p>
-<div class="admonition warning">
-<p class="admonition-title">Status</p>
-<p>The plugin system is in development. The runtime (wasmtime) is integrated but the plugin API is still being finalized.</p>
-</div>
-<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
-<p>Plugins run as WebAssembly modules in the wasmtime runtime. They are:</p>
-<ul>
-<li><strong>Sandboxed</strong> — no access to the filesystem or network unless explicitly permitted</li>
-<li><strong>Language-agnostic</strong> — compile any language that targets WASM (Rust, Go, C, etc.)</li>
-<li><strong>Permission-gated</strong> — each plugin declares what capabilities it needs</li>
-</ul>
-<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p>Plugins are configured in <code>.pkm/config.toml</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[plugins]</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"my-plugin"</span><span class="p">]</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">[plugin.my-plugin]</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">some_option</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"value"</span>
-</code></pre></div>
-<h2 id="developing-plugins">Developing Plugins<a class="headerlink" href="#developing-plugins" title="Permanent link">&para;</a></h2>
-<h3 id="rust-plugin-example">Rust Plugin Example<a class="headerlink" href="#rust-plugin-example" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">use</span><span class="w"> </span><span class="n">pkm_plugin</span><span class="p">::</span><span class="n">prelude</span><span class="p">::</span><span class="o">*</span><span class="p">;</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="cp">#[plugin]</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">fn</span><span class="w"> </span><span class="nf">my_transform</span><span class="p">(</span><span class="n">content</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">String</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="n">content</span><span class="p">.</span><span class="n">to_uppercase</span><span class="p">()</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="p">}</span>
-</code></pre></div>
-<h3 id="building">Building<a class="headerlink" href="#building" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cargo<span class="w"> </span>build<span class="w"> </span>--target<span class="w"> </span>wasm32-wasi
-</code></pre></div>
-<h3 id="installing">Installing<a class="headerlink" href="#installing" title="Permanent link">&para;</a></h3>
-<p>Place the <code>.wasm</code> file in your vault's <code>.pkm/plugins/</code> directory.</p>
-<h2 id="permissions">Permissions<a class="headerlink" href="#permissions" title="Permanent link">&para;</a></h2>
-<p>Plugins declare required permissions in their manifest:</p>
+<h1 id="plugins-api-specification">Plugins API Specification<a class="headerlink" href="#plugins-api-specification" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Status: NORMATIVE.</strong> This document is the authoritative contract for the Stratum
+plugin system (ADR-0004). Backend, frontend, and QA build against it. The
+implementation and integration tasks make the runtime match this document exactly;
+do not treat any described behavior as aspirational.</p>
+</blockquote>
+<h2 id="1-overview">1. Overview<a class="headerlink" href="#1-overview" title="Permanent link">&para;</a></h2>
+<p>Stratum plugins are WebAssembly modules executed in an embedded wasmtime runtime,
+fully sandboxed from the host filesystem and network. A plugin declares the
+capabilities it needs; the host enforces them. Plugins interact with the vault
+exclusively through the host function ABI in this document.</p>
+<p>The plugin system has <strong>three surfaces</strong>:</p>
 <table>
 <thead>
 <tr>
-<th>Permission</th>
-<th>Description</th>
+<th>Surface</th>
+<th>Owner</th>
+<th>Artifact</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>fs:read</code></td>
-<td>Read files in the vault</td>
+<td>Plugin manifest + host ABI (this doc)</td>
+<td>architect</td>
+<td>contract</td>
 </tr>
 <tr>
-<td><code>fs:write</code></td>
-<td>Write files in the vault</td>
+<td>Runtime host function implementations</td>
+<td>backend</td>
+<td><code>crates/pkm-plugin</code></td>
 </tr>
 <tr>
-<td><code>net:http</code></td>
-<td>Make HTTP requests</td>
+<td>Tauri commands + vault loading</td>
+<td>backend</td>
+<td><code>src-tauri</code></td>
 </tr>
 <tr>
-<td><code>block:read</code></td>
-<td>Read block data</td>
-</tr>
-<tr>
-<td><code>block:write</code></td>
-<td>Write and modify blocks</td>
+<td>Management UI</td>
+<td>frontend</td>
+<td><code>src/</code> (React)</td>
 </tr>
 </tbody>
 </table>
-<h2 id="current-limitations">Current Limitations<a class="headerlink" href="#current-limitations" title="Permanent link">&para;</a></h2>
+<h2 id="2-plugin-packaging">2. Plugin packaging<a class="headerlink" href="#2-plugin-packaging" title="Permanent link">&para;</a></h2>
+<h3 id="21-single-file-format-canonical">2.1 Single-file format (canonical)<a class="headerlink" href="#21-single-file-format-canonical" title="Permanent link">&para;</a></h3>
+<p>A plugin is one file:</p>
 <ul>
-<li>The plugin API is not yet stable</li>
-<li>No plugin registry or marketplace yet</li>
-<li>Only Rust compilation has been tested</li>
-<li>WASI preview 2 support is experimental</li>
+<li><code>plugin.wasm</code> — wasm32 core module (unsuffixed; <strong>not</strong> a <code>component</code>), with an
+  embedded JSON manifest in the custom section named <code>stratum:manifest</code>.</li>
+</ul>
+<p>The file is placed in a vault at <code>&lt;vault&gt;/.pkm/plugins/&lt;name&gt;/plugin.wasm</code>.
+Load order inside that directory is undefined; a plugin must not depend on it.</p>
+<h3 id="22-legacy-sidecar-manifest">2.2 Legacy sidecar manifest<a class="headerlink" href="#22-legacy-sidecar-manifest" title="Permanent link">&para;</a></h3>
+<p>For compatibility, a manifest is also accepted from a sibling file
+<code>&lt;entry&gt;.wasm.manifest.json</code> beside the <code>.wasm</code> file. This is <strong>read-only
+compatibility</strong>: new plugins should embed the manifest. When both exist, the
+embedded manifest wins and a <code>WARN</code> is logged.</p>
+<h3 id="23-manifest-schema">2.3 Manifest schema<a class="headerlink" href="#23-manifest-schema" title="Permanent link">&para;</a></h3>
+<p>The manifest is a UTF-8 JSON object. Its schema is v1.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"schema_version"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"com.example.my-plugin"</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"My Plugin"</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.1.0"</span><span class="p">,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Optional one-line description"</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="nt">"author"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Optional author or org"</span><span class="p">,</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="nt">"entry"</span><span class="p">:</span><span class="w"> </span><span class="s2">"plugin.wasm"</span><span class="p">,</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="nt">"permissions"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"file:read"</span><span class="p">,</span><span class="w"> </span><span class="s2">"file:write"</span><span class="p">,</span><span class="w"> </span><span class="s2">"network"</span><span class="p">],</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span><span class="nt">"hooks"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="nt">"onSave"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="nt">"onOpen"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span><span class="nt">"onLink"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="nt">"onSearch"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span><span class="nt">"onMyHook"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">}</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>schema_version</code></td>
+<td>integer</td>
+<td>yes</td>
+<td>Must be <code>1</code>. Reject otherwise with <code>ConfigError</code>.</td>
+</tr>
+<tr>
+<td><code>id</code></td>
+<td>string</td>
+<td>yes</td>
+<td>Unique reverse-DNS id. Regex <code>^[A-Za-z0-9][A-Za-z0-9._-]*$</code>, ≤128 chars.</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>string</td>
+<td>yes</td>
+<td>Display name, ≤64 chars.</td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td>string</td>
+<td>yes</td>
+<td>Semver, ≤32 chars.</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>string</td>
+<td>no</td>
+<td>≤512 chars.</td>
+</tr>
+<tr>
+<td><code>author</code></td>
+<td>string</td>
+<td>no</td>
+<td>≤128 chars.</td>
+</tr>
+<tr>
+<td><code>entry</code></td>
+<td>string</td>
+<td>yes</td>
+<td>File name of the wasm module. Default <code>plugin.wasm</code>.</td>
+</tr>
+<tr>
+<td><code>permissions</code></td>
+<td>array<string></td>
+<td>yes</td>
+<td>See §5 Permission model. Unknown permission ⇒ <code>ConfigError</code>.</td>
+</tr>
+<tr>
+<td><code>hooks</code></td>
+<td>object</td>
+<td>no</td>
+<td>Default: no hooks. Keys <code>on*</code>, values boolean. See §8.</td>
+</tr>
+</tbody>
+</table>
+<p>Unknown fields are ignored (forward compatibility). A manifest that fails JSON
+parse, schema validation, or permission validation yields
+<code>PluginLoadError</code>/<code>ConfigError</code> and the plugin does not load.</p>
+<h3 id="24-example-manifest-embedded-custom-section-json">2.4 Example manifest (embedded custom section, JSON)<a class="headerlink" href="#24-example-manifest-embedded-custom-section-json" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">"schema_version"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"com.example.exclaimer"</span><span class="p">,</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Exclaimer"</span><span class="p">,</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.1.0"</span><span class="p">,</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Appends a signature block to every saved note."</span><span class="p">,</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">"permissions"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"file:read"</span><span class="p">,</span><span class="w"> </span><span class="s2">"file:write"</span><span class="p">],</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">"hooks"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"onSave"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="25-rust-manifest-type">2.5 Rust manifest type<a class="headerlink" href="#25-rust-manifest-type" title="Permanent link">&para;</a></h3>
+<p>The Rust type is exactly:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="cp">#[derive(Debug, Clone, Serialize, Deserialize)]</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">PluginManifest</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">schema_version</span><span class="p">:</span><span class="w"> </span><span class="kt">u32</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">id</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">name</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">version</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="cp">#[serde(default)]</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">description</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="cp">#[serde(default)]</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">author</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span><span class="cp">#[serde(default = </span><span class="s">"default_entry"</span><span class="cp">)]</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">entry</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">permissions</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">    </span><span class="cp">#[serde(default)]</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">hooks</span><span class="p">:</span><span class="w"> </span><span class="nc">HashMap</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="p">}</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="k">fn</span><span class="w"> </span><span class="nf">default_entry</span><span class="p">()</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">String</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s">"plugin.wasm"</span><span class="p">.</span><span class="n">to_string</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<h2 id="3-host-function-abi">3. Host function ABI<a class="headerlink" href="#3-host-function-abi" title="Permanent link">&para;</a></h2>
+<h3 id="31-module-layout">3.1 Module layout<a class="headerlink" href="#31-module-layout" title="Permanent link">&para;</a></h3>
+<p>Plugins are instantiated as <strong>core modules</strong> with <strong>no WASI context</strong>. The host
+linker provides a single import namespace <code>"pkm"</code> with the imports below, plus the
+reserved no-op <code>"wasi_snapshot_preview1"</code> module (see §7.1).</p>
+<h3 id="32-imported-functions">3.2 Imported functions<a class="headerlink" href="#32-imported-functions" title="Permanent link">&para;</a></h3>
+<p>Every host function has the WASM type <code>(param i32 i32) (result i32)</code>:</p>
+<ul>
+<li><code>(param i32 i32)</code> — a pointer and byte length locating a UTF-8 JSON request in
+  the plugin's linear memory.</li>
+<li><code>(result i32)</code> — the byte length of the JSON response that the host wrote at
+  <strong>offset 0</strong> of the plugin's linear memory (the host grows the memory as needed).</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Import name</th>
+<th>WASM type</th>
+<th>Permission</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pkm.log</code></td>
+<td><code>(i32,i32)-&gt;i32</code></td>
+<td>none (always allowed)</td>
+</tr>
+<tr>
+<td><code>pkm.note_read</code></td>
+<td><code>(i32,i32)-&gt;i32</code></td>
+<td><code>file:read</code></td>
+</tr>
+<tr>
+<td><code>pkm.note_write</code></td>
+<td><code>(i32,i32)-&gt;i32</code></td>
+<td><code>file:write</code></td>
+</tr>
+<tr>
+<td><code>pkm.http_request</code></td>
+<td><code>(i32,i32)-&gt;i32</code></td>
+<td><code>network</code></td>
+</tr>
+</tbody>
+</table>
+<p>There are no other host functions. <code>HostFunction</code> is an ABI-frozen enum:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="cp">#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">HostFunction</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Log</span><span class="p">,</span><span class="w"> </span><span class="n">NoteRead</span><span class="p">,</span><span class="w"> </span><span class="n">NoteWrite</span><span class="p">,</span><span class="w"> </span><span class="n">HttpRequest</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<h3 id="33-envelope">3.3 Envelope<a class="headerlink" href="#33-envelope" title="Permanent link">&para;</a></h3>
+<p>All requests and responses are JSON strings, each bounded at <code>HOST_PAYLOAD_MAX</code>
+= 1 MiB (host → guest and guest → host). A request larger than the bound yields
+<code>InvalidArgument</code>.</p>
+<p>Every host callback returns the <strong>success envelope</strong>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="cp">#[derive(Debug, Clone, Serialize, Deserialize)]</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="cp">#[serde(rename_all = </span><span class="s">"snake_case"</span><span class="cp">, tag = </span><span class="s">"kind"</span><span class="cp">)]</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">HostResponse</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="nb">Ok</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">data</span><span class="p">:</span><span class="w"> </span><span class="nc">serde_json</span><span class="p">::</span><span class="n">Value</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="nb">Err</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">code</span><span class="p">:</span><span class="w"> </span><span class="nc">PluginErrorCode</span><span class="p">,</span><span class="w"> </span><span class="n">message</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">}</span>
+</code></pre></div>
+<p><code>pkm.http_request</code> returns a dedicated envelope:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="cp">#[derive(Debug, Clone, Serialize, Deserialize)]</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="cp">#[serde(rename_all = </span><span class="s">"snake_case"</span><span class="cp">, tag = </span><span class="s">"kind"</span><span class="cp">)]</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">HttpResponseEnvelope</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="nb">Ok</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">status</span><span class="p">:</span><span class="w"> </span><span class="kt">u16</span><span class="p">,</span><span class="w"> </span><span class="n">headers</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="p">(</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">body</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="nb">Err</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">code</span><span class="p">:</span><span class="w"> </span><span class="nc">PluginErrorCode</span><span class="p">,</span><span class="w"> </span><span class="n">message</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="34-guest-side-contract">3.4 Guest-side contract<a class="headerlink" href="#34-guest-side-contract" title="Permanent link">&para;</a></h3>
+<ul>
+<li>The request payload is caller-owned guest memory; the host must not read beyond
+  the given <code>(ptr, len)</code>.</li>
+<li>The response is written beginning at guest linear-memory offset <strong>0</strong>. The host
+  grows the memory if needed and returns the response byte length.</li>
+<li>The guest reads <code>memory[0..responselen]</code> as the response. The returned length is
+  an upper bound — the response may be shorter; bytes beyond <code>responselen</code> are
+  undefined.</li>
+<li>A host callback that throws (trap, guest OOM, missing permission, invalid
+  request) is converted by the host into <code>Err</code> in the response envelope; it never
+  propagates a trap to the guest if the guest followed the ABI.</li>
+</ul>
+<h2 id="4-host-function-specifications">4. Host function specifications<a class="headerlink" href="#4-host-function-specifications" title="Permanent link">&para;</a></h2>
+<h3 id="41-pkmlog">4.1 <code>pkm.log</code><a class="headerlink" href="#41-pkmlog" title="Permanent link">&para;</a></h3>
+<p>Logs a message through the host <code>tracing</code> logger, preserving the <code>[stratum]</code>
+context-prefix convention.</p>
+<p>Request:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"level"</span><span class="p">:</span><span class="w"> </span><span class="s2">"info"</span><span class="p">,</span><span class="w"> </span><span class="nt">"message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"hello from plugin"</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>level</code></td>
+<td>string</td>
+<td>no</td>
+<td>One of <code>trace, debug, info, warn, error</code>. Default <code>info</code>. Unknown level ⇒ <code>info</code>.</td>
+</tr>
+<tr>
+<td><code>message</code></td>
+<td>string</td>
+<td>yes</td>
+<td>≤4096 chars; longer truncated.</td>
+</tr>
+</tbody>
+</table>
+<p>Response (always succeeds): <code>{"kind":"ok","data":{"logged":true}}</code>.</p>
+<p>Errors: none.</p>
+<h3 id="42-pkmnote_read">4.2 <code>pkm.note_read</code><a class="headerlink" href="#42-pkmnote_read" title="Permanent link">&para;</a></h3>
+<p>Reads the raw content of a note <strong>relative to the vault root</strong>, with an
+SSRF-style path-traversal guard.</p>
+<p>Request:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"notes/foo.md"</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>path</code></td>
+<td>string</td>
+<td>yes</td>
+<td>Vault-relative POSIX path. Empty ⇒ <code>InvalidArgument</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Resolution rules (mirror <code>resolve_safe_path</code> in <code>src-tauri/src/commands/page.rs</code>):</p>
+<ol>
+<li>Reject on <code>..</code> escaping the vault root ⇒ <strong>must</strong> stay under the canonicalized
+   vault root.</li>
+<li>The note must exist; otherwise <code>Err { code: "note_not_found", ... }</code>.</li>
+<li>Reads are UTF-8; non-UTF-8 ⇒ <code>PluginRuntimeError</code>.</li>
+</ol>
+<p>Response:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">"kind"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="p">,</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nt">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">    </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"notes/foo.md"</span><span class="p">,</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="nt">"content"</span><span class="p">:</span><span class="w"> </span><span class="s2">"raw bytes of the note"</span><span class="p">,</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="nt">"mtime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-09-17T00:00:00Z"</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="p">}</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>path</code></td>
+<td>string</td>
+<td>The vault-relative path that was read (normalized).</td>
+</tr>
+<tr>
+<td><code>content</code></td>
+<td>string</td>
+<td>Full text content (frontmatter + body, exactly as on disk).</td>
+</tr>
+<tr>
+<td><code>mtime</code></td>
+<td>string</td>
+<td>RFC 3339 UTC <code>modified</code> timestamp, or an empty string if unavailable.</td>
+</tr>
+</tbody>
+</table>
+<p>Errors: <code>note_not_found</code>, <code>invalid_argument</code>, <code>plugin_runtime_error</code>.</p>
+<p><strong>There is no fake note.</strong> The content is read from the vault filesystem.</p>
+<h3 id="43-pkmnote_write">4.3 <code>pkm.note_write</code><a class="headerlink" href="#43-pkmnote_write" title="Permanent link">&para;</a></h3>
+<p>Writes (create or overwrite) a note relative to the vault root, creating parent
+directories as needed.</p>
+<p>Request:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"notes/foo.md"</span><span class="p">,</span><span class="w"> </span><span class="nt">"content"</span><span class="p">:</span><span class="w"> </span><span class="s2">"text to write"</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>path</code></td>
+<td>string</td>
+<td>yes</td>
+<td>Vault-relative POSIX path. Empty ⇒ <code>InvalidArgument</code>. Traversal ⇒ <code>NoteWriteFailed</code>.</td>
+</tr>
+<tr>
+<td><code>content</code></td>
+<td>string</td>
+<td>yes</td>
+<td>New file content (raw, UTF-8).</td>
+</tr>
+</tbody>
+</table>
+<p>Behavior:</p>
+<ol>
+<li>Resolve the path safely under the vault root (write variant of the safe-path
+   check, which does <strong>not</strong> require the target to pre-exist).</li>
+<li><code>create_dir_all</code> the parent directory.</li>
+<li>Write atomically (write to temp file in the same directory, then rename).</li>
+<li>On success the note is on disk, plain markdown, no block-store side effects.</li>
+</ol>
+<p>Response:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"kind"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="p">,</span><span class="w"> </span><span class="nt">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"notes/foo.md"</span><span class="p">,</span><span class="w"> </span><span class="nt">"written"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<p>Errors: <code>note_write_failed</code> (including traversal and any I/O failure). A failed
+write must <strong>propagate</strong> — it is never reported as success.</p>
+<h3 id="44-pkmhttp_request">4.4 <code>pkm.http_request</code><a class="headerlink" href="#44-pkmhttp_request" title="Permanent link">&para;</a></h3>
+<p>Performs a single asynchronous HTTP request with an enforced timeout and an
+SSRF guard against the vault's <code>network.allowlist</code>.</p>
+<p>Request:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">{</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">"method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"GET"</span><span class="p">,</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="nt">"url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://example.com/data.json"</span><span class="p">,</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="nt">"headers"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"Accept"</span><span class="p">:</span><span class="w"> </span><span class="s2">"application/json"</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span><span class="nt">"body"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">  </span><span class="nt">"timeout_ms"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="p">}</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>method</code></td>
+<td>string</td>
+<td>yes</td>
+<td><code>GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS</code>. Default <code>GET</code>. Unknown ⇒ <code>InvalidArgument</code>.</td>
+</tr>
+<tr>
+<td><code>url</code></td>
+<td>string</td>
+<td>yes</td>
+<td>Absolute http(s) URL (scheme required). Else <code>InvalidArgument</code>.</td>
+</tr>
+<tr>
+<td><code>headers</code></td>
+<td>object</td>
+<td>no</td>
+<td>String values; folded, repeated headers not supported.</td>
+</tr>
+<tr>
+<td><code>body</code></td>
+<td>string|null</td>
+<td>no</td>
+<td>Request body, UTF-8. Omitted ⇒ <code>null</code>.</td>
+</tr>
+<tr>
+<td><code>timeout_ms</code></td>
+<td>number</td>
+<td>no</td>
+<td>Default <code>10000</code>. Bounded to <code>[1, 60000]</code>; out of range ⇒ <code>InvalidArgument</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Behavior:</p>
+<ol>
+<li><strong>SSRF guard (always on).</strong> Host resolves the URL host. It is allowed if it
+   (a) matches the vault <code>network.allowlist</code> (host or CIDR entries from
+   <code>pkm_core::Config</code>), or (b) resolves to a loopback/private address
+   (RFC 1918, link-local, loopback, unique-local IPv6). Otherwise the call is
+   rejected without a network round-trip ⇒ <code>Err { code: "http_ssid", ... }</code>.</li>
+<li><strong>Timeout.</strong> The request is aborted at <code>timeout_ms</code> ⇒ <code>Err { code: "http_timeout" }</code>.</li>
+<li><strong>Transport errors</strong> (DNS, connect, TLS, abort) ⇒ <code>Err { code: "http_transport" }</code>.</li>
+<li><strong>HTTP response.</strong> Body is read fully (capped at 1 MiB; larger truncated).
+   Response headers returned as received.</li>
+</ol>
+<p>Response (HTTP success — any status):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="p">{</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="nt">"kind"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ok"</span><span class="p">,</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span><span class="nt">"headers"</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="s2">"content-type"</span><span class="p">,</span><span class="w"> </span><span class="s2">"application/json"</span><span class="p">]],</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">  </span><span class="nt">"body"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>HTTP status 400..=599 is returned as an <strong>error</strong> to the plugin:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"kind"</span><span class="p">:</span><span class="w"> </span><span class="s2">"err"</span><span class="p">,</span><span class="w"> </span><span class="nt">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"http_status"</span><span class="p">,</span><span class="w"> </span><span class="nt">"message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"HTTP 404 from https://example.com/x"</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<p><code>2xx</code>/<code>3xx</code> are success; all other statuses are errors as above.</p>
+<p>Errors: <code>http_transport</code>, <code>http_timeout</code>, <code>http_ssid</code>, <code>http_status</code>,
+<code>invalid_argument</code> (bad method/URL/timeout), <code>plugin_denied</code> (missing <code>network</code>).</p>
+<h2 id="5-permission-model">5. Permission model<a class="headerlink" href="#5-permission-model" title="Permanent link">&para;</a></h2>
+<h3 id="51-permission-vocabulary">5.1 Permission vocabulary<a class="headerlink" href="#51-permission-vocabulary" title="Permanent link">&para;</a></h3>
+<p>Only the following are valid manifest entries:</p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Protects</th>
+<th>Host functions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>file:read</code></td>
+<td>reading vault notes</td>
+<td><code>pkm.note_read</code></td>
+</tr>
+<tr>
+<td><code>file:write</code></td>
+<td>writing vault notes</td>
+<td><code>pkm.note_write</code></td>
+</tr>
+<tr>
+<td><code>network</code></td>
+<td>HTTP egress</td>
+<td><code>pkm.http_request</code></td>
+</tr>
+<tr>
+<td><code>git</code></td>
+<td>Git operations (2</td>
+<td>2)</td>
+</tr>
+<tr>
+<td><code>exec</code></td>
+<td>Running subprocesses</td>
+<td>lifecycle-gated</td>
+</tr>
+<tr>
+<td><code>all</code></td>
+<td>every capability above</td>
+<td>all host functions</td>
+</tr>
+</tbody>
+</table>
+<p>Any other string ⇒ manifest rejected with <code>ConfigError</code>.</p>
+<h3 id="52-enforcement">5.2 Enforcement<a class="headerlink" href="#52-enforcement" title="Permanent link">&para;</a></h3>
+<ul>
+<li>A host function invoked without its required permission is aborted and surfaces
+  <code>Err { code: "plugin_denied", message: "permission 'file:read' not granted" }</code>
+  to the plugin.</li>
+<li>Grants come <strong>only</strong> from the plugin's embedded manifest (or legacy sidecar).
+  <code>pkm_core::PluginConfig.permissions</code> is an enablement/config override layer only
+  and must not be required for the manifest-derived grant to take effect.</li>
+<li><code>all</code> implies <code>file:read</code>, <code>file:write</code>, <code>network</code>, <code>git</code>, <code>exec</code>.</li>
+</ul>
+<h2 id="6-error-handling">6. Error handling<a class="headerlink" href="#6-error-handling" title="Permanent link">&para;</a></h2>
+<h3 id="61-canonical-error-codes">6.1 Canonical error codes<a class="headerlink" href="#61-canonical-error-codes" title="Permanent link">&para;</a></h3>
+<p><code>PluginErrorCode</code> is a string enum serialized snake_case. It is ABI-frozen for the
+v0.7.x series.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="cp">#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="cp">#[serde(rename_all = </span><span class="s">"snake_case"</span><span class="cp">)]</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">PluginErrorCode</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span><span class="n">PluginDenied</span><span class="p">,</span><span class="w">       </span><span class="c1">// permission not granted</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">    </span><span class="n">PluginNotFound</span><span class="p">,</span><span class="w">     </span><span class="c1">// no plugin with this id is loaded</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">    </span><span class="n">PluginLoadError</span><span class="p">,</span><span class="w">    </span><span class="c1">// manifest/compile/instantiation failure</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">    </span><span class="n">PluginRuntimeError</span><span class="p">,</span><span class="w"> </span><span class="c1">// guest or host trap / runtime failure</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">    </span><span class="n">NoteNotFound</span><span class="p">,</span><span class="w">       </span><span class="c1">// note_read: target missing</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="w">    </span><span class="n">NoteWriteFailed</span><span class="p">,</span><span class="w">    </span><span class="c1">// note_write: I/O or traversal failure</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="w">    </span><span class="n">HttpTransport</span><span class="p">,</span><span class="w">      </span><span class="c1">// http: dns/connect/tls/abort</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="w">    </span><span class="n">HttpTimeout</span><span class="p">,</span><span class="w">        </span><span class="c1">// http: deadline exceeded</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="w">    </span><span class="n">HttpSsid</span><span class="p">,</span><span class="w">           </span><span class="c1">// http: blocked by SSRF guard</span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="w">    </span><span class="n">HttpStatus</span><span class="p">,</span><span class="w">         </span><span class="c1">// http: HTTP status 400..=599</span>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="w">    </span><span class="n">InvalidArgument</span><span class="p">,</span><span class="w">    </span><span class="c1">// malformed request payload</span>
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="w">    </span><span class="n">ConfigError</span><span class="p">,</span><span class="w">        </span><span class="c1">// manifest/config invalid</span>
+<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a><span class="w">    </span><span class="n">Internal</span><span class="p">,</span><span class="w">           </span><span class="c1">// unexpected host error</span>
+<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="62-envelope-error-shape">6.2 Envelope error shape<a class="headerlink" href="#62-envelope-error-shape" title="Permanent link">&para;</a></h3>
+<p>All error envelopes are <code>Err { code, message }</code>. <code>code</code> is always one of
+§6.1; <code>message</code> is a human-readable string, ≤1024 chars, and SHOULD contain
+<code>[stratum]</code> so logs remain greppable.</p>
+<h3 id="63-mapping-from-crate-errors">6.3 Mapping from crate errors<a class="headerlink" href="#63-mapping-from-crate-errors" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Crate error (pkm_core)</th>
+<th>PluginErrorCode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PkmError::NoteNotFound(..)</code></td>
+<td><code>note_not_found</code></td>
+</tr>
+<tr>
+<td><code>PkmError::Plugin(..)</code></td>
+<td><code>plugin_load_error</code></td>
+</tr>
+<tr>
+<td><code>PkmError::Config(..)</code></td>
+<td><code>config_error</code></td>
+</tr>
+<tr>
+<td><code>PkmError::Io(..)</code> on write</td>
+<td><code>note_write_failed</code></td>
+</tr>
+<tr>
+<td>any other <code>PkmError</code></td>
+<td><code>plugin_runtime_error</code> / <code>internal</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="64-logging-visibility">6.4 Logging &amp; visibility<a class="headerlink" href="#64-logging-visibility" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Every host call is logged at <code>trace</code> (request envelope) and <code>debug</code> (outcome).</li>
+<li>Host call failures are logged at <code>warn</code> with the plugin id, function, and error code.</li>
+<li>A plugin that fails to load logs <code>error</code> with <code>PluginLoadError</code> details; the
+  error is also visible through the Tauri <code>plugins_list</code> command output.</li>
+</ul>
+<h2 id="7-runtime-instantiation-lifecycle">7. Runtime instantiation &amp; lifecycle<a class="headerlink" href="#7-runtime-instantiation-lifecycle" title="Permanent link">&para;</a></h2>
+<h3 id="71-instantiation">7.1 Instantiation<a class="headerlink" href="#71-instantiation" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Engine: wasmtime, <code>wasm32-unknown-unknown</code> target, <strong>no</strong> WASI context.</li>
+<li>The linker registers:</li>
+<li>the <code>pkm</code> module with the four imports in §3.2, and</li>
+<li>the reserved <code>wasi_snapshot_preview1</code> module, whose <code>fd_write</code> is a no-op,
+    so toolchains that reference it (e.g. <code>wasm32-wasi</code>-built modules) instantiate
+    without error.</li>
+<li>A module that imports any other namespace/name fails instantiation with
+  <code>PluginLoadError</code> and a descriptive message; the plugin does not load.</li>
+</ul>
+<h3 id="72-lifecycle-states">7.2 Lifecycle states<a class="headerlink" href="#72-lifecycle-states" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>        ┌───┐   scan    ┌────────────┐   validate/compile   ┌────────┐
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>        │   │ ────────▶ │ Discovered │ ───────────────────▶ │ Loading│
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>        └───┘           └────────────┘                      └───┬────┘
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>                                              success/failure   │
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>                                     ┌──────────────────────────┘
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>                                     ▼
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>                              ┌──────────────┐   enable   ┌───────────┐
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>                              │    Ready     │ ◀────────── │ Disabled  │
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>                              └──────┬───────┘   disable  └───────────┘
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>                                     │
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>                                     ▼ reload (re-instantiate from disk)
+</code></pre></div>
+<ul>
+<li><strong>Discovered:</strong> manifest found on disk (embedded or sidecar), not yet validated.</li>
+<li><strong>Loading:</strong> manifest validated, module compiled and instantiated.</li>
+<li><strong>Ready:</strong> host functions registered, hooks armed, plugin operational.</li>
+<li><strong>Failed:</strong> manifest/compile/instantiation failure → <code>PluginLoadError</code>, no partial
+  plugin is ever active. <code>status</code> reports <code>"error"</code> plus the load error message.</li>
+<li><strong>Disabled:</strong> loaded but hooks and host dispatch are skipped; state retained.</li>
+<li><strong>Reload:</strong> re-read manifest + re-instantiate from disk (used after an update).</li>
+</ul>
+<p>Transitions are only reachable through the Tauri command surface or the vault
+scan at startup; they are not implicit.</p>
+<h3 id="73-startup-scan">7.3 Startup scan<a class="headerlink" href="#73-startup-scan" title="Permanent link">&para;</a></h3>
+<p>On vault open, the host scans <code>&lt;vault&gt;/.pkm/plugins/</code> for entries containing a
+<code>plugin.wasm</code> (embedded manifest) landing at the root of each subdirectory, plus
+any <code>*.wasm.manifest.json</code> sibling (legacy). Every discovered plugin is loaded
+(failure → <code>Failed</code> state, logged). Enablement respects the <code>plugins.enabled</code>
+list in <code>pkm_core::Config</code>.</p>
+<h2 id="8-hooks">8. Hooks<a class="headerlink" href="#8-hooks" title="Permanent link">&para;</a></h2>
+<p>Hooks are defined by the manifest <code>hooks</code> map (key <code>on&lt;Name&gt;: boolean</code>). The host
+dispatches the hook by invoking a guest-exported function whose name is derived as:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>call &lt;module&gt;.&lt;hook_name&gt;  (e.g. register_hook("onSave") ⇒ guest export "onSave")
+</code></pre></div>
+<p>A registered hook whose guest export is missing is a no-op (logged at <code>debug</code>).
+Presently recognized hook names and their host call signatures:</p>
+<table>
+<thead>
+<tr>
+<th>Hook</th>
+<th>Host payload (JSON string)</th>
+<th>Guest export</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>onSave</code></td>
+<td><code>{"path": "…", "content": "…"}</code></td>
+<td><code>onSave</code></td>
+</tr>
+<tr>
+<td><code>onOpen</code></td>
+<td><code>{"path": "…"}</code></td>
+<td><code>onOpen</code></td>
+</tr>
+<tr>
+<td><code>onLink</code></td>
+<td><code>{"path": "…", "links": ["…"]}</code></td>
+<td><code>onLink</code></td>
+</tr>
+<tr>
+<td><code>onSearch</code></td>
+<td><code>{"query": "…", "limit": N}</code></td>
+<td><code>onSearch</code></td>
+</tr>
+<tr>
+<td>any other <code>on*</code></td>
+<td><code>{"args": []}</code></td>
+<td><code>&lt;name&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<p>Hook dispatch runs synchronously within the triggering host operation; a hook
+that traps logs the error and does not abort the surrounding operation. This is
+defined for future consumers; hook <strong>delivery</strong> is implemented in the E3
+integration task.</p>
+<h2 id="9-tauri-command-surface">9. Tauri command surface<a class="headerlink" href="#9-tauri-command-surface" title="Permanent link">&para;</a></h2>
+<p>The frontend calls only the commands below. Names, argument names, and DTO shapes
+are normative.</p>
+<p>All commands return <code>Result&lt;_, String&gt;</code> where the <code>Err</code> string is the
+<code>message</code> of a <code>PluginErrorCode</code> mapped per §6.3. Command modules live in
+<code>src-tauri/src/commands/plugins.rs</code>.</p>
+<p>Common DTOs:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="cp">#[derive(Debug, Clone, Serialize)]</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">PluginInfo</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">id</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">name</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">version</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">status</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span><span class="w">       </span><span class="c1">// "ready" | "disabled" | "error"</span>
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">enabled</span><span class="p">:</span><span class="w"> </span><span class="kt">bool</span><span class="p">,</span>
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">permissions</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a><span class="w">    </span><span class="cp">#[serde(skip_serializing_if = </span><span class="s">"Option::is_none"</span><span class="cp">)]</span>
+<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">error</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="c1">// set when status == "error"</span>
+<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="p">}</span>
+<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a>
+<a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a><span class="cp">#[derive(Debug, Clone, Serialize)]</span>
+<a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">PluginListResult</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">plugins</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">PluginInfo</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="91-plugins_list">9.1 <code>plugins_list</code><a class="headerlink" href="#91-plugins_list" title="Permanent link">&para;</a></h3>
+<p>List installed plugins with status. No arguments.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>invoke("plugins_list") -&gt; PluginListResult
+</code></pre></div>
+<p>Scope: Tauri core (accessible from any window). No vault open ⇒ empty list.</p>
+<h3 id="92-plugins_enable">9.2 <code>plugins_enable</code><a class="headerlink" href="#92-plugins_enable" title="Permanent link">&para;</a></h3>
+<p>Enables a disabled plugin and re-arms hooks.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>invoke("plugins_enable", { id: string }) -&gt; PluginInfo
+</code></pre></div>
+<p>Errors: <code>plugin_not_found</code> (not loaded/known), <code>plugin_load_error</code> (re-load fails).</p>
+<h3 id="93-plugins_disable">9.3 <code>plugins_disable</code><a class="headerlink" href="#93-plugins_disable" title="Permanent link">&para;</a></h3>
+<p>Disables a running plugin (hooks + dispatch skipped, state retained).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>invoke("plugins_disable", { id: string }) -&gt; PluginInfo
+</code></pre></div>
+<p>Errors: <code>plugin_not_found</code>.</p>
+<h3 id="94-plugins_reload">9.4 <code>plugins_reload</code><a class="headerlink" href="#94-plugins_reload" title="Permanent link">&para;</a></h3>
+<p>Re-instantiates the plugin from disk (re-reads manifest, recompiles).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>invoke("plugins_reload", { id: string }) -&gt; PluginInfo
+</code></pre></div>
+<p>Errors: <code>plugin_not_found</code>, <code>plugin_load_error</code> (new manifest invalid → plugin
+enters <code>Failed</code>).</p>
+<h3 id="95-plugins_status">9.5 <code>plugins_status</code><a class="headerlink" href="#95-plugins_status" title="Permanent link">&para;</a></h3>
+<p>Returns full status for one plugin (alias of the per-plugin entry in
+<code>plugins_list</code>).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>invoke("plugins_status", { id: string }) -&gt; PluginInfo
+</code></pre></div>
+<p>Errors: <code>plugin_not_found</code>.</p>
+<h3 id="96-plugin_note_read-host-test">9.6 <code>plugin_note_read</code> (host test)<a class="headerlink" href="#96-plugin_note_read-host-test" title="Permanent link">&para;</a></h3>
+<p>Runs the <strong>same</strong> <code>note_read</code> backend used by plugins, without requiring a plugin,
+so authors/QA can verify path behavior.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>invoke("plugin_note_read", { path: string }) -&gt; { "path": string, "content": string, "mtime": string }
+</code></pre></div>
+<p>Errors: <code>note_not_found</code>, <code>invalid_argument</code>, <code>plugin_runtime_error</code>.</p>
+<h3 id="97-plugin_http_request-host-test">9.7 <code>plugin_http_request</code> (host test)<a class="headerlink" href="#97-plugin_http_request-host-test" title="Permanent link">&para;</a></h3>
+<p>Runs the <strong>same</strong> <code>http_request</code> backend used by plugins, without a plugin.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>invoke("plugin_http_request", { method?, url, headers?, body?, timeout_ms? })
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>   -&gt; { "status": u16, "headers": [string,string][], "body": string }
+</code></pre></div>
+<p>Errors: <code>http_transport</code>, <code>http_timeout</code>, <code>http_ssid</code>, <code>http_status</code>,
+<code>invalid_argument</code>, <code>plugin_denied</code>.</p>
+<h2 id="10-ssrf-guard-details">10. SSRF guard details<a class="headerlink" href="#10-ssrf-guard-details" title="Permanent link">&para;</a></h2>
+<p>The allowlist is read from <code>pkm_core::Config</code> field
+<code>network.allowlist</code> (list of host strings or CIDR strings). Evaluation order:</p>
+<ol>
+<li>If the URL host is in the allowlist → allow.</li>
+<li>If the URL host resolves to an address in a private/loopback/link-local range
+   → allow (this makes <code>localhost</code> and LAN access work by default).</li>
+<li>Otherwise → <code>http_ssid</code>.</li>
+</ol>
+<p>Resolution is performed once per request. Misleading DNS rebinding is out of
+scope for this contract (documented limitation).</p>
+<h2 id="11-out-of-scope-v07x">11. Out of scope (v0.7.x)<a class="headerlink" href="#11-out-of-scope-v07x" title="Permanent link">&para;</a></h2>
+<ul>
+<li>WASM components / WASI preview 2 and 3.</li>
+<li>Plugin-to-plugin imports.</li>
+<li>Host-function <code>pkm.db_query</code> (future).</li>
+<li>Marketplace / remote plugin registry.</li>
+<li>Sandbox CPU/memory accounting beyond wasmtime defaults.</li>
+</ul>
+<h2 id="12-rust-typetrait-definitions-reference">12. Rust type/trait definitions (reference)<a class="headerlink" href="#12-rust-typetrait-definitions-reference" title="Permanent link">&para;</a></h2>
+<p>The following drive the host implementations; they are normative.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="c1">// crates/pkm-plugin/src/abi.rs</span>
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="k">use</span><span class="w"> </span><span class="n">serde</span><span class="p">::{</span><span class="n">Deserialize</span><span class="p">,</span><span class="w"> </span><span class="n">Serialize</span><span class="p">};</span>
+<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>
+<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="k">pub</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">HOST_PAYLOAD_MAX</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">20</span><span class="p">;</span><span class="w"> </span><span class="c1">// 1 MiB</span>
+<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="k">pub</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">HTTP_TIMEOUT_MS_DEFAULT</span><span class="p">:</span><span class="w"> </span><span class="kt">u64</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10_000</span><span class="p">;</span>
+<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>
+<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="cp">#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]</span>
+<a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">HostFunction</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Log</span><span class="p">,</span><span class="w"> </span><span class="n">NoteRead</span><span class="p">,</span><span class="w"> </span><span class="n">NoteWrite</span><span class="p">,</span><span class="w"> </span><span class="n">HttpRequest</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a>
+<a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a><span class="cp">#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]</span>
+<a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a><span class="cp">#[serde(rename_all = </span><span class="s">"snake_case"</span><span class="cp">)]</span>
+<a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">PluginErrorCode</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-25-13" name="__codelineno-25-13" href="#__codelineno-25-13"></a><span class="w">    </span><span class="n">PluginDenied</span><span class="p">,</span><span class="w"> </span><span class="n">PluginNotFound</span><span class="p">,</span><span class="w"> </span><span class="n">PluginLoadError</span><span class="p">,</span><span class="w"> </span><span class="n">PluginRuntimeError</span><span class="p">,</span>
+<a id="__codelineno-25-14" name="__codelineno-25-14" href="#__codelineno-25-14"></a><span class="w">    </span><span class="n">NoteNotFound</span><span class="p">,</span><span class="w"> </span><span class="n">NoteWriteFailed</span><span class="p">,</span><span class="w"> </span><span class="n">HttpTransport</span><span class="p">,</span><span class="w"> </span><span class="n">HttpTimeout</span><span class="p">,</span><span class="w"> </span><span class="n">HttpSsid</span><span class="p">,</span>
+<a id="__codelineno-25-15" name="__codelineno-25-15" href="#__codelineno-25-15"></a><span class="w">    </span><span class="n">HttpStatus</span><span class="p">,</span><span class="w"> </span><span class="n">InvalidArgument</span><span class="p">,</span><span class="w"> </span><span class="n">ConfigError</span><span class="p">,</span><span class="w"> </span><span class="n">Internal</span><span class="p">,</span>
+<a id="__codelineno-25-16" name="__codelineno-25-16" href="#__codelineno-25-16"></a><span class="p">}</span>
+<a id="__codelineno-25-17" name="__codelineno-25-17" href="#__codelineno-25-17"></a>
+<a id="__codelineno-25-18" name="__codelineno-25-18" href="#__codelineno-25-18"></a><span class="cp">#[derive(Debug, Clone, Serialize, Deserialize)]</span>
+<a id="__codelineno-25-19" name="__codelineno-25-19" href="#__codelineno-25-19"></a><span class="cp">#[serde(rename_all = </span><span class="s">"snake_case"</span><span class="cp">, tag = </span><span class="s">"kind"</span><span class="cp">)]</span>
+<a id="__codelineno-25-20" name="__codelineno-25-20" href="#__codelineno-25-20"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">HostResponse</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-25-21" name="__codelineno-25-21" href="#__codelineno-25-21"></a><span class="w">    </span><span class="nb">Ok</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">data</span><span class="p">:</span><span class="w"> </span><span class="nc">serde_json</span><span class="p">::</span><span class="n">Value</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-25-22" name="__codelineno-25-22" href="#__codelineno-25-22"></a><span class="w">    </span><span class="nb">Err</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">code</span><span class="p">:</span><span class="w"> </span><span class="nc">PluginErrorCode</span><span class="p">,</span><span class="w"> </span><span class="n">message</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-25-23" name="__codelineno-25-23" href="#__codelineno-25-23"></a><span class="p">}</span>
+<a id="__codelineno-25-24" name="__codelineno-25-24" href="#__codelineno-25-24"></a>
+<a id="__codelineno-25-25" name="__codelineno-25-25" href="#__codelineno-25-25"></a><span class="cp">#[derive(Debug, Clone, Serialize, Deserialize)]</span>
+<a id="__codelineno-25-26" name="__codelineno-25-26" href="#__codelineno-25-26"></a><span class="cp">#[serde(rename_all = </span><span class="s">"snake_case"</span><span class="cp">, tag = </span><span class="s">"kind"</span><span class="cp">)]</span>
+<a id="__codelineno-25-27" name="__codelineno-25-27" href="#__codelineno-25-27"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">HttpResponseEnvelope</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-25-28" name="__codelineno-25-28" href="#__codelineno-25-28"></a><span class="w">    </span><span class="nb">Ok</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">status</span><span class="p">:</span><span class="w"> </span><span class="kt">u16</span><span class="p">,</span><span class="w"> </span><span class="n">headers</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="p">(</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">body</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-25-29" name="__codelineno-25-29" href="#__codelineno-25-29"></a><span class="w">    </span><span class="nb">Err</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">code</span><span class="p">:</span><span class="w"> </span><span class="nc">PluginErrorCode</span><span class="p">,</span><span class="w"> </span><span class="n">message</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-25-30" name="__codelineno-25-30" href="#__codelineno-25-30"></a><span class="p">}</span>
+<a id="__codelineno-25-31" name="__codelineno-25-31" href="#__codelineno-25-31"></a>
+<a id="__codelineno-25-32" name="__codelineno-25-32" href="#__codelineno-25-32"></a><span class="sd">/// The notes/filesystem backend the plugin runtime talks to.</span>
+<a id="__codelineno-25-33" name="__codelineno-25-33" href="#__codelineno-25-33"></a><span class="sd">/// Implemented by the host (src-tauri) and injected into the runtime.</span>
+<a id="__codelineno-25-34" name="__codelineno-25-34" href="#__codelineno-25-34"></a><span class="cp">#[async_trait::async_trait]</span>
+<a id="__codelineno-25-35" name="__codelineno-25-35" href="#__codelineno-25-35"></a><span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">HostApi</span><span class="p">:</span><span class="w"> </span><span class="nb">Send</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Sync</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-25-36" name="__codelineno-25-36" href="#__codelineno-25-36"></a><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">read_note</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">rel_path</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">HostNote</span><span class="p">,</span><span class="w"> </span><span class="n">PluginErrorCode</span><span class="o">&gt;</span><span class="p">;</span>
+<a id="__codelineno-25-37" name="__codelineno-25-37" href="#__codelineno-25-37"></a><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">write_note</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">rel_path</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">,</span><span class="w"> </span><span class="n">content</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">PluginErrorCode</span><span class="o">&gt;</span><span class="p">;</span>
+<a id="__codelineno-25-38" name="__codelineno-25-38" href="#__codelineno-25-38"></a><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">http_request</span><span class="p">(</span>
+<a id="__codelineno-25-39" name="__codelineno-25-39" href="#__codelineno-25-39"></a><span class="w">        </span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-25-40" name="__codelineno-25-40" href="#__codelineno-25-40"></a><span class="w">        </span><span class="n">req</span><span class="p">:</span><span class="w"> </span><span class="nc">HostHttpRequest</span><span class="p">,</span>
+<a id="__codelineno-25-41" name="__codelineno-25-41" href="#__codelineno-25-41"></a><span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">HostHttpResponse</span><span class="p">,</span><span class="w"> </span><span class="n">PluginErrorCode</span><span class="o">&gt;</span><span class="p">;</span>
+<a id="__codelineno-25-42" name="__codelineno-25-42" href="#__codelineno-25-42"></a><span class="p">}</span>
+<a id="__codelineno-25-43" name="__codelineno-25-43" href="#__codelineno-25-43"></a>
+<a id="__codelineno-25-44" name="__codelineno-25-44" href="#__codelineno-25-44"></a><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">HostNote</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-25-45" name="__codelineno-25-45" href="#__codelineno-25-45"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">path</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-25-46" name="__codelineno-25-46" href="#__codelineno-25-46"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">content</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-25-47" name="__codelineno-25-47" href="#__codelineno-25-47"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">mtime</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-25-48" name="__codelineno-25-48" href="#__codelineno-25-48"></a><span class="p">}</span>
+<a id="__codelineno-25-49" name="__codelineno-25-49" href="#__codelineno-25-49"></a>
+<a id="__codelineno-25-50" name="__codelineno-25-50" href="#__codelineno-25-50"></a><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">HostHttpRequest</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-25-51" name="__codelineno-25-51" href="#__codelineno-25-51"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">method</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-25-52" name="__codelineno-25-52" href="#__codelineno-25-52"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">url</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-25-53" name="__codelineno-25-53" href="#__codelineno-25-53"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">headers</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="p">(</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-25-54" name="__codelineno-25-54" href="#__codelineno-25-54"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">body</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-25-55" name="__codelineno-25-55" href="#__codelineno-25-55"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">timeout_ms</span><span class="p">:</span><span class="w"> </span><span class="kt">u64</span><span class="p">,</span>
+<a id="__codelineno-25-56" name="__codelineno-25-56" href="#__codelineno-25-56"></a><span class="p">}</span>
+<a id="__codelineno-25-57" name="__codelineno-25-57" href="#__codelineno-25-57"></a>
+<a id="__codelineno-25-58" name="__codelineno-25-58" href="#__codelineno-25-58"></a><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">HostHttpResponse</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-25-59" name="__codelineno-25-59" href="#__codelineno-25-59"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">status</span><span class="p">:</span><span class="w"> </span><span class="kt">u16</span><span class="p">,</span>
+<a id="__codelineno-25-60" name="__codelineno-25-60" href="#__codelineno-25-60"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">headers</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="p">(</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-25-61" name="__codelineno-25-61" href="#__codelineno-25-61"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">body</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-25-62" name="__codelineno-25-62" href="#__codelineno-25-62"></a><span class="p">}</span>
+</code></pre></div>
+<h2 id="13-glossary">13. Glossary<a class="headerlink" href="#13-glossary" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Envelope:</strong> the <code>{kind, ...}</code> JSON wrapper every host callback returns.</li>
+<li><strong>Host function / import:</strong> a function the host provides to the guest (<code>pkm.*</code>).</li>
+<li><strong>Guest export:</strong> a WASM function a plugin exports (e.g. <code>onSave</code>).</li>
+<li><strong>SSRF guard:</strong> the allowlist/private-address check on <code>http_request</code>.</li>
+<li><strong>Vault root:</strong> the canonical root of the currently open vault.</li>
 </ul>
 
 

@@ -1513,6 +1513,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#rag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#config" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1657,7 +1668,7 @@
   <span class="md-ellipsis">
     
   
-    Plugins
+    Plugins API Specification
   
 
     
@@ -1713,6 +1724,8 @@
   
     
     
+      
+        
       
         
       
@@ -1846,6 +1859,100 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0004 WASM Plugin ABI
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ADR-0004 WASM Plugin ABI
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/adr/0004-wasm-plugin-abi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0004: WASM Plugin System — API Contract and Host Function ABI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -2040,6 +2147,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#rag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#config" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2198,15 +2316,26 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>stratum<span class="w"> </span>ask<span class="w"> </span><span class="s2">"What are my notes about project X?"</span>
 </code></pre></div>
 <p>Requires a configured LLM provider in <code>.pkm/config.toml</code>.</p>
+<h3 id="rag"><code>rag</code><a class="headerlink" href="#rag" title="Permanent link">&para;</a></h3>
+<p>Retrieve relevant notes and answer a question using retrieval-augmented
+generation against the configured AI endpoint.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>stratum<span class="w"> </span>rag<span class="w"> </span><span class="s2">"What are my notes about project X?"</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>stratum<span class="w"> </span>rag<span class="w"> </span><span class="s2">"What are my notes about project X?"</span><span class="w"> </span>--index<span class="w">   </span><span class="c1"># rebuild index first</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>stratum<span class="w"> </span>rag<span class="w"> </span><span class="s2">"Question"</span><span class="w"> </span>--top-k<span class="w"> </span><span class="m">10</span><span class="w">                         </span><span class="c1"># retrieve up to 10 chunks</span>
+</code></pre></div>
+<p>Indexes the vault (unless <code>--index</code> is omitted and the index already exists
+from the desktop app) and answers the question with ranked source citations.
+Requires a configured LLM provider and an <code>embedding</code>-capable model in
+<code>.pkm/config.toml</code>, plus <code>rag_enabled = true</code>.</p>
 <h3 id="config"><code>config</code><a class="headerlink" href="#config" title="Permanent link">&para;</a></h3>
 <p>Display the current configuration.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>stratum<span class="w"> </span>config
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>stratum<span class="w"> </span>config
 </code></pre></div>
 <p>Shows <code>.pkm/config.toml</code> contents.</p>
 <h3 id="help"><code>help</code><a class="headerlink" href="#help" title="Permanent link">&para;</a></h3>
 <p>Display help information.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>stratum<span class="w"> </span>--help
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>stratum<span class="w"> </span>&lt;command&gt;<span class="w"> </span>--help
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>stratum<span class="w"> </span>--help
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>stratum<span class="w"> </span>&lt;command&gt;<span class="w"> </span>--help
 </code></pre></div>
 
 

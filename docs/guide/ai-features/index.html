@@ -1192,6 +1192,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#embeddings-rag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Embeddings &amp; RAG
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#text-to-speech-tts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Text-to-Speech (TTS)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#ai-transform-actions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1214,10 +1236,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#rag-chat" class="md-nav__link">
+  <a href="#rag-chat-ask-your-notes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        RAG Chat
+        RAG Chat — "Ask your notes"
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#text-to-speech-read-aloud" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Text-to-Speech — Read Aloud
       
     </span>
   </a>
@@ -1569,7 +1602,7 @@
   <span class="md-ellipsis">
     
   
-    Plugins
+    Plugins API Specification
   
 
     
@@ -1625,6 +1658,8 @@
   
     
     
+      
+        
       
         
       
@@ -1763,6 +1798,100 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0004 WASM Plugin ABI
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ADR-0004 WASM Plugin ABI
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/adr/0004-wasm-plugin-abi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0004: WASM Plugin System — API Contract and Host Function ABI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1836,6 +1965,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#embeddings-rag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Embeddings &amp; RAG
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#text-to-speech-tts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Text-to-Speech (TTS)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#ai-transform-actions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1858,10 +2009,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#rag-chat" class="md-nav__link">
+  <a href="#rag-chat-ask-your-notes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        RAG Chat
+        RAG Chat — "Ask your notes"
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#text-to-speech-read-aloud" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Text-to-Speech — Read Aloud
       
     </span>
   </a>
@@ -1966,6 +2128,66 @@
 </ol>
 <!-- SCREENSHOT: [settings-ai-tab] AI configuration tab in Settings -->
 
+<h2 id="embeddings-rag">Embeddings &amp; RAG<a class="headerlink" href="#embeddings-rag" title="Permanent link">&para;</a></h2>
+<p>Embedding generation (used by RAG to retrieve and re-rank your notes by
+semantic similarity) calls the <strong>same configured AI endpoint</strong> you set up
+above — no separate configuration is required.</p>
+<ul>
+<li>Stratum sends <code>POST {endpoint}/v1/embeddings</code> with a JSON body of the form
+  <code>{ "model": "&lt;embedding-model&gt;", "input": ["...", ...] }</code>.</li>
+<li>For <strong>Ollama</strong>, Stratum automatically appends <code>/v1</code> to your configured
+  endpoint (e.g. <code>http://localhost:11434</code> → <code>http://localhost:11434/v1</code>) and
+  uses <code>embedding</code>‑capable models like <code>nomic-embed-text</code>.</li>
+<li>For <strong>OpenAI / custom OpenAI-compatible endpoints</strong>, the endpoint is used as
+  configured. Point it at the <code>/v1</code> base (e.g. <code>https://api.openai.com/v1</code>).</li>
+<li>The <strong>model</strong> is selected from the model list you assign the <code>embedding</code>
+  capability to in Settings → AI. If no model has that capability, the default
+  chat model is used instead.</li>
+<li>An <strong>API key</strong> (when configured) is sent as <code>Authorization: Bearer &lt;key&gt;</code>.
+  For OpenAI-compatible providers the <code>OPENAI_API_KEY</code> environment variable is
+  respected as a fallback.</li>
+</ul>
+<p>Requests carry a 120‑second timeout, are retried with capped exponential
+backoff on transient failures and HTTP 429/5xx responses, and errors include
+the endpoint's message so callers can surface it to the user.</p>
+<p><strong>Requirements</strong></p>
+<ul>
+<li>The endpoint must implement the OpenAI-compatible <code>POST /v1/embeddings</code>
+  contract (returns <code>{ data: [{ embedding: [...] }] }</code>). LocalAI, Ollama and
+  most OpenAI-compatible servers do.</li>
+<li>Assign the <code>embedding</code> capability to an embedding model in Settings → AI —
+  a small embedding model shouldn't be used for chat, and vice versa.</li>
+<li>Only <code>https://</code> URLs, or <code>http://</code> URLs pointing at local/private hosts
+  (<code>localhost</code>, <code>127.0.0.1</code>, <code>10.x</code>, <code>172.16‑31.x</code>, <code>192.168.x</code>, <code>.local</code>),
+  are accepted, to prevent SSRF.</li>
+</ul>
+<h2 id="text-to-speech-tts">Text-to-Speech (TTS)<a class="headerlink" href="#text-to-speech-tts" title="Permanent link">&para;</a></h2>
+<p>Stratum can synthesize speech from text using the <strong>same configured AI
+endpoint</strong> you set up in Settings → AI, via the OpenAI-compatible
+<code>POST {endpoint}/v1/audio/speech</code> route. A <code>tts</code> capability on a model in the
+AI settings is required.</p>
+<ul>
+<li><strong>Trigger</strong>: In <strong>Settings → AI → Text-to-Speech</strong>, click <strong>Test / Play
+  voice</strong>. Stratum sends a sample sentence to the endpoint and plays the
+  returned audio in place.</li>
+<li><strong>Endpoint</strong>: Empty TTS endpoint = use the AI endpoint. To use a different
+  server, set an explicit TTS endpoint and optional API key.</li>
+<li><strong>Model</strong>: selected from the model list you assign the <code>tts</code> capability to.
+  If no model has that capability, the default chat model is used.</li>
+<li><strong>Voice / format / speed</strong>: the OpenAI speech API shape
+  (<code>voice</code>, <code>response_format</code>, <code>speed</code>) is used; see the
+  <a href="../../getting-started/configuration/">Configuration reference</a>.</li>
+</ul>
+<p>Requests carry a 120‑second timeout and are retried with capped exponential
+backoff on transient failures and HTTP 429/5xx responses. Errors surface the
+endpoint's message.</p>
+<p><strong>Requirements</strong></p>
+<ul>
+<li>A model with the <code>tts</code> capability assigned in Settings → AI.</li>
+<li>The endpoint must implement the OpenAI-compatible <code>POST /v1/audio/speech</code>
+  contract (returns raw audio bytes). LocalAI, OpenAI and compatible servers
+  do.</li>
+</ul>
 <h2 id="ai-transform-actions">AI Transform Actions<a class="headerlink" href="#ai-transform-actions" title="Permanent link">&para;</a></h2>
 <p>The AI can transform block content directly in the editor. Select text and choose an action:</p>
 <table>
@@ -2006,17 +2228,35 @@
 <p>Type <code>/</code> in the editor to open the AI slash menu. This gives you access to inline AI operations.</p>
 <!-- SCREENSHOT: [ai-slash-menu] AI slash menu with available actions -->
 
-<h2 id="rag-chat">RAG Chat<a class="headerlink" href="#rag-chat" title="Permanent link">&para;</a></h2>
-<p>When RAG is enabled, AI operations include context from your notes:</p>
+<h2 id="rag-chat-ask-your-notes">RAG Chat — "Ask your notes"<a class="headerlink" href="#rag-chat-ask-your-notes" title="Permanent link">&para;</a></h2>
+<p>When RAG is enabled, you can ask questions grounded in your own vault using the
+<strong>Ask Notes</strong> panel (sidebar → <strong>Ask Notes</strong>). The pipeline is:</p>
 <ol>
-<li>Search your vault for relevant blocks</li>
-<li>Concatenate matching content as context</li>
-<li>Send the context + your prompt to the LLM</li>
-<li>Return results with citations to source notes</li>
+<li>Your question is embedded with the configured embedding model</li>
+<li>Relevant blocks are retrieved from the vault search index</li>
+<li>Results are re-ranked by semantic similarity to your question</li>
+<li>The LLM answers using the retrieved chunks as context, with citations to
+   the source notes shown in the panel</li>
 </ol>
-<!-- SCREENSHOT: [ai-rag-chat] AI chat with RAG context showing source citations -->
+<p>When no matching notes are retrieved, the panel answers from general
+knowledge and tells you no sources were found. If the configured endpoint is
+down or misconfigured, the error is surfaced in the panel.</p>
+<p>The same RAG engine is available from the command line:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>stratum rag "your question" [--index] [--top-k N]
+</code></pre></div>
+<!-- SCREENSHOT: [ai-ask-notes] Ask your notes panel with a cited answer -->
 
 <p>This means the AI answers based on <em>your</em> knowledge, not just its training data.</p>
+<h2 id="text-to-speech-read-aloud">Text-to-Speech — Read Aloud<a class="headerlink" href="#text-to-speech-read-aloud" title="Permanent link">&para;</a></h2>
+<p>Beyond the Settings test button, TTS playback is wired into two entry points:</p>
+<ul>
+<li><strong>Formatting toolbar</strong> — select text in the editor and click <strong>Read aloud</strong>
+  (🔊) to synthesize and play the selection via the configured endpoint.</li>
+<li><strong>Ask Notes panel</strong> — click the speaker icon next to an answer to hear it
+  read aloud.</li>
+</ul>
+<p>Both surface endpoint errors inline if synthesis fails. Audio is synthesized
+per request and played in place — nothing is written to disk.</p>
 <h2 id="interlink-notes">Interlink Notes<a class="headerlink" href="#interlink-notes" title="Permanent link">&para;</a></h2>
 <p>The <strong>Connect</strong> action scans a block and suggests <code>[[wiki-links]]</code> to related pages in your vault. This is useful for:</p>
 <ul>
