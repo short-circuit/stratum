@@ -482,17 +482,7 @@ jobs:
           if [ -z "$PBXPROJ" ]; then
             echo "::warning::No generated Xcode project found under src-tauri/gen/apple; skipping link-flag patch"
           else
-            python3 - "$PBXPROJ" <<'PY'
-            import sys
-            p = sys.argv[1]
-            c = open(p).read()
-            if 'VALID_ARCHS = arm64;' in c:
-                c = c.replace('VALID_ARCHS = arm64;', 'VALID_ARCHS = arm64;\n\t\t\t\tOTHER_LDFLAGS = "-lz -liconv";')
-                open(p, 'w').write(c)
-                print("patched", p)
-            else:
-                print("no VALID_ARCHS anchor in", p, "- skipping (not needed for this SDK)")
-            PY
+            python3 -c "import sys;c=open(sys.argv[1]).read();c=c.replace('VALID_ARCHS = arm64;','VALID_ARCHS = arm64;\n\t\t\t\tOTHER_LDFLAGS = \"-lz -liconv\";');open(sys.argv[1],'w').write(c)" "$PBXPROJ"
           fi
 
       - name: Build iOS simulator app (debug; PRs / pushes)
