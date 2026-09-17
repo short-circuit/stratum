@@ -55,6 +55,18 @@ rag_enabled = true
 # Number of chunks to include in RAG context
 rag_chunk_count = 5
 
+[tts]
+# Override endpoint for text-to-speech. Empty = use the AI endpoint above.
+endpoint = ""
+# Optional bearer token for protected TTS endpoints.
+api_key = ""
+# Voice name
+voice = "alloy"
+# Output audio format (mp3, opus, aac, flac, wav)
+format = "mp3"
+# Playback speed multiplier (0.25–4.0)
+speed = 1.0
+
 [research]
 # SearXNG endpoint for web research
 searxng_endpoint = "http://localhost:8888"
@@ -115,6 +127,11 @@ velocity_decay = 0.4
 | Model Capabilities | Assign capabilities to each model: `chat`, `embedding`, `tts` |
 | Enable RAG | Toggle retrieval-augmented generation |
 | RAG Chunk Count | Number of context chunks (1–20) |
+| TTS Endpoint | Override endpoint for text-to-speech (empty = uses AI endpoint) |
+| TTS Voice | Voice name used for synthesis (e.g. `alloy`, `onyx`) |
+| TTS Format | Output audio format (`mp3`, `opus`, `aac`, `flac`, `wav`) |
+| TTS Speed | Playback speed multiplier (0.25–4.0) |
+| Test / Play voice | Synthesizes a sample sentence through the configured endpoint and plays it |
 
 ### Research Tab
 
