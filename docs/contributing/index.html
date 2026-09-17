@@ -2149,9 +2149,19 @@
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># Run a specific test</span>
 <a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-p<span class="w"> </span>pkm-index<span class="w"> </span>--<span class="w"> </span>graph::tests::test_get_backlinks
 <a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="c1"># Frontend linting</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>npm<span class="w"> </span>run<span class="w"> </span>lint
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="c1"># Run frontend tests</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>npm<span class="w"> </span>run<span class="w"> </span><span class="nb">test</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="c1"># Frontend linting</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>npm<span class="w"> </span>run<span class="w"> </span>lint
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="c1"># Run the tauri-driver E2E harness (requires: the app built to</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="c1"># target/debug/stratum-tauri, tauri-driver, WebKitWebDriver, Xvfb)</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>npm<span class="w"> </span>run<span class="w"> </span>test:e2e:harness
 </code></pre></div>
+<p>The <code>test:e2e:harness</code> suite runs automatically in CI (<code>.github/workflows/ci.yml</code>,
+<code>e2e-harness</code> job) on every push to <code>master</code> and on every PR to <code>master</code> — no
+manual E2E step is required for normal PRs.</p>
 <h2 id="project-conventions">Project Conventions<a class="headerlink" href="#project-conventions" title="Permanent link">&para;</a></h2>
 <h3 id="rust">Rust<a class="headerlink" href="#rust" title="Permanent link">&para;</a></h3>
 <ul>
@@ -2202,7 +2212,7 @@
 <tr>
 <td>CI</td>
 <td>Push/PR to master</td>
-<td>Build, test, clippy, fmt, lint</td>
+<td>Build, test, clippy, fmt, lint, frontend unit tests, tauri-driver E2E harness (artifact-uploading on failure)</td>
 </tr>
 <tr>
 <td>Release</td>
