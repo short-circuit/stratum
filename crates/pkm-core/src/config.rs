@@ -20,6 +20,8 @@ pub struct Config {
     pub ai: AiConfig,
     /// Speech-to-text (voice dictation) configuration.
     pub stt: SttConfig,
+    /// Text-to-speech (TTS) configuration.
+    pub tts: TtsConfig,
     /// Web research configuration (SearXNG).
     pub research: ResearchConfig,
     /// Plugin enable/disable.
@@ -40,6 +42,7 @@ impl Default for Config {
             theme: ThemeConfig::default(),
             ai: AiConfig::default(),
             stt: SttConfig::default(),
+            tts: TtsConfig::default(),
             research: ResearchConfig::default(),
             plugins: Vec::new(),
             watcher: WatcherConfig::default(),
@@ -303,6 +306,40 @@ impl Default for SttConfig {
             diarize: true,
             auto_summarize: true,
             auto_identify: true,
+        }
+    }
+}
+
+/// Text-to-speech configuration.
+///
+/// Optionally overrides the AI endpoint used for synthesis. When `endpoint`
+/// is empty, synthesis falls back to the [`AiConfig`] endpoint, so a single
+/// configured AI base URL serves both chat and speech. Points at the
+/// OpenAI-compatible `POST {endpoint}/v1/audio/speech` route.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct TtsConfig {
+    /// Base URL of the TTS endpoint (OpenAI-compatible). Empty = use the AI
+    /// endpoint from [`AiConfig`].
+    pub endpoint: String,
+    /// Optional bearer token for protected endpoints.
+    pub api_key: Option<String>,
+    /// Voice name (e.g. "alloy", "onyx").
+    pub voice: String,
+    /// Output audio format (e.g. "mp3", "opus", "aac", "flac").
+    pub format: String,
+    /// Playback speed multiplier (0.25–4.0).
+    pub speed: f32,
+}
+
+impl Default for TtsConfig {
+    fn default() -> Self {
+        Self {
+            endpoint: String::new(),
+            api_key: None,
+            voice: "alloy".to_string(),
+            format: "mp3".to_string(),
+            speed: 1.0,
         }
     }
 }

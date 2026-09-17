@@ -24,3 +24,6 @@ chrono.workspace = true
 tokio.workspace = true
 pulldown-cmark = { workspace = true }
 pretty_assertions = { workspace = true }
+
+[dev-dependencies]
+wiremock = "0.6"
