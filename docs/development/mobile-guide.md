@@ -585,7 +585,7 @@ The iOS job is currently disabled (`if: false`). The Android job requires the re
 
 Before shipping a mobile change, verify:
 
-- [ ] App launches on Android (physical device or emulator)
+- [x] App loads and draws its first frame on Android — covered automatically by the `android-smoke` CI job (headless emulator)
 - [ ] App launches on iOS simulator
 - [ ] Vault creation and opening works
 - [ ] Block editor loads and saves content
