@@ -485,7 +485,9 @@ jobs:
     if: github.event_name == 'pull_request' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/'))
     needs: [android]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # First boot downloads the API-34 system image + emulator (~2 GB), so leave
+    # generous headroom over the ~10 min the smoke script itself can take.
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v4
