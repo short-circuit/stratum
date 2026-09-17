@@ -16,6 +16,7 @@ import CodeIcon from '@mui/icons-material/Code';
 import DescriptionIcon from '@mui/icons-material/Description';
 import QuizIcon from '@mui/icons-material/Quiz';
 import DrawIcon from '@mui/icons-material/Draw';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SettingsIcon from '@mui/icons-material/Settings';
 
 const PRIMARY_TABS = [
@@ -28,6 +29,7 @@ const PRIMARY_TABS = [
 const MORE_ITEMS = [
   { label: 'Kanban', path: '/kanban', icon: <ChecklistIcon /> },
   { label: 'Query', path: '/query', icon: <CodeIcon /> },
+  { label: 'Ask Notes', path: '/ask-notes', icon: <AutoAwesomeIcon /> },
   { label: 'Templates', path: '/templates', icon: <DescriptionIcon /> },
   { label: 'Flashcards', path: '/flashcards', icon: <QuizIcon /> },
   { label: 'Whiteboards', path: '/whiteboards', icon: <DrawIcon /> },

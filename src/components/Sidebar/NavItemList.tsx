@@ -10,6 +10,7 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import QuizIcon from '@mui/icons-material/Quiz';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import DrawIcon from '@mui/icons-material/Draw';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SettingsIcon from '@mui/icons-material/Settings';
 
 const NAV_ITEMS = [
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { id: 'kanban', label: 'Kanban', path: '/kanban', icon: <ChecklistIcon /> },
   { id: 'search', label: 'Search', path: '/search', icon: <SearchIcon /> },
   { id: 'query', label: 'Query', path: '/query', icon: <CodeIcon /> },
+  { id: 'asknotes', label: 'Ask Notes', path: '/ask-notes', icon: <AutoAwesomeIcon /> },
   { id: 'templates', label: 'Templates', path: '/templates', icon: <DescriptionIcon /> },
   { id: 'flashcards', label: 'Flashcards', path: '/flashcards', icon: <QuizIcon /> },
   { id: 'whiteboards', label: 'Whiteboards', path: '/whiteboards', icon: <DrawIcon /> },

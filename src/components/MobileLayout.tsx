@@ -20,6 +20,7 @@ export default function MobileLayout({ error, children }: MobileLayoutProps) {
   else if (location.pathname === '/' || location.pathname.startsWith('/page/')) title = 'Pages';
   else if (location.pathname.startsWith('/kanban')) title = 'Kanban';
   else if (location.pathname.startsWith('/query')) title = 'Query';
+  else if (location.pathname.startsWith('/ask-notes')) title = 'Ask your notes';
   else if (location.pathname.startsWith('/templates')) title = 'Templates';
   else if (location.pathname.startsWith('/flashcards')) title = 'Flashcards';
   else if (location.pathname.startsWith('/whiteboards')) title = 'Whiteboards';
