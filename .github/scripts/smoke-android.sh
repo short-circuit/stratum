@@ -17,18 +17,15 @@
 # 5014ms for TouchModeEvent` on a perfectly healthy app and then force-finishes
 # the activity. The platform's OWN first-frame signal — `ActivityTaskManager:
 # Displayed app.<pkg>/<act> for user 0: +NsXXXms` — fires when the activity
-# actually drew a frame, and `am start -W` surfaces it directly for us:
-#   am start -W prints `TotalTime: N` / `WaitTime: N` with
-#   `Activity: app.stratum.debug/.MainActivity Displayed` (or
-#   `Activity: ... finished` if the activity never became visible).
+# actually drew a frame, and we poll logcat for it (the `am start -W` text is
+# NOT a reliable pass criterion: on a slow software-emulated device it returns
+# before the first frame, so we never parse it for the pass decision).
 #
-# We therefore treat `am start -W` returning a *Displayed* launch as
-# authoritative first-frame proof (equivalent to the platform logging
-# "Displayed app.stratum..."), and only fall back to WindowManager heuristics
-# (WebView visible / surfaceflinger) when the launcher handoff was force-
-# finished by the system ANR watchdog. A bounded relaunch recovers the healthy
-# app in that case; the job fails only on a genuine crash or an app that truly
-# never draws within the deadline.
+# First-frame detection therefore uses the platform's authoritative logcat
+# `Displayed` line; when the system ANR watchdog force-finishes a healthy
+# activity before the frame, a bounded relaunch recovers it. The job fails
+# only on a genuine crash (process death without a Displayed), an install
+# failure, or an app that truly never draws within the deadline.
 #
 # NOTE: run with `set -euo pipefail` — the action's wrapper does NOT fail on a
 # non-zero exit, so the script must fail itself. We deliberately do not use
@@ -50,8 +47,14 @@ ACTIVITY_PATH="${PKG}/${ACTIVITY}"
 SMOKE_RESULT=0
 
 # Overall ceiling for the whole first-frame wait (a generous cushion over the
-# per-launch `am start -W` wait; guards against an adb/emulator hang).
+# per-attempt wait; guards against an adb/emulator hang).
 FIRST_FRAME_TIMEOUT_S=240
+# Per-attempt ceiling waiting for the platform's `Displayed` logcat signal
+# (evidence: a cold software-emulated first frame took ~23s). Bounded so a
+# genuinely dead/hung launch is not waited on forever, but long enough to
+# absorb a slow cold start without a false failure. Env-overridable so tests
+# can shorten it.
+: "${PER_ATTEMPT_TIMEOUT_S:=90}"
 # After the system force-finishes our activity (the input-dispatch ANR hiccup),
 # we relaunch the app up to this many times before declaring a failure.
 MAX_LAUNCH_ATTEMPTS=3
@@ -78,27 +81,42 @@ app_process_dead() {
     [ -z "$(adb shell pidof "${PKG}" 2>/dev/null | tr -d '\r ')" ]
 }
 
-# Launch the app and return 0 if `am start -W` reports the activity became
-# visible (Displayed), 1 if it launched but never became visible (crashed or
-# force-finished by the system), 2 if even the launcher request errored.
-# The `am start -W` is bounded so a hung launcher cannot wedge the whole job.
+# Launch the app (bounded so a hung launcher cannot wedge the job) and then
+# poll logcat for the platform's authoritative first-frame signal:
+#   ActivityTaskManager: Displayed app.stratum.debug/app.stratum.MainActivity
+# The `am start -W` text is NOT reliable on a slow software-emulated device
+# (it returns before the first frame), so we never parse it for the pass
+# decision. Returns:
+#   0  first frame seen (Displayed in logcat) and process alive
+#   1  launched but no Displayed before the per-attempt wait (crashed /
+#      force-finished by the system ANR watchdog before the frame)
+#   2  even the launcher request errored / no activity started
 launch_once() {
-    local out rc
-    out="$(timeout 90 adb shell am start -W -n "${ACTIVITY_PATH}" 2>&1)"
+    local out rc attempt_start
+    # Clear any stale Displayed line from a previous attempt so it is not
+    # mistaken for the current launch (logcat is per-device, not per-process).
+    adb logcat -c 2>/dev/null || true
+    out="$(timeout 90 adb shell am start -n "${ACTIVITY_PATH}" 2>&1)"
     rc=$?
     if [ "${rc}" -ne 0 ]; then
-        log "WARN: am start -W exited ${rc}: ${out}"
+        log "WARN: am start exited ${rc}: ${out}"
         return 2
     fi
-    # `am start -W` reports the activity's own launch visibility:
-    #   Status: ok          + Activity: ... Displayed
-    #   Status: ok          + Activity: ... finished  (never became visible)
-    #   Status: error / Timeout  → launcher handoff problem.
-    if printf '%s' "${out}" | grep -qi "Activity: .*Displayed"; then
-        return 0
-    fi
-    # No explicit Activity line or a non-displayed one: the launch did not
-    # produce a visible window (crashed, or the system ANR'd and force finished).
+
+    # Wait (bounded) for the platform's Displayed first-frame signal.
+    attempt_start=$SECONDS
+    while [ $((SECONDS - attempt_start)) -lt "${PER_ATTEMPT_TIMEOUT_S}" ]; do
+        if adb logcat -d -v brief 2>/dev/null \
+            | grep -q "Displayed ${ACTIVITY_PATH}"; then
+            return 0
+        fi
+        # A hard crash before the frame is a terminal signal; stop early.
+        if app_process_dead && ! adb logcat -d -v brief 2>/dev/null \
+            | grep -q "Displayed ${ACTIVITY_PATH}"; then
+            return 1
+        fi
+        sleep 2
+    done
     return 1
 }
 
@@ -144,9 +162,9 @@ while [ "${SECONDS}" -lt "${LOOP_DEADLINE}" ] \
     log "launch outcome rc=${LAUNCH_RC}"
     case "${LAUNCH_RC}" in
         0)
-            # Authoritative: am start -W reported the activity became visible
-            # (Displayed). The platform has drawn the first frame.
-            log "first frame seen (am start -W reported Displayed)"
+            # Authoritative: the platform logged `Displayed <activity>` in
+            # logcat, meaning the activity actually drew its first frame.
+            log "first frame seen (platform Displayed signal in logcat)"
             FRAME_SEEN=1
             ;;
         1)

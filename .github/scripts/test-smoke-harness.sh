@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # Local harness for smoke-android.sh control flow (no emulator needed).
 # Provides a mock `adb` executable on PATH (scenario chosen via env SCENARIO).
-#   A) am start -W Displayed -> PASS
-#   B) process dies after launch -> FAIL (crash)
-#   C) never visible, process alive -> retries 3x then FAIL (timeout)
+#   A) platform logs "Displayed" for the activity -> PASS
+#   B) process dies after launch, no Displayed -> FAIL (crash)
+#   C) never Displayed, process alive -> per-attempt wait then retries -> FAIL
 set -u
 SCENARIO="${SCENARIO:?set SCENARIO=A|B|C}"
+# Per-attempt wait inside launch_once is PER_ATTEMPT_TIMEOUT_S (90s); shorten
+# it via env so the fail path completes quickly in the harness.
+export PER_ATTEMPT_TIMEOUT_S="${PER_ATTEMPT_TIMEOUT_S:-4}"
 
 HARNESS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 MOCKBIN="$(mktemp -d)"
@@ -18,22 +21,25 @@ cat > "${MOCKBIN}/adb" <<MOCK
 case "\$1" in
   install) exit 0 ;;
   exec-out) printf 'PNGDATA'; exit 0 ;;
-  logcat) exit 0 ;;
+  logcat)
+    shift
+    case "\$*" in
+      -c*) exit 0 ;;
+      -d*) if [ "$SCENARIO" = "A" ]; then printf 'ActivityTaskManager: Displayed app.stratum.debug/app.stratum.MainActivity for user 0: +1s\\n'; fi; exit 0 ;;
+      *) exit 0 ;;
+    esac ;;
   shell)
     shift
     case "\$*" in
       "pidof app.stratum.debug")
-        if [ "$SCENARIO" = "B" ]; then echo -n ""; else echo -n "12345"; fi ;;
+        if [ "$SCENARIO" = "B" ]; then :; else printf '12345'; fi ;;
       "cmd package resolve-activity --brief app.stratum.debug")
-        echo "app.stratum.debug/app.stratum.MainActivity" ;;
-      "am start -W -n app.stratum.debug/app.stratum.MainActivity")
-        case "$SCENARIO" in
-          A) printf 'Status: ok\\nActivity: app.stratum.debug/app.stratum.MainActivity Displayed' ;;
-          *) printf 'Status: ok\\nActivity: app.stratum.debug/app.stratum.MainActivity finished' ;;
-        esac ;;
+        printf 'app.stratum.debug/app.stratum.MainActivity' ;;
+      "am start -n app.stratum.debug/app.stratum.MainActivity")
+        exit 0 ;;
       "dumpsys activity processes")
-        echo "  * APP: app.stratum.debug/1001 (top-activity)" ;;
-      *) echo "  " ;;
+        printf '  * APP: app.stratum.debug/1001 (top-activity)' ;;
+      *) exit 0 ;;
     esac ;;
 esac
 exit 0
