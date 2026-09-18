@@ -7,6 +7,11 @@ on:
   pull_request:
     branches: [master]
   workflow_dispatch:
+  schedule:
+    # Weekly drift check: runs the real tauri-driver E2E against the latest
+    # commit on the default branch so dependency / runner-image / WebKit
+    # drift cannot silently break the real-E2E layer between PRs.
+    - cron: '0 3 * * 1'   # every Monday 03:00 UTC
 
 env:
   CARGO_TERM_COLOR: always
@@ -90,9 +95,10 @@ jobs:
       - name: Run frontend unit tests
         run: npm test
 
-  # ── tauri-driver E2E harness (automatic on push/PR; required after merge) ──
+  # ── tauri-driver E2E harness (automatic on push/PR; required after merge;
+  #    weekly on schedule / manual via workflow_dispatch) ──
   e2e-harness:
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:

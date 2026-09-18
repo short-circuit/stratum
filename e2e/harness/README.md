@@ -136,8 +136,9 @@ to the report and to CI.
 ## CI wiring
 
 The `e2e-harness` job in `.github/workflows/ci.yml` runs this harness on every
-push to `master` and every pull request targeting `master`. The job is a thin
-wrapper around this single command:
+push to `master`, every pull request targeting `master`, on a **weekly schedule**
+(drift check against latest `master`), and on manual `workflow_dispatch`. The job
+is a thin wrapper around this single command:
 
 ```bash
 npm run test:e2e:harness
