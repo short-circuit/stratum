@@ -12,6 +12,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import { usePluginsPanel } from './PluginsPanel.shared';
 import { StatusChip } from './StatusChip';
+import { PluginManifestMeta } from './PluginManifestMeta';
 import EmptyState from '../ui/EmptyState';
 
 export default function PluginsPanelDesktop() {
@@ -124,6 +125,7 @@ export default function PluginsPanelDesktop() {
                             ))}
                           </Stack>
                         )}
+                        <PluginManifestMeta plugin={plugin} />
                       </Box>
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
                         <StatusChip plugin={plugin} />

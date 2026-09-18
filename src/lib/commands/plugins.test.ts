@@ -17,7 +17,7 @@ describe('plugin command wrappers', () => {
     expect(isPluginBackendReady()).toBe(false);
   });
 
-  it('pluginsList returns seeded plugins with status + enabled', async () => {
+  it('pluginsList returns seeded plugins with status + enabled + manifest fields', async () => {
     const { plugins } = await pluginsList();
     expect(plugins.length).toBeGreaterThan(0);
     for (const p of plugins) {
@@ -25,7 +25,17 @@ describe('plugin command wrappers', () => {
       expect(p).toHaveProperty('name');
       expect(p).toHaveProperty('status');
       expect(typeof p.enabled).toBe('boolean');
+      expect(Array.isArray(p.permissions)).toBe(true);
+      // Manifest metadata (spec §2, §8) is additive and always typed.
+      expect(p).toHaveProperty('hooks');
+      expect(p).toHaveProperty('author');
+      expect(p).toHaveProperty('description');
     }
+    // The healthy seed carries real manifest metadata.
+    const dashboard = plugins.find(p => p.id === 'dev-dashboard');
+    expect(dashboard?.description).toContain('telemetry');
+    expect(dashboard?.author).toBe('stratum-team');
+    expect(dashboard?.hooks).toContain('onSave');
   });
 
   it('pluginsEnable flips a disabled plugin to enabled', async () => {

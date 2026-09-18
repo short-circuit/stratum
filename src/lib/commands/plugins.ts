@@ -41,6 +41,9 @@ const MOCK_PLUGINS: PluginInfoDto[] = [
     status: 'ready',
     enabled: true,
     permissions: ['file:read', 'network'],
+    hooks: ['onSave'],
+    author: 'stratum-team',
+    description: 'Collects development telemetry and posts it to a local endpoint.',
   },
   {
     id: 'daily-summary',
@@ -49,6 +52,9 @@ const MOCK_PLUGINS: PluginInfoDto[] = [
     status: 'disabled',
     enabled: false,
     permissions: ['file:read', 'file:write'],
+    hooks: ['onOpen', 'onSave'],
+    author: 'acme-lab',
+    description: 'Summarizes the day\u2019s notes into a single digest page.',
   },
   {
     id: 'broken-example',
@@ -57,6 +63,9 @@ const MOCK_PLUGINS: PluginInfoDto[] = [
     status: 'error',
     enabled: true,
     permissions: ['file:read'],
+    hooks: [],
+    author: '',
+    description: '',
     error: "runtime_error: import 'pkm.note_write' not found (plugin compiled with a different ABI)",
   },
 ];

@@ -32,6 +32,20 @@ describe('PluginsPanelDesktop', () => {
     });
   });
 
+  it('renders manifest metadata (description, author, hooks) on plugin cards', async () => {
+    render(<PluginsPanelDesktop />);
+    await waitFor(() => {
+      expect(screen.getByText('Developer Dashboard')).toBeInTheDocument();
+    });
+
+    const card = cardOf('Developer Dashboard');
+    expect(within(card).getByText('Collects development telemetry and posts it to a local endpoint.')).toBeInTheDocument();
+    expect(within(card).getByText('By stratum-team')).toBeInTheDocument();
+    // Declared-enabled hooks (spec §8) surface next to permissions.
+    expect(within(card).getByText('Hooks:')).toBeInTheDocument();
+    expect(within(card).getByText('onSave')).toBeInTheDocument();
+  });
+
   it('enables a disabled plugin after clicking Enable', async () => {
     render(<PluginsPanelDesktop />);
     await waitFor(() => {

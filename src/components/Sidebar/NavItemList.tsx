@@ -11,6 +11,7 @@ import QuizIcon from '@mui/icons-material/Quiz';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import DrawIcon from '@mui/icons-material/Draw';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import ExtensionIcon from '@mui/icons-material/Extension';
 import SettingsIcon from '@mui/icons-material/Settings';
 
 const NAV_ITEMS = [
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { id: 'templates', label: 'Templates', path: '/templates', icon: <DescriptionIcon /> },
   { id: 'flashcards', label: 'Flashcards', path: '/flashcards', icon: <QuizIcon /> },
   { id: 'whiteboards', label: 'Whiteboards', path: '/whiteboards', icon: <DrawIcon /> },
+  { id: 'plugins', label: 'Plugins', path: '/plugins', icon: <ExtensionIcon /> },
   { id: 'settings', label: 'Settings', path: '/settings', icon: <SettingsIcon /> },
 ] as const;
 
