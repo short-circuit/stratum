@@ -36,6 +36,7 @@ export async function getSettings(): Promise<{
     models: { name: string; capabilities: string[] }[];
     rag_enabled: boolean;
     rag_chunk_count: number;
+    embedding_dimensions: number;
   };
   graph: GraphSettings;
   sync: SyncSettings;
@@ -77,6 +78,7 @@ export async function saveSettings(settings: {
     models: { name: string; capabilities: string[] }[];
     rag_enabled: boolean;
     rag_chunk_count: number;
+    embedding_dimensions: number;
   };
   graph: GraphSettings;
   sync: SyncSettings;

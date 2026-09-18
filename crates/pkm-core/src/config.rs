@@ -214,8 +214,10 @@ pub struct AiConfig {
     pub rag_enabled: bool,
     /// Max chunks to retrieve for RAG context.
     pub rag_chunk_count: usize,
-    /// Embedding model path (for local ONNX/llama.cpp).
-    pub embedding_model_path: Option<String>,
+    /// Expected embedding vector dimensionality. `0` means "infer from the
+    /// first response" (recommended; some providers expose variable or
+    /// version-pinned dimensions).
+    pub embedding_dimensions: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -234,7 +236,7 @@ impl Default for AiConfig {
             models: Vec::new(),
             rag_enabled: true,
             rag_chunk_count: 5,
-            embedding_model_path: None,
+            embedding_dimensions: 0,
         }
     }
 }
@@ -606,6 +608,50 @@ mod tests {
         assert!(stt.auto_summarize);
         assert!(stt.auto_identify);
         assert_eq!(stt.language, None);
+    }
+
+    #[test]
+    fn test_ai_config_embedding_dimensions_roundtrip() {
+        let dir = TempDir::new().unwrap();
+        let config_path = dir.path().join("config.toml");
+
+        let cfg = Config {
+            ai: AiConfig {
+                endpoint: Some("http://127.0.0.1:11434".to_string()),
+                model: "nomic-embed-text".to_string(),
+                embedding_dimensions: 768,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        cfg.save(&config_path).unwrap();
+
+        let loaded = Config::load(&config_path).unwrap();
+        assert_eq!(
+            loaded.ai.endpoint.as_deref(),
+            Some("http://127.0.0.1:11434")
+        );
+        assert_eq!(loaded.ai.model, "nomic-embed-text");
+        assert_eq!(loaded.ai.embedding_dimensions, 768);
+        // Default remains "infer from response".
+        assert_eq!(AiConfig::default().embedding_dimensions, 0);
+    }
+
+    #[test]
+    fn test_old_config_without_embedding_dimensions_loads() {
+        let dir = TempDir::new().unwrap();
+        let config_path = dir.path().join("config.toml");
+        // Config predating the embedding_dimensions field must still parse
+        // (falls back to 0 = infer), and must not carry the removed
+        // embedding_model_path field.
+        std::fs::write(
+            &config_path,
+            "[theme]\ndark_mode = false\n\n[ai]\nmodel = \"llama3.2\"\nrag_enabled = false\n",
+        )
+        .unwrap();
+        let loaded = Config::load(&config_path).unwrap();
+        assert_eq!(loaded.ai.embedding_dimensions, 0);
+        assert!(!loaded.theme.dark_mode);
     }
 
     #[test]
