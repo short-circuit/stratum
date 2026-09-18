@@ -565,8 +565,10 @@ The CI pipeline builds Android on every pull request and push to `master` (a deb
 3. Runs `tauri android init`
 4. Applies Android patches
 5. On tags: runs `tauri android build --target aarch64 --apk --aab` to produce a **release** APK and AAB **signed with the release keystore from CI secrets**
-6. On PRs/pushes: runs `tauri android build --debug --target aarch64 --apk` to produce a **debug** APK for the CI gate and on-device smoke test
+6. On PRs/pushes: runs `tauri android build --debug --target aarch64 x86_64 --apk` to produce a **debug** APK for the CI gate and on-device smoke test (the emulator is x86_64, so the debug APK must ship the x86_64 ABI)
 7. Uploads the APK/AAB (tags) or debug APK (PRs/pushes) as build artifacts
+
+A separate `android-smoke` job (PRs / pushes to master) then boots a headless x86_64 emulator (API 34), installs the debug APK, launches the app and waits for the first rendered frame. GitHub-hosted Linux runners do not expose a working `/dev/kvm` to the runner user, so the emulator runs in software-emulation mode (`-accel off`); the smoke script is deliberately robust to that (see `smoke-android.sh` header) and treats the Android platform's own `Displayed` first-frame signal as the pass criterion, retrying the launch when the unaccelerated system force-finishes a healthy activity. It archives a screenshot (`screencap`) and a logcat dump as `android-smoke-evidence` so reviewers have proof the app starts, and it **fails the run** if the app crashes (process death) or never reaches a first frame within the timeout. No physical device is required — the emulator runs on the same GitHub-hosted runner.
 
 The `ios` job:
 
@@ -593,7 +595,7 @@ them.
 
 Before shipping a mobile change, verify:
 
-- [ ] App launches on Android (physical device or emulator)
+- [x] App loads and draws its first frame on Android — covered automatically by the `android-smoke` CI job (headless emulator)
 - [ ] App launches on iOS simulator
 - [ ] Vault creation and opening works
 - [ ] Block editor loads and saves content

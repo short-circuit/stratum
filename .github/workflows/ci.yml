@@ -454,13 +454,18 @@ jobs:
       # Debug builds do not need the release keystore (Gradle signs the debug
       # APK with the debug signing config automatically) and are cheap enough
       # to run on every PR/push as a CI gate. The uploaded debug APK is also
-      # the installable artifact a separate smoke-test job consumes. A v* tag
-      # push is itself a `push` event, so exclude tag refs here to preserve the
-      # tag-triggered release build (above) as the only build on releases.
+      # the installable artifact a separate smoke-test job consumes — the
+      # smoke job boots an x86_64 emulator, so the debug APK must ship the
+      # x86_64 ABI alongside arm64 (without it the emulator refuses to
+      # install with INSTALL_FAILED_NO_MATCHING_ABIS). The NDK cross-compile
+      # env vars for both ABIs are exported by the Install NDK step above.
+      # A v* tag push is itself a `push` event, so exclude tag refs here to
+      # preserve the tag-triggered release build (above) as the only build on
+      # releases.
       - name: Build Android debug APK (PRs / pushes)
         if: github.event_name == 'pull_request' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/'))
         shell: bash
-        run: npx tauri android build --debug --target aarch64 --apk 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
+        run: npx tauri android build --debug --target aarch64 x86_64 --apk 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
 
       - name: Upload Android release artifacts
         if: startsWith(github.ref, 'refs/tags/v')
@@ -499,6 +504,69 @@ jobs:
   # inline by `tauri ios build` (beforeBuildCommand runs `npm run build`),
   # so this job has no dependency on the tag-only `frontend` artifact and
   # can run on any trigger.
+  # ── Android on-device smoke test (PRs / pushes to master) ──────────────
+  # Boots an emulator, installs the debug APK produced by the `android` job,
+  # launches the app, waits for the first rendered frame and captures a
+  # screenshot + logcat as reviewable evidence that the app actually starts.
+  # `needs: [android]` + concurrency cancel-in-progress gives fail-fast: if the
+  # app crashes or never reaches a first frame the job (and therefore the PR)
+  # is red. Runs only on the same non-tag triggers that produce the debug APK;
+  # release (tag) builds carry their own signed artifacts and keep a checkout-
+  # free, minimal tag pipeline.
+  android-smoke:
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/'))
+    needs: [android]
+    runs-on: ubuntu-latest
+    # First boot downloads the API-34 system image + emulator (~2 GB), so leave
+    # generous headroom over the ~10 min the smoke script itself can take.
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download debug APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-debug-apk
+          path: android-debug-apk
+
+      - name: Run on-device smoke test
+        uses: ReactiveCircus/android-emulator-runner@v2.38.0
+        with:
+          # API 34 + x86_64 keeps the run on a fast, stable, hardware-
+          # accelerated system image; minSdk is 24 so nothing here is above
+          # the image. The emulator runner provisions its own SDK under
+          # $ANDROID_HOME and accepts all licenses non-interactively, which
+          # supersedes the runner's preinstalled SDK for this job.
+          api-level: 34
+          arch: x86_64
+          target: default
+          disable-animations: true
+          # No skinned boot (headless CI). GitHub-hosted Linux runners do NOT
+          # expose a working /dev/kvm to the runner user, so `disable-linux-hw-accel`
+          # auto-detects software emulation (`-accel off`); the smoke script is
+          # deliberately robust to that (see smoke-android.sh header). The
+          # emulator still boots an x86_64 image under swiftshader rendering.
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
+          # The action wraps this in `sh -c` (dash) where `set -euo pipefail`
+          # is illegal — so keep it to a plain bash invocation; the script sets
+          # its own strict options and fails the job on any crash/timeout.
+          script: |
+            bash .github/scripts/smoke-android.sh
+        env:
+          # Debug APK download location; harvested evidence is always archived.
+          APK_DIR: android-debug-apk
+          CI_HARVEST_DIR: android-smoke-evidence
+
+      - name: Upload smoke-test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-smoke-evidence
+          path: android-smoke-evidence/
+          if-no-files-found: warn
+          retention-days: 14
+
   ios:
     needs: [test]
     if: github.event_name == 'pull_request' || github.event_name == 'push'
