@@ -8,7 +8,7 @@
  * @module OutlinerEditor/OutlinerEditor.desktop
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { BlockNoteView } from '@blocknote/mantine';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -16,12 +16,18 @@ import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import Popover from '@mui/material/Popover';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
 import * as api from '../../lib/commands';
+import { speakText, textFromBlock } from '../../lib/audio';
 import LinkPreviewPopup from '../LinkPreviewPopup';
 import AISlashMenu from '../AISlashMenu';
 import AIFormattingToolbar from '../AIFormattingToolbar';
@@ -57,6 +63,39 @@ export default function OutlinerEditorDesktop(props: Props) {
     if (lastSavedAt) return `Saved ${new Date(lastSavedAt).toLocaleTimeString()}`;
     return null;
   }, [saving, lastSavedAt]);
+
+  // Right-click block context menu (desktop read-aloud entry point).
+  const [blockMenu, setBlockMenu] = useState<{
+    mouseX: number;
+    mouseY: number;
+    blockId: string;
+  } | null>(null);
+
+  const onBlockContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const target = e.target as HTMLElement;
+    const blockEl = target.closest('[data-block-id]');
+    if (!blockEl) return;
+    const blockId = blockEl.getAttribute('data-block-id') || '';
+    if (!blockId) return;
+    setBlockMenu({ mouseX: e.clientX, mouseY: e.clientY, blockId });
+  };
+
+  const readBlockAloud = async () => {
+    if (!blockMenu || !editor) return;
+    const { blockId } = blockMenu;
+    setBlockMenu(null);
+    const doc = editor.document;
+    const block = doc.find((b: { id: string }) => b.id === blockId);
+    const text = block ? textFromBlock(block as { id: string; content?: unknown }) : '';
+    if (!text.trim()) return;
+    try {
+      await speakText(text);
+    } catch (e) {
+      console.error('[TTS] read-aloud failed:', e);
+      alert(`Read-aloud failed: ${String(e)}`);
+    }
+  };
 
   // Memoize the editor view so it doesn't re-render on popup state changes
   // (which would reset scroll position)
@@ -177,8 +216,23 @@ export default function OutlinerEditorDesktop(props: Props) {
         ref={containerRef}
         className="blocknote-editor-container"
         style={{ flex: 1, minHeight: 0 }}
+        onContextMenu={onBlockContextMenu}
       >
         {editorView}
+
+        <Menu
+          open={Boolean(blockMenu)}
+          onClose={() => setBlockMenu(null)}
+          anchorReference="anchorPosition"
+          anchorPosition={
+            blockMenu ? { left: blockMenu.mouseX, top: blockMenu.mouseY } : undefined
+          }
+        >
+          <MenuItem onClick={readBlockAloud}>
+            <ListItemIcon><VolumeUpIcon fontSize="small" /></ListItemIcon>
+            <ListItemText>Read aloud</ListItemText>
+          </MenuItem>
+        </Menu>
 
         {preview && (
           <LinkPreviewPopup
