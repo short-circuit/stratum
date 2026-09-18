@@ -9,7 +9,7 @@ Stratum can export your vault to portable formats.
 ### From the Interface
 
 1. Click the **Export** button in the sidebar
-2. The vault exports to HTML format in `/tmp/stratum-export/`
+2. The vault exports to `export.html` in your vault directory
 
 ### From the CLI
 
