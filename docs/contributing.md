@@ -68,11 +68,38 @@ npm run test:e2e:harness
 ```
 
 The `test:e2e:harness` suite runs automatically in CI (`.github/workflows/ci.yml`,
-`e2e-harness` job) on every push to `master` and on every PR to `master` — no
-manual E2E step is required for normal PRs. The `e2e-harness` check is
-**required** for merges to `master` (alongside `frontend-test`), and the job
-uploads `test-results/*`, the built binary, and a last-frame screenshot as
-`e2e-harness-artifacts` when it fails.
+`e2e-harness` job) on every push to `master`, on every PR to `master`, and on a
+**weekly schedule** (drift check against the latest `master`; manually too via
+`workflow_dispatch`) — no manual E2E step is required for normal PRs. The
+`e2e-harness` check is **required** for merges to `master` (alongside
+`frontend-test`), and the job uploads `test-results/*`, the built binary, and a
+last-frame screenshot as `e2e-harness-artifacts` when it fails.
+
+### Running the real E2E locally
+
+The real E2E drives the **compiled app** (`target/debug/stratum-tauri`, which
+must be built with the `custom-protocol` feature — see `e2e/harness/README.md`)
+over the WebDriver protocol; no mocks.
+
+Prerequisites:
+
+- `tauri-driver` — `cargo install tauri-driver`
+- `WebKitWebDriver`:
+  - **Arch:** `sudo pacman -S webkit2gtk` (binary ships inside `webkit2gtk-4.1` as
+    `/usr/lib/webkit2gtk-4.1/WebKitWebDriver`)
+  - **Ubuntu/Debian:** `webkit2gtk-driver` (the `WebKitWebDriver` binary ships in
+    this package, not `libwebkit2gtk-4.1-dev`) + `libwebkit2gtk-4.1-dev`
+  - If the binary is anywhere else on your machine, set `HARNESS_DRIVER` to its
+    absolute path
+- `Xvfb` — Arch: `sudo pacman -S xorg-server-xvfb`; Ubuntu: `apt install xvfb`
+
+Then:
+
+```bash
+npm run build
+cargo build -p stratum-tauri
+npm run test:e2e:harness
+```
 
 ## Project Conventions
 
@@ -120,7 +147,7 @@ The project uses GitHub Actions:
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
-| CI | Push/PR to master | Build, test, clippy, fmt, lint, frontend unit tests, tauri-driver E2E harness (artifact-uploading on failure) |
+| CI | Push/PR to master, weekly schedule, manual | Build, test, clippy, fmt, lint, frontend unit tests, tauri-driver E2E harness (artifact-uploading on failure) |
 | Release | Tag `v*` | Build and publish binaries |
 
 ## License
