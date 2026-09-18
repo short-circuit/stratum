@@ -77,9 +77,11 @@ export function useJournalPanel() {
     [pages, allJournalDates, today],
   );
 
-  // Atomic ensure — replaces createPage+loadPages which caused infinite spinner (#12)
+  // Atomic ensure — replaces createPage+loadPages which caused infinite spinner (#12).
+  // Runs even when the page list is empty (fresh vault): the backend command is
+  // idempotent and creates today's journal, otherwise the panel would show a
+  // perpetual spinner on a brand-new vault that has no pages yet.
   const ensureJournal = useCallback(() => {
-    if (pages.length === 0) return;
     if (todayExists) {
       setJournalLoading(false);
       setJournalError(null);
