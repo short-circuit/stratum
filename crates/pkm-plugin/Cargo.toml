@@ -15,5 +15,14 @@ pkm-core = { path = "../pkm-core" }
 sha2 = "0.10"
 hex = "0.4"
 
+# Host backend for the plugin runtime: real note I/O (filesystem) + HTTP with
+# SSRF guard, timeouts, and async dispatch (contract §4, ADR-0004 §12).
+reqwest.workspace = true
+url.workspace = true
+tokio.workspace = true
+async-trait = "0.1"
+ipnet = "2"
+chrono.workspace = true
+
 [dev-dependencies]
 tempfile.workspace = true
