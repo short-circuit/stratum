@@ -12,6 +12,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import { usePluginsPanel } from './PluginsPanel.shared';
 import { StatusChip } from './StatusChip';
+import { PluginManifestMeta } from './PluginManifestMeta';
 import EmptyState from '../ui/EmptyState';
 
 export default function PluginsPanelMobile() {
@@ -104,6 +105,7 @@ export default function PluginsPanelMobile() {
                           ))}
                         </Stack>
                       )}
+                      <PluginManifestMeta plugin={plugin} />
                     </Box>
                     <StatusChip plugin={plugin} />
                   </Box>

@@ -322,6 +322,12 @@ export interface PluginInfoDto {
   status: PluginStatus;
   enabled: boolean;
   permissions: string[];
+  /** Enabled hooks declared by the manifest (spec §8), e.g. `onSave`, `onOpen`. */
+  hooks?: string[];
+  /** Manifest author (spec §2). Present only when the manifest declares one. */
+  author?: string;
+  /** Manifest description (spec §2). Present only when the manifest declares one. */
+  description?: string;
   /** Present only when `status === 'error'`. */
   error?: string | null;
 }
