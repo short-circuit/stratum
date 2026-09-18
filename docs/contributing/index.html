@@ -1571,6 +1571,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Testing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#running-the-real-e2e-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running the real E2E locally
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1998,6 +2015,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Testing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#running-the-real-e2e-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running the real E2E locally
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2160,11 +2194,33 @@
 <a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>npm<span class="w"> </span>run<span class="w"> </span>test:e2e:harness
 </code></pre></div>
 <p>The <code>test:e2e:harness</code> suite runs automatically in CI (<code>.github/workflows/ci.yml</code>,
-<code>e2e-harness</code> job) on every push to <code>master</code> and on every PR to <code>master</code> — no
-manual E2E step is required for normal PRs. The <code>e2e-harness</code> check is
-<strong>required</strong> for merges to <code>master</code> (alongside <code>frontend-test</code>), and the job
-uploads <code>test-results/*</code>, the built binary, and a last-frame screenshot as
-<code>e2e-harness-artifacts</code> when it fails.</p>
+<code>e2e-harness</code> job) on every push to <code>master</code>, on every PR to <code>master</code>, and on a
+<strong>weekly schedule</strong> (drift check against the latest <code>master</code>; manually too via
+<code>workflow_dispatch</code>) — no manual E2E step is required for normal PRs. The
+<code>e2e-harness</code> check is <strong>required</strong> for merges to <code>master</code> (alongside
+<code>frontend-test</code>), and the job uploads <code>test-results/*</code>, the built binary, and a
+last-frame screenshot as <code>e2e-harness-artifacts</code> when it fails.</p>
+<h3 id="running-the-real-e2e-locally">Running the real E2E locally<a class="headerlink" href="#running-the-real-e2e-locally" title="Permanent link">&para;</a></h3>
+<p>The real E2E drives the <strong>compiled app</strong> (<code>target/debug/stratum-tauri</code>, which
+must be built with the <code>custom-protocol</code> feature — see <code>e2e/harness/README.md</code>)
+over the WebDriver protocol; no mocks.</p>
+<p>Prerequisites:</p>
+<ul>
+<li><code>tauri-driver</code> — <code>cargo install tauri-driver</code></li>
+<li><code>WebKitWebDriver</code>:</li>
+<li><strong>Arch:</strong> <code>sudo pacman -S webkit2gtk</code> (binary ships inside <code>webkit2gtk-4.1</code> as
+    <code>/usr/lib/webkit2gtk-4.1/WebKitWebDriver</code>)</li>
+<li><strong>Ubuntu/Debian:</strong> <code>webkit2gtk-driver</code> (the <code>WebKitWebDriver</code> binary ships in
+    this package, not <code>libwebkit2gtk-4.1-dev</code>) + <code>libwebkit2gtk-4.1-dev</code></li>
+<li>If the binary is anywhere else on your machine, set <code>HARNESS_DRIVER</code> to its
+    absolute path</li>
+<li><code>Xvfb</code> — Arch: <code>sudo pacman -S xorg-server-xvfb</code>; Ubuntu: <code>apt install xvfb</code></li>
+</ul>
+<p>Then:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>npm<span class="w"> </span>run<span class="w"> </span>build
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>cargo<span class="w"> </span>build<span class="w"> </span>-p<span class="w"> </span>stratum-tauri
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>npm<span class="w"> </span>run<span class="w"> </span>test:e2e:harness
+</code></pre></div>
 <h2 id="project-conventions">Project Conventions<a class="headerlink" href="#project-conventions" title="Permanent link">&para;</a></h2>
 <h3 id="rust">Rust<a class="headerlink" href="#rust" title="Permanent link">&para;</a></h3>
 <ul>
@@ -2214,7 +2270,7 @@ uploads <code>test-results/*</code>, the built binary, and a last-frame screensh
 <tbody>
 <tr>
 <td>CI</td>
-<td>Push/PR to master</td>
+<td>Push/PR to master, weekly schedule, manual</td>
 <td>Build, test, clippy, fmt, lint, frontend unit tests, tauri-driver E2E harness (artifact-uploading on failure)</td>
 </tr>
 <tr>
