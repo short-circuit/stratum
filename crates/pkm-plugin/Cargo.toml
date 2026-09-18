@@ -10,6 +10,11 @@ serde_json.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 wasmtime.workspace = true
+# Real WASI preview1 support for `std` wasm32-wasi plugin builds (fd_write,
+# environ_get, proc_exit, random_get, clocks). Replaces the old no-op stub so
+# genuine `wasm32-wasip1` artifacts instantiate with their real import
+# signatures (contract §7.1 — see docs/advanced/plugins.md).
+wasmtime-wasi.workspace = true
 anyhow.workspace = true
 pkm-core = { path = "../pkm-core" }
 sha2 = "0.10"

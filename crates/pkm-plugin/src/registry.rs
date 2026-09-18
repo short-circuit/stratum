@@ -89,6 +89,19 @@ impl PluginManifest {
         self.hooks.get(name).copied().unwrap_or(false)
     }
 
+    /// Names of hooks that are declared AND enabled (spec §8), sorted for
+    /// deterministic output. Used to surface hook capability in the UI.
+    pub fn enabled_hook_names(&self) -> Vec<String> {
+        let mut names: Vec<String> = self
+            .hooks
+            .iter()
+            .filter(|(_, enabled)| **enabled)
+            .map(|(name, _)| name.clone())
+            .collect();
+        names.sort();
+        names
+    }
+
     /// The guest export for a hook (spec §8: `register_hook("onSave") ⇒ "onSave"`).
     pub fn hook_export(name: &str) -> String {
         normalize_hook_export(name)

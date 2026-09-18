@@ -32,6 +32,15 @@ pub struct PluginInfo {
     pub status: String,
     pub enabled: bool,
     pub permissions: Vec<String>,
+    /// Hooks declared by the manifest, mapped to enablement (spec §8). Keys
+    /// are `on*` hook names (`onSave`, `onOpen`, `onLink`, `onSearch`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hooks: Vec<String>,
+    /// Display metadata from the plugin manifest (spec §2).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub author: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub description: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -65,6 +74,9 @@ impl PluginInfo {
             status: status.to_string(),
             enabled: state.enabled,
             permissions: state.manifest.permission_names(),
+            hooks: state.manifest.enabled_hook_names(),
+            author: state.manifest.author.clone(),
+            description: state.manifest.description.clone(),
             error: None,
         }
     }
@@ -78,6 +90,9 @@ impl PluginInfo {
             status: "error".to_string(),
             enabled: false,
             permissions: Vec::new(),
+            hooks: Vec::new(),
+            author: String::new(),
+            description: String::new(),
             error: Some(error),
         }
     }

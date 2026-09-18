@@ -68,6 +68,7 @@ url = "2"
 
 # Plugin
 wasmtime = "26"
+wasmtime-wasi = "26"
 wat = "1"
 
 # Frontend

@@ -5,6 +5,8 @@ use pkm_core::error::{PkmError, PkmResult};
 use serde::Serialize;
 use tracing::{debug, info, warn};
 use wasmtime::{Engine, Linker, Module, Store, TypedFunc};
+use wasmtime_wasi::preview1::{self, WasiP1Ctx};
+use wasmtime_wasi::WasiCtxBuilder;
 
 use crate::abi::{
     HostApi, HostFunction, HostResponse, HttpResponseEnvelope, PluginErrorCode, HOST_PAYLOAD_MAX,
@@ -65,6 +67,14 @@ struct RuntimeContext {
     /// Accumulated output from the plugin.
     #[allow(dead_code)]
     output: String,
+    /// Real WASI preview1 context (stdio, env, clocks, random, proc_exit).
+    ///
+    /// This is what lets genuine `wasm32-wasip1` Rust `std` builds instantiate
+    /// with their real import signatures (fd_write, environ_get, proc_exit,
+    /// random_get, …). No filesystem is preopened by default — plugins access
+    /// the vault exclusively through the `pkm.*` host API (contract §4), which
+    /// keeps the sandbox exact.
+    wasi: WasiP1Ctx,
 }
 
 impl PluginRuntime {
@@ -234,15 +244,13 @@ impl PluginRuntime {
                 })?;
         }
 
-        // Reserved no-op for toolchains that reference wasi_snapshot_preview1
-        // (e.g. wasm32-wasi builds) so they still instantiate (contract §7.1).
-        linker
-            .func_wrap("wasi_snapshot_preview1", "fd_write", || 0)
-            .map_err(|e| {
-                PkmError::Plugin(format!(
-                    "Failed to define reserved import `wasi_snapshot_preview1.fd_write`: {e}"
-                ))
-            })?;
+        // Real WASI preview1 imports (fd_write, environ_get, proc_exit,
+        // random_get, clocks, …) so genuine wasm32-wasip1 builds — including
+        // Rust `std` cdylibs that link the WASI CRT — instantiate with their
+        // real import signatures (contract §7.1).
+        preview1::add_to_linker_sync(linker, |cx| &mut cx.wasi).map_err(|e| {
+            PkmError::Plugin(format!("Failed to define WASI preview1 imports: {e}"))
+        })?;
 
         Ok(())
     }
@@ -289,6 +297,7 @@ impl PluginRuntime {
         let context = RuntimeContext {
             current_plugin: Some(plugin.clone()),
             output: String::new(),
+            wasi: WasiCtxBuilder::new().inherit_stdio().build_p1(),
         };
         let mut store = Store::new(&self.engine, context);
 
@@ -907,6 +916,36 @@ mod tests {
     }
 
     #[test]
+    fn test_run_plugin_unknown_import_namespace_fails() {
+        // Contract §7.1: a module importing from an unknown namespace/name
+        // fails instantiation and does not load. wasmtime's Linker rejects
+        // unregistered imports; this test locks that behavior so the
+        // normative documentation matches the implementation.
+        let runtime = PluginRuntime::new().unwrap();
+        let plugin = make_plugin_state(
+            "unknown-import",
+            r#"
+            (module
+                (import "env" "some_foreign_func" (func))
+                (memory (export "memory") 1)
+                (func (export "onSave") (param i32 i32) (result i32)
+                    local.get 1
+                )
+            )
+            "#,
+            true,
+        );
+
+        let result = runtime.run_plugin(&plugin, "onSave", "{}");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("instantiate"),
+            "expected an instantiation error, got: {err}"
+        );
+    }
+
+    #[test]
     fn test_run_plugin_with_hook() {
         let runtime = PluginRuntime::new().unwrap();
         let plugin = make_plugin_state("hook-test", HOOK_MODULE_WAT, true);
@@ -989,6 +1028,7 @@ mod tests {
         let context = RuntimeContext {
             current_plugin: None,
             output: String::new(),
+            wasi: WasiCtxBuilder::new().inherit_stdio().build_p1(),
         };
         let mut temp_store = Store::new(runtime.engine(), context);
         let instance = runtime
@@ -1014,11 +1054,14 @@ mod tests {
         let runtime = PluginRuntime::new().unwrap();
         let module = Module::new(runtime.engine(), MEMORY_MODULE_WAT).unwrap();
 
-        let context = RuntimeContext {
-            current_plugin: None,
-            output: String::new(),
-        };
-        let mut store = Store::new(runtime.engine(), context);
+        let mut store = Store::new(
+            runtime.engine(),
+            RuntimeContext {
+                current_plugin: None,
+                output: String::new(),
+                wasi: WasiCtxBuilder::new().inherit_stdio().build_p1(),
+            },
+        );
         let instance = runtime.linker.instantiate(&mut store, &module).unwrap();
         let memory = instance.get_memory(&mut store, "memory").unwrap();
 
@@ -1037,11 +1080,14 @@ mod tests {
         let runtime = PluginRuntime::new().unwrap();
         let module = Module::new(runtime.engine(), MEMORY_MODULE_WAT).unwrap();
 
-        let context = RuntimeContext {
-            current_plugin: None,
-            output: String::new(),
-        };
-        let mut store = Store::new(runtime.engine(), context);
+        let mut store = Store::new(
+            runtime.engine(),
+            RuntimeContext {
+                current_plugin: None,
+                output: String::new(),
+                wasi: WasiCtxBuilder::new().inherit_stdio().build_p1(),
+            },
+        );
         let instance = runtime.linker.instantiate(&mut store, &module).unwrap();
         let memory = instance.get_memory(&mut store, "memory").unwrap();
         let mem_size = memory.data_size(&store);
@@ -1128,6 +1174,7 @@ mod tests {
         let context = RuntimeContext {
             current_plugin: plugin,
             output: String::new(),
+            wasi: WasiCtxBuilder::new().inherit_stdio().build_p1(),
         };
         let mut store = Store::new(runtime.engine(), context);
         let instance = runtime.linker.instantiate(&mut store, &module).unwrap();
