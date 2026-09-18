@@ -3477,23 +3477,33 @@
 <li>Runs <code>tauri android init</code></li>
 <li>Applies Android patches</li>
 <li>On tags: runs <code>tauri android build --target aarch64 --apk --aab</code> to produce a <strong>release</strong> APK and AAB <strong>signed with the release keystore from CI secrets</strong></li>
-<li>On PRs/pushes: runs <code>tauri android build --debug --target aarch64 --apk</code> to produce a <strong>debug</strong> APK for the CI gate and on-device smoke test</li>
+<li>On PRs/pushes: runs <code>tauri android build --debug --target aarch64 x86_64 --apk</code> to produce a <strong>debug</strong> APK for the CI gate and on-device smoke test (the emulator is x86_64, so the debug APK must ship the x86_64 ABI)</li>
 <li>Uploads the APK/AAB (tags) or debug APK (PRs/pushes) as build artifacts</li>
 </ol>
+<p>A separate <code>android-smoke</code> job (PRs / pushes to master) then boots a headless x86_64 emulator (API 34), installs the debug APK, launches the app and waits for the first rendered frame. GitHub-hosted Linux runners do not expose a working <code>/dev/kvm</code> to the runner user, so the emulator runs in software-emulation mode (<code>-accel off</code>); the smoke script is deliberately robust to that (see <code>smoke-android.sh</code> header) and treats the Android platform's own <code>Displayed</code> first-frame signal as the pass criterion, retrying the launch when the unaccelerated system force-finishes a healthy activity. It archives a screenshot (<code>screencap</code>) and a logcat dump as <code>android-smoke-evidence</code> so reviewers have proof the app starts, and it <strong>fails the run</strong> if the app crashes (process death) or never reaches a first frame within the timeout. No physical device is required — the emulator runs on the same GitHub-hosted runner.</p>
 <p>The <code>ios</code> job:</p>
 <ol>
 <li>Installs iOS Rust targets</li>
-<li>Runs <code>tauri ios init</code> (if not already initialized)</li>
+<li>Runs <code>tauri ios init</code> (generates <code>src-tauri/gen/apple</code> on first run)</li>
 <li>Patches the Xcode project for Tauri compatibility</li>
-<li>Runs <code>tauri ios build --target aarch64-sim --ci</code></li>
+<li>Runs <code>tauri ios build --debug --target aarch64-sim --ci</code></li>
 <li>Zips the built app</li>
 <li>Uploads as a build artifact</li>
 </ol>
-<p>The iOS job is currently disabled (<code>if: false</code>). The Android job requires the release keystore secrets (<code>ANDROID_KEYSTORE</code>, <code>ANDROID_KEYSTORE_PASSWORD</code>, <code>ANDROID_KEY_ALIAS</code>, <code>ANDROID_KEY_PASSWORD</code>) to be set on the repository to sign release artifacts; the debug APK does not need them.</p>
+<p>iOS is built <strong>for the simulator only</strong> (<code>aarch64-sim</code>) — this requires <strong>no Apple
+Developer signing certificate or provisioning profile</strong>, so it runs on every
+pull request and push to <code>master</code> as a CI gate (debug build, artifact
+<code>ios-sim-app</code>) as well as on tagged releases (<code>v*</code>, release build, artifact
+<code>ios</code>). The <code>test</code> job must pass first. Physical-device builds still require a
+paid Apple Developer account and are done locally by developers.</p>
+<p>The Android release-signing keystore secrets (<code>ANDROID_KEYSTORE</code>,
+<code>ANDROID_KEYSTORE_PASSWORD</code>, <code>ANDROID_KEY_ALIAS</code>, <code>ANDROID_KEY_PASSWORD</code>) must
+be set on the repository to sign release artifacts; the debug APK does not need
+them.</p>
 <h3 id="manual-test-checklist">Manual Test Checklist<a class="headerlink" href="#manual-test-checklist" title="Permanent link">&para;</a></h3>
 <p>Before shipping a mobile change, verify:</p>
 <ul>
-<li>[ ] App launches on Android (physical device or emulator)</li>
+<li>[x] App loads and draws its first frame on Android — covered automatically by the <code>android-smoke</code> CI job (headless emulator)</li>
 <li>[ ] App launches on iOS simulator</li>
 <li>[ ] Vault creation and opening works</li>
 <li>[ ] Block editor loads and saves content</li>
