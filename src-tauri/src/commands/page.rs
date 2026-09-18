@@ -561,6 +561,13 @@ pub async fn save_page(
     // Invalidate graph cache since page data changed
     crate::commands::graph::invalidate_graph_cache();
 
+    // Dispatch the `onSave` hook to enabled plugins that declare it (spec §8).
+    // Runs synchronously; a trapping plugin logs and is skipped, never aborting
+    // the save.
+    if let Some(manager) = state.plugin_manager.as_deref() {
+        crate::commands::plugins::dispatch_on_save(manager, &path, &content);
+    }
+
     Ok(())
 }
 

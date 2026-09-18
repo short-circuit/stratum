@@ -6,6 +6,7 @@ pub mod flashcards;
 pub mod graph;
 pub mod kanban;
 pub mod page;
+pub mod plugins;
 pub mod query;
 pub mod search;
 pub mod settings;

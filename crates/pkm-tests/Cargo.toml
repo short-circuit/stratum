@@ -17,6 +17,10 @@ pkm-index = { path = "../pkm-index" }
 pkm-sync = { path = "../pkm-sync" }
 pkm-query = { path = "../pkm-query" }
 pkm-ai = { path = "../pkm-ai" }
+pkm-plugin = { path = "../pkm-plugin" }
+# The Tauri command layer (PluginManager + command handlers). Pulled in so the
+# plugin E2E suite can drive the same manager the Tauri commands delegate to.
+stratum-tauri = { path = "../../src-tauri" }
 tempfile.workspace = true
 serde_json.workspace = true
 uuid.workspace = true
@@ -27,3 +31,5 @@ pretty_assertions = { workspace = true }
 
 [dev-dependencies]
 wiremock = "0.6"
+wat.workspace = true
+

@@ -26,6 +26,8 @@ pub struct Config {
     pub research: ResearchConfig,
     /// Plugin enable/disable.
     pub plugins: Vec<PluginConfig>,
+    /// Network egress configuration (SSRF allowlist for plugin HTTP).
+    pub network: NetworkConfig,
     /// File watcher configuration.
     pub watcher: WatcherConfig,
     /// Graph visualization settings.
@@ -45,6 +47,7 @@ impl Default for Config {
             tts: TtsConfig::default(),
             research: ResearchConfig::default(),
             plugins: Vec::new(),
+            network: NetworkConfig::default(),
             watcher: WatcherConfig::default(),
             graph: GraphConfig::default(),
         }
@@ -401,6 +404,20 @@ pub struct PluginConfig {
     pub enabled: bool,
     pub wasm_path: PathBuf,
     pub permissions: Vec<String>,
+}
+
+/// Network egress configuration for plugin `pkm.http_request`.
+///
+/// `allowlist` entries are host strings or CIDR strings (e.g. `api.example.com`
+/// or `10.0.0.0/8`). The SSRF guard (contract §10) allows an HTTP target if
+/// its host matches an entry, or if it resolves to a private/loopback/link-local
+/// address (making `localhost` and LAN access work by default). Empty allowlist
+/// means "private/loopback only".
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct NetworkConfig {
+    /// Host or CIDR entries allowed to be reached by plugin HTTP requests.
+    pub allowlist: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

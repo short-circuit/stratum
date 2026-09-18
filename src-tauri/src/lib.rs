@@ -49,6 +49,33 @@ pub fn run() {
 
             app.manage(Mutex::new(VaultState::new(vault_path.clone())) as AppState);
 
+            // ── WASM plugins (spec §7.3 startup scan) ────────────────────
+            // Initialize the plugin manager from `<vault>/.pkm/plugins/` on
+            // boot so plugins are loaded when the app starts, not only after
+            // an explicit vault re-init. A broken or missing plugins dir is
+            // never fatal: scan failures surface through `plugins_list`.
+            // Notably the path is shared with `setup_vault` (interactive open).
+            {
+                if let Ok(mut state) = app.state::<AppState>().lock() {
+                    match crate::commands::plugins::PluginManager::init_for_vault(&vault_path) {
+                        Ok(manager) => {
+                            tracing::info!(
+                                "[stratum] Plugin runtime ready ({} plugin(s) loaded from {:?})",
+                                manager.len(),
+                                vault_path.join(".pkm").join("plugins")
+                            );
+                            state.plugin_manager = Some(manager);
+                        }
+                        Err(e) => {
+                            tracing::warn!(
+                                "[stratum] Plugin runtime unavailable, plugins disabled: {}",
+                                e
+                            );
+                        }
+                    }
+                }
+            }
+
             let config_path = vault_path.join(".pkm").join("config.toml");
             if config_path.exists() {
                 if let Ok(config) = pkm_core::Config::load(&config_path) {
@@ -203,9 +230,8 @@ pub fn run() {
                         // The app installs its own global logger via
                         // `pkm_core::init_logging()` (tracing_subscriber, which
                         // forwards to the `log` crate). Skip the plugin's logger
-                        // so it does not panic on startup in debug builds with
-                        // "attempted to set a logger after the logging system
-                        // was already initialized".
+                        // so it does not panic with "attempted to set a logger
+                        // after the logging system was already initialized".
                         .skip_logger()
                         .build(),
                 )?;
@@ -315,6 +341,14 @@ pub fn run() {
             commands::settings::save_settings,
             commands::settings::save_graph_settings,
             commands::settings::fetch_models,
+            // Plugins
+            commands::plugins::plugins_list,
+            commands::plugins::plugins_enable,
+            commands::plugins::plugins_disable,
+            commands::plugins::plugins_reload,
+            commands::plugins::plugins_status,
+            commands::plugins::plugin_note_read,
+            commands::plugins::plugin_http_request,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
