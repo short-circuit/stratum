@@ -558,15 +558,15 @@ cargo tauri ios dev --target x86_64-apple-ios
 
 ### Automated Testing
 
-The CI pipeline runs Android and iOS builds on every tagged release (see `.github/workflows/ci.yml`). The `android` job:
+The CI pipeline builds Android on every pull request and push to `master` (a debug APK, uploaded as the `android-debug-apk` artifact for the smoke-test gate) and on every tagged release (`v*`, see `.github/workflows/ci.yml`). The `android` job:
 
 1. Sets up Android SDK and NDK
 2. Adds all Android Rust targets
 3. Runs `tauri android init`
 4. Applies Android patches
-5. Runs `tauri android build --target aarch64 --apk`
-6. Signs the APK (if keystore is configured)
-7. Uploads the APK and AAB as build artifacts
+5. On tags: runs `tauri android build --target aarch64 --apk --aab` to produce a **release** APK and AAB **signed with the release keystore from CI secrets**
+6. On PRs/pushes: runs `tauri android build --debug --target aarch64 --apk` to produce a **debug** APK for the CI gate and on-device smoke test
+7. Uploads the APK/AAB (tags) or debug APK (PRs/pushes) as build artifacts
 
 The `ios` job:
 
@@ -577,7 +577,7 @@ The `ios` job:
 5. Zips the built app
 6. Uploads as a build artifact
 
-Both jobs run on tag pushes (`v*`) and require the `test` job to pass first.
+The iOS job is currently disabled (`if: false`). The Android job requires the release keystore secrets (`ANDROID_KEYSTORE`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`) to be set on the repository to sign release artifacts; the debug APK does not need them.
 
 ### Manual Test Checklist
 
@@ -673,32 +673,30 @@ src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.
 
 **Important**: The debug APK uses `applicationIdSuffix = ".debug"` so it installs as `app.stratum.debug` alongside any release build. It is auto-signed with the debug keystore at `~/.android/debug.keystore`.
 
-### Release APK (unsigned, for distribution)
+### Release APK (signed, for distribution)
 
 ```bash
 npx tauri android build --target aarch64 --apk
 ```
 
-Release APKs are unsigned and must be signed before installation. The CI pipeline signs them using `apksigner` with a keystore from GitHub secrets.
+Release APKs and AABs are signed at build time by Gradle using the release signing config in `src-tauri/android-patches/app/build.gradle.kts`, which reads the keystore credentials from the environment (set by CI from GitHub secrets). For local release builds, set these before building:
+
+```bash
+export ANDROID_KEYSTORE=/path/to/release.keystore
+export ANDROID_KEYSTORE_PASSWORD=...
+export ANDROID_KEY_ALIAS=...
+export ANDROID_KEY_PASSWORD=...
+```
+
+If these are not set, the signing config falls back to the checked-in debug keystore (`src-tauri/android-patches/debug.keystore`) so local/CI builds still succeed.
 
 ### APK Signing
 
-The CI workflow (`.github/workflows/ci.yml`) signs release APKs with:
+Release signing happens inside the Gradle build (see `signingConfigs.release` in `src-tauri/android-patches/app/build.gradle.kts`). The CI workflow decodes the base64 `ANDROID_KEYSTORE` secret to a keystore file and exports the signing env vars, so release artifacts are signed with the production keystore. The signing config enables V1, V2, and V3 signing:
 
-```bash
-apksigner sign \
-  --v1-signing-enabled true \
-  --v2-signing-enabled true \
-  --v3-signing-enabled true \
-  --ks "$KEYSTORE_PATH" \
-  --ks-type PKCS12 \
-  --ks-pass "pass:$KEYSTORE_PASSWORD" \
-  --ks-key-alias "$KEY_ALIAS" \
-  --key-pass "pass:$KEY_PASSWORD" \
-  "$APK"
-```
-
-V2 signing is **required** for Android 11+ (API 30+) when `targetSdkVersion >= 30`. V1 provides backward compatibility.
+- V2 signing is **required** for Android 11+ (API 30+) when `targetSdkVersion >= 30`.
+- V1 provides backward compatibility for older Android versions.
+- V3 supports key rotation.
 
 ---
 
