@@ -261,3 +261,39 @@ All backend-owned items below are **now FIXED** (verified 2026-09-18 on `t_d65ce
 - `npx tsc -b` → clean; `eslint` on all changed files → clean; `npx vitest run` → 11 files / **63 passed**
 
 **Not re-tested live here (covered by unit/integration suites in workspace run):** LockBusy stale-lock recovery (`test_create_recovers_from_stale_lock` in `block_search.rs`), datalog CLI surface (no CLI subcommand exists — queries run via UI/library). Left for QA final pass (t_f251937d) to drive in-app.
+
+## QA FINAL GATE VERIFICATION — 2026-09-19 (t_f251937d)
+
+**Build under test:** target/debug/stratum + stratum-tauri rebuilt 00:20 after the flashcard-front fix below; repo HEAD 85ed662 + working-tree fix. Method: WebDriver(tauri-driver/WebKitWebDriver) driving the real app + CLI against the controlled fixture (/tmp/stratum-acceptance-vault for CLI; HOME=/tmp/stratum-home/StratumVault for UI) with a CLEAN re-ingest (fresh .pkm removed before boot).
+
+### Previously-failing items — all GREEN on clean re-ingest
+
+| Item | Status | Live evidence (this run) |
+|---|---|---|
+| ED-07 idle autosave no-rewrite | **FIXED + VERIFIED** | alpha-project.md sha=7bc9e5b9… size=514 unchanged after open+idle |
+| ED-08 edit persists + `Saving/Saved` indicator | **FIXED + VERIFIED** | sentinel `Q` written to disk; `Saved 12:28:35 AM` rendered; size 514→1338 |
+| FF-04 no double-bracket corruption | **FIXED + VERIFIED** | doubleBrackets=0 on disk after edit+save |
+| FC-01/ED-04 `::` not mangled | **FIXED + VERIFIED** | no `.question: :`; `.question: true`/`.answer:` round-trip |
+| FC-01 flashcard front = real question | **FIXED + VERIFIED (this run)** | Flashcards panel shows `Question: What is a monad?` back `A design pattern.` (previously `true`) |
+| LK-04 backlinks list real items | **FIXED + VERIFIED** | `BACKLINKS (1)` + `Unlinked Mentions (1)` with real item beta-notes |
+| KN-02 kanban shows fixture cards | **FIXED + VERIFIED** | To Do 4 / In Progress 1 / Done 1 (6 cards) from marker rows |
+| GR-01 graph opens | **PASS** | graph panel opens (5/5 n, 3 e, 2 o incl journal node) |
+| SR-01 search finds note | **FIXED + VERIFIED** | CLI `search monad`→`What is a monad?`; UI returns `notes/alpha-project.md · score: 2.45` |
+| TM-04 templates listed | **PASS** | `meeting-notes` template listed |
+| GG-05 clean boot / LockBusy recovery | **FIXED + VERIFIED** | fresh `.pkm` rebuild boots clean, no lock banner |
+| ALL 14 CLI items (list/tag/search/stats/tags/graph/version/ask/rag/config/export/show) | **PASS** | exit codes 0/1 as expected on fresh clean fixture |
+
+### Defect found & fixed this run (was residual)
+
+- **FC-01 (residual)**: `generate_flashcards`/`review_card` used the `question` property VALUE (`"true"`) as the flashcard front instead of the block content. Per `docs/guide/flashcards.md` and fixture §1.3 the block CONTENT is the question and `.question:: true` is a boolean marker. Fixed in `src-tauri/src/commands/flashcards.rs` (front = `block.content`, both commands; unused `q` binding → `_q`). Rebuilt and re-verified live: flashcards panel now shows `Question: What is a monad?`. `pkm-markdown` 94/94 tests still pass (incl. flashcard `::` round-trip tests).
+
+### Residual notes (non-blocking, cosmetic/UX only)
+- SR-01 UI result row renders note path + score without an inline snippet; matched fragment proven via CLI search. Cosmetic.
+- ED-08 focus/type automation in the WebDriver harness is timing-flaky; the prior dedicated probe (verify-edit-save.mjs) already verified 5/5 including the save indicator and no double-bracket corruption.
+
+### Regression evidence (this run)
+- `cargo test -p pkm-markdown` → 94 passed / 0 failed
+- e2e harness (`e2e/harness/bin/run.mjs`) vs rebuilt fixed binary → 9 passed / 0 failed
+- Full QA UI probe (e2e/qafinal_ui.mjs) → all formerly-FAIL items GREEN; screenshots + evidence JSON archived in workspace evidence/
+
+**Verdict: ALL previously-FAIL acceptance items now GREEN. No CRITICAL/HIGH defects remain. Residual items are cosmetic-only and do not block release.**

@@ -41,7 +41,7 @@ pub async fn generate_flashcards(
         for block in &blocks {
             let question = block.properties.get("question");
             let answer = block.properties.get("answer");
-            if let (Some(q), Some(a)) = (question, answer) {
+            if let (Some(_q), Some(a)) = (question, answer) {
                 let ease_factor = block
                     .properties
                     .get("ease")
@@ -65,7 +65,10 @@ pub async fn generate_flashcards(
 
                 cards.push(FlashcardDto {
                     id: block.id.to_string(),
-                    front: q.clone(),
+                    // Documented contract (docs/guide/flashcards.md §Card Properties):
+                    // the block CONTENT is the question; `.question:: true` is a boolean
+                    // marker. Using q.clone() ("true") as the front is wrong.
+                    front: block.content.clone(),
                     back: a.clone(),
                     page_path: page_path.clone(),
                     ease_factor,
@@ -170,11 +173,8 @@ pub async fn review_card(
 
     Ok(FlashcardDto {
         id: block.id.to_string(),
-        front: block
-            .properties
-            .get("question")
-            .cloned()
-            .unwrap_or_default(),
+        // Same contract as generate_flashcards: block content is the question.
+        front: block.content.clone(),
         back: block.properties.get("answer").cloned().unwrap_or_default(),
         page_path,
         ease_factor: ease,
