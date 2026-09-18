@@ -1,5 +1,4 @@
 import { useRef, memo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -14,9 +13,10 @@ import type { BacklinkItem } from '../../lib/types';
 import { useBacklinksData, usePreview } from './BacklinksPanel.shared';
 import type { BacklinksPanelProps } from './BacklinksPanel.shared';
 import BacklinkSnippetPopup from '../BacklinkSnippetPopup';
+import { useBacklinkNavigation } from '../../lib/backlinkNavigation';
 
 const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: BacklinksPanelProps) {
-  const navigate = useNavigate();
+  const navigateBacklink = useBacklinkNavigation();
   const { backlinks, loading, linked, unlinked } = useBacklinksData(pagePath);
   const { preview, showPreview, dismissPreview } = usePreview();
   const ctrlHeld = useCtrlHeld();
@@ -41,11 +41,12 @@ const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: 
   };
 
   const handleClick = (path: string) => (e: React.MouseEvent) => {
-    // Ctrl/Meta+click navigates; plain click is unchanged (also navigates, as
+    // Ctrl/Meta+click navigates while preserving the current editor scroll
+    // (so the user can return); plain click is unchanged (also navigates, as
     // before). Keeping the same action for both preserves existing behaviour.
     if (e.defaultPrevented) return;
     dismissPreview();
-    navigate(`/page/${encodeURIComponent(path)}`);
+    navigateBacklink(path, e);
   };
 
   return (
@@ -69,7 +70,7 @@ const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: 
                   <ListItemButton
                     key={bl.source_id || i}
                     dense
-                    onClick={handleClick(bl.source_page)}
+                    onClick={(e) => handleClick(bl.source_page)(e)}
                     onMouseEnter={(e) => handleMouseEnter(bl, e)}
                     onMouseLeave={handleMouseLeave}
                     sx={{ borderRadius: 1, flexDirection: 'column', alignItems: 'flex-start' }}
@@ -92,7 +93,7 @@ const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: 
                   <ListItemButton
                     key={bl.source_id || i}
                     dense
-                    onClick={handleClick(bl.source_page)}
+                    onClick={(e) => handleClick(bl.source_page)(e)}
                     onMouseEnter={(e) => handleMouseEnter(bl, e)}
                     onMouseLeave={handleMouseLeave}
                     sx={{ borderRadius: 1, flexDirection: 'column', alignItems: 'flex-start' }}
