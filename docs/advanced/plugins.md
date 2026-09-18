@@ -496,9 +496,14 @@ Presently recognized hook names and their host call signatures:
 | any other `on*` | `{"args": []}` | `<name>` |
 
 Hook dispatch runs synchronously within the triggering host operation; a hook
-that traps logs the error and does not abort the surrounding operation. This is
-defined for future consumers; hook **delivery** is implemented in the E3
-integration task.
+that traps logs the error and does not abort the surrounding operation. **Hook
+delivery:** `onSave` and `onLink` are dispatched from the page save flow
+(`dispatch_on_save` / `dispatch_on_link` — the link targets are extracted from
+the saved content via `pkm_markdown::linker::extract_links`). `onOpen` is
+dispatched from the page open flow (`dispatch_on_open` in `open_page`), and
+`onSearch` from the full-text search flow (`dispatch_on_search` in
+`search_blocks`). Any hook that traps or fails is logged and skipped — it never
+aborts the surrounding operation.
 
 ## 9. Tauri command surface
 

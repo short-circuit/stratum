@@ -102,6 +102,7 @@ nav:
     - guide/web-research.md
     - guide/git-sync.md
     - guide/export.md
+    - guide/plugins.md
   - CLI Reference:
     - cli/command-reference.md
   - Advanced:

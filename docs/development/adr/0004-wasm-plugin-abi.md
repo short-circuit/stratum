@@ -106,6 +106,15 @@ task (`t_e132158a`) must expose it through the documented Tauri command surface.
 - Contract stability is a release-blocking criterion: the `HostFunction` enum and
   the four import names are ABI-frozen for the v0.7.x series.
 
+## Status of this ADR
+
+Implemented and verified as of commit `e1af45f` (epic E3): the host functions
+are real (see `crates/pkm-plugin/src/host.rs`), the crate is linked into and
+wired through `src-tauri` (`PluginManager`, Tauri plugin commands, vault
+startup scan), the management UI exists, and the contract is exercised
+end-to-end by `crates/pkm-tests/tests/plugin_e2e.rs`. The `Context` section
+above describes the state at decision time and is retained for the record.
+
 ## References
 
 - API specification: `docs/advanced/plugins.md` (normative).
