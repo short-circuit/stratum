@@ -478,6 +478,13 @@ pub async fn open_page(path: String, state: tauri::State<'_, AppState>) -> Resul
         (pkm_core::Frontmatter::default(), 0)
     };
 
+    // Dispatch the `onOpen` hook to enabled plugins that declare it (spec §8).
+    // Runs synchronously; a trapping plugin logs and is skipped, never aborting
+    // the page open.
+    if let Some(manager) = state.plugin_manager.as_deref() {
+        crate::commands::plugins::dispatch_on_open(manager, &path);
+    }
+
     Ok(PageDto {
         path: path.clone(),
         slug,
@@ -566,6 +573,14 @@ pub async fn save_page(
     // the save.
     if let Some(manager) = state.plugin_manager.as_deref() {
         crate::commands::plugins::dispatch_on_save(manager, &path, &content);
+        // Dispatch `onLink` with the wiki-link targets found in the saved
+        // content. Link edits (adding/removing `[[…]]`) reach the host through
+        // this save path.
+        let links: Vec<String> = pkm_markdown::linker::extract_links(&content)
+            .into_iter()
+            .map(|l| l.target)
+            .collect();
+        crate::commands::plugins::dispatch_on_link(manager, &path, &links);
     }
 
     Ok(())

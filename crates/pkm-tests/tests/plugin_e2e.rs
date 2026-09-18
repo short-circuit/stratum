@@ -127,6 +127,12 @@ const SAMPLE_PLUGIN_WAT: &str = r#"
         (func (export "onOpen") (param i32 i32) (result i32)
             (call $dispatch (local.get 0) (local.get 1))
         )
+        (func (export "onLink") (param i32 i32) (result i32)
+            (call $dispatch (local.get 0) (local.get 1))
+        )
+        (func (export "onSearch") (param i32 i32) (result i32)
+            (call $dispatch (local.get 0) (local.get 1))
+        )
     )
 "#;
 
@@ -142,7 +148,7 @@ const SAMPLE_MANIFEST_JSON: &str = r#"{
     "description": "Sample plugin used by the plugin system E2E tests",
     "entry": "plugin.wasm",
     "permissions": ["file:read", "file:write", "network"],
-    "hooks": { "onSave": true, "onOpen": true }
+    "hooks": { "onSave": true, "onOpen": true, "onLink": true, "onSearch": true }
 }"#;
 
 /// Build the sample plugin's real binary `.wasm`: parse the WAT source with
@@ -815,4 +821,185 @@ fn manager_no_vault_plugins_is_empty() {
     let manager = PluginManager::init_for_vault(&vault.root).expect("init_for_vault");
     assert!(manager.is_empty());
     assert_eq!(manager.list().plugins.len(), 0);
+}
+
+// ---------------------------------------------------------------------------
+// Hook delivery tests (onOpen / onLink / onSearch)
+// ---------------------------------------------------------------------------
+
+/// WAT source for a plugin that exports `onOpen`, `onLink`, `onSearch`, and
+/// `onSave`, each returning the raw payload length and leaving the input
+/// payload in memory so the host reads it back verbatim. This lets the tests
+/// assert the exact payload JSON the host delivered to each hook.
+const ECHO_HOOKS_WAT: &str = r#"
+    (module
+        (memory (export "memory") 1)
+        (func (export "onOpen") (param i32 i32) (result i32)
+            local.get 1
+        )
+        (func (export "onLink") (param i32 i32) (result i32)
+            local.get 1
+        )
+        (func (export "onSearch") (param i32 i32) (result i32)
+            local.get 1
+        )
+        (func (export "onSave") (param i32 i32) (result i32)
+            local.get 1
+        )
+    )
+"#;
+
+/// The embedded manifest for the echo plugin, declaring all four hooks.
+const ECHO_MANIFEST_JSON: &str = r#"{
+    "schema_version": 1,
+    "id": "com.example.echo-hooks",
+    "name": "Echo Hooks",
+    "version": "0.1.0",
+    "author": "stratum-test",
+    "description": "Echoes hook payloads verbatim for delivery tests",
+    "entry": "plugin.wasm",
+    "permissions": [],
+    "hooks": { "onOpen": true, "onLink": true, "onSearch": true, "onSave": true }
+}"#;
+
+fn echo_plugin_wasm() -> Vec<u8> {
+    let module = wat::parse_str(ECHO_HOOKS_WAT).expect("echo hooks WAT must parse");
+    append_custom_section(&module, "stratum:manifest", ECHO_MANIFEST_JSON.as_bytes())
+}
+
+/// Install the echo plugin into the vault layout and return its id.
+fn install_echo_plugin(vault: &TestVault) -> String {
+    let dir = vault
+        .root
+        .join(".pkm")
+        .join("plugins")
+        .join("com.example.echo-hooks");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("plugin.wasm"), echo_plugin_wasm()).unwrap();
+    "com.example.echo-hooks".to_string()
+}
+
+/// Init a manager with the echo plugin enabled, plus the given extra config.
+fn manager_with_echo(
+    vault: &TestVault,
+) -> std::sync::Arc<app_lib::commands::plugins::PluginManager> {
+    use app_lib::commands::plugins::PluginManager;
+    install_echo_plugin(vault);
+    let pkm_dir = vault.root.join(".pkm");
+    let config = "\n[[plugins]]\nname = \"com.example.echo-hooks\"\nenabled = true\nwasm_path = \".pkm/plugins/com.example.echo-hooks/plugin.wasm\"\npermissions = []\n";
+    std::fs::write(pkm_dir.join("config.toml"), config).unwrap();
+    PluginManager::init_for_vault(&vault.root).expect("init_for_vault")
+}
+
+#[test]
+fn dispatch_on_open_delivers_path_payload() {
+    use app_lib::commands::plugins::dispatch_on_open;
+
+    let vault = TestVault::new();
+    let manager = manager_with_echo(&vault);
+    assert!(manager.has_hook("onOpen"));
+
+    let results = dispatch_on_open(&manager, "notes/welcome.md");
+    assert_eq!(results.len(), 1);
+    let (id, out) = &results[0];
+    assert_eq!(id, "com.example.echo-hooks");
+    let out = out.as_ref().expect("hook must succeed");
+    // The echo plugin returns the payload bytes verbatim: `{"path":"notes/welcome.md"}`.
+    let value: serde_json::Value = serde_json::from_str(out).expect("valid JSON payload");
+    assert_eq!(value["path"], "notes/welcome.md");
+}
+
+#[test]
+fn dispatch_on_link_delivers_path_and_links_payload() {
+    use app_lib::commands::plugins::dispatch_on_link;
+
+    let vault = TestVault::new();
+    let manager = manager_with_echo(&vault);
+    assert!(manager.has_hook("onLink"));
+
+    let results = dispatch_on_link(
+        &manager,
+        "notes/a.md",
+        &["Target A".to_string(), "Target B".to_string()],
+    );
+    assert_eq!(results.len(), 1);
+    let (id, out) = &results[0];
+    assert_eq!(id, "com.example.echo-hooks");
+    let out = out.as_ref().expect("hook must succeed");
+    let value: serde_json::Value = serde_json::from_str(out).expect("valid JSON payload");
+    assert_eq!(value["path"], "notes/a.md");
+    assert_eq!(value["links"][0], "Target A");
+    assert_eq!(value["links"][1], "Target B");
+}
+
+#[test]
+fn dispatch_on_search_delivers_query_and_limit_payload() {
+    use app_lib::commands::plugins::dispatch_on_search;
+
+    let vault = TestVault::new();
+    let manager = manager_with_echo(&vault);
+    assert!(manager.has_hook("onSearch"));
+
+    let results = dispatch_on_search(&manager, "query text", 42);
+    assert_eq!(results.len(), 1);
+    let (id, out) = &results[0];
+    assert_eq!(id, "com.example.echo-hooks");
+    let out = out.as_ref().expect("hook must succeed");
+    let value: serde_json::Value = serde_json::from_str(out).expect("valid JSON payload");
+    assert_eq!(value["query"], "query text");
+    assert_eq!(value["limit"], 42);
+}
+
+#[test]
+fn dispatch_hooks_noop_when_plugin_declares_but_does_not_export() {
+    use app_lib::commands::plugins::{dispatch_on_open, dispatch_on_search};
+
+    // A plugin that declares onOpen/onSearch but does not export them: the
+    // runtime's `run_plugin` returns an error (missing export), which the
+    // manager logs and swallows — the surrounding operation must not fail.
+    let vault = TestVault::new();
+    let dir = vault
+        .root
+        .join(".pkm")
+        .join("plugins")
+        .join("com.example.empty-hooks");
+    std::fs::create_dir_all(&dir).unwrap();
+    // Minimal valid WASM module (no exports at all).
+    const EMPTY: &[u8] = &[0x00, 0x61, 0x73, 0x6D, 0x01, 0x00, 0x00, 0x00];
+    std::fs::write(dir.join("plugin.wasm"), EMPTY).unwrap();
+    let manifest = r#"{
+        "schema_version": 1,
+        "id": "com.example.empty-hooks",
+        "name": "Empty Hooks",
+        "version": "0.1.0",
+        "entry": "plugin.wasm",
+        "permissions": [],
+        "hooks": { "onOpen": true, "onSearch": true }
+    }"#;
+    let json_path = dir.join("plugin.wasm.manifest.json");
+    std::fs::write(&json_path, manifest).unwrap();
+
+    let pkm_dir = vault.root.join(".pkm");
+    let config = "\n[[plugins]]\nname = \"com.example.empty-hooks\"\nenabled = true\nwasm_path = \".pkm/plugins/com.example.empty-hooks/plugin.wasm\"\npermissions = []\n";
+    std::fs::write(pkm_dir.join("config.toml"), config).unwrap();
+
+    let manager = app_lib::commands::plugins::PluginManager::init_for_vault(&vault.root)
+        .expect("init_for_vault");
+    assert!(manager.has_hook("onOpen"));
+    assert!(manager.has_hook("onSearch"));
+
+    // Dispatch must not panic or abort — a missing guest export is a logged no-op.
+    let open = dispatch_on_open(&manager, "notes/x.md");
+    assert_eq!(open.len(), 1);
+    assert!(
+        open[0].1.is_none(),
+        "missing export yields None (logged, swallowed)"
+    );
+
+    let search = dispatch_on_search(&manager, "q", 1);
+    assert_eq!(search.len(), 1);
+    assert!(
+        search[0].1.is_none(),
+        "missing export yields None (logged, swallowed)"
+    );
 }

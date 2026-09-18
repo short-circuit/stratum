@@ -10,9 +10,10 @@ import type {
 // WASM plugin Tauri command wrappers.
 //
 // These call the commands defined by docs/advanced/plugins.md §9 (normative
-// contract, implemented in src-tauri/src/commands/plugins.rs). The backend
-// integration lands with E3, so until `invoke` is available/wired we fall
-// back to an in-memory mock so the UI is usable and testable standalone.
+// contract, implemented in src-tauri/src/commands/plugins.rs). When the Tauri
+// backend is unavailable (e.g. running the web UI outside the desktop shell),
+// `callOrMock` falls back to an in-memory mock so the UI remains usable and
+// testable standalone.
 
 const BACKEND_READY: boolean = (() => {
   try {
