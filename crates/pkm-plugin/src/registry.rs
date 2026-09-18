@@ -357,6 +357,62 @@ impl PluginRegistry {
         Ok(manifest)
     }
 
+    /// Install a plugin from a source WASM file into the vault plugin directory.
+    ///
+    /// Copies `<src>.wasm` (and an optional sibling `<src>.wasm.manifest.json`)
+    /// into `<dest_plugins_dir>/<id>/` using the canonical layout (`plugin.wasm`
+    /// [+ sidecar]), reading the manifest (embedded preferred, else sidecar,
+    /// else the source file stem as fallback identity) to determine `id`. The
+    /// plugin is registered **disabled** by default (spec §7.3: a plugin absent
+    /// from the config enable list is loaded disabled). Re-installing an
+    /// existing id overwrites the previous installation (upgrade path).
+    ///
+    /// Returns the canonical manifest of the installed plugin.
+    pub fn install_from_path(
+        &mut self,
+        src_wasm: &Path,
+        dest_plugins_dir: &Path,
+    ) -> Result<PluginManifest, RegistryError> {
+        if !src_wasm.is_file() {
+            return Err(RegistryError::NotFound(format!(
+                "source WASM not found: {}",
+                src_wasm.display()
+            )));
+        }
+        let wasm_bytes = std::fs::read(src_wasm)?;
+        // Fall back to the source file stem when no manifest is present so a
+        // bare `.wasm` can still be installed (a synthesized minimal manifest).
+        let fallback = src_wasm
+            .file_stem()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let manifest = self.read_manifest(&wasm_bytes, src_wasm, &fallback)?;
+        let id = manifest.id.clone();
+
+        // Canonical destination: `<plugins_dir>/<id>/plugin.wasm`. The id is
+        // filesystem-safe (validated: ASCII alphanumeric + `._-`).
+        let dest_dir = dest_plugins_dir.join(&id);
+        std::fs::create_dir_all(&dest_dir)?;
+        let dest_wasm = dest_dir.join("plugin.wasm");
+        std::fs::copy(src_wasm, &dest_wasm)?;
+        // Copy the sidecar manifest as well when present, so the canonical
+        // install is self-describing on disk.
+        let src_sidecar = src_wasm.with_extension("wasm.manifest.json");
+        if src_sidecar.is_file() {
+            std::fs::copy(&src_sidecar, dest_dir.join("plugin.wasm.manifest.json"))?;
+        }
+
+        let state = PluginState::new_in(manifest.clone(), wasm_bytes, false, dest_dir);
+        self.insert(state);
+        info!(
+            "Installed plugin: {} ({}) -> {}",
+            id,
+            manifest.name,
+            dest_wasm.display()
+        );
+        Ok(manifest)
+    }
+
     /// Read and validate a manifest from embedded or sidecar sources.
     fn read_manifest(
         &self,
@@ -483,6 +539,26 @@ impl PluginRegistry {
         if self.plugins.remove(id).is_some() {
             info!("Unloaded plugin: {}", id);
         }
+    }
+
+    /// Uninstall a plugin by id: unload it from the registry, clear any
+    /// recorded load failure, and remove its persisted directory from the
+    /// vault plugin directory (`<plugins_dir>/<id>/`).
+    ///
+    /// Removing a plugin that is not loaded is still considered a success for
+    /// the directory removal portion. Returns whether the directory existed.
+    pub fn uninstall(&mut self, id: &str, plugins_dir: &Path) -> Result<bool, RegistryError> {
+        self.plugins.remove(id);
+        self.failed.remove(id);
+        let dir = plugins_dir.join(id);
+        let existed = dir.is_dir();
+        if existed {
+            std::fs::remove_dir_all(&dir)?;
+            info!("Uninstalled plugin: {}", id);
+        } else {
+            info!("Uninstall `{}`: no plugin directory present", id);
+        }
+        Ok(existed)
     }
 
     /// Get a reference to a loaded plugin's state by id.
@@ -1027,5 +1103,122 @@ mod tests {
         let back: PluginManifest = serde_json::from_str(&json).unwrap();
         assert_eq!(back.id, "com.example.round");
         assert!(back.hook_enabled("onSave"));
+    }
+
+    // -----------------------------------------------------------------------
+    // install_from_path / uninstall
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_install_from_path_copies_and_registers_disabled() {
+        let dir = TempDir::new().unwrap();
+        let plugins_root = dir.path().join(".pkm").join("plugins");
+
+        // Source: a wasm with an embedded manifest, plus a sibling source file.
+        let json = r#"{"schema_version":1,"id":"com.example.inst","name":"Inst","version":"1.0.0","permissions":["file:read"],"hooks":{"onSave":true}}"#;
+        let src_dir = dir.path().join("src");
+        std::fs::create_dir_all(&src_dir).unwrap();
+        let src_wasm = src_dir.join("myplugin.wasm");
+        std::fs::write(&src_wasm, wasm_with_embedded_manifest(json)).unwrap();
+
+        let mut registry = PluginRegistry::new();
+        let manifest = registry
+            .install_from_path(&src_wasm, &plugins_root)
+            .expect("install must succeed");
+        assert_eq!(manifest.id, "com.example.inst");
+        assert_eq!(manifest.name, "Inst");
+
+        // Registered, keyed by id, disabled by default.
+        assert_eq!(registry.len(), 1);
+        let state = registry
+            .get("com.example.inst")
+            .expect("must be registered");
+        assert!(
+            !state.enabled,
+            "new installs are disabled by default (spec §7.3)"
+        );
+        assert_eq!(state.manifest.entry, "plugin.wasm");
+
+        // Files copied into the canonical canonical layout.
+        let dest_wasm = plugins_root.join("com.example.inst").join("plugin.wasm");
+        assert!(dest_wasm.is_file(), "canonical plugin.wasm must be copied");
+        // The source wasm still exists.
+        assert!(src_wasm.is_file());
+    }
+
+    #[test]
+    fn test_install_from_path_missing_source_errors() {
+        let dir = TempDir::new().unwrap();
+        let mut registry = PluginRegistry::new();
+        let missing = dir.path().join("does-not-exist.wasm");
+        let err = registry
+            .install_from_path(&missing, &dir.path().join("plugins"))
+            .expect_err("missing source must fail");
+        assert!(matches!(err, RegistryError::NotFound(_)));
+    }
+
+    #[test]
+    fn test_install_reinstall_overwrites_previous() {
+        let dir = TempDir::new().unwrap();
+        let plugins_root = dir.path().join(".pkm").join("plugins");
+        let src_dir = dir.path().join("src");
+        std::fs::create_dir_all(&src_dir).unwrap();
+        let src_wasm = src_dir.join("upgrade.wasm");
+
+        let v1 = r#"{"schema_version":1,"id":"com.example.upg","name":"Upg","version":"1.0.0","permissions":[],"hooks":{}}"#;
+        std::fs::write(&src_wasm, wasm_with_embedded_manifest(v1)).unwrap();
+        let mut registry = PluginRegistry::new();
+        registry
+            .install_from_path(&src_wasm, &plugins_root)
+            .expect("first install");
+        assert_eq!(registry.len(), 1);
+
+        // Re-install with a newer version from the same id.
+        let v2 = r#"{"schema_version":1,"id":"com.example.upg","name":"Upg","version":"2.0.0","permissions":[],"hooks":{}}"#;
+        std::fs::write(&src_wasm, wasm_with_embedded_manifest(v2)).unwrap();
+        registry
+            .install_from_path(&src_wasm, &plugins_root)
+            .expect("reinstall");
+        assert_eq!(registry.len(), 1, "reinstall must not duplicate");
+        let state = registry.get("com.example.upg").unwrap();
+        assert_eq!(state.manifest.version, "2.0.0");
+    }
+
+    #[test]
+    fn test_uninstall_removes_registry_and_directory() {
+        let dir = TempDir::new().unwrap();
+        let plugins_root = dir.path().join(".pkm").join("plugins");
+        let src_dir = dir.path().join("src");
+        std::fs::create_dir_all(&src_dir).unwrap();
+        let src_wasm = src_dir.join("kill.wasm");
+        let json = r#"{"schema_version":1,"id":"com.example.kill","name":"Kill","version":"1.0.0","permissions":[],"hooks":{}}"#;
+        std::fs::write(&src_wasm, wasm_with_embedded_manifest(json)).unwrap();
+
+        let mut registry = PluginRegistry::new();
+        registry
+            .install_from_path(&src_wasm, &plugins_root)
+            .expect("install before uninstall");
+
+        assert!(plugins_root
+            .join("com.example.kill")
+            .join("plugin.wasm")
+            .is_file());
+        let existed = registry
+            .uninstall("com.example.kill", &plugins_root)
+            .expect("uninstall must succeed");
+        assert!(existed);
+        assert!(registry.is_empty());
+        assert!(!plugins_root.join("com.example.kill").exists());
+    }
+
+    #[test]
+    fn test_uninstall_unknown_id_is_noop() {
+        let dir = TempDir::new().unwrap();
+        let mut registry = PluginRegistry::new();
+        let existed = registry
+            .uninstall("com.example.unknown", &dir.path().join("plugins"))
+            .expect("uninstall of unknown id must not error");
+        assert!(!existed);
+        assert!(registry.is_empty());
     }
 }

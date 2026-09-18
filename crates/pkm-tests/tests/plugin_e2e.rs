@@ -823,6 +823,80 @@ fn manager_no_vault_plugins_is_empty() {
     assert_eq!(manager.list().plugins.len(), 0);
 }
 
+#[test]
+fn manager_install_uninstall_roundtrips_through_registry_and_disk() {
+    use app_lib::commands::plugins::PluginManager;
+
+    let vault = TestVault::new();
+    let manager = PluginManager::init_for_vault(&vault.root).expect("init_for_vault");
+    assert!(manager.is_empty());
+
+    // Source plugin: a real binary `.wasm` (embedded manifest) in a staging dir.
+    let staging = vault.root.join("staging");
+    std::fs::create_dir_all(&staging).unwrap();
+    let src_wasm = staging.join("sample.wasm");
+    std::fs::write(&src_wasm, sample_plugin_wasm()).unwrap();
+
+    // Install through the PluginManager (the API the plugins_install Tauri
+    // command delegates to).
+    let installed = manager.install(&src_wasm).expect("install");
+    assert_eq!(installed.id, "com.example.sample-e2e");
+    assert!(!installed.enabled, "fresh installs are disabled by default");
+    assert_eq!(installed.status, "disabled");
+    assert_eq!(manager.len(), 1);
+
+    // The canonical plugin dir + config entry now exist on disk.
+    let canonical = vault
+        .root
+        .join(".pkm")
+        .join("plugins")
+        .join("com.example.sample-e2e")
+        .join("plugin.wasm");
+    assert!(canonical.is_file(), "canonical plugin.wasm must be on disk");
+    let config_toml = vault.root.join(".pkm").join("config.toml");
+    assert!(config_toml.is_file(), "install must persist a config entry");
+    let config = pkm_core::Config::load(&config_toml).expect("config loads");
+    assert!(
+        config
+            .plugins
+            .iter()
+            .any(|p| p.name == "com.example.sample-e2e"),
+        "config must list the installed plugin"
+    );
+
+    // A re-scan sees the installed plugin (round-trip through the registry).
+    let reopened = PluginManager::init_for_vault(&vault.root).expect("reopen");
+    assert_eq!(reopened.len(), 1);
+    assert_eq!(
+        reopened
+            .status("com.example.sample-e2e")
+            .expect("visible")
+            .status,
+        "disabled"
+    );
+
+    // Enable, then uninstall through the manager. Uninstall returns the updated
+    // list and removes both the directory and the config entry.
+    let enabled = manager.enable("com.example.sample-e2e").expect("enable");
+    assert!(enabled.enabled);
+    let after = manager
+        .uninstall("com.example.sample-e2e")
+        .expect("uninstall");
+    assert!(after.plugins.is_empty());
+    assert!(
+        !canonical.exists(),
+        "plugin dir must be removed on uninstall"
+    );
+    let config_after = pkm_core::Config::load(&config_toml).expect("config still loads");
+    assert!(
+        !config_after
+            .plugins
+            .iter()
+            .any(|p| p.name == "com.example.sample-e2e"),
+        "config entry must be removed on uninstall"
+    );
+}
+
 // ---------------------------------------------------------------------------
 // Hook delivery tests (onOpen / onLink / onSearch)
 // ---------------------------------------------------------------------------

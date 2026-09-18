@@ -133,6 +133,58 @@ export async function pluginsStatus(id: string): Promise<PluginInfoDto> {
   });
 }
 
+export async function pluginsInstall(path: string): Promise<PluginInfoDto> {
+  return callOrMock(
+    'plugins_install',
+    { path },
+    () => {
+      // The mock treats install as adding a synthetic plugin keyed by the
+      // path's basename so the list round-trips inside the UI.
+      const id = `installed-${path.split(/[\\/]/).pop() ?? 'plugin'}`.replace(/\.wasm$/i, '');
+      const existing = mockStore[id];
+      const added: PluginInfoDto = existing ?? {
+        id,
+        name: id,
+        version: '0.1.0',
+        status: 'disabled',
+        enabled: false,
+        permissions: [],
+      };
+      mockStore = { ...mockStore, [id]: { ...added, status: 'disabled', enabled: false } };
+      return mockStore[id];
+    },
+  );
+}
+
+export async function pluginsUninstall(id: string): Promise<PluginListResultDto> {
+  return callOrMock('plugins_uninstall', { id }, () => {
+    const next = Object.values(mockStore).filter(p => p.id !== id);
+    mockStore = Object.fromEntries(next.map(p => [p.id, { ...p }]));
+    return { plugins: rebuildMockStatus(next.map(p => ({ ...p }))) };
+  });
+}
+
+/**
+ * Open the OS file picker for a `.wasm` plugin, then install it. Desktop-only;
+ * outside the Tauri shell (tests / plain browser) it falls back to a mock
+ * install keyed by a prompt-provided name so the UI remains testable.
+ */
+export async function pluginsInstallFromFile(): Promise<PluginInfoDto | null> {
+  if (!BACKEND_READY) {
+    const name = window.prompt?.('Plugin .wasm file name (mock install)') ?? null;
+    if (!name) return null;
+    return pluginsInstall(name);
+  }
+  const { open } = await import('@tauri-apps/plugin-dialog');
+  const selection = await open({
+    multiple: false,
+    filters: [{ name: 'WASM plugin', extensions: ['wasm'] }],
+  });
+  if (!selection) return null;
+  const path = Array.isArray(selection) ? selection[0] : selection;
+  return pluginsInstall(path);
+}
+
 export async function pluginNoteRead(path: string): Promise<PluginNoteReadDto> {
   return callOrMock('plugin_note_read', { path }, async () => {
     const mtime = new Date().toISOString();

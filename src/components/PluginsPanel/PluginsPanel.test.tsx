@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import PluginsPanelDesktop from './PluginsPanel.desktop';
 
 function cardOf(name: string): HTMLElement {
@@ -67,5 +67,35 @@ describe('PluginsPanelDesktop', () => {
       expect(screen.getByText('Developer Dashboard')).toBeInTheDocument();
     });
     expect(screen.queryByText(/Failed on/)).not.toBeInTheDocument();
+  });
+
+  it('installs a plugin through the Install action', async () => {
+    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue('extras.wasm');
+    render(<PluginsPanelDesktop />);
+    await waitFor(() => {
+      expect(screen.getByText('Developer Dashboard')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Install' }));
+
+    await waitFor(() => {
+      expect(promptSpy).toHaveBeenCalled();
+      expect(screen.getAllByText('installed-extras').length).toBeGreaterThan(0);
+    });
+    promptSpy.mockRestore();
+  });
+
+  it('uninstalls a plugin from its card', async () => {
+    render(<PluginsPanelDesktop />);
+    await waitFor(() => {
+      expect(screen.getByText('Daily Summary')).toBeInTheDocument();
+    });
+
+    const card = cardOf('Daily Summary');
+    fireEvent.click(within(card).getByRole('button', { name: 'Uninstall' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Daily Summary')).not.toBeInTheDocument();
+    });
   });
 });

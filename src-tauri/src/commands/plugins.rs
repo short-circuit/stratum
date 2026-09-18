@@ -3,7 +3,8 @@
 //! Implements the normative Tauri command surface from
 //! `docs/advanced/plugins.md` §9 (ADR-0004): `plugins_list`, `plugins_enable`,
 //! `plugins_disable`, `plugins_reload`, `plugins_status`, `plugin_note_read`,
-//! `plugin_http_request`. Command names, argument names, and DTO shapes are
+//! `plugin_http_request`, plus the F-series lifecycle commands `plugins_install`
+//! and `plugins_uninstall`. Command names, argument names, and DTO shapes are
 //! ABI-frozen for the v0.7.x series.
 //!
 //! The [`PluginManager`] owns the process-wide plugin runtime and the per-vault
@@ -260,6 +261,70 @@ impl PluginManager {
         }
     }
 
+    /// Install a plugin from a WASM file path into the vault plugin directory
+    /// (`<vault>/.pkm/plugins/<id>/`) and register it in the registry.
+    ///
+    /// The source may be a canonical `.wasm` (embedded `stratum:manifest`) or a
+    /// bare `.wasm` with a sibling `.wasm.manifest.json` sidecar. The installation
+    /// fails fast if the module does not compile or the manifest is invalid.
+    ///
+    /// A freshly installed plugin is **disabled** by default (consistent with
+    /// spec §7.3: plugins absent from the config enable list are loaded
+    /// disabled). Re-installing an id that is already enabled in the config
+    /// keeps it enabled (upgrade path).
+    pub fn install(&self, src_wasm: &Path) -> Result<PluginInfo, String> {
+        if !src_wasm.is_file() {
+            return Err(format!(
+                "plugin_not_found: source WASM not found at {}",
+                src_wasm.display()
+            ));
+        }
+        let plugins_dir = self.vault_root.join(".pkm").join("plugins");
+        std::fs::create_dir_all(&plugins_dir).map_err(|e| e.to_string())?;
+
+        let mut reg = self.registry.lock().map_err(|e| e.to_string())?;
+        let manifest = reg
+            .install_from_path(src_wasm, &plugins_dir)
+            .map_err(|e| format!("plugin_load_error: {e}"))?;
+        let id = manifest.id.clone();
+
+        // Fail fast on a module that does not compile.
+        let state = reg
+            .get(&id)
+            .ok_or_else(|| format!("plugin_load_error: install did not register `{id}`"))?
+            .clone();
+        self.runtime
+            .compile(&state.wasm_bytes)
+            .map_err(|e| format!("plugin_load_error: {e}"))?;
+
+        // Persist install state to config. A fresh install is disabled unless
+        // the id is already present in the config enable list (upgrade path).
+        let enabled = Self::enabled_ids_from_config(&self.vault_root).contains(&id);
+        if let Some(s) = reg.get_mut(&id) {
+            s.enabled = enabled;
+        }
+        drop(reg);
+        self.persist_installed(&id, enabled)?;
+
+        info!("[stratum] Installed plugin `{id}` (enabled={enabled})");
+        self.status(&id)
+            .ok_or_else(|| format!("plugin_load_error: `{id}` not visible after install"))
+    }
+
+    /// Uninstall a plugin by id: unload it from the registry, clear any
+    /// recorded failure, remove its persisted directory, and remove the
+    /// plugin from the vault config.
+    pub fn uninstall(&self, id: &str) -> Result<PluginListResult, String> {
+        let plugins_dir = self.vault_root.join(".pkm").join("plugins");
+        let mut reg = self.registry.lock().map_err(|e| e.to_string())?;
+        reg.uninstall(id, &plugins_dir)
+            .map_err(|e| format!("plugin_uninstall_error: {e}"))?;
+        drop(reg);
+        self.remove_from_config(id)?;
+        info!("[stratum] Uninstalled plugin `{id}`");
+        Ok(self.list())
+    }
+
     /// Run an enabled plugin's hook with the given payload, logging failures
     /// without aborting the surrounding operation (spec §8). Returns the
     /// plugin's JSON response if any.
@@ -361,6 +426,49 @@ impl PluginManager {
         Ok(())
     }
 
+    /// Record an installation in the vault config so a subsequent scan sees the
+    /// plugin (as enabled or disabled). Creates the config file if absent.
+    fn persist_installed(&self, id: &str, enabled: bool) -> Result<(), String> {
+        let config_path = self.vault_root.join(".pkm").join("config.toml");
+        let mut config = match pkm_core::Config::load(&config_path) {
+            Ok(c) => c,
+            Err(_) if !config_path.exists() => pkm_core::Config::default(),
+            Err(e) => return Err(e.to_string()),
+        };
+        // Replace any existing entry (keeps a single row per id).
+        config.plugins.retain(|p| p.name != id);
+        config.plugins.push(pkm_core::config::PluginConfig {
+            name: id.to_string(),
+            enabled,
+            wasm_path: self
+                .vault_root
+                .join(".pkm")
+                .join("plugins")
+                .join(id)
+                .join("plugin.wasm"),
+            permissions: Vec::new(),
+        });
+        config.save(&config_path).map_err(|e| e.to_string())?;
+        info!("[stratum] Persisted installed plugin `{id}` enabled={enabled}");
+        Ok(())
+    }
+
+    /// Remove a plugin from the vault config entirely (uninstall path).
+    fn remove_from_config(&self, id: &str) -> Result<(), String> {
+        let config_path = self.vault_root.join(".pkm").join("config.toml");
+        if !config_path.exists() {
+            return Ok(());
+        }
+        let mut config = pkm_core::Config::load(&config_path).map_err(|e| e.to_string())?;
+        let before = config.plugins.len();
+        config.plugins.retain(|p| p.name != id);
+        if config.plugins.len() != before {
+            config.save(&config_path).map_err(|e| e.to_string())?;
+        }
+        info!("[stratum] Removed plugin `{id}` from config");
+        Ok(())
+    }
+
     /// The set of plugin ids currently enabled in the vault config.
     /// Returns empty if no config exists.
     pub fn enabled_ids_from_config(vault_root: &Path) -> HashSet<String> {
@@ -449,6 +557,39 @@ pub async fn plugins_status(
     manager
         .status(&id)
         .ok_or_else(|| format!("plugin_not_found: `{id}`"))
+}
+
+/// §9.8 (F-series) — Install a plugin from a WASM file path.
+///
+/// Copies the source (with an optional sibling `.wasm.manifest.json`) into
+/// `<vault>/.pkm/plugins/<id>/` and registers it. The path is validated and
+/// the module must compile; otherwise `plugin_load_error` is returned. A new
+/// install is disabled by default; re-installing an id already enabled in the
+/// config keeps it enabled.
+#[tauri::command]
+pub async fn plugins_install(
+    path: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<PluginInfo, String> {
+    let locked = state.lock().map_err(|e| e.to_string())?;
+    let manager = get_manager(&locked)?;
+    drop(locked);
+    manager.install(std::path::Path::new(&path))
+}
+
+/// §9.9 (F-series) — Uninstall a plugin by id.
+///
+/// Unloads the plugin from the registry, removes its directory and config
+/// entry, and returns the updated plugin list.
+#[tauri::command]
+pub async fn plugins_uninstall(
+    id: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<PluginListResult, String> {
+    let locked = state.lock().map_err(|e| e.to_string())?;
+    let manager = get_manager(&locked)?;
+    drop(locked);
+    manager.uninstall(&id)
 }
 
 /// §9.6 — Run the same `note_read` backend used by plugins, without a plugin.
@@ -696,5 +837,120 @@ permissions = ["file:read", "network"]
             .expect("failed plugin still visible");
         assert_eq!(info.status, "error");
         assert!(info.error.is_some(), "error detail must be surfaced");
+    }
+
+    /// Write a source `.wasm` + sidecar manifest into a temp dir so it can be
+    /// installed via `PluginManager::install`. Returns the wasm path.
+    fn write_source_plugin(src_dir: &std::path::Path) -> std::path::PathBuf {
+        std::fs::create_dir_all(src_dir).expect("mkdir src dir");
+        let wasm_path = src_dir.join("to-install.wasm");
+        std::fs::write(&wasm_path, EMPTY_MODULE).expect("write source wasm");
+        std::fs::write(
+            src_dir.join("to-install.wasm.manifest.json"),
+            SIDECAR_MANIFEST,
+        )
+        .expect("write source manifest");
+        wasm_path
+    }
+
+    #[test]
+    fn install_registers_disabled_and_persists_to_config() {
+        let vault = tempfile::tempdir().expect("tempdir");
+        let manager = PluginManager::init_for_vault(vault.path()).expect("init_for_vault");
+        assert!(manager.is_empty());
+
+        let src = write_source_plugin(&vault.path().join("_src"));
+        let info = manager.install(&src).expect("install must succeed");
+
+        assert_eq!(info.id, "com.example.scan-test");
+        assert_eq!(info.status, "disabled", "fresh install is disabled");
+        assert!(!info.enabled);
+        assert_eq!(manager.len(), 1);
+
+        // Files landed in the canonical layout.
+        let dest = vault
+            .path()
+            .join(".pkm")
+            .join("plugins")
+            .join("com.example.scan-test")
+            .join("plugin.wasm");
+        assert!(
+            dest.is_file(),
+            "installed wasm must exist at the canonical path"
+        );
+
+        // Config now lists the plugin as disabled.
+        let config = pkm_core::Config::load(vault.path().join(".pkm").join("config.toml")).unwrap();
+        let entry = config
+            .plugins
+            .iter()
+            .find(|p| p.name == "com.example.scan-test")
+            .expect("config must contain the installed plugin");
+        assert!(!entry.enabled);
+    }
+
+    #[test]
+    fn install_missing_source_errors() {
+        let vault = tempfile::tempdir().expect("tempdir");
+        let manager = PluginManager::init_for_vault(vault.path()).expect("init_for_vault");
+        let missing = vault.path().join("does-not-exist.wasm");
+        let err = manager.install(&missing).expect_err("must fail");
+        assert!(err.contains("plugin_not_found"), "err: {err}");
+    }
+
+    #[test]
+    fn install_invalid_wasm_errors() {
+        let vault = tempfile::tempdir().expect("tempdir");
+        let manager = PluginManager::init_for_vault(vault.path()).expect("init_for_vault");
+        let src_dir = vault.path().join("_src");
+        std::fs::create_dir_all(&src_dir).unwrap();
+        let bad = src_dir.join("bad.wasm");
+        std::fs::write(&bad, b"not wasm").unwrap();
+        std::fs::write(
+            src_dir.join("bad.wasm.manifest.json"),
+            r#"{
+                "schema_version": 1,
+                "id": "com.example.bad",
+                "name": "Bad",
+                "version": "0.1.0",
+                "entry": "bad.wasm",
+                "permissions": [],
+                "hooks": {}
+            }"#,
+        )
+        .unwrap();
+        let err = manager.install(&bad).expect_err("invald module must fail");
+        assert!(err.contains("plugin_load_error"), "err: {err}");
+    }
+
+    #[test]
+    fn uninstall_removes_plugin_dir_and_config_entry() {
+        let vault = tempfile::tempdir().expect("tempdir");
+        let manager = PluginManager::init_for_vault(vault.path()).expect("init_for_vault");
+        let src = write_source_plugin(&vault.path().join("_src"));
+        manager.install(&src).expect("install");
+        assert_eq!(manager.len(), 1);
+
+        let result = manager
+            .uninstall("com.example.scan-test")
+            .expect("uninstall");
+        assert!(manager.is_empty(), "registry must be empty after uninstall");
+        assert!(result.plugins.is_empty(), "updated list must be empty");
+
+        let dest_dir = vault
+            .path()
+            .join(".pkm")
+            .join("plugins")
+            .join("com.example.scan-test");
+        assert!(!dest_dir.exists(), "plugin dir must be removed");
+
+        let config = pkm_core::Config::load(vault.path().join(".pkm").join("config.toml")).unwrap();
+        assert!(
+            config
+                .plugins
+                .iter()
+                .all(|p| p.name != "com.example.scan-test"),
+            "config entry must be removed"
+        );
     }
 }

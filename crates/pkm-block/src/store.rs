@@ -651,7 +651,7 @@ impl BlockStore {
         Ok(sources)
     }
 
-            pub fn get_backlinks_for_page(&self, target_page: &str) -> StoreResult<Vec<String>> {
+    pub fn get_backlinks_for_page(&self, target_page: &str) -> StoreResult<Vec<String>> {
         // Match both the raw query form (raw link text or path as-saved) and, when
         // the input resolves to a canonical page path, that path too. This keeps
         // backlinks working regardless of whether the links table holds a resolved
@@ -664,9 +664,7 @@ impl BlockStore {
         }
 
         let placeholders = vec!["?"; candidates.len()].join(", ");
-        let sql = format!(
-            "SELECT source_block FROM links WHERE target_page IN ({placeholders})"
-        );
+        let sql = format!("SELECT source_block FROM links WHERE target_page IN ({placeholders})");
         let mut stmt = self
             .conn
             .prepare(&sql)

@@ -20,6 +20,8 @@ export interface PluginsPanelState {
   enable: (id: string) => Promise<void>;
   disable: (id: string) => Promise<void>;
   reload: (id: string) => Promise<void>;
+  installFromFile: () => Promise<void>;
+  uninstall: (id: string) => Promise<void>;
   runNoteReadTest: (id: string) => Promise<void>;
   runHttpRequestTest: (id: string) => Promise<void>;
   clearTestResult: (id: string) => void;
@@ -74,6 +76,41 @@ export function usePluginsPanel(): PluginsPanelState {
   const enable = useCallback((id: string) => runAction(id, api.pluginsEnable), [runAction]);
   const disable = useCallback((id: string) => runAction(id, api.pluginsDisable), [runAction]);
   const reload = useCallback((id: string) => runAction(id, api.pluginsReload), [runAction]);
+
+  const installFromFile = useCallback(async () => {
+    setError(null);
+    setBusyId('__install__');
+    try {
+      const installed = await api.pluginsInstallFromFile();
+      if (installed) {
+        setPlugins(prev =>
+          prev.some(p => p.id === installed.id)
+            ? prev.map(p => (p.id === installed.id ? installed : p))
+            : [...prev, installed],
+        );
+      }
+    } catch (e) {
+      setError(`Install failed: ${String(e)}`);
+    } finally {
+      setBusyId(null);
+    }
+  }, []);
+
+  const uninstall = useCallback(
+    async (id: string) => {
+      setBusyId(id);
+      setError(null);
+      try {
+        const result = await api.pluginsUninstall(id);
+        setPlugins(result.plugins);
+      } catch (e) {
+        setError(`Uninstall failed on ${id}: ${String(e)}`);
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [],
+  );
 
   const runNoteReadTest = useCallback(async (id: string) => {
     setBusyId(id);
@@ -148,6 +185,8 @@ export function usePluginsPanel(): PluginsPanelState {
     enable,
     disable,
     reload,
+    installFromFile,
+    uninstall,
     runNoteReadTest,
     runHttpRequestTest,
     clearTestResult,

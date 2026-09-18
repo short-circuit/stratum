@@ -610,6 +610,40 @@ invoke("plugin_http_request", { method?, url, headers?, body?, timeout_ms? })
 Errors: `http_transport`, `http_timeout`, `http_ssid`, `http_status`,
 `invalid_argument`, `plugin_denied`.
 
+### 9.8 `plugins_install`
+
+Installs a plugin from a WASM file path. The source may be a canonical
+`plugin.wasm` (embedded `stratum:manifest`) or a bare `.wasm` with a sibling
+`.wasm.manifest.json` sidecar. The host copies the source into
+`<vault>/.pkm/plugins/<id>/plugin.wasm` (canonical layout), registers it in the
+registry, and persists it to `pkm_core::Config` `[[plugins]]`.
+
+A freshly installed plugin is **disabled** by default (consistent with §7.3:
+plugins absent from the config enable list are loaded disabled). Re-installing
+an id that is already enabled in the config keeps it enabled (upgrade path).
+
+```
+invoke("plugins_install", { path: string }) -> PluginInfo
+```
+
+Errors: `plugin_not_found` (source missing), `plugin_load_error` (invalid
+manifest or module that does not compile), `invalid_argument` / runtime
+(no vault open).
+
+### 9.9 `plugins_uninstall`
+
+Uninstalls a plugin by id: unloads it from the registry, removes its
+`<vault>/.pkm/plugins/<id>/` directory, and removes its entry from
+`pkm_core::Config` `[[plugins]]`. Returns the updated plugin list so the UI
+can refresh deterministically.
+
+```
+invoke("plugins_uninstall", { id: string }) -> PluginListResult
+```
+
+Errors: `plugin_uninstall_error` (filesystem failure). Uninstalling an unknown
+id is not an error (no-op).
+
 ## 10. SSRF guard details
 
 The allowlist is read from `pkm_core::Config` field
