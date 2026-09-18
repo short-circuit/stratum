@@ -41,6 +41,9 @@ The panel lists every plugin discovered in your vault plugin directory
 |-------|-------------|
 | Name / version | Display name and version from the plugin manifest |
 | ID | The unique plugin identifier (manifest `id`) |
+| Description | One-line description, when the manifest declares one |
+| Author | Author or org, when the manifest declares one |
+| Hooks | Declared-enabled hooks (`onSave`, `onOpen`, …), per spec §8 |
 | Status | `Ready`, `Disabled`, or `Error` |
 | Permissions | The capabilities the plugin requested (`file:read`, `file:write`, `network`, …) |
 
@@ -79,10 +82,18 @@ and errors are shown inline.
 
 Any toolchain that produces a `wasm32` **core module** works:
 
-- AssemblyScript / C / Rust targeting `wasm32-unknown-unknown` — recommended.
-- A wasm32-wasi build also works: the linker registers a reserved
-  `wasi_snapshot_preview1` no-op so such modules instantiate. WASI is not used
-  at runtime; use the `pkm.*` imports for all I/O.
+- **Rust targeting `wasm32-wasip1`** (stable `std`) — the documented way and the
+  basis of the [example plugin](#a-rust-example-title-case-plugin). The host
+  provides a real WASI preview1 context (fd_write, environ_get, proc_exit,
+  clocks, …), so `std` builds instantiate and the Rust standard library's
+  allocator, panic handler, and stdio all work.
+- AssemblyScript / C / Rust targeting `wasm32-unknown-unknown` — works with a
+  smaller runtime; a module that imports no WASI symbols loads identically.
+
+For all toolchains, **vault I/O flows through the `pkm.*` host imports**, not
+through the WASI filesystem: no host directory is preopened, so `std::fs`
+inside a plugin sees an empty filesystem. Use `pkm.note_read` /
+`pkm.note_write` to read and write vault notes.
 
 ### 2. Define the manifest
 
@@ -283,6 +294,72 @@ Assemble with `wat2wasm` (from the [wabt](https://github.com/WebAssembly/wabt)
 toolkit) and append the `stratum:manifest` custom section containing the JSON
 manifest above. The resulting file is the distributable `plugin.wasm`.
 
+### A Rust example: title-case plugin
+
+A complete, real Rust plugin ships in the repository at
+`examples/plugins/titlecase/`. It title-cases note content whenever a note is
+saved. It is the canonical reference for the recommended toolchain and build
+path.
+
+**Prerequisites**
+
+- Rust stable with the `wasm32-wasip1` target:
+  `rustup target add wasm32-wasip1`.
+
+> Target naming: the target was historically called `wasm32-wasi`. Modern
+> stable Rust renamed it to `wasm32-wasip1` and removed the legacy alias, so
+> `cargo build --target wasm32-wasip1` is the correct command on current
+> toolchains.
+
+**Build**
+
+```bash
+cd examples/plugins/titlecase
+cargo build --release --target wasm32-wasip1
+```
+
+The build produces `target/wasm32-wasip1/release/stratum_plugin_titlecase.wasm`.
+The plugin's manifest is **embedded in the artifact** (as the `stratum:manifest`
+custom section via `#[link_section]`), so the output is complete and
+self-describing — there is **no separate manifest injection step**. Copy it to
+`plugin.wasm` in the repo:
+
+```bash
+cp target/wasm32-wasip1/release/stratum_plugin_titlecase.wasm plugin.wasm
+```
+
+**Install**
+
+1. Create the vault plugin directory
+   `<vault>/.pkm/plugins/com.example.titlecase/`.
+2. Copy `plugin.wasm` into it.
+3. In the app, open **:material-puzzle: Plugins** and click **Refresh**. The
+   plugin is discovered from its embedded manifest. Enable it to arm the
+   `onSave` hook.
+
+**What the code does**
+
+- `#[link_section = "stratum:manifest"]` embeds the manifest (id, name, version,
+  `permissions: ["file:read", "file:write"]`, `hooks: { "onSave": true }`).
+- `extern "C"` imports `pkm.log` and `pkm.note_write` under the `pkm` module
+  namespace — the wasm import name is the Rust identifier, so the externs are
+  named exactly `log` / `note_write`.
+- The `#[no_mangle] pub extern "C" fn onSave(i32, i32) -> i32` hook decodes the
+  `{"path", "content"}` payload, title-cases the content, persists it back
+  through `pkm.note_write`, and logs the outcome via `pkm.log`.
+- Linear-memory offset 0 is the ABI scratch area: the plugin copies the inbound
+  payload into its own heap before any host call, and reads the host response
+  from offset 0 after each call. See the in-tree comments.
+
+The end-to-end acceptance test
+`crates/pkm-tests/tests/plugin_example_e2e.rs` installs this exact artifact into
+a temporary vault through the real `PluginManager`, dispatches `onSave`, and
+asserts the note on disk was title-cased. Run it with:
+
+```bash
+cargo test -p pkm-tests --test plugin_example_e2e
+```
+
 ### Validating your plugin
 
 The plugin E2E suite in `crates/pkm-tests/tests/plugin_e2e.rs` builds a real
@@ -348,8 +425,11 @@ hook signature and payloads are defined in the
 - Open the status chip for the error detail.
 - A manifest that fails validation lists the exact rule violated (e.g. an
   unknown permission string, a bad `schema_version`, or an invalid `id`).
-- A module that imports an unknown namespace fails instantiation;
-  rebuild it against only the four `pkm.*` imports.
+- A module that imports an unknown namespace fails instantiation; import only
+  from the `pkm` namespace (the four host functions) and the
+  `wasi_snapshot_preview1` namespace (real WASI preview1, supported). Anything
+  else — e.g. `env.foo`, `wasi_snapshot_preview1` symbols outside the WASIp1
+  surface — is rejected.
 - Verify the file is a real wasm32 core module (`wasmtime`/`wasm2wat` can
   validate it outside Stratum).
 
@@ -380,4 +460,8 @@ the `.wasm` on disk does not hot-reload automatically.
   lifecycle, and the Tauri command surface.
 - [ADR-0004](../development/adr/0004-wasm-plugin-abi.md) — the accepted design
   and its stability guarantees.
+- `examples/plugins/titlecase/` — the real Rust example plugin (build, install,
+  and end-to-end test documented above).
 - `crates/pkm-tests/tests/plugin_e2e.rs` — the verified end-to-end test suite.
+- `crates/pkm-tests/tests/plugin_example_e2e.rs` — acceptance test that installs
+  and runs the real `examples/plugins/titlecase` artifact.

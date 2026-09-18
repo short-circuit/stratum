@@ -123,9 +123,18 @@ fn default_entry() -> String { "plugin.wasm".to_string() }
 
 ### 3.1 Module layout
 
-Plugins are instantiated as **core modules** with **no WASI context**. The host
-linker provides a single import namespace `"pkm"` with the imports below, plus the
-reserved no-op `"wasi_snapshot_preview1"` module (see §7.1).
+Plugins are instantiated as **wasm32 core modules**. The host linker provides
+two import namespaces:
+
+- `"pkm"` — the plugin host API below (the sanctioned way to touch the vault).
+- `"wasi_snapshot_preview1"` — the **real WASI preview1** surface
+  (`fd_write`, `environ_get`, `proc_exit`, `random_get`, clocks, …). This is
+  wired through wasmtime's WASIp1 implementation, so genuine `wasm32-wasip1`
+  builds — including Rust `std` cdylibs whose CRT references these symbols —
+  instantiate with their real import signatures. See §7.1.
+
+There are no other import namespaces; an import from any other module/name
+fails instantiation with `PluginLoadError`.
 
 ### 3.2 Imported functions
 
@@ -431,12 +440,16 @@ All error envelopes are `Err { code, message }`. `code` is always one of
 
 ### 7.1 Instantiation
 
-- Engine: wasmtime, `wasm32-unknown-unknown` target, **no** WASI context.
+- Engine: wasmtime. `wasm32-unknown-unknown` modules (no WASI imports) and
+  genuine `wasm32-wasip1` modules (WASI preview1 imports) both instantiate.
 - The linker registers:
   - the `pkm` module with the four imports in §3.2, and
-  - the reserved `wasi_snapshot_preview1` module, whose `fd_write` is a no-op,
-    so toolchains that reference it (e.g. `wasm32-wasi`-built modules) instantiate
-    without error.
+  - the **real WASI preview1** implementation from wasmtime's WASIp1 support
+    (`fd_write`, `environ_get`, `environ_sizes_get`, `proc_exit`, `random_get`,
+    clock functions, …) with their standard signatures.
+- No filesystem is preopened for WASI: a plugin that wants raw `std::fs` access
+  to the host filesystem sees WASI's default empty host — vault I/O is done
+  exclusively through the `pkm.*` host API, which keeps the sandbox exact.
 - A module that imports any other namespace/name fails instantiation with
   `PluginLoadError` and a descriptive message; the plugin does not load.
 
@@ -525,6 +538,15 @@ pub struct PluginInfo {
     pub status: String,       // "ready" | "disabled" | "error"
     pub enabled: bool,
     pub permissions: Vec<String>,
+    /// Enabled hooks declared by the manifest (spec §8); empty when none.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hooks: Vec<String>,
+    /// Manifest author (spec §2); empty when the manifest omits it.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub author: String,
+    /// Manifest description (spec §2); empty when the manifest omits it.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub description: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>, // set when status == "error"
 }
