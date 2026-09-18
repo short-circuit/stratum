@@ -26,6 +26,8 @@ pub struct Config {
     pub research: ResearchConfig,
     /// Plugin enable/disable.
     pub plugins: Vec<PluginConfig>,
+    /// Network egress configuration (SSRF allowlist for plugin HTTP).
+    pub network: NetworkConfig,
     /// File watcher configuration.
     pub watcher: WatcherConfig,
     /// Graph visualization settings.
@@ -45,6 +47,7 @@ impl Default for Config {
             tts: TtsConfig::default(),
             research: ResearchConfig::default(),
             plugins: Vec::new(),
+            network: NetworkConfig::default(),
             watcher: WatcherConfig::default(),
             graph: GraphConfig::default(),
         }
@@ -360,14 +363,18 @@ pub struct GraphConfig {
 
 impl Default for GraphConfig {
     fn default() -> Self {
+        // Values match the documented defaults in
+        // docs/getting-started/configuration.md (the canonical spec). Keeping
+        // these in sync prevents `stratum init`-generated configs from drifting
+        // from the documentation (acceptance defect GR-06).
         Self {
             show_connected: true,
             show_orphaned: true,
             show_tags: true,
-            charge_strength: -8.0,
-            link_distance: 40.0,
-            alpha_decay: 0.08,
-            velocity_decay: 0.3,
+            charge_strength: -30.0,
+            link_distance: 100.0,
+            alpha_decay: 0.02,
+            velocity_decay: 0.4,
             link_curvature: 0.15,
         }
     }
@@ -401,6 +408,20 @@ pub struct PluginConfig {
     pub enabled: bool,
     pub wasm_path: PathBuf,
     pub permissions: Vec<String>,
+}
+
+/// Network egress configuration for plugin `pkm.http_request`.
+///
+/// `allowlist` entries are host strings or CIDR strings (e.g. `api.example.com`
+/// or `10.0.0.0/8`). The SSRF guard (contract §10) allows an HTTP target if
+/// its host matches an entry, or if it resolves to a private/loopback/link-local
+/// address (making `localhost` and LAN access work by default). Empty allowlist
+/// means "private/loopback only".
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct NetworkConfig {
+    /// Host or CIDR entries allowed to be reached by plugin HTTP requests.
+    pub allowlist: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -667,6 +688,18 @@ mod tests {
         let json = serde_json::to_string(&cfg).unwrap();
         let deserialized: GraphConfig = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.link_curvature, 0.3);
+    }
+
+    #[test]
+    fn test_graph_config_defaults_match_docs() {
+        // Regression for GR-06: defaults must equal the documented values in
+        // docs/getting-started/configuration.md so `stratum init` configs never
+        // drift from the spec.
+        let cfg = GraphConfig::default();
+        assert_eq!(cfg.charge_strength, -30.0);
+        assert_eq!(cfg.link_distance, 100.0);
+        assert_eq!(cfg.alpha_decay, 0.02);
+        assert_eq!(cfg.velocity_decay, 0.4);
     }
 
     #[test]

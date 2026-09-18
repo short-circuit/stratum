@@ -78,6 +78,8 @@ export interface EditorData {
   pagePath: string;
   minHeight: string;
   persistBlocks: (blockNoteBlocks: any[]) => void;
+  saving: boolean;
+  lastSavedAt: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -114,6 +116,14 @@ export function useEditorData(
   const [status, setStatus] = useState('init');
   const [mathEdit, setMathEdit] = useState<MathEditState>(null);
   const [pageMarkers, setPageMarkers] = useState<string[]>([]);
+  // Content snapshot taken right after the initial load, so auto-save can skip
+  // writes when nothing changed. Prevents the ED-07 load-rewrite corruption:
+  // a programmatic onChange (from replaceBlocks or an external sync) must not
+  // re-serialize an untouched document back to disk.
+  const loadedSnapshotRef = useRef<string | null>(null);
+  const savePendingRef = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const ctrlHeld = useCtrlHeld();
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -169,16 +179,54 @@ export function useEditorData(
   // -----------------------------------------------------------------------
   // Step 1: Load blocks from backend
   // -----------------------------------------------------------------------
+
+  // Deterministic key of what would be written to disk for a given document.
+  // Computed through the same conversion the save path uses, so a stale/no-op
+  // onChange compares equal and is skipped instead of rewriting the file with a
+  // lossy backend round-trip (the ED-07 corruption vector).
+  const serializeKey = useCallback((blockNoteBlocks: any[]): string => {
+    const dtos = blockNoteToDto(structuredClone(blockNoteBlocks), blockMetaRef.current);
+    return JSON.stringify(
+      dtos.map((d) => [
+        d.id,
+        d.content,
+        d.marker,
+        d.priority,
+        d.parent_id,
+        d.left_id,
+        d.heading_level,
+        d.collapsed,
+        ...(d.properties || []).slice().sort((a: [string, string], b: [string, string]) => a[0].localeCompare(b[0])),
+      ]),
+    );
+  }, []);
+
   useEffect(() => {
     api
       .getBlocks(pagePath)
       .then(({ blocks }) => {
         try {
           blockMetaRef.current.clear();
+          let bnBlocks: any[] = [];
           for (const b of blocks) b.content = normalizeContent(b.content);
-          const bnBlocks = dtoToBlockNote(blocks, blockMetaRef.current);
+          bnBlocks = dtoToBlockNote(blocks, blockMetaRef.current);
           if (bnBlocks.length > 0) {
-            editor.replaceBlocks(editor.document, bnBlocks);
+            // Suppress the onChange fired by replaceBlocks so the programmatic
+            // load does not trigger an auto-save that would rewrite the file
+            // before the user has typed anything (ED-07: autosave-on-load).
+            isProcessingRef.current = true;
+            try {
+              editor.replaceBlocks(editor.document, bnBlocks);
+            } finally {
+              isProcessingRef.current = false;
+            }
+          }
+          // Snapshot the post-load editor state (through the same conversion the
+          // save path uses) so auto-save skip logic can compare exact equality.
+          try {
+            loadedSnapshotRef.current = serializeKey(editor.document);
+          } catch {
+            loadedSnapshotRef.current = null;
           }
           const markers = [
             ...new Set(
@@ -198,7 +246,7 @@ export function useEditorData(
         setError(String(err));
         setStatus('error');
       });
-  }, [pagePath, editor]);
+  }, [pagePath, editor, serializeKey]);
 
   // -----------------------------------------------------------------------
   // Step 2: Debounced auto-save on document change with flush-on-unmount.
@@ -221,20 +269,39 @@ export function useEditorData(
       saveTimer.current = null;
     }
     const { blocks, pagePath: ctxPath } = pending;
+    (window as any).__saveDebug = { called: true, at: Date.now() };
+    // Clone blocks before marker detection so the editor document is never
+    // mutated if saveBlocks() fails — prevents marker keyword data loss.
+    const work = structuredClone(blocks);
+    detectAndApplyMarkers(work, ctxPath, blockMetaRef.current);
+    // Compare the exact serialization that would be written against the snapshot
+    // captured at load. If nothing changed, skip the write entirely — this is the
+    // defense-in-depth ED-07 fix: even if a post-load onChange slips through, an
+    // untouched document never rewrites the file (idle saves previously fused
+    // blocks, dropped markers, and mangled properties via the lossy serialiser).
+    const prospectiveKey = serializeKey(work);
+    if (loadedSnapshotRef.current !== null && prospectiveKey === loadedSnapshotRef.current) {
+      // DEB[/tmp]-probe: mark the no-op skip so we can detect it in the DOM.
+      (window as any).__saveDebug = { skipped: true, at: Date.now() };
+      return;
+    }
+    savePendingRef.current = true;
+    setSaving(true);
     try {
-      // Clone blocks before marker detection so the editor document is never
-      // mutated if saveBlocks() fails — prevents marker keyword data loss.
-      detectAndApplyMarkers(
-        structuredClone(blocks),
-        ctxPath,
-        blockMetaRef.current,
-      );
-      const dtos = blockNoteToDto(blocks, blockMetaRef.current);
+      const dtos = blockNoteToDto(work, blockMetaRef.current);
       await api.saveBlocks(ctxPath, dtos);
+      setLastSavedAt(Date.now());
+      (window as any).__saveDebug = { saved: true, at: Date.now() };
+      // The document just saved — refresh the baseline so an identical
+      // round-trip that fires again (e.g. StrictMode remount) is still a no-op.
+      loadedSnapshotRef.current = prospectiveKey;
     } catch (e) {
       console.error('[OutlinerEditor] save failed:', e);
+    } finally {
+      savePendingRef.current = false;
+      setSaving(false);
     }
-  }, []);
+  }, [serializeKey]);
 
   const persistBlocks = useCallback(
     (blockNoteBlocks: any[]) => {
@@ -483,5 +550,7 @@ export function useEditorData(
     pagePath,
     minHeight,
     persistBlocks,
+    saving,
+    lastSavedAt,
   };
 }

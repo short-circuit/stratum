@@ -215,8 +215,14 @@ pub(crate) fn reconcile_page_links(
     for block in blocks {
         let links = pkm_markdown::linker::extract_links(&block.content);
         for link in links {
+            // Store the canonical page path (or the raw target when it resolves
+            // to nothing, e.g. a dead link) so backlink queries by real path work.
+            // See BlockStore::resolve_link_target_path for rationale.
+            let target = store
+                .resolve_link_target_path(&link.target)
+                .unwrap_or_else(|| link.target.clone());
             store
-                .insert_link(block.id, "page_ref", Some(&link.target), None)
+                .insert_link(block.id, "page_ref", Some(&target), None)
                 .map_err(|e| e.to_string())?;
         }
     }
@@ -478,6 +484,13 @@ pub async fn open_page(path: String, state: tauri::State<'_, AppState>) -> Resul
         (pkm_core::Frontmatter::default(), 0)
     };
 
+    // Dispatch the `onOpen` hook to enabled plugins that declare it (spec §8).
+    // Runs synchronously; a trapping plugin logs and is skipped, never aborting
+    // the page open.
+    if let Some(manager) = state.plugin_manager.as_deref() {
+        crate::commands::plugins::dispatch_on_open(manager, &path);
+    }
+
     Ok(PageDto {
         path: path.clone(),
         slug,
@@ -560,6 +573,21 @@ pub async fn save_page(
 
     // Invalidate graph cache since page data changed
     crate::commands::graph::invalidate_graph_cache();
+
+    // Dispatch the `onSave` hook to enabled plugins that declare it (spec §8).
+    // Runs synchronously; a trapping plugin logs and is skipped, never aborting
+    // the save.
+    if let Some(manager) = state.plugin_manager.as_deref() {
+        crate::commands::plugins::dispatch_on_save(manager, &path, &content);
+        // Dispatch `onLink` with the wiki-link targets found in the saved
+        // content. Link edits (adding/removing `[[…]]`) reach the host through
+        // this save path.
+        let links: Vec<String> = pkm_markdown::linker::extract_links(&content)
+            .into_iter()
+            .map(|l| l.target)
+            .collect();
+        crate::commands::plugins::dispatch_on_link(manager, &path, &links);
+    }
 
     Ok(())
 }
