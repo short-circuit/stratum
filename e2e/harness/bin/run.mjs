@@ -25,9 +25,9 @@
 import { spawn, spawnSync, execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import { fileURLToPath } from 'url';
-import { createSession, waitForApp, deleteSession, elementId, sleep } from '../lib/driver.js';
+import { createSession, waitForApp, deleteSession, sleep } from '../lib/driver.js';
+import { beginRun, recordTest, writeResults, resultsPaths } from '../lib/results.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '../../..');
@@ -35,6 +35,11 @@ const REPO_ROOT = path.resolve(__dirname, '../../..');
 const TDRIVER_PORT = 4444;
 const DISPLAY = process.env.HARNESS_DISPLAY || '99';
 const KEEP = process.env.HARNESS_NO_CLEAN === '1';
+
+// tauri-driver relays to the native WebDriver it spawns on the next port up.
+function nativeDriverPort() {
+  return TDRIVER_PORT + 1;
+}
 
 // ---------------------------------------------------------------------------
 // Environment & binary resolution
@@ -58,15 +63,24 @@ function findWebKitWebDriver() {
     // system paths
     '/usr/lib/webkit2gtk-4.1/WebKitWebDriver',
     '/usr/lib64/webkit2gtk-4.1/WebKitWebDriver',
+    // Debian/Ubuntu: the webkit2gtk-driver package installs the driver at
+    // /usr/bin/WebKitWebDriver (NOT inside the webkit2gtk-4.1 lib dir).
+    '/usr/bin/WebKitWebDriver',
+    // Ubuntu multiarch lib dirs (e.g. x86_64).
+    '/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebDriver',
+    '/usr/lib/aarch64-linux-gnu/webkit2gtk-4.1/WebKitWebDriver',
   ];
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
   }
-  // PATH lookup
-  const which = process.env.PATH.split(':')
-    .map((d) => path.join(d, 'WebKitWebDriver'))
-    .find((p) => fs.existsSync(p));
-  return which || null;
+  // Last resort: search PATH (covers other distros / custom installs).
+  try {
+    const onPath = execFileSync('which', ['WebKitWebDriver'], { encoding: 'utf8' }).trim();
+    if (onPath && fs.existsSync(onPath)) return onPath;
+  } catch {
+    /* not on PATH */
+  }
+  return null;
 }
 
 function runCapture(cmd, args, { timeoutMs = 120000 } = {}) {
@@ -125,8 +139,16 @@ async function ensureXvfb() {
 let passed = 0;
 let failed = 0;
 
-function ok(name) { passed++; console.log(`  ✅ ${name}`); }
-function bad(name, detail) { failed++; console.log(`  ❌ ${name}${detail ? ` — ${detail}` : ''}`); }
+function ok(name) {
+  passed++;
+  console.log(`  ✅ ${name}`);
+  recordTest({ suite: 'harness', name, status: 'pass' });
+}
+function bad(name, detail) {
+  failed++;
+  console.log(`  ❌ ${name}${detail ? ` — ${detail}` : ''}`);
+  recordTest({ suite: 'harness', name, status: 'fail', detail });
+}
 
 async function runTests(driver) {
   console.log('\n── Test 1: App boots and renders the journal ──');
@@ -141,20 +163,39 @@ async function runTests(driver) {
   }
 
   console.log('\n── Test 2: Real UI content is present ──');
-  const anchors = await driver.findElements('css selector', 'a');
-  if (anchors.length > 0) {
-    ok(`found ${anchors.length} anchor elements`);
+  // The app's navigation is MUI ListItemButton (renders role="button"), and
+  // there are no <a> elements in the app shell at all. On a pristine vault
+  // (fresh CI run) note-content links are absent, so asserting on anchors is
+  // environment-dependent and would fail a healthy app. Assert instead that the
+  // app shell rendered its interactive UI, which is deterministic regardless of
+  // vault contents.
+  const ui = await driver.executeScript(
+    `const d = document;
+     const root = d.getElementById('root');
+     return {
+       hasRoot: !!root,
+       rootChildren: root ? root.children.length : 0,
+       interactive: d.querySelectorAll(
+         'button, a, input, select, textarea, [role="button"], [role="link"], [role="menuitem"], [role="tab"], [role="checkbox"]'
+       ).length,
+       bodyText: (d.body && d.body.innerText || '').length,
+     };`,
+    [],
+  );
+  if (ui && ui.hasRoot && (ui.rootChildren || 0) > 0) {
+    ok(`app shell rendered (${ui.rootChildren} top-level node(s))`);
   } else {
-    bad('Rendered at least one anchor element');
+    bad('app shell rendered (root has children)');
   }
-
-  if (anchors.length) {
-    const t = await driver.getElementText(elementId(anchors[0]));
-    if (t && t.length > 0) {
-      ok(`first anchor has text "${t}"`);
-    } else {
-      bad('first anchor has non-empty text');
-    }
+  if (ui && (ui.interactive || 0) > 0) {
+    ok(`app rendered ${ui.interactive} interactive control(s)`);
+  } else {
+    bad(`app rendered interactive controls (got ${ui?.interactive})`);
+  }
+  if (ui && ui.bodyText > 100) {
+    ok(`page body has ${ui.bodyText} chars of rendered text`);
+  } else {
+    bad(`page body has rendered text (got ${ui?.bodyText})`);
   }
 
   console.log('\n── Test 3: IPC round-trip (query real app state) ──');
@@ -179,6 +220,7 @@ async function runTests(driver) {
 async function main() {
   console.log('=== Stratum Automated E2E Harness ===');
   console.log(`Workspace: ${REPO_ROOT}`);
+  beginRun({ appBinary: process.env.HARNESS_APP || repoDefaultBinary() });
 
   const appBinary = process.env.HARNESS_APP || repoDefaultBinary();
   if (!fs.existsSync(appBinary)) {
@@ -215,6 +257,12 @@ async function main() {
     WAYLAND_DISPLAY: '',
     WEBKIT_DISABLE_DMABUF_RENDERER: '1',
     WEBKIT_DISABLE_COMPOSITING_MODE: '1',
+    // WebKitGTK >= 2.44 forces a bubblewrap sandbox; on CI/container runners
+    // without a usable bwrap config this makes the web process crash on launch.
+    // (WEBKIT_FORCE_SANDBOX=0 is deprecated and no longer disables it.)
+    WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS: '1',
+    // Headless/CI runners have no GPU; force Mesa software rendering.
+    LIBGL_ALWAYS_SOFTWARE: '1',
   };
 
   try {
@@ -237,9 +285,26 @@ async function main() {
       process.exit(1);
     }
     console.log('✅ tauri-driver ready');
+    // tauri-driver can report ready before the native WebDriver has finished
+    // initializing; a session POST issued in that window stalls (tauri-apps/tauri#3576).
+    // Wait briefly for the native driver to also be reachable before POSTing.
+    const nativeReady = await pollPort(nativeDriverPort(), 15000);
+    if (!nativeReady) {
+      console.error('⚠️ native WebDriver did not become reachable; continuing (best effort)');
+    }
 
     console.log('Creating WebDriver session (launches the app)...');
-    const driver = await createSession(appBinary, { port: TDRIVER_PORT });
+    let driver;
+    try {
+      driver = await createSession(appBinary, { port: TDRIVER_PORT });
+    } catch (e) {
+      console.error('❌ Failed to create WebDriver session.');
+      if (tdLog.trim()) {
+        console.error('\n── tauri-driver / app stderr (for debugging) ──');
+        console.error(tdLog.slice(-4000));
+      }
+      throw e;
+    }
     console.log(`   session: ${driver.sessionId}`);
 
     try {
@@ -258,6 +323,18 @@ async function main() {
     }
 
     console.log(`\n📊 ${passed} passed, ${failed} failed out of ${passed + failed}`);
+
+    // Machine-readable capture (acceptance criterion) — written to the repo's
+    // gitignored test-results/ directory.
+    const manifest = await writeResults({
+      status: failed > 0 ? 'fail' : 'pass',
+      summary: 'stratum automated e2e (tauri-driver)',
+      startedAt: undefined,
+    });
+    const rp = resultsPaths();
+    console.log(`📄 results written:`);
+    console.log(`   JSON : ${rp.manifest} (counts=${JSON.stringify(manifest.counts)})`);
+    console.log(`   JUnit: ${rp.junit}`);
   } finally {
     cleanup();
   }
@@ -282,8 +359,20 @@ function pollPort(port, timeoutMs) {
   });
 }
 
-main().catch((e) => {
+main().catch(async (e) => {
   console.error('\nFATAL:', e.message);
   cleanup();
+  // Still emit a machine-readable record so CI/artifact capture sees the
+  // failure even on a hard crash (session create, driver readiness, etc).
+  try {
+    const manifest = await writeResults({
+      status: 'fail',
+      summary: 'stratum automated e2e (tauri-driver) — fatal error',
+      fatal: e.message,
+    });
+    console.log(`📄 failure results written: ${resultsPaths().manifest} (counts=${JSON.stringify(manifest.counts)})`);
+  } catch (ee) {
+    /* best-effort only */
+  }
   process.exit(1);
 });
