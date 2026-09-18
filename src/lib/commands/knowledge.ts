@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import type {
   SearchResultsDto,
   BacklinkItem,
+  BacklinkSnippetDto,
   ConnectionSuggestion,
   QueryResultDto,
   GraphDataDto,
@@ -84,4 +85,11 @@ export async function getBacklinkContext(
   page_title: string | null;
 } | null> {
   return invoke('get_backlink_context', { targetPage, currentPage });
+}
+
+export async function getBacklinkSnippet(
+  noteId: string,
+  backlinkRef: string,
+): Promise<BacklinkSnippetDto> {
+  return invoke('get_backlink_snippet', { noteId, backlinkRef });
 }
