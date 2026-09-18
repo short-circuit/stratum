@@ -19,6 +19,7 @@ import { useBacklinksData, usePreview } from './BacklinksPanel.shared';
 import type { BacklinksPanelProps } from './BacklinksPanel.shared';
 import type { BacklinkItem } from '../../lib/types';
 import BacklinkSnippetBody from '../BacklinkSnippetBody';
+import { useBacklinkNavigation } from '../../lib/backlinkNavigation';
 
 const BacklinkRow = memo(function BacklinkRow({
   item,
@@ -26,12 +27,12 @@ const BacklinkRow = memo(function BacklinkRow({
   onLongPress,
 }: {
   item: BacklinkItem;
-  onNavigate: (path: string) => void;
+  onNavigate: (path: string, e?: React.MouseEvent | React.TouchEvent) => void;
   onLongPress: (item: BacklinkItem) => void;
 }) {
   const handlers = useLongPress({
     onLongPress: () => onLongPress(item),
-    onClick: () => onNavigate(item.source_page),
+    onClick: (e) => onNavigate(item.source_page, e),
   });
 
   return (
@@ -48,6 +49,7 @@ const BacklinkRow = memo(function BacklinkRow({
 
 const BacklinksPanelMobile = memo(function BacklinksPanelMobile({ pagePath }: BacklinksPanelProps) {
   const navigate = useNavigate();
+  const navigateBacklink = useBacklinkNavigation();
   const { isMobile } = useResponsive();
   const { backlinks, loading, linked, unlinked } = useBacklinksData(pagePath);
   const { preview, showPreview, dismissPreview } = usePreview();
@@ -60,10 +62,10 @@ const BacklinksPanelMobile = memo(function BacklinksPanelMobile({ pagePath }: Ba
     showPreview(item);
   }, [showPreview]);
 
-  const handleNavigate = useCallback((path: string) => {
-    navigate(`/page/${encodeURIComponent(path)}`);
+  const handleNavigate = useCallback((path: string, e?: React.MouseEvent | React.TouchEvent) => {
+    navigateBacklink(path, e);
     setOpen(false);
-  }, [navigate]);
+  }, [navigateBacklink]);
 
   const items = tab === 0 ? linked : unlinked;
 

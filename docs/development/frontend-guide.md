@@ -525,6 +525,42 @@ function BacklinksPanel() {
 
 ProseMirror plugin for inline KaTeX rendering within the BlockNote editor.
 
+### `useBacklinkNavigation` / backlink navigation state
+
+Modifier-click navigation from backlinks. `useBacklinkNavigation()` (in `src/lib/backlinkNavigation.ts`)
+returns a handler that:
+- on a **plain click**, behaves exactly like the previous behavior (routes to the target note),
+- on a **Ctrl/Cmd+click**, captures the current editor scroll offset into
+  `src/stores/navigationStore.ts` before navigating, so the source note can be restored.
+
+`useRestoreSourceScroll(pagePath)` (same module) restores the captured scroll when the user
+returns to the source note. The capture/restore mechanism walks up from the editor container
+(`.blocknote-editor-container`) to the nearest scrollable ancestor, since the editor itself does
+not expose a stable scroll element.
+
+```typescript
+// src/lib/backlinkNavigation.ts
+export function useBacklinkNavigation(): (
+  sourcePage: string,
+  e?: { ctrlKey?: boolean; metaKey?: boolean },
+) => void;
+export function useRestoreSourceScroll(pagePath: string | null): () => void;
+```
+
+**Usage (from BacklinksPanel):**
+
+```typescript
+import { useBacklinkNavigation } from '../../lib/backlinkNavigation';
+
+function BacklinksPanel() {
+  const navigateBacklink = useBacklinkNavigation();
+  // ...
+  <ListItemButton onClick={(e) => navigateBacklink(item.source_page, e)}>
+    {item.source_page}
+  </ListItemButton>;
+}
+```
+
 ---
 
 ## Component Sizing Rules
