@@ -24,6 +24,21 @@ android {
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
+    signingConfigs {
+        create("release") {
+            // Default: debug keystore for CI/development signing.
+            // Override with production values via env vars or by replacing
+            // the debug.keystore and updating credentials below.
+            val keystorePath = System.getenv("ANDROID_KEYSTORE") ?: "debug.keystore"
+            storeFile = file(keystorePath)
+            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: "android"
+            keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: "stratum-debug"
+            keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: "android"
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+        }
+    }
     buildTypes {
         getByName("debug") {
             applicationIdSuffix = ".debug"
@@ -31,7 +46,8 @@ android {
             isDebuggable = true
             isJniDebuggable = true
             isMinifyEnabled = false
-            packaging {                jniLibs.keepDebugSymbols.add("*/arm64-v8a/*.so")
+            packaging {
+                jniLibs.keepDebugSymbols.add("*/arm64-v8a/*.so")
                 jniLibs.keepDebugSymbols.add("*/armeabi-v7a/*.so")
                 jniLibs.keepDebugSymbols.add("*/x86/*.so")
                 jniLibs.keepDebugSymbols.add("*/x86_64/*.so")
@@ -39,6 +55,7 @@ android {
         }
         getByName("release") {
             isMinifyEnabled = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 *fileTree(".") { include("**/*.pro") }
                     .plus(getDefaultProguardFile("proguard-android-optimize.txt"))
