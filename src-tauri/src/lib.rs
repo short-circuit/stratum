@@ -197,15 +197,15 @@ pub fn run() {
             }
 
             if cfg!(debug_assertions) {
-                // pkm_core::init_logging() installs the global logger via the
-                // tracing bridge; without skip_logger() the plugin tries to set
-                // a second global logger and panics ("attempted to set a logger
-                // after the logging system was already initialized"), aborting
-                // the app before the first frame (observed on the Android
-                // emulator smoke test).
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
                         .level(log::LevelFilter::Info)
+                        // The app installs its own global logger via
+                        // `pkm_core::init_logging()` (tracing_subscriber, which
+                        // forwards to the `log` crate). Skip the plugin's logger
+                        // so it does not panic on startup in debug builds with
+                        // "attempted to set a logger after the logging system
+                        // was already initialized".
                         .skip_logger()
                         .build(),
                 )?;
