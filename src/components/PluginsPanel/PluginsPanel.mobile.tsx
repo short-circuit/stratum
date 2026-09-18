@@ -8,6 +8,8 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ExtensionIcon from '@mui/icons-material/Extension';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import { usePluginsPanel } from './PluginsPanel.shared';
 import { StatusChip } from './StatusChip';
 import EmptyState from '../ui/EmptyState';
@@ -24,19 +26,35 @@ export default function PluginsPanelMobile() {
     enable,
     disable,
     reload,
+    installFromFile,
+    uninstall,
     runNoteReadTest,
     runHttpRequestTest,
     clearTestResult,
     clearError,
   } = usePluginsPanel();
 
+  const installing = busyId === '__install__';
+
   return (
     <Box sx={{ height: '100%', overflow: 'auto', p: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
         <Typography variant="h6" sx={{ fontWeight: 600 }}>Plugins</Typography>
-        <Button size="small" startIcon={<RefreshIcon />} onClick={() => void refresh()} disabled={loading} sx={{ textTransform: 'none' }}>
-          Refresh
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button size="small" startIcon={<RefreshIcon />} onClick={() => void refresh()} disabled={loading || installing} sx={{ textTransform: 'none' }}>
+            Refresh
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => void installFromFile()}
+            disabled={loading || installing}
+            sx={{ textTransform: 'none' }}
+          >
+            {installing ? '…' : 'Install'}
+          </Button>
+        </Box>
       </Box>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
         WASM plugins from ~/.pkm/plugins.
@@ -58,9 +76,9 @@ export default function PluginsPanelMobile() {
         <EmptyState
           icon={<ExtensionIcon sx={{ fontSize: 40 }} />}
           message="No plugins installed"
-          description="Drop a plugin.wasm into ~/.pkm/plugins/ then press Refresh."
-          actionLabel="Refresh"
-          onAction={() => void refresh()}
+          description="Install a plugin.wasm, or drop one into ~/.pkm/plugins/ then Refresh."
+          actionLabel="Install"
+          onAction={() => void installFromFile()}
         />
       ) : (
         <Stack spacing={1.5}>
@@ -102,6 +120,17 @@ export default function PluginsPanelMobile() {
                     )}
                     <Button size="small" variant="outlined" disabled={busy} onClick={() => void reload(plugin.id)} sx={{ textTransform: 'none', flex: '1 1 45%' }}>
                       {busy ? '…' : 'Reload'}
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="error"
+                      startIcon={<DeleteOutlinedIcon />}
+                      disabled={busy}
+                      onClick={() => void uninstall(plugin.id)}
+                      sx={{ textTransform: 'none', flex: '1 1 45%' }}
+                    >
+                      {busy ? '…' : 'Uninstall'}
                     </Button>
                   </Box>
 

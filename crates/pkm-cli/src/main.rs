@@ -181,20 +181,16 @@ fn cmd_list(vault: &Path, tag: Option<&str>) -> PkmResult<()> {
                     return false;
                 };
                 let parsed = pkm_markdown::parser::parse_raw(&content);
-                parsed
-                    .tags
-                    .iter()
-                    .any(|tag| {
-                        let name = tag.name.to_lowercase();
-                        name == needle
-                            || name == needle_stripped
-                            || format!("#{name}") == needle
-                            || format!("#{name}") == needle_stripped
-                    })
-                    || parsed.frontmatter.tags.iter().any(|fm_tag| {
-                        let name = fm_tag.to_lowercase();
-                        name == needle || name == needle_stripped || format!("#{name}") == needle
-                    })
+                parsed.tags.iter().any(|tag| {
+                    let name = tag.name.to_lowercase();
+                    name == needle
+                        || name == needle_stripped
+                        || format!("#{name}") == needle
+                        || format!("#{name}") == needle_stripped
+                }) || parsed.frontmatter.tags.iter().any(|fm_tag| {
+                    let name = fm_tag.to_lowercase();
+                    name == needle || name == needle_stripped || format!("#{name}") == needle
+                })
             })
             .collect()
     } else {

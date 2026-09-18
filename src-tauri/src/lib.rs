@@ -347,6 +347,8 @@ pub fn run() {
             commands::plugins::plugins_disable,
             commands::plugins::plugins_reload,
             commands::plugins::plugins_status,
+            commands::plugins::plugins_install,
+            commands::plugins::plugins_uninstall,
             commands::plugins::plugin_note_read,
             commands::plugins::plugin_http_request,
         ])
