@@ -2125,10 +2125,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#release-apk-unsigned-for-distribution" class="md-nav__link">
+  <a href="#release-apk-signed-for-distribution" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Release APK (unsigned, for distribution)
+        Release APK (signed, for distribution)
       
     </span>
   </a>
@@ -2825,10 +2825,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#release-apk-unsigned-for-distribution" class="md-nav__link">
+  <a href="#release-apk-signed-for-distribution" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Release APK (unsigned, for distribution)
+        Release APK (signed, for distribution)
       
     </span>
   </a>
@@ -3470,15 +3470,15 @@
 <a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>cargo<span class="w"> </span>tauri<span class="w"> </span>ios<span class="w"> </span>dev<span class="w"> </span>--target<span class="w"> </span>x86_64-apple-ios
 </code></pre></div>
 <h3 id="automated-testing">Automated Testing<a class="headerlink" href="#automated-testing" title="Permanent link">&para;</a></h3>
-<p>The CI pipeline runs Android and iOS builds on every tagged release (see <code>.github/workflows/ci.yml</code>). The <code>android</code> job:</p>
+<p>The CI pipeline builds Android on every pull request and push to <code>master</code> (a debug APK, uploaded as the <code>android-debug-apk</code> artifact for the smoke-test gate) and on every tagged release (<code>v*</code>, see <code>.github/workflows/ci.yml</code>). The <code>android</code> job:</p>
 <ol>
 <li>Sets up Android SDK and NDK</li>
 <li>Adds all Android Rust targets</li>
 <li>Runs <code>tauri android init</code></li>
 <li>Applies Android patches</li>
-<li>Runs <code>tauri android build --target aarch64 --apk</code></li>
-<li>Signs the APK (if keystore is configured)</li>
-<li>Uploads the APK and AAB as build artifacts</li>
+<li>On tags: runs <code>tauri android build --target aarch64 --apk --aab</code> to produce a <strong>release</strong> APK and AAB <strong>signed with the release keystore from CI secrets</strong></li>
+<li>On PRs/pushes: runs <code>tauri android build --debug --target aarch64 --apk</code> to produce a <strong>debug</strong> APK for the CI gate and on-device smoke test</li>
+<li>Uploads the APK/AAB (tags) or debug APK (PRs/pushes) as build artifacts</li>
 </ol>
 <p>The <code>ios</code> job:</p>
 <ol>
@@ -3489,7 +3489,7 @@
 <li>Zips the built app</li>
 <li>Uploads as a build artifact</li>
 </ol>
-<p>Both jobs run on tag pushes (<code>v*</code>) and require the <code>test</code> job to pass first.</p>
+<p>The iOS job is currently disabled (<code>if: false</code>). The Android job requires the release keystore secrets (<code>ANDROID_KEYSTORE</code>, <code>ANDROID_KEYSTORE_PASSWORD</code>, <code>ANDROID_KEY_ALIAS</code>, <code>ANDROID_KEY_PASSWORD</code>) to be set on the repository to sign release artifacts; the debug APK does not need them.</p>
 <h3 id="manual-test-checklist">Manual Test Checklist<a class="headerlink" href="#manual-test-checklist" title="Permanent link">&para;</a></h3>
 <p>Before shipping a mobile change, verify:</p>
 <ul>
@@ -3567,24 +3567,23 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk
 </code></pre></div></p>
 <p><strong>Important</strong>: The debug APK uses <code>applicationIdSuffix = ".debug"</code> so it installs as <code>app.stratum.debug</code> alongside any release build. It is auto-signed with the debug keystore at <code>~/.android/debug.keystore</code>.</p>
-<h3 id="release-apk-unsigned-for-distribution">Release APK (unsigned, for distribution)<a class="headerlink" href="#release-apk-unsigned-for-distribution" title="Permanent link">&para;</a></h3>
+<h3 id="release-apk-signed-for-distribution">Release APK (signed, for distribution)<a class="headerlink" href="#release-apk-signed-for-distribution" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>npx<span class="w"> </span>tauri<span class="w"> </span>android<span class="w"> </span>build<span class="w"> </span>--target<span class="w"> </span>aarch64<span class="w"> </span>--apk
 </code></pre></div>
-<p>Release APKs are unsigned and must be signed before installation. The CI pipeline signs them using <code>apksigner</code> with a keystore from GitHub secrets.</p>
-<h3 id="apk-signing">APK Signing<a class="headerlink" href="#apk-signing" title="Permanent link">&para;</a></h3>
-<p>The CI workflow (<code>.github/workflows/ci.yml</code>) signs release APKs with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>apksigner<span class="w"> </span>sign<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="w">  </span>--v1-signing-enabled<span class="w"> </span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a><span class="w">  </span>--v2-signing-enabled<span class="w"> </span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a><span class="w">  </span>--v3-signing-enabled<span class="w"> </span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a><span class="w">  </span>--ks<span class="w"> </span><span class="s2">"</span><span class="nv">$KEYSTORE_PATH</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a><span class="w">  </span>--ks-type<span class="w"> </span>PKCS12<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a><span class="w">  </span>--ks-pass<span class="w"> </span><span class="s2">"pass:</span><span class="nv">$KEYSTORE_PASSWORD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-35-8" name="__codelineno-35-8" href="#__codelineno-35-8"></a><span class="w">  </span>--ks-key-alias<span class="w"> </span><span class="s2">"</span><span class="nv">$KEY_ALIAS</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-35-9" name="__codelineno-35-9" href="#__codelineno-35-9"></a><span class="w">  </span>--key-pass<span class="w"> </span><span class="s2">"pass:</span><span class="nv">$KEY_PASSWORD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-35-10" name="__codelineno-35-10" href="#__codelineno-35-10"></a><span class="w">  </span><span class="s2">"</span><span class="nv">$APK</span><span class="s2">"</span>
+<p>Release APKs and AABs are signed at build time by Gradle using the release signing config in <code>src-tauri/android-patches/app/build.gradle.kts</code>, which reads the keystore credentials from the environment (set by CI from GitHub secrets). For local release builds, set these before building:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANDROID_KEYSTORE</span><span class="o">=</span>/path/to/release.keystore
+<a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANDROID_KEYSTORE_PASSWORD</span><span class="o">=</span>...
+<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANDROID_KEY_ALIAS</span><span class="o">=</span>...
+<a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANDROID_KEY_PASSWORD</span><span class="o">=</span>...
 </code></pre></div>
-<p>V2 signing is <strong>required</strong> for Android 11+ (API 30+) when <code>targetSdkVersion &gt;= 30</code>. V1 provides backward compatibility.</p>
+<p>If these are not set, the signing config falls back to the checked-in debug keystore (<code>src-tauri/android-patches/debug.keystore</code>) so local/CI builds still succeed.</p>
+<h3 id="apk-signing">APK Signing<a class="headerlink" href="#apk-signing" title="Permanent link">&para;</a></h3>
+<p>Release signing happens inside the Gradle build (see <code>signingConfigs.release</code> in <code>src-tauri/android-patches/app/build.gradle.kts</code>). The CI workflow decodes the base64 <code>ANDROID_KEYSTORE</code> secret to a keystore file and exports the signing env vars, so release artifacts are signed with the production keystore. The signing config enables V1, V2, and V3 signing:</p>
+<ul>
+<li>V2 signing is <strong>required</strong> for Android 11+ (API 30+) when <code>targetSdkVersion &gt;= 30</code>.</li>
+<li>V1 provides backward compatibility for older Android versions.</li>
+<li>V3 supports key rotation.</li>
+</ul>
 <hr />
 <h2 id="safe-area-handling">Safe Area Handling<a class="headerlink" href="#safe-area-handling" title="Permanent link">&para;</a></h2>
 <p>Android's edge-to-edge display mode renders the WebView behind system bars (status bar, navigation bar). Stratum handles this with:</p>
