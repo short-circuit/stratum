@@ -42,6 +42,8 @@ export default function OutlinerEditorDesktop(props: Props) {
     pageMarkers,
     mathEdit,
     setMathEdit,
+    saving,
+    lastSavedAt,
     containerRef,
     preview,
     setPreview,
@@ -49,6 +51,12 @@ export default function OutlinerEditorDesktop(props: Props) {
     setDeadLinkPopup,
     navigateRef,
   } = useEditorData(pagePath, autoFocus, minHeight);
+
+  const saveLabel = useMemo(() => {
+    if (saving) return 'Saving…';
+    if (lastSavedAt) return `Saved ${new Date(lastSavedAt).toLocaleTimeString()}`;
+    return null;
+  }, [saving, lastSavedAt]);
 
   // Memoize the editor view so it doesn't re-render on popup state changes
   // (which would reset scroll position)
@@ -124,7 +132,29 @@ export default function OutlinerEditorDesktop(props: Props) {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+      {saveLabel && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 12,
+            zIndex: 5,
+            px: 1,
+            py: 0.25,
+            borderRadius: 1,
+            bgcolor: 'background.paper',
+            border: '1px solid',
+            borderColor: 'divider',
+            boxShadow: 1,
+            pointerEvents: 'none',
+          }}
+        >
+          <Typography variant="caption" color={saving ? 'text.secondary' : 'text.disabled'}>
+            {saveLabel}
+          </Typography>
+        </Box>
+      )}
       {pageMarkers.length > 0 && (
         <Box
           sx={{
