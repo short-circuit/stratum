@@ -293,23 +293,17 @@ jobs:
           path: ${{ runner.temp }}/tauri-build.log
           if-no-files-found: warn
 
-  # ── Android build (tag only) ───────────────────────────────────────
+  # ── Android build (PR / push to master / tag) ─────────────────────
+  # Runs on pull requests and pushes to master as an installable CI gate
+  # (debug APK) and on v* tags to produce the release APK + AAB signed
+  # with the release keystore from CI secrets. The frontend is built
+  # inline by `tauri android build` (beforeBuildCommand runs `npm run
+  # build`), so this job has no dependency on the tag-only `frontend` job
+  # and can run on any trigger.
   android:
-    needs: [frontend]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'pull_request' || github.event_name == 'push' || startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
-    env:
-      # Debug keystore (checked into src-tauri/android-patches/)
-      ANDROID_KEYSTORE: debug.keystore
-      ANDROID_KEYSTORE_PASSWORD: android
-      ANDROID_KEY_ALIAS: stratum-debug
-      ANDROID_KEY_PASSWORD: android
-      # ── Production signing (set these secrets for release) ──
-      # Override ANDROID_KEYSTORE, ANDROID_KEYSTORE_PASSWORD,
-      # ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD with production values.
-      # Generate keystore: keytool -genkey -v -keystore release.keystore ...
 
     steps:
       - uses: actions/checkout@v4
@@ -400,11 +394,35 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Download pre-built frontend
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: dist/
+      - name: Prepare release keystore
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          # Release signing (tags): the keystore is stored in CI secrets as a
+          # base64-encoded keystore file. Decode it to a temp path and export
+          # the signing config env for the Gradle build below. If no secrets
+          # are set (e.g. PRs from forks), fall back to the checked-in debug
+          # keystore so the build is still a valid CI gate. Release (tag)
+          # builds define the secrets, so release artifacts are always signed
+          # with the production keystore.
+          if [ -n "$ANDROID_KEYSTORE_B64" ]; then
+            echo "$ANDROID_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            echo "ANDROID_KEYSTORE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+            echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "::notice::Using release keystore from CI secrets for signing"
+          else
+            echo "::notice::No ANDROID_KEYSTORE secret set; falling back to debug keystore"
+            echo "ANDROID_KEYSTORE=debug.keystore" >> "$GITHUB_ENV"
+            echo "ANDROID_KEYSTORE_PASSWORD=android" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_ALIAS=stratum-debug" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_PASSWORD=android" >> "$GITHUB_ENV"
+          fi
 
       - name: Initialize Android project
         run: npx tauri android init
@@ -428,18 +446,40 @@ jobs:
           # Copy checked-in debug keystore for APK signing
           cp src-tauri/android-patches/debug.keystore src-tauri/gen/android/app/debug.keystore
 
-      - name: Build Android APK + AAB (aarch64)
+      - name: Build Android release APK + AAB (tags)
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: npx tauri android build --target aarch64 --apk --aab 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
 
-      - name: Upload Android artifacts
+      # Debug builds do not need the release keystore (Gradle signs the debug
+      # APK with the debug signing config automatically) and are cheap enough
+      # to run on every PR/push as a CI gate. The uploaded debug APK is also
+      # the installable artifact a separate smoke-test job consumes. A v* tag
+      # push is itself a `push` event, so exclude tag refs here to preserve the
+      # tag-triggered release build (above) as the only build on releases.
+      - name: Build Android debug APK (PRs / pushes)
+        if: github.event_name == 'pull_request' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/'))
+        shell: bash
+        run: npx tauri android build --debug --target aarch64 --apk 2>&1 | tee ${{ runner.temp }}/tauri-build.log; exit ${PIPESTATUS[0]}
+
+      - name: Upload Android release artifacts
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v4
         with:
           name: android
           path: |
             src-tauri/gen/android/**/*.apk
             src-tauri/gen/android/**/*.aab
-          if-no-files-found: warn
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Android debug APK
+        if: github.event_name == 'pull_request' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/'))
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: src-tauri/gen/android/**/*.apk
+          if-no-files-found: error
           retention-days: 7
 
       - name: Upload build log
