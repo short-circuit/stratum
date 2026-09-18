@@ -363,14 +363,18 @@ pub struct GraphConfig {
 
 impl Default for GraphConfig {
     fn default() -> Self {
+        // Values match the documented defaults in
+        // docs/getting-started/configuration.md (the canonical spec). Keeping
+        // these in sync prevents `stratum init`-generated configs from drifting
+        // from the documentation (acceptance defect GR-06).
         Self {
             show_connected: true,
             show_orphaned: true,
             show_tags: true,
-            charge_strength: -8.0,
-            link_distance: 40.0,
-            alpha_decay: 0.08,
-            velocity_decay: 0.3,
+            charge_strength: -30.0,
+            link_distance: 100.0,
+            alpha_decay: 0.02,
+            velocity_decay: 0.4,
             link_curvature: 0.15,
         }
     }
@@ -684,6 +688,18 @@ mod tests {
         let json = serde_json::to_string(&cfg).unwrap();
         let deserialized: GraphConfig = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.link_curvature, 0.3);
+    }
+
+    #[test]
+    fn test_graph_config_defaults_match_docs() {
+        // Regression for GR-06: defaults must equal the documented values in
+        // docs/getting-started/configuration.md so `stratum init` configs never
+        // drift from the spec.
+        let cfg = GraphConfig::default();
+        assert_eq!(cfg.charge_strength, -30.0);
+        assert_eq!(cfg.link_distance, 100.0);
+        assert_eq!(cfg.alpha_decay, 0.02);
+        assert_eq!(cfg.velocity_decay, 0.4);
     }
 
     #[test]

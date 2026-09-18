@@ -571,6 +571,52 @@ impl BlockStore {
 
     // --- Link CRUD ---
 
+    /// Resolve a raw wiki-link target (`[[Alpha Project]]`, `[[alpha-project]]`,
+    /// or a partial path) to a canonical vault-relative page path, if it exists.
+    ///
+    /// The `links` table stores canonical page paths as `target_page` so that
+    /// backlink queries against a real page path return the incoming links. Storing
+    /// the raw link text (e.g. `"Alpha Project"`) makes `get_backlinks_for_page`
+    /// (which queries by path) never match, which was the root cause of the
+    /// acceptance LK-04 defect (panel counts N but lists zero).
+    pub fn resolve_link_target_path(&self, target: &str) -> Option<String> {
+        let slugified = target.replace(' ', "-").to_lowercase();
+        let lower = target.to_lowercase();
+        let paths = self.list_pages().ok()?;
+
+        for path in &paths {
+            // Exact path match
+            if path == target || path.as_str() == lower {
+                return Some(path.clone());
+            }
+            let slug = std::path::Path::new(path)
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or(path)
+                .to_string();
+            let slug_lower = slug.replace(' ', "-").to_lowercase();
+            if slug_lower == slugified || slug_lower == lower {
+                return Some(path.clone());
+            }
+            // Title match (frontmatter title or slug-derived display name)
+            if let Ok(Some(fm)) = self.get_page(path) {
+                if let Some(ref t) = fm.title {
+                    if t == target
+                        || t.to_lowercase() == lower
+                        || t.replace(' ', "-").to_lowercase() == slugified
+                    {
+                        return Some(path.clone());
+                    }
+                }
+            }
+            let display = slug.replace('-', " ");
+            if display.to_lowercase() == lower || display == target {
+                return Some(path.clone());
+            }
+        }
+        None
+    }
+
     pub fn insert_link(
         &self,
         source_block: BlockId,
@@ -605,13 +651,28 @@ impl BlockStore {
         Ok(sources)
     }
 
-    pub fn get_backlinks_for_page(&self, target_page: &str) -> StoreResult<Vec<String>> {
+            pub fn get_backlinks_for_page(&self, target_page: &str) -> StoreResult<Vec<String>> {
+        // Match both the raw query form (raw link text or path as-saved) and, when
+        // the input resolves to a canonical page path, that path too. This keeps
+        // backlinks working regardless of whether the links table holds a resolved
+        // path or an unresolved target string (see resolve_link_target_path).
+        let mut candidates: Vec<String> = vec![target_page.to_string()];
+        if let Some(resolved) = self.resolve_link_target_path(target_page) {
+            if !candidates.contains(&resolved) {
+                candidates.push(resolved);
+            }
+        }
+
+        let placeholders = vec!["?"; candidates.len()].join(", ");
+        let sql = format!(
+            "SELECT source_block FROM links WHERE target_page IN ({placeholders})"
+        );
         let mut stmt = self
             .conn
-            .prepare("SELECT source_block FROM links WHERE target_page = ?1")
+            .prepare(&sql)
             .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
         let sources: Vec<String> = stmt
-            .query_map(params![target_page], |row| row.get(0))
+            .query_map(params_from_iter(candidates.iter()), |row| row.get(0))
             .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?
             .filter_map(|r| r.ok())
             .collect();
