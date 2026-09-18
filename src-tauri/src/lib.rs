@@ -200,6 +200,13 @@ pub fn run() {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
                         .level(log::LevelFilter::Info)
+                        // The app installs its own global logger via
+                        // `pkm_core::init_logging()` (tracing_subscriber, which
+                        // forwards to the `log` crate). Skip the plugin's logger
+                        // so it does not panic on startup in debug builds with
+                        // "attempted to set a logger after the logging system
+                        // was already initialized".
+                        .skip_logger()
                         .build(),
                 )?;
             }

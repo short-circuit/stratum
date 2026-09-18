@@ -39,6 +39,10 @@ export async function createSession(appBinary, opts = {}) {
     port,
     path: '/',
     protocol: 'http',
+    // Fail fast instead of hanging ~2min on a stalled session negotiation;
+    // callers surface tauri-driver app stderr for diagnosis (see run.mjs).
+    connectionRetryTimeout: opts.connectionRetryTimeout ?? 30000,
+    connectionRetryCount: opts.connectionRetryCount ?? 1,
     capabilities: {
       alwaysMatch: {
         browserName: 'wry',
