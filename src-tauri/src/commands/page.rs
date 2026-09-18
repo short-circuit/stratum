@@ -215,8 +215,14 @@ pub(crate) fn reconcile_page_links(
     for block in blocks {
         let links = pkm_markdown::linker::extract_links(&block.content);
         for link in links {
+            // Store the canonical page path (or the raw target when it resolves
+            // to nothing, e.g. a dead link) so backlink queries by real path work.
+            // See BlockStore::resolve_link_target_path for rationale.
+            let target = store
+                .resolve_link_target_path(&link.target)
+                .unwrap_or_else(|| link.target.clone());
             store
-                .insert_link(block.id, "page_ref", Some(&link.target), None)
+                .insert_link(block.id, "page_ref", Some(&target), None)
                 .map_err(|e| e.to_string())?;
         }
     }

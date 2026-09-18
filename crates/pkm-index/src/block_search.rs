@@ -4,7 +4,7 @@
 
 use pkm_block::Block;
 use pkm_core::{PkmError, PkmResult};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
@@ -24,6 +24,8 @@ pub struct BlockSearchResult {
 pub struct BlockIndex {
     index: Index,
     schema: Arc<Schema>,
+    /// Directory of the Tantivy index (used to lazily create the writer).
+    directory: PathBuf,
     writer: Option<IndexWriter>,
 }
 
@@ -52,36 +54,66 @@ impl BlockIndex {
                 .map_err(|e| PkmError::Index(format!("Failed to create block index: {}", e)))?
         };
 
-        let writer = Self::create_writer(&index, &dir)?;
-
+        // Writers are acquired lazily on the first write (see `acquire_writer`);
+        // `create` must not hold the exclusive `.tantivy-writer.lock` so that a
+        // second `BlockIndex`/`IndexEngine` over the same directory can open.
+        // The stale-lock cleanup happens on that first acquisition instead.
         Ok(Self {
             index,
             schema,
-            writer: Some(writer),
+            directory: dir,
+            writer: None,
         })
     }
 
-    /// Create an IndexWriter, retrying once if the lock is stale.
+    /// Create an `IndexWriter`, retrying once if a stale lock from a previous
+    /// crash is present. On crash-recovery we remove the real Tantivy lock files
+    /// (`.tantivy-writer.lock` / `.tantivy-meta.lock`) that remain behind and
+    /// retry — this is the documented recovery for tantivy 0.22 (see
+    /// `tantivy::directory::directory_lock`).
     fn create_writer(index: &Index, dir: &Path) -> PkmResult<IndexWriter> {
-        let attempt = || -> PkmResult<IndexWriter> {
+        fn attempt(index: &Index) -> PkmResult<IndexWriter> {
             index
                 .writer(50_000_000)
                 .map_err(|e| PkmError::Index(format!("Failed to create block writer: {e}")))
-        };
-        match attempt() {
+        }
+        match attempt(index) {
             Ok(w) => Ok(w),
             Err(e) if e.to_string().contains("LockBusy") => {
-                // stale lock from a previous crash — clear it and retry
-                let lock_path = dir.join(".tantivy-lock");
-                if lock_path.exists() {
-                    tracing::warn!("Removing stale Tantivy lock at {:?}", lock_path);
-                    let _ = std::fs::remove_file(&lock_path);
+                // A stale writer/meta lock from a previous abnormal exit. Tantivy
+                // 0.22 names these `.tantivy-writer.lock` and `.tantivy-meta.lock`
+                // (NOT `.tantivy-lock`). Remove both and retry once.
+                for name in [".tantivy-writer.lock", ".tantivy-meta.lock"] {
+                    let lock_path = dir.join(name);
+                    if lock_path.exists() {
+                        tracing::warn!("Removing stale Tantivy lock at {:?}", lock_path);
+                        if let Err(e) = std::fs::remove_file(&lock_path) {
+                            tracing::warn!("Failed to remove stale lock {:?}: {}", lock_path, e);
+                        }
+                    }
                 }
                 tracing::info!("Retrying BlockIndex writer creation after lock cleanup");
-                attempt()
+                attempt(index)
             }
             Err(e) => Err(e),
         }
+    }
+
+    /// Acquire a writer if one is not already held. Writers are acquired lazily
+    /// and released after each `flush` (commit), so two `BlockIndex` instances
+    /// over the same directory can coexist: the second instance only grabs the
+    /// exclusive writer lock while it is actually writing, and releases it on
+    /// commit. This is the root-cause fix for the boot-time `LockBusy` failure
+    /// (GG-05), where the app held both an `IndexEngine` writer and a second
+    /// `BlockIndex` writer on the same `.pkm/search` directory.
+    pub fn acquire_writer(&mut self) -> PkmResult<()> {
+        if self.writer.is_some() {
+            return Ok(());
+        }
+        let dir = self.directory.clone();
+        let writer = Self::create_writer(&self.index, &dir)?;
+        self.writer = Some(writer);
+        Ok(())
     }
 
     /// Open an existing block index for read-only access (no writer).
@@ -116,6 +148,7 @@ impl BlockIndex {
         Some(Self {
             index,
             schema,
+            directory: dir,
             writer: None,
         })
     }
@@ -127,6 +160,7 @@ impl BlockIndex {
     }
 
     pub fn index_block(&mut self, block: &Block, page_path: &str) -> PkmResult<()> {
+        self.acquire_writer()?;
         let id_str = block.id.to_string();
         let marker_str = block
             .marker
@@ -175,6 +209,7 @@ impl BlockIndex {
     }
 
     pub fn delete_block(&mut self, block_id: uuid::Uuid) -> PkmResult<()> {
+        self.acquire_writer()?;
         let id_field = self.field("id");
         let id_str = block_id.to_string();
 
@@ -261,6 +296,7 @@ impl BlockIndex {
     }
 
     pub fn delete_blocks_by_page(&mut self, page_path: &str) -> PkmResult<()> {
+        self.acquire_writer()?;
         let page_field = self.field("page_path");
         let writer = self
             .writer
@@ -273,11 +309,16 @@ impl BlockIndex {
         Ok(())
     }
 
+    /// Commit pending writes and release the writer (and its exclusive Tantivy
+    /// directory lock) so other `BlockIndex`/`IndexEngine` instances over the
+    /// same directory can take the writer lock in turn.
     pub fn flush(&mut self) -> PkmResult<()> {
         if let Some(ref mut writer) = self.writer {
             writer
                 .commit()
-                .map_err(|e| PkmError::Index(format!("Failed to commit block index: {}", e)))?;
+                .map_err(|e| PkmError::Index(format!("Failed to commit block index: {e}")))?;
+            // Drop the writer to release the `.tantivy-writer.lock` we hold.
+            self.writer = None;
         }
         Ok(())
     }
@@ -329,6 +370,72 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let idx = BlockIndex::create(tmp.path()).unwrap();
         drop(idx);
+    }
+
+    #[test]
+    fn test_two_instances_same_dir_coexist() {
+        // Regression for GG-05: the desktop app held both an IndexEngine writer
+        // and a second BlockIndex writer on the same `.pkm/search` directory,
+        // which tripped tantivy's exclusive `.tantivy-writer.lock` at boot
+        // ("Failed to create BlockIndex ... LockBusy"). Writers are now acquired
+        // lazily and released on flush (the app's save path flushes+releases the
+        // BlockIndex writer before the IndexEngine writer is acquired), so two
+        // instances over the same directory can be created up front and used
+        // sequentially without lock contention or data loss.
+        let tmp = TempDir::new().unwrap();
+
+        // Simulates `VaultState::new`: an IndexEngine BlockIndex and a search
+        // BlockIndex are both created on the same directory up front. With lazy
+        // writers neither holds the lock at creation, so this must not LockBusy.
+        let mut engine_idx = BlockIndex::create(tmp.path()).unwrap();
+        let mut search_idx = BlockIndex::create(tmp.path()).unwrap();
+
+        // Save path: the search/block writer writes a page and flushes (release).
+        search_idx
+            .index_block(
+                &Block::new(Uuid::new_v4(), "Alpha note content".into()),
+                "pages/alpha.md",
+            )
+            .unwrap();
+        search_idx.flush().unwrap();
+
+        // Watcher/save path: after the BlockIndex writer is released, the
+        // IndexEngine writes the same page and flushes (release).
+        engine_idx
+            .index_block(
+                &Block::new(Uuid::new_v4(), "Beta note content".into()),
+                "pages/beta.md",
+            )
+            .unwrap();
+        engine_idx.flush().unwrap();
+
+        // Reads are done through a fresh instance (the app's per-query path) and
+        // must see all committed documents.
+        let fresh = BlockIndex::create(tmp.path()).unwrap();
+        assert!(!fresh.search("Alpha", 10).unwrap().is_empty());
+        assert!(!fresh.search("Beta", 10).unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_create_recovers_from_stale_lock() {
+        // Regression for GG-05: after an abnormal exit, `.tantivy-writer.lock`
+        // and `.tantivy-meta.lock` (the real tantivy 0.22 lock names) may
+        // remain. `acquire_writer` must remove them and retry rather than fail
+        // with LockBusy.
+        let tmp = TempDir::new().unwrap();
+        let dir = tmp.path().join("blocks");
+        std::fs::create_dir_all(&dir).unwrap();
+
+        // Simulate a stale lock from a previous crash.
+        std::fs::write(dir.join(".tantivy-writer.lock"), b"").unwrap();
+        std::fs::write(dir.join(".tantivy-meta.lock"), b"").unwrap();
+
+        let mut idx = BlockIndex::create(tmp.path()).unwrap();
+        let id = Uuid::new_v4();
+        idx.index_block(&Block::new(id, "recover me".into()), "p/a.md")
+            .unwrap();
+        idx.flush().unwrap();
+        assert!(!idx.search("recover", 10).unwrap().is_empty());
     }
 
     #[test]
