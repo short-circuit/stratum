@@ -275,6 +275,7 @@ pub fn run() {
             commands::search::rebuild_search_index,
             commands::search::get_backlinks,
             commands::search::get_page_backlinks,
+            commands::search::get_backlink_snippet,
             commands::search::autocomplete,
             commands::search::suggest_connections,
             commands::search::get_backlink_context,
