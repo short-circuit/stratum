@@ -95,6 +95,46 @@ jobs:
       - name: Run frontend unit tests
         run: npm test
 
+  # ── Supply-chain security gate ─────────────────────────────────
+  security-audit:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: Rust supply-chain audit (blocks on NEW advisories)
+        # .cargo/audit.toml pins the accepted workspace baseline
+        # (wasmtime/unic-*/excalidraw chains). Any advisory not in that
+        # list fails this step, so new vulnerabilities are caught in CI.
+        run: cargo audit
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: npm audit (report)
+        # Report-only: 3 known production high advisories are pinned by
+        # transitive @blocknote/@excalidraw deps and tracked for remediation
+        # (see ADR-0006). Dependabot opens bumps; the report keeps visibility.
+        run: npm audit --audit-level=high || echo "::warning::npm audit found findings (see ADR-0006 supply-chain baseline)"
+
   # ── tauri-driver E2E harness (automatic on push/PR; required after merge;
   #    weekly on schedule / manual via workflow_dispatch) ──
   e2e-harness:

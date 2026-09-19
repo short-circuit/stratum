@@ -115,3 +115,5 @@ nav:
     - development/mobile-guide.md
     - ADR-0004 WASM Plugin ABI:
       - development/adr/0004-wasm-plugin-abi.md
+    - ADR-0006 MCP Server Threat Model:
+      - development/adr/0006-mcp-threat-model.md
