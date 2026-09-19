@@ -10,21 +10,14 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
-serde.workspace = true
 serde_json.workspace = true
-toml.workspace = true
 chrono.workspace = true
-anyhow.workspace = true
-tracing.workspace = true
 pkm-core = { path = "../pkm-core" }
 pkm-markdown = { path = "../pkm-markdown" }
 pkm-index = { path = "../pkm-index" }
 pkm-sync = { path = "../pkm-sync" }
-pkm-watcher = { path = "../pkm-watcher" }
 pkm-ai = { path = "../pkm-ai" }
-pkm-plugin = { path = "../pkm-plugin" }
 tokio.workspace = true
-gix.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
