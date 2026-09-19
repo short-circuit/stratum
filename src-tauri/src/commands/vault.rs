@@ -317,6 +317,48 @@ mod tests {
         let result = resolve_saf_content_uri(uri).unwrap();
         assert_eq!(result, PathBuf::from("/storage/emulated/0/StratumVault"));
     }
+
+    /// Regression for E7.F9 on-device finding: replacing the vault's plugin
+    /// manager must not panic with tokio's "Cannot drop a runtime in a context
+    /// where blocking is not allowed" and must not poison the vault `Mutex`.
+    ///
+    /// Before the fix, `setup_vault` assigned `vstate.plugin_manager = Some(...)`
+    /// directly, which dropped the previous `PluginManager` (and its embedded
+    /// `PluginRuntime`'s tokio runtime) on the async command thread whenever the
+    /// existing manager was non-empty — e.g. after the app had already booted a
+    /// manager in `setup()`. That drop panics on tokio >= 1.52 and poisons the
+    /// lock. The fix moves the superseded manager's drop to a fresh OS thread,
+    /// which has no tokio thread-local context.
+    #[test]
+    fn setup_vault_replacing_manager_does_not_poison_lock() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let vault_path = tmp.path().to_path_buf();
+        let _ = std::fs::create_dir_all(vault_path.join(".pkm"));
+
+        let state = std::sync::Arc::new(Mutex::new(VaultState::new(vault_path.clone())));
+
+        // Run setup on a tokio runtime worker so the async thread-local context
+        // is entered, exactly like a Tauri async command. First call installs a
+        // manager with no prior one to replace.
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(2)
+            .enable_all()
+            .build()
+            .expect("runtime");
+        rt.block_on(async {
+            let mut guard = state.lock().expect("lock on first setup");
+            setup_vault(&vault_path, &mut guard).expect("first setup");
+            // Second call replaces the manager from the first — this is where
+            // the old runtime would previously be dropped in the async context.
+            setup_vault(&vault_path, &mut guard).expect("second setup");
+        });
+
+        // The lock must not be poisoned and the manager must be present.
+        let guard = state.lock();
+        assert!(guard.is_ok(), "vault lock must not be poisoned");
+        let guard = guard.unwrap();
+        assert!(guard.plugin_manager.is_some(), "plugin manager must be present");
+    }
 }
 
 #[tauri::command]
@@ -403,14 +445,7 @@ pub async fn init_vault(
             .map_err(|e| format!("Failed to create vault directory: {}", e))?;
     }
 
-    let mut vstate = state.lock().map_err(|e| e.to_string())?;
-    let (_, block_count, page_count) = setup_vault(&vault_path, &mut vstate)?;
-
-    Ok(VaultInfo {
-        path: vault_path.to_string_lossy().to_string(),
-        block_count,
-        page_count,
-    })
+    setup_vault_blocking(state, vault_path)
 }
 
 /// Initialize vault at the application's default data directory
@@ -424,13 +459,7 @@ pub async fn init_default_vault(
     let vault_path = crate::resolve_default_vault_path(&app);
     std::fs::create_dir_all(&vault_path)
         .map_err(|e| format!("Failed to create vault directory: {}", e))?;
-    let mut vstate = state.lock().map_err(|e| e.to_string())?;
-    let (_, block_count, page_count) = setup_vault(&vault_path, &mut vstate)?;
-    Ok(VaultInfo {
-        path: vault_path.to_string_lossy().to_string(),
-        block_count,
-        page_count,
-    })
+    setup_vault_blocking(state, vault_path)
 }
 
 /// Pick a directory on Android via SAF, then init vault at that location.
@@ -462,14 +491,7 @@ pub async fn pick_android_directory(
         }
     };
 
-    let mut vstate = state.lock().map_err(|e| e.to_string())?;
-    let (_, block_count, page_count) = setup_vault(&vault_path, &mut vstate)?;
-
-    Ok(VaultInfo {
-        path: vault_path.to_string_lossy().to_string(),
-        block_count,
-        page_count,
-    })
+    setup_vault_blocking(state, vault_path)
 }
 fn setup_vault(
     vault_path: &std::path::Path,
@@ -510,13 +532,47 @@ history/
     // Shares the same single entry point as the app startup scan.
     let plugin_manager = crate::commands::plugins::PluginManager::init_for_vault(vault_path)
         .map_err(|e| format!("Failed to initialize plugin manager: {e}"))?;
-    vstate.plugin_manager = Some(plugin_manager);
+
+    // Replacing the manager drops the *previous* one. That drop shuts down the
+    // old `PluginRuntime`, which owns an embedded tokio runtime (see
+    // pkm-plugin/src/runtime.rs). On tokio >= 1.52, dropping a `Runtime` from
+    // inside an entered async context panics with "Cannot drop a runtime in a
+    // context where blocking is not allowed" — and because we hold the vault
+    // `Mutex` here, that panic poisons it for the rest of the process (E7.F9
+    // on-device finding). A freshly spawned OS thread has no tokio thread-local
+    // context, so runtime shutdown there is always allowed. Vault setup is a
+    // rare operation, so one throwaway thread per re-init is acceptable.
+    let old_manager = vstate.plugin_manager.replace(plugin_manager);
+    if let Some(old) = old_manager {
+        std::thread::spawn(move || drop(old));
+    }
 
     let store = pkm_block::BlockStore::open(&db_path).map_err(|e| e.to_string())?;
     vstate.block_store = pkm_block::BlockStore::open(&db_path).ok();
     let block_count = store.block_count().map_err(|e| e.to_string())?;
     let page_count = store.page_count().map_err(|e| e.to_string())?;
     Ok((store, block_count, page_count))
+}
+
+/// Run vault setup while holding the state lock, returning a `VaultInfo`.
+///
+/// `tauri::State` is a borrowed handle (`&AppState`) so it cannot cross into a
+/// `'static` `spawn_blocking` closure; the lock is held inline instead. The
+/// only part of setup that would panic in an async context — dropping the
+/// superseded plugin runtime — is always moved to a fresh OS thread inside
+/// `setup_vault` (see the comment there), so this is safe to call directly
+/// from async commands.
+fn setup_vault_blocking(
+    state: tauri::State<'_, AppState>,
+    vault_path: PathBuf,
+) -> Result<VaultInfo, String> {
+    let mut vstate = state.lock().map_err(|e| e.to_string())?;
+    let (_, block_count, page_count) = setup_vault(&vault_path, &mut vstate)?;
+    Ok(VaultInfo {
+        path: vault_path.to_string_lossy().to_string(),
+        block_count,
+        page_count,
+    })
 }
 
 #[cfg(desktop)]
