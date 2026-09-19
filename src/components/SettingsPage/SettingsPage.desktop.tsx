@@ -49,7 +49,7 @@ export default function SettingsPageDesktop() {
     toggleModelCapability,
     handleToggleCommits,
     handleStartScheduler,
-    pickVaultDirectory,
+    handlePickVaultDirectory,
   } = useSettingsPage();
 
   if (!settings) {
@@ -107,7 +107,7 @@ export default function SettingsPageDesktop() {
           <VaultTab
             vaultPath={settings.vault_path || ''}
             onVaultPathChange={path => updateVault({ vault_path: path })}
-            onBrowse={pickVaultDirectory}
+            onBrowse={handlePickVaultDirectory}
           />
         )}
         {tab === 'theme' && <ThemeTab theme={theme} onThemeChange={updateTheme} />}
