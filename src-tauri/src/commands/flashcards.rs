@@ -111,7 +111,7 @@ pub async fn review_card(
     page_path: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<FlashcardDto, String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
+    let mut state = state.lock().map_err(|e| e.to_string())?;
     let id = Uuid::parse_str(&card_id).map_err(|e| e.to_string())?;
     let store = state.get_store().map_err(|e| e.to_string())?;
     let mut block = store.get_block(id).map_err(|e| e.to_string())?;
@@ -170,6 +170,20 @@ pub async fn review_card(
     store
         .insert_block(&block, &page_path)
         .map_err(|e| e.to_string())?;
+
+    // Persist the updated schedule to the on-disk .md file (not just SQLite).
+    // Boot-time disk sync and the file watcher read .md as the source of truth,
+    // so a DB-only update is wiped on restart. Rewrite the page preserving its
+    // frontmatter, mirroring the save_blocks disk-write pattern.
+    let full_path = state.vault_path.join(&page_path);
+    let all_blocks = store
+        .get_blocks_by_page(&page_path)
+        .map_err(|e| e.to_string())?;
+    let body = pkm_markdown::block_parser::serialize_blocks(&all_blocks);
+    let existing = std::fs::read_to_string(&full_path).unwrap_or_default();
+    let markdown = pkm_markdown::block_parser::assemble_blocks_markdown(&existing, &body, None);
+    std::fs::write(&full_path, &markdown).map_err(|e| e.to_string())?;
+    state.record_change(&page_path);
 
     Ok(FlashcardDto {
         id: block.id.to_string(),
