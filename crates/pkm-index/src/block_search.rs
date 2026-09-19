@@ -34,7 +34,12 @@ impl BlockIndex {
         let mut schema_builder = Schema::builder();
 
         schema_builder.add_text_field("id", STRING | STORED);
-        schema_builder.add_text_field("content", TEXT);
+        // `content` is indexed for search AND stored so hits can return the
+        // matching text directly (MCP contract §5.7 requires the content in the
+        // response; without STORED the doc value is not retrievable from the
+        // segment and callers must hydrate from blocks.db — which drifts under
+        // re-parse with fresh UUIDs).
+        schema_builder.add_text_field("content", TEXT | STORED);
         schema_builder.add_text_field("page_path", STRING | STORED);
         schema_builder.add_text_field("marker", STRING);
         schema_builder.add_text_field("priority", STRING);
@@ -125,7 +130,9 @@ impl BlockIndex {
         let mut schema_builder = Schema::builder();
 
         schema_builder.add_text_field("id", STRING | STORED);
-        schema_builder.add_text_field("content", TEXT);
+        // Keep the schema identical to `create`; the document stored in the
+        // segment carries content, so read-only searches return it directly.
+        schema_builder.add_text_field("content", TEXT | STORED);
         schema_builder.add_text_field("page_path", STRING | STORED);
         schema_builder.add_text_field("marker", STRING);
         schema_builder.add_text_field("priority", STRING);

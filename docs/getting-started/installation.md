@@ -109,3 +109,16 @@ cargo build -p pkm-cli
 ```
 
 See the [CLI Reference](../cli/command-reference.md) for all commands.
+
+## Using the MCP Server
+
+To expose your vault to external AI clients over the Model Context Protocol,
+build and run the `pkm-mcp` binary:
+
+```bash
+cargo build -p pkm-mcp
+./target/debug/pkm-mcp --vault /path/to/your/vault
+```
+
+For transports, configuration, authentication, the full tool list, and
+troubleshooting, see the [MCP Server guide](../guide/mcp-server.md).
