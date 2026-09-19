@@ -16,6 +16,7 @@ members = [
     "crates/pkm-stt",
     "crates/pkm-dictation",
     "crates/pkm-mcp",
+    "crates/pkm-mcp-security",
     "src-tauri",
 ]
 
@@ -97,6 +98,10 @@ hyper-util = { version = "0.1", features = ["tokio"] }
 tower-service = "0.3"
 http-body-util = "0.1"
 clap = { version = "4", features = ["derive"] }
+
+# MCP security controls (crate: pkm-mcp-security)
+sha2 = "0.10"
+constant_time_eq = "0.3"
 
 # Dev
 tempfile = "3"
