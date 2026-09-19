@@ -77,6 +77,14 @@ fn clone_repo(remote: &Path, dest: &Path, branch: &str) {
             dest.to_str().unwrap(),
         ],
     );
+    // Set a repo-local identity so any git operation that commits in this clone
+    // (including the real merge / auto-commit inside `GitEngine::pull`) works
+    // deterministically regardless of the ambient environment's git config.
+    // CI runners have no global user.name/user.email; without this the merge
+    // fails with "Please tell me who you are", no conflict state is created,
+    // and the engine reports success:false with an empty conflict list.
+    git(dest, &["config", "user.name", "test"]);
+    git(dest, &["config", "user.email", "test@pkm.local"]);
 }
 
 /// Turn a target directory into a working engine repo tracking the seeded
