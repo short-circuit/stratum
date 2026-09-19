@@ -297,3 +297,20 @@ All backend-owned items below are **now FIXED** (verified 2026-09-18 on `t_d65ce
 - Full QA UI probe (e2e/qafinal_ui.mjs) → all formerly-FAIL items GREEN; screenshots + evidence JSON archived in workspace evidence/
 
 **Verdict: ALL previously-FAIL acceptance items now GREEN. No CRITICAL/HIGH defects remain. Residual items are cosmetic-only and do not block release.**
+
+## E7.F2 SEARCH & INDEX AUTOMATED VERIFICATION — 2026-09-19 (t_10c1c4b6)
+
+Addenda to the QA final gate: the acceptance criteria for search & index that the live QA gate did not automate are now covered by reproducible integration + command-layer test suites (real crates, real temp vault, no mocks). All run against repo HEAD ad52c86.
+
+| E7.F2 acceptance criterion | Evidence | Result |
+|---|---|---|
+| Full-text search sub-100ms at 1k+ notes | `crates/pkm-tests/tests/search_index_e2e.rs::search_latency_under_100ms_on_large_vault` — 1,200-note corpus, avg `2.34ms`/query over 20 queries (debug build) | **PASS** |
+| Tag search (frontmatter + inline, no duplicates) | `search_index_e2e.rs::tag_search_matches_frontmatter_and_inline` + `src-tauri/tests/search_commands.rs::search_by_tag_returns_unique_frontmatter_and_inline_hits` (drives real `search_by_tag` Tauri command over IPC) | **PASS** |
+| New pages indexed immediately | `search_index_e2e.rs::new_page_is_indexed_immediately`, `external_write_then_index_is_immediately_searchable` + `search_commands.rs::new_page_is_immediately_searchable_through_command` (drives real `search_blocks` command) | **PASS** |
+| Reindex preserves formatting/frontmatter | `search_index_e2e.rs::reindex_preserves_formatting_and_frontmatter` — on-disk bytes unchanged after `rebuild_all`; `assemble_blocks_markdown` retains custom frontmatter fields | **PASS** |
+| No duplicate entries across reindex | `search_index_e2e.rs::reindex_does_not_duplicate_blocks`, `large_vault_reindex_has_no_duplicates_in_store`, `block_index_deduplicates_by_block_id` (1200-note double rebuild converges at 0 growth) | **PASS** |
+| Progress events for reindex | `search_index_e2e.rs::reindex_reports_progress_through_callback` — real `rebuild_all` progress callback fires with in-range, monotonic values; `reindex_vault`/`rebuild_search_index` forward to `app.emit("reindex-progress", …)` (verified in source) + frontend listener `useSettingsPage.ts::listen('reindex-progress')` | **PASS** |
+
+**Evidence runs:** `cargo test -p pkm-tests --test search_index_e2e` → 10/10; `cargo test -p stratum-tauri --test search_commands` → 2/2; `cargo test -p pkm-index` → 45/45; `cargo test -p pkm-tests` (full) → all pass; `cargo test -p stratum-tauri` (full) → all pass; `cargo clippy -p pkm-tests --test search_index_e2e` and `-p stratum-tauri --tests` → clean (my files); `rustfmt --check` → clean.
+
+**No product defects found.** The only failures during authoring were test-fixture bugs (unformatted string literals, unflushed Tantivy writer, missing body block for a frontmatter-tagged page), not product defects. Performance headroom is ~40× under the 100ms budget on the debug build; release builds are faster still.
