@@ -9,6 +9,7 @@ import { useParams } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 import { useStore, type AppState } from '../../stores/appStore';
 import * as api from '../../lib/commands';
+import { useRestoreSourceScroll } from '../../lib/backlinkNavigation';
 
 export interface PageViewState {
   /** Decoded page path from URL params, or null on the landing route */
@@ -36,16 +37,20 @@ export function usePageView(): PageViewState {
   ));
   const [editorKey, setEditorKey] = useState(0);
   const [reindexing, setReindexing] = useState(false);
-
   const pagePath = rawPath ? decodeURIComponent(rawPath) : null;
+
+  const restoreSourceScroll = useRestoreSourceScroll(pagePath);
 
   useEffect(() => {
     if (pagePath) {
       openPage(pagePath);
       // Bump key so OutlinerEditor remounts with fresh content
       setEditorKey(k => k + 1);
+      // Restore the source note's editor scroll if the user is returning
+      // after a Ctrl/Cmd+click navigation away from it.
+      restoreSourceScroll();
     }
-  }, [pagePath, openPage]);
+  }, [pagePath, openPage, restoreSourceScroll]);
 
   const handleReindex = useCallback(async () => {
     if (!currentPage) return;

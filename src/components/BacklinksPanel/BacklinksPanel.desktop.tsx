@@ -1,5 +1,4 @@
 import { useRef, memo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -8,23 +7,25 @@ import Typography from '@mui/material/Typography';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
 import CircularProgress from '@mui/material/CircularProgress';
-import Popover from '@mui/material/Popover';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useCtrlHeld } from '../../lib/useCtrlHeld';
 import type { BacklinkItem } from '../../lib/types';
 import { useBacklinksData, usePreview } from './BacklinksPanel.shared';
 import type { BacklinksPanelProps } from './BacklinksPanel.shared';
+import BacklinkSnippetPopup from '../BacklinkSnippetPopup';
+import { useBacklinkNavigation } from '../../lib/backlinkNavigation';
 
 const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: BacklinksPanelProps) {
-  const navigate = useNavigate();
+  const navigateBacklink = useBacklinkNavigation();
   const { backlinks, loading, linked, unlinked } = useBacklinksData(pagePath);
   const { preview, showPreview, dismissPreview } = usePreview();
   const ctrlHeld = useCtrlHeld();
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const popupHovered = useRef(false);
 
   const handleMouseEnter = (item: BacklinkItem, e: React.MouseEvent) => {
     const el = e.currentTarget as HTMLElement;
-    hoverTimer.current = setTimeout(async () => {
+    hoverTimer.current = setTimeout(() => {
       if (!ctrlHeld.current) return;
       showPreview(item, el);
     }, 200);
@@ -32,6 +33,20 @@ const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: 
 
   const handleMouseLeave = () => {
     if (hoverTimer.current) { clearTimeout(hoverTimer.current); hoverTimer.current = null; }
+    // Only auto-dismiss on leave once the popup is open, and only if the
+    // pointer has not moved into the popup itself (it renders in a portal so
+    // leaving the row and entering the popup would otherwise close it before
+    // the user can click the title).
+    if (preview && !popupHovered.current) dismissPreview();
+  };
+
+  const handleClick = (path: string) => (e: React.MouseEvent) => {
+    // Ctrl/Meta+click navigates while preserving the current editor scroll
+    // (so the user can return); plain click is unchanged (also navigates, as
+    // before). Keeping the same action for both preserves existing behaviour.
+    if (e.defaultPrevented) return;
+    dismissPreview();
+    navigateBacklink(path, e);
   };
 
   return (
@@ -53,9 +68,9 @@ const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: 
               <List dense disablePadding>
                 {linked.map((bl, i) => (
                   <ListItemButton
-                    key={i}
+                    key={bl.source_id || i}
                     dense
-                    onClick={() => navigate(`/page/${encodeURIComponent(bl.source_page)}`)}
+                    onClick={(e) => handleClick(bl.source_page)(e)}
                     onMouseEnter={(e) => handleMouseEnter(bl, e)}
                     onMouseLeave={handleMouseLeave}
                     sx={{ borderRadius: 1, flexDirection: 'column', alignItems: 'flex-start' }}
@@ -76,9 +91,9 @@ const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: 
               <List dense disablePadding>
                 {unlinked.map((bl, i) => (
                   <ListItemButton
-                    key={i}
+                    key={bl.source_id || i}
                     dense
-                    onClick={() => navigate(`/page/${encodeURIComponent(bl.source_page)}`)}
+                    onClick={(e) => handleClick(bl.source_page)(e)}
                     onMouseEnter={(e) => handleMouseEnter(bl, e)}
                     onMouseLeave={handleMouseLeave}
                     sx={{ borderRadius: 1, flexDirection: 'column', alignItems: 'flex-start' }}
@@ -97,32 +112,26 @@ const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: 
         </AccordionDetails>
       </Accordion>
 
-      <Popover
-        open={Boolean(preview)}
-        anchorEl={preview?.anchorEl}
-        onClose={dismissPreview}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        slotProps={{ paper: { sx: { maxWidth: 280, p: 1.5 } } }}
-      >
-        {preview?.loading ? (
-          <CircularProgress size={14} />
-        ) : (
-          <>
-            <Typography
-              variant="subtitle2"
-              color="primary"
-              sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' }, mb: 0.5 }}
-              onClick={() => { navigate(`/page/${encodeURIComponent(preview!.pagePath)}`); dismissPreview(); }}
-            >
-              {preview?.pageTitle || preview?.pagePath}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-              {preview?.content}
-            </Typography>
-            <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>Ctrl+click to navigate</Typography>
-          </>
-        )}
-      </Popover>
+      {preview && (
+        <BacklinkSnippetPopup
+          noteId={preview.noteId}
+          noteTitle={preview.noteTitle}
+          context={preview.context}
+          anchorContent={preview.anchorContent}
+          position={
+            preview.anchorEl
+              ? (() => {
+                  const r = preview.anchorEl.getBoundingClientRect();
+                  return { x: r.left, y: r.bottom + 4 };
+                })()
+              : { x: 0, y: 0 }
+          }
+          loading={preview.loading}
+          error={preview.error}
+          onClose={dismissPreview}
+          onHoverChange={(h) => { popupHovered.current = h; }}
+        />
+      )}
     </>
   );
 });
