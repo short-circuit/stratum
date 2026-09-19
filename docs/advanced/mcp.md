@@ -599,6 +599,21 @@ containment checks equivalent to `resolve_safe_path` /
 `resolve_safe_write_path` in `src-tauri/src/commands/page.rs` (canonicalize, then
 verify `starts_with(vault_root)`), and the server MUST reject traversal.
 
+### 6.1 How link & organize operations map to MCP tools
+
+- **Link creation** is performed by writing `[[wiki-link]]` syntax in note
+  content through `kb_write_page` (scope `kb:write`). The server reuses
+  `pkm-markdown::linker::extract_links` on save to index the new edges, exactly
+  as the desktop save path does. There is no separate "create link" tool.
+- **Link read-out** (inbound links, mentions, neighborhood, target resolution)
+  is served by `kb_backlinks`, `kb_graph`, and `kb_resolve_link`, all under
+  scope `kb:read`.
+- **Organize** (tags) is served by `kb_add_tag` / `kb_remove_tag` under scope
+  `kb:organize`; both reuse the `kb_write_page` write path internally.
+- The `kb:link` scope is **reserved** for future standalone link-management
+  tools; it is granted by default to personal PATs but no current tool requires
+  it. A tool that requires it must be introduced by a new ADR.
+
 ## 7. Authentication & authorization
 
 ### 7.1 Modes
