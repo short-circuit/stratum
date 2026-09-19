@@ -658,14 +658,14 @@ pub async fn plugin_http_request(
         })
         .unwrap_or_default();
     let req = pkm_plugin::to_host_request(method, &url, Some(headers_map), body, timeout_ms)
-        .map_err(|code| format!("invalid_argument: {code:?}"))?;
+        .map_err(|code| format!("invalid_argument: {}", code.as_str()))?;
     // The host-test path is not gated by plugin permissions; use an empty
     // allowlist (private/loopback default) for the same SSRF behavior.
     let host = VaultHost::root(root);
     let resp = host
         .http_request(req)
         .await
-        .map_err(|code| format!("{code:?}"))?;
+        .map_err(|code| code.as_str().to_string())?;
     Ok(PluginHttpResponseDto {
         status: resp.status,
         headers: resp.headers,
