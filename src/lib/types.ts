@@ -309,3 +309,47 @@ export interface SpeakerAssignDto {
   speaker_names: Record<string, string>;
   inserted_block_ids: string[];
 }
+
+// --- WASM plugins ---
+
+/** A plugin's runtime status as surfaced by `plugins_list`/`plugins_status`. */
+export type PluginStatus = 'ready' | 'disabled' | 'error';
+
+export interface PluginInfoDto {
+  id: string;
+  name: string;
+  version: string;
+  status: PluginStatus;
+  enabled: boolean;
+  permissions: string[];
+  /** Enabled hooks declared by the manifest (spec §8), e.g. `onSave`, `onOpen`. */
+  hooks?: string[];
+  /** Manifest author (spec §2). Present only when the manifest declares one. */
+  author?: string;
+  /** Manifest description (spec §2). Present only when the manifest declares one. */
+  description?: string;
+  /** Present only when `status === 'error'`. */
+  error?: string | null;
+}
+
+export interface PluginListResultDto {
+  plugins: PluginInfoDto[];
+}
+
+export interface PluginNoteReadDto {
+  path: string;
+  content: string;
+  mtime: string;
+}
+
+export interface PluginHttpRequestParams {
+  method: string;
+  url: string;
+  timeout_ms?: number;
+}
+
+export interface PluginHttpRequestDto {
+  status: number;
+  headers: [string, string][];
+  body: string;
+}

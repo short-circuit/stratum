@@ -25,7 +25,7 @@ You need a running LLM provider. Options:
 3. Enter the **API Endpoint** (for Ollama/custom) or **API Key** (for cloud)
 4. Set the **Default Chat Model**
 5. Click **Fetch Models** to refresh the model list
-6. Assign **capabilities** to each model: `chat`, `embedding`
+6. Assign **capabilities** to each model: `chat`, `embedding`, `tts`
 7. Toggle **RAG** on for retrieval-augmented generation
 8. Click **Save**
 
@@ -47,6 +47,10 @@ above — no separate configuration is required.
 - The **model** is selected from the model list you assign the `embedding`
   capability to in Settings → AI. If no model has that capability, the default
   chat model is used instead.
+- The **embedding dimensions** are inferred automatically from the first
+  response (set **0 = auto** in Settings → AI). Some OpenAI-compatible
+  endpoints support a fixed-size request; you can pin it explicitly in
+  Settings → AI if the server accepts only a locked dimensionality.
 - An **API key** (when configured) is sent as `Authorization: Bearer <key>`.
   For OpenAI-compatible providers the `OPENAI_API_KEY` environment variable is
   respected as a fallback.
@@ -97,20 +101,33 @@ endpoint's message.
 
 ## AI Transform Actions
 
-The AI can transform block content directly in the editor. Select text and choose an action:
+The editor formatting toolbar provides AI actions for the selected text:
 
-| Action | Description |
-|--------|-------------|
-| **Rewrite** | Improve clarity and flow while preserving meaning |
-| **Format** | Clean up markdown, fix syntax, consistent headings |
-| **Structure** | Organize notes into hierarchical sections |
-| **Summarize** | Condense text while preserving key points |
-| **Connect** | Add relevant `[[wiki-links]]` to related concepts |
-| **Generate Mermaid** | Create a diagram from a text description |
+| Toolbar action | Description |
+|----------------|-------------|
+| **Rewrite** (✨) | Improve clarity and flow while preserving meaning |
+| **Format** (🎨) | Clean up markdown, fix syntax, consistent headings |
+| **Summarize** (📝) | Condense text while preserving key points |
+| **Research** (🌐) | Search the web and write a research summary |
+| **Mermaid** (📊) | Generate a Mermaid diagram from the selection |
+| **Read aloud** (🔊) | Synthesize the selection to speech (see TTS below) |
 
-## AI Chat (Slash Menu)
+## AI Slash Menu
 
-Type `/` in the editor to open the AI slash menu. This gives you access to inline AI operations.
+Type `/` in the editor to open the AI slash menu. All transforms are
+available there too, plus page-scoped operations:
+
+| Slash command | Scope | Description |
+|---------------|-------|-------------|
+| Rewrite / Format Selection / Summarize | Selection | Same as the toolbar actions |
+| Structure Journal | Page (journal) | Organize daily notes into sections |
+| Format Notes | Page (journal) | Clean up formatting and markdown for the whole journal |
+| Format & Structure | Page | Organize and clean up formatting for the whole page |
+| Summarize Page | Page | Create a concise page summary |
+| Research with Web | Page | Search the web and write research notes from the page or selection |
+| Interlink Notes | Page | Add `[[wiki-links]]` to related notes found in your vault |
+| Generate Mermaid Diagram | Page | Create a diagram from a description |
+| Math Equation | Insert | Insert a LaTeX math equation |
 
 <!-- SCREENSHOT: [ai-slash-menu] AI slash menu with available actions -->
 
@@ -141,19 +158,25 @@ This means the AI answers based on *your* knowledge, not just its training data.
 
 ## Text-to-Speech — Read Aloud
 
-Beyond the Settings test button, TTS playback is wired into two entry points:
+Beyond the Settings test button, TTS playback is wired into these entry points:
 
 - **Formatting toolbar** — select text in the editor and click **Read aloud**
   (🔊) to synthesize and play the selection via the configured endpoint.
+- **Block context menu** — right-click a block in the editor (desktop), or
+  long-press a block (mobile) and choose **Read aloud**, to hear that block's
+  content spoken.
 - **Ask Notes panel** — click the speaker icon next to an answer to hear it
   read aloud.
 
-Both surface endpoint errors inline if synthesis fails. Audio is synthesized
-per request and played in place — nothing is written to disk.
+All of these surface endpoint errors inline if synthesis fails. Audio is
+synthesized per request and played in place — nothing is written to disk.
 
 ## Interlink Notes
 
-The **Connect** action scans a block and suggests `[[wiki-links]]` to related pages in your vault. This is useful for:
+The **Interlink Notes** slash command (see above) scans a note and suggests
+`[[wiki-links]]` to genuinely related pages in your vault. The LLM is only
+allowed to link to notes that already exist in your vault, and it aims for
+1–3 high-quality links rather than one per keyword. This is useful for:
 
 - Backfilling links when importing notes
 - Discovering connections between separate topics

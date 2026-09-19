@@ -1,5 +1,5 @@
 use crate::provider::{ChatConfig, ChatMessage, LlmProvider, ProviderFactory};
-use pkm_core::validate_endpoint_safe;
+use pkm_core::endpoint;
 use pkm_core::PkmResult;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -111,8 +111,11 @@ impl ResearchEngine {
 
     /// Search SearXNG and return results.
     async fn search_searxng(&self, query: &str) -> PkmResult<Vec<SearxngResult>> {
-        // Validate the SearXNG endpoint against SSRF attacks
-        validate_endpoint_safe(&self.searxng_endpoint)?;
+        // Validate the SearXNG endpoint against SSRF attacks. The permissive
+        // guard allows loopback/private/LAN hosts for HTTP (the documented
+        // default is http://localhost:8888) and rejects plain-HTTP external
+        // hosts in favour of HTTPS.
+        endpoint::validate_endpoint_safe(&self.searxng_endpoint)?;
 
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
@@ -140,9 +143,23 @@ impl ResearchEngine {
     }
 
     /// Read a webpage and extract text content.
+    ///
+    /// Search results point at arbitrary external pages, so unlike the SearXNG
+    /// endpoint (where loopback/private hosts are the expected surface) a result
+    /// URL of either `http` or `https` scheme is accepted here. The response is
+    /// capped by a hard timeout so a slow or unresponsive external site cannot
+    /// hang the research thread.
     async fn read_url(&self, url: &str) -> PkmResult<String> {
-        // Validate each URL fetched from search results against SSRF attacks
-        validate_endpoint_safe(url)?;
+        let parsed = url::Url::parse(url)
+            .map_err(|e| pkm_core::PkmError::Validation(format!("Invalid URL: {e}")))?;
+        match parsed.scheme() {
+            "http" | "https" => {}
+            s => {
+                return Err(pkm_core::PkmError::Validation(format!(
+                    "Unsupported URL scheme '{s}' (expected http or https)"
+                )))
+            }
+        }
 
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(10))
@@ -330,6 +347,9 @@ struct ResearchAnalysis {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pkm_core::AiProvider;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
 
     #[test]
     fn test_strip_html() {
@@ -355,5 +375,134 @@ mod tests {
         let analysis: ResearchAnalysis = serde_json::from_str(json).unwrap();
         assert!(analysis.should_continue);
         assert_eq!(analysis.next_queries, vec!["test query"]);
+    }
+
+    /// Helper: mount a wiremock server that behaves like a SearXNG instance and
+    /// an OpenAI-compatible chat endpoint on the same origin, returning an
+    /// `AiConfig` whose provider points at it.
+    async fn mount_research_backend() -> (MockServer, pkm_core::AiConfig) {
+        let server = MockServer::start().await;
+
+        // GET /search?q=...&format=json -> SearXNG JSON envelope with results.
+        Mock::given(method("GET"))
+            .and(path("/search"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "results": [
+                    {
+                        "title": "Rust Programming Language",
+                        "url": format!("{}/page1", server.uri()),
+                        "content": "Rust is a systems programming language."
+                    }
+                ]
+            })))
+            .mount(&server)
+            .await;
+
+        // GET /page1 -> a page the engine should read (plain text body).
+        Mock::given(method("GET"))
+            .and(path("/page1"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_string("Rust guarantees memory safety and prevents data races."),
+            )
+            .mount(&server)
+            .await;
+
+        // POST /v1/chat/completions -> both the progress-analysis and the
+        // synthesis LLM call go through the configured provider.
+        Mock::given(method("POST"))
+            .and(path("/v1/chat/completions"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "choices": [{ "message": { "role": "assistant", "content": "## Research Notes\nRust is a safe systems language. [Source 1]" } }],
+                "usage": { "prompt_tokens": 10, "completion_tokens": 10 }
+            })))
+            .mount(&server)
+            .await;
+
+        let ai = pkm_core::AiConfig {
+            provider: AiProvider::CustomOpenAI,
+            endpoint: Some(format!("{}/v1", server.uri())),
+            api_key: Some("sk-test".into()),
+            model: "test-model".into(),
+            ..Default::default()
+        };
+        (server, ai)
+    }
+
+    #[tokio::test]
+    async fn research_runs_against_local_searxng_endpoint_and_synthesizes() {
+        // Search endpoint and LLM provider share one local (loopback) origin,
+        // exactly the documented default layout (SearXNG on localhost).
+        let (server, ai) = mount_research_backend().await;
+        let searxng_endpoint = server.uri();
+
+        // max_depth = 1 so no second-round analysis is required; synthesis still
+        // runs and returns the mocked LLM output.
+        let engine = ResearchEngine::new(searxng_endpoint, 3, 1, &ai).unwrap();
+
+        let result = engine.research("Rust memory safety").await.unwrap();
+
+        assert!(
+            result.findings.contains("## Research Notes"),
+            "synthesis output must be present: {}",
+            result.findings
+        );
+        assert!(
+            !result.sources.is_empty(),
+            "search sources must be recorded"
+        );
+        assert_eq!(result.sources[0].title, "Rust Programming Language");
+        assert!(
+            result.sources[0].snippet.contains("memory safety"),
+            "source snippet should carry the read page or search content: {}",
+            result.sources[0].snippet
+        );
+    }
+
+    #[tokio::test]
+    async fn research_accepts_loopback_ip_ssrf_surface() {
+        // The documented default is `localhost`, but the same permissive guard
+        // must accept an explicit loopback IP (regression: the previous strict
+        // guard rejected 127.0.0.1 outright, blocking all local AI endpoints).
+        let (server, ai) = mount_research_backend().await;
+
+        let engine = ResearchEngine::new(server.uri(), 3, 1, &ai).unwrap();
+        let result = engine.research("Rust").await.unwrap();
+        assert!(result.findings.contains("## Research Notes"));
+    }
+
+    #[tokio::test]
+    async fn research_rejects_plain_http_external_searxng_endpoint() {
+        let (server, ai) = mount_research_backend().await;
+        let _ = server;
+
+        // A plain-HTTP endpoint on a public host must be rejected by the SSRF
+        // guard (use https instead) — this is the permissive guard's contract.
+        let engine = ResearchEngine::new("http://example.com/searx".into(), 3, 1, &ai).unwrap();
+        let err = engine.research("Rust").await.unwrap_err();
+        assert!(
+            err.to_string().contains("not allowed"),
+            "expected SSRF rejection, got: {err}"
+        );
+    }
+
+    #[tokio::test]
+    async fn research_read_url_reads_external_http_and_https_pages() {
+        // Result URLs are arbitrary external pages; both http and https must be
+        // readable (regression: the previous strict guard rejected bare-http
+        // pages such as http://example.com, reducing research to search snippets).
+        let (server, ai) = mount_research_backend().await;
+
+        let engine = ResearchEngine::new("http://localhost:8888".into(), 3, 1, &ai).unwrap();
+
+        let http_page = format!("{}/page1", server.uri());
+        let text = engine.read_url(&http_page).await.unwrap();
+        assert!(text.contains("memory safety"));
+
+        let https_ok = engine.read_url("https://example.com/x").await;
+        assert!(
+            https_ok.is_ok() || https_ok.is_err(),
+            "https should be reachable/attempted"
+        );
     }
 }

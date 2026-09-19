@@ -232,6 +232,51 @@ export const MOCK_DICTATION_RESULT = {
   duration_secs: 42,
 };
 
+/**
+ * Seed data for the mocked `plugins_*` commands. Mirrors the real
+ * `PluginInfoDto` shape (id, name, version, status, enabled, permissions,
+ * hooks, author, description, error) per docs/advanced/plugins.md §9.
+ */
+export const MOCK_PLUGINS_DTO = [
+  {
+    id: 'dev-dashboard',
+    name: 'Developer Dashboard',
+    version: '0.1.0',
+    status: 'ready',
+    enabled: true,
+    permissions: ['file:read', 'network'],
+    hooks: ['onSave'],
+    author: 'stratum-team',
+    description: 'Collects development telemetry and posts it to a local endpoint.',
+    error: null,
+  },
+  {
+    id: 'daily-summary',
+    name: 'Daily Summary',
+    version: '0.2.1',
+    status: 'disabled',
+    enabled: false,
+    permissions: ['file:read', 'file:write'],
+    hooks: ['onOpen', 'onSave'],
+    author: 'acme-lab',
+    description: 'Summarizes the day\u2019s notes into a single digest page.',
+    error: null,
+  },
+  {
+    id: 'broken-example',
+    name: 'Broken Example',
+    version: '0.0.4',
+    status: 'error',
+    enabled: true,
+    permissions: ['file:read'],
+    hooks: [],
+    author: '',
+    description: '',
+    error: "runtime_error: import 'pkm.note_write' not found (plugin compiled with a different ABI)",
+  },
+];
+
+
 // ---------------------------------------------------------------------------
 // Config object for tests to control mock behavior
 // ---------------------------------------------------------------------------
@@ -240,6 +285,8 @@ export interface MockConfig {
   hasVault: boolean;
   /** Error to throw for specific commands (key = command name) */
   commandErrors: Record<string, string>;
+  /** When true, `plugins_list` returns an empty list (for the empty state) */
+  emptyPlugins?: boolean;
 }
 
 /** Default: vault configured, no errors */
@@ -268,6 +315,35 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
       // test's browser context (mirrors real backend disk persistence).
       const persisted = window.localStorage.getItem('mock_settings');
       let mockSettings = persisted ? JSON.parse(persisted) : ${JSON.stringify(MOCK_SETTINGS)};
+
+      // In-page plugin store so plugins_list -> enable/disable/install/uninstall
+      // round-trip within the test (mirrors the real registry + config persistence).
+      const MOCK_PLUGIN_ROWS = ${JSON.stringify(MOCK_PLUGINS_DTO)};
+      const persistedPlugins = window.localStorage.getItem('mock_plugins');
+      let mockPlugins = persistedPlugins ? JSON.parse(persistedPlugins) : MOCK_PLUGIN_ROWS.map(function(p){ return Object.assign({}, p); });
+      function persistPlugins(list) {
+        window.localStorage.setItem('mock_plugins', JSON.stringify(list));
+      }
+      function pluginById(id) {
+        for (var i = 0; i < mockPlugins.length; i++) if (mockPlugins[i].id === id) return mockPlugins[i];
+        return null;
+      }
+      function syncPluginStatus(list) {
+        for (var i = 0; i < list.length; i++) {
+          var p = list[i];
+          if (!p.enabled && p.status !== 'error') p.status = 'disabled';
+          if (p.enabled && p.status === 'disabled') p.status = 'ready';
+        }
+        return list;
+      }
+      function upsertMockPlugin(plugin) {
+        var idx = -1;
+        for (var i = 0; i < mockPlugins.length; i++) if (mockPlugins[i].id === plugin.id) { idx = i; break; }
+        if (idx === -1) mockPlugins.push(plugin); else mockPlugins[idx] = plugin;
+        mockPlugins = syncPluginStatus(mockPlugins);
+        persistPlugins(mockPlugins);
+        return plugin;
+      }
 
       // Command handler registry
       const handlers = {
@@ -448,6 +524,76 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
           latency_ms: 320,
           error: null,
         }),
+        plugins_list: () => {
+          if (config.emptyPlugins) return { plugins: [] };
+          return { plugins: mockPlugins.map(function (p) { return Object.assign({}, p); }) };
+        },
+        plugins_status: (args) => {
+          const p = pluginById(args && args.id);
+          if (!p) throw new Error("plugin_not_found: no plugin with id '" + (args && args.id) + "'");
+          return Object.assign({}, p);
+        },
+        plugins_enable: (args) => {
+          const p = pluginById(args && args.id);
+          if (!p) throw new Error("plugin_not_found: no plugin with id '" + (args && args.id) + "'");
+          p.enabled = true;
+          mockPlugins = syncPluginStatus(mockPlugins);
+          persistPlugins(mockPlugins);
+          return Object.assign({}, upsertMockPlugin(p));
+        },
+        plugins_disable: (args) => {
+          const p = pluginById(args && args.id);
+          if (!p) throw new Error("plugin_not_found: no plugin with id '" + (args && args.id) + "'");
+          p.enabled = false;
+          mockPlugins = syncPluginStatus(mockPlugins);
+          persistPlugins(mockPlugins);
+          return Object.assign({}, upsertMockPlugin(p));
+        },
+        plugins_reload: (args) => {
+          const p = pluginById(args && args.id);
+          if (!p) throw new Error("plugin_not_found: no plugin with id '" + (args && args.id) + "'");
+          p.status = p.enabled ? 'ready' : 'disabled';
+          p.error = null;
+          return Object.assign({}, upsertMockPlugin(p));
+        },
+        plugins_install: (args) => {
+          const path = args && args.path;
+          const base = String(path || '').split(/[\\\\/]/).pop() || 'plugin';
+          const id = ('installed-' + base).replace(/\\.wasm$/i, '');
+          const existing = pluginById(id);
+          const plugin = existing || {
+            id: id,
+            name: id,
+            version: '0.1.0',
+            status: 'disabled',
+            enabled: false,
+            permissions: [],
+            hooks: [],
+            author: 'mock-author',
+            description: 'Installed from ' + path,
+            error: null,
+          };
+          plugin.status = 'disabled';
+          plugin.enabled = false;
+          upsertMockPlugin(plugin);
+          return Object.assign({}, plugin);
+        },
+        plugins_uninstall: (args) => {
+          const id = args && args.id;
+          mockPlugins = mockPlugins.filter(function (p) { return p.id !== id; });
+          persistPlugins(mockPlugins);
+          return { plugins: mockPlugins.map(function (p) { return Object.assign({}, p); }) };
+        },
+        plugin_note_read: (args) => ({
+          path: args && args.path,
+          content: '# ' + (args && args.path) + '\\n\\n(mocked plugin note read)',
+          mtime: '${NOW}',
+        }),
+        plugin_http_request: () => ({
+          status: 200,
+          headers: [['content-type', 'application/json']],
+          body: JSON.stringify({ mocked: true }),
+        }),
       };
 
       // Event plugin handlers (used by onCloseRequested, listen, etc.)
@@ -455,6 +601,9 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
       handlers['plugin:event|unlisten'] = () => ({});
       handlers['plugin:window|create'] = () => ({});
       handlers['plugin:window|close'] = () => ({});
+      // Native file dialog (used by @tauri-apps/plugin-dialog open() for
+      // plugin install). Returns a fixed path so the install flow is testable.
+      handlers['plugin:dialog|open'] = () => '/mock/vault/.pkm/installed-extras.wasm';
 
       // Tauri internals mock (matching @tauri-apps/api v2 expectations)
       window.__TAURI_INTERNALS__ = {
@@ -463,6 +612,10 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
           currentWebview: { windowLabel: 'main', label: 'main' },
         },
         invoke: function(cmd, args, options) {
+          // Tests can force a command failure via config.commandErrors.
+          if (config.commandErrors && config.commandErrors[cmd]) {
+            return Promise.reject(new Error(config.commandErrors[cmd]));
+          }
           const handler = handlers[cmd];
           if (!handler) {
             console.warn('[mock tauri] unhandled command:', cmd, args);
