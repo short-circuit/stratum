@@ -11,6 +11,10 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+# tauri-build is required by build.rs (Tauri codegen) — cargo-machete can't see
+# build-script usage, so it is whitelisted explicitly.
+[package.metadata.cargo-machete]
+ignored = ["tauri-build"]
 
 [dependencies]
 tauri = { version = "2", features = ["custom-protocol"] }
@@ -45,6 +49,13 @@ tauri-plugin-android-fs = "28"
 
 [dev-dependencies]
 tempfile.workspace = true
-pretty_assertions = { workspace = true }
 uuid.workspace = true
 chrono.workspace = true
+# Integration tests for the plugin command layer use the Tauri mock test
+# harness (`tauri::test`) plus a real in-process `wat`-compiled WASM module
+# and wiremock where HTTP is involved.
+tauri = { version = "2", features = ["test"] }
+wat.workspace = true
+wiremock = "0.6"
+tokio.workspace = true
+serde_json.workspace = true

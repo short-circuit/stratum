@@ -1282,12 +1282,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "diff"
-version = "0.1.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
-
-[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4803,11 +4797,10 @@ dependencies = [
  "reqwest 0.12.28",
  "serde",
  "serde_json",
- "serde_with",
  "tempfile",
- "thiserror 2.0.18",
  "tokio",
  "tracing",
+ "url",
  "wiremock",
 ]
 
@@ -4831,14 +4824,11 @@ version = "0.7.0"
 dependencies = [
  "chrono",
  "pkm-core",
- "pretty_assertions",
  "rusqlite",
  "serde",
  "serde_json",
  "serde_yaml",
  "tempfile",
- "thiserror 2.0.18",
- "tracing",
  "uuid",
 ]
 
@@ -4846,23 +4836,16 @@ dependencies = [
 name = "pkm-cli"
 version = "0.7.0"
 dependencies = [
- "anyhow",
  "chrono",
  "clap",
- "gix",
  "pkm-ai",
  "pkm-core",
  "pkm-index",
  "pkm-markdown",
- "pkm-plugin",
  "pkm-sync",
- "pkm-watcher",
- "serde",
  "serde_json",
  "tempfile",
  "tokio",
- "toml 0.8.23",
- "tracing",
 ]
 
 [[package]]
@@ -4871,8 +4854,6 @@ version = "0.7.0"
 dependencies = [
  "chrono",
  "dirs 5.0.1",
- "glob",
- "pretty_assertions",
  "regex",
  "serde",
  "serde_json",
@@ -4880,10 +4861,8 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "toml 0.8.23",
- "tracing",
  "tracing-subscriber",
  "url",
- "uuid",
 ]
 
 [[package]]
@@ -4905,7 +4884,6 @@ dependencies = [
  "tempfile",
  "tokio",
  "toml 0.8.23",
- "tracing",
  "uuid",
  "wiremock",
 ]
@@ -4918,12 +4896,8 @@ dependencies = [
  "pkm-block",
  "pkm-core",
  "pkm-markdown",
- "regex",
- "serde",
- "serde_json",
  "tantivy",
  "tempfile",
- "thiserror 2.0.18",
  "tracing",
  "uuid",
 ]
@@ -4935,13 +4909,9 @@ dependencies = [
  "chrono",
  "pkm-block",
  "pkm-core",
- "pretty_assertions",
  "pulldown-cmark",
  "regex",
- "serde",
  "serde_yaml",
- "tempfile",
- "thiserror 2.0.18",
  "tracing",
  "uuid",
 ]
@@ -4953,13 +4923,11 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
- "hex",
  "ipnet",
  "pkm-core",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
- "sha2",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
@@ -4975,11 +4943,8 @@ version = "0.7.0"
 dependencies = [
  "pkm-block",
  "rusqlite",
- "serde",
  "serde_json",
  "tempfile",
- "thiserror 2.0.18",
- "tracing",
  "uuid",
 ]
 
@@ -4988,15 +4953,10 @@ name = "pkm-stt"
 version = "0.7.0"
 dependencies = [
  "base64 0.22.1",
- "futures",
  "pkm-core",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
- "tempfile",
- "tokio",
- "tracing",
- "wiremock",
 ]
 
 [[package]]
@@ -5006,11 +4966,7 @@ dependencies = [
  "chrono",
  "gix",
  "pkm-core",
- "pkm-markdown",
- "serde",
- "serde_json",
  "tempfile",
- "thiserror 2.0.18",
  "tracing",
 ]
 
@@ -5027,8 +4983,6 @@ dependencies = [
  "pkm-plugin",
  "pkm-query",
  "pkm-sync",
- "pretty_assertions",
- "pulldown-cmark",
  "serde_json",
  "stratum-tauri",
  "tempfile",
@@ -5045,9 +4999,6 @@ dependencies = [
  "crossbeam-channel",
  "notify",
  "pkm-core",
- "pkm-index",
- "pkm-markdown",
- "serde",
  "tempfile",
  "tracing",
 ]
@@ -5172,16 +5123,6 @@ checksum = "d0de1b847b39c8131db0467e9df1ff60e6d0562ab8e9a16e568ad0fdb372e2f2"
 dependencies = [
  "predicates-core",
  "termtree",
-]
-
-[[package]]
-name = "pretty_assertions"
-version = "1.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ae130e2f271fbc2ac3a40fb1d07180839cdbbe443c7a27e1e3c13c5cac0116d"
-dependencies = [
- "diff",
- "yansi",
 ]
 
 [[package]]
@@ -6414,7 +6355,6 @@ dependencies = [
  "pkm-stt",
  "pkm-sync",
  "pkm-watcher",
- "pretty_assertions",
  "pulldown-cmark",
  "reqwest 0.12.28",
  "serde",
@@ -9151,12 +9091,6 @@ dependencies = [
  "once_cell",
  "pkg-config",
 ]
-
-[[package]]
-name = "yansi"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfe53a6657fd280eaa890a3bc59152892ffa3e30101319d168b781ed6529b049"
 
 [[package]]
 name = "yoke"
