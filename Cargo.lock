@@ -793,6 +793,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "constant_time_eq"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
+
+[[package]]
 name = "cookie"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4803,11 +4809,10 @@ dependencies = [
  "reqwest 0.12.28",
  "serde",
  "serde_json",
- "serde_with",
  "tempfile",
- "thiserror 2.0.18",
  "tokio",
  "tracing",
+ "url",
  "wiremock",
 ]
 
@@ -4947,6 +4952,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "pkm-mcp-security"
+version = "0.7.0"
+dependencies = [
+ "base64 0.22.1",
+ "constant_time_eq",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "pkm-plugin"
 version = "0.7.0"
 dependencies = [
@@ -5006,11 +5024,7 @@ dependencies = [
  "chrono",
  "gix",
  "pkm-core",
- "pkm-markdown",
- "serde",
- "serde_json",
  "tempfile",
- "thiserror 2.0.18",
  "tracing",
 ]
 
@@ -6429,8 +6443,6 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
- "wat",
- "wiremock",
 ]
 
 [[package]]
