@@ -61,17 +61,6 @@ fn special_alias(attr: &Attr) -> &'static str {
     }
 }
 
-/// SQL expression selecting the attribute's value for `:find`/render purposes.
-fn select_expr(attr: &Attr) -> String {
-    match attr {
-        Attr::Col(a, c) => format!("{a}.{c}"),
-        Attr::PageTags => "json_extract(p.frontmatter, '$.tags')".to_string(),
-        Attr::BlockTags => "b.properties".to_string(),
-        Attr::PageLinks | Attr::PageBacklinks => "NULL".to_string(),
-        Attr::BlockProperties => "b.properties".to_string(),
-    }
-}
-
 /// Build a WHERE predicate for a special (set/map) attribute matched against a
 /// literal value. Returns (predicate_sql, params_to_push).
 fn special_where(
@@ -97,9 +86,11 @@ fn special_where(
                 format!(
                     "(b.content LIKE ?{param_pos} \
                      OR EXISTS (SELECT 1 FROM json_each(b.properties) \
-                                WHERE json_each.key = 'tags' AND json_each.value = ?{param_pos}))"
+                                WHERE json_each.key = 'tags' AND json_each.value = ?{param_pos1}))",
+                    param_pos = param_pos,
+                    param_pos1 = param_pos + 1
                 ),
-                vec![format!("#{value}"), value.to_string()],
+                vec![format!("%#{value}%"), value.to_string()],
             ))
         }
         Attr::BlockProperties => {
@@ -201,13 +192,36 @@ pub fn compile(query: &Query) -> Result<CompiledQuery, CompileError> {
                         conditions.push("b.page_path = p.path".to_string());
                     }
                 }
-                var_map.insert(pattern.entity.clone(), (alias.clone(), c.to_string()));
+                // An entity variable identifies the ENTITY itself (the block
+                // UUID or the page path), never the attribute's value column.
+                // E7.F5 correctness: `[:find ?block ...]` must return the real
+                // block id, or results cannot be resolved back to blocks.
+                let identity = match alias.as_str() {
+                    "b" => "id",
+                    "p" => "path",
+                    _ => c,
+                };
+                var_map.insert(
+                    pattern.entity.clone(),
+                    (alias.clone(), identity.to_string()),
+                );
             }
             aliases.insert(alias.clone());
         } else {
             aliases.insert(alias.clone());
             if pattern.entity.starts_with('?') {
-                var_map.insert(pattern.entity.clone(), (alias.clone(), select_expr(&attr)));
+                // An entity var bound through a special (set/map) attribute
+                // still identifies the ENTITY itself (block id / page path),
+                // not the attribute's rendered value.
+                let identity = match alias.as_str() {
+                    "b" => "id",
+                    "p" => "path",
+                    _ => "",
+                };
+                var_map.insert(
+                    pattern.entity.clone(),
+                    (alias.clone(), identity.to_string()),
+                );
             }
         }
 
@@ -359,8 +373,12 @@ mod tests {
         )
         .unwrap();
         let c = compile(&q).unwrap();
-        assert!(c.sql.contains("json_each"), "SQL: {}", c.sql);
-        assert!(c.params.contains(&"#project".to_string()));
+        assert!(c.sql.contains("json_each"), "SQL: {}\n", c.sql);
+        // A substring #project match is required so `:block/tags "project"`
+        // actually finds blocks whose content carries `#project`; the JSON
+        // `tags` property check binds the second parameter.
+        assert!(c.params.contains(&"%#project%".to_string()));
+        assert_eq!(c.params.len(), 2, "LIKE param + json_each value param");
     }
 
     #[test]
