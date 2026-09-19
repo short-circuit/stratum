@@ -15,6 +15,8 @@ members = [
     "crates/pkm-audio",
     "crates/pkm-stt",
     "crates/pkm-dictation",
+    "crates/pkm-mcp",
+    "crates/pkm-mcp-security",
     "src-tauri",
 ]
 
@@ -74,6 +76,30 @@ flutter_rust_bridge = "2"
 
 # Block storage
 rusqlite = { version = "0.32", features = ["bundled", "serde_json"] }
+
+# MCP server
+rmcp = { version = "3.4.0", features = [
+    "server",
+    "macros",
+    "transport-io",
+    "transport-async-rw",
+    "transport-streamable-http-server",
+    "schemars",
+    "client",
+    "reqwest",
+    "transport-streamable-http-client-reqwest",
+] }
+jsonschema = "0.56"
+axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+tower-service = "0.3"
+http-body-util = "0.1"
+clap = { version = "4", features = ["derive"] }
+
+# MCP security controls (crate: pkm-mcp-security)
+sha2 = "0.10"
+constant_time_eq = "0.3"
 
 # Dev
 tempfile = "3"
