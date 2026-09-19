@@ -77,6 +77,20 @@ Each backlink shows:
 - A snippet of context around the link/mention
 - A click to navigate to the source
 
+### Hover Preview (Ctrl + hover)
+
+On desktop, hold **Ctrl** (or **Cmd** on macOS) while hovering a backlink to
+open a preview popup near the link. The popup shows the source note's title and
+the backlinked portion of its content in context, with the exact backlinked
+block highlighted. It closes when you release Ctrl, move the mouse away, press
+**Esc**, or navigate away — and it never renders off-screen (placement is
+clamped to the viewport).
+
+On mobile, the same preview opens on a **long-press** of a backlink row.
+
+A failed fetch (for example a note or anchor that was deleted) shows a short
+error message instead of leaving the popup stuck on a spinner.
+
 ### Backlink Snippet API
 
 The backend exposes a snippet endpoint that returns the exact backlinked block
