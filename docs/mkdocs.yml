@@ -108,6 +108,7 @@ nav:
   - Advanced:
     - advanced/file-format.md
     - advanced/plugins.md
+    - advanced/mcp.md
   - Contributing: contributing.md
   - Development:
     - development/frontend-guide.md
@@ -115,3 +116,5 @@ nav:
     - development/mobile-guide.md
     - ADR-0004 WASM Plugin ABI:
       - development/adr/0004-wasm-plugin-abi.md
+    - ADR-0005 MCP Server Contract:
+      - development/adr/0005-mcp-server-contract.md
