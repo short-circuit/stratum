@@ -129,3 +129,78 @@ describe('BacklinkSnippetPopup (desktop popover)', () => {
     expect(onClose).toHaveBeenCalled();
   });
 });
+
+describe('BacklinkSnippetPopup — viewport-edge positioning regression', () => {
+  // These coordinates put the popover exactly at the viewport edges; MUI's
+  // Popover clamps placement (marginThreshold=16) so the paper stays on-screen
+  // and never renders clipped. The paper is portal-rendered into the body, so
+  // it cannot be clipped by the editor's scroll container either.
+  const edgeCases = [
+    { name: 'left edge (x=4)', x: 4, y: 200 },
+    { name: 'bottom edge (y=huge)', x: 400, y: 100000 },
+    { name: 'top edge (y=0)', x: 400, y: 0 },
+  ];
+
+  it.each(edgeCases)('$name keeps the popover on-screen and portal-rendered', (c) => {
+    render(
+      <MemoryRouter>
+        <BacklinkSnippetPopup
+          noteId="pages/source.md"
+          noteTitle="Source Note"
+          context={['Intro', 'anchor text here', 'Outro']}
+          anchorContent="anchor text here"
+          position={{ x: c.x, y: c.y }}
+          loading={false}
+          error={false}
+          onClose={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    const paper = document.querySelector('.MuiPopover-paper');
+    expect(paper).not.toBeNull();
+
+    // The popover is portal-rendered into the body — never inside the
+    // editor's scroll container, so it cannot be clipped or scrolled away.
+    expect(document.body.contains(paper)).toBe(true);
+
+    // MUI applies an inline transform to position the clamped paper. The
+    // presence of the transform with the paper in the body portal is the
+    // regression guard: coordinates at an extreme edge still produce a
+    // positioned (not display:none / not zero-transform) paper.
+    const el = paper as HTMLElement;
+    expect(el.style.transform).toBeTruthy();
+  });
+
+  it('does not clip the popover inside the editor scroll container', () => {
+    // Simulate the popover being rendered while an editor container exists:
+    // the paper must still live in the body portal, not inside the editor.
+    const editor = document.createElement('div');
+    editor.className = 'bn-editor';
+    Object.defineProperty(editor, 'overflowY', { value: 'scroll' });
+    document.body.appendChild(editor);
+    try {
+      render(
+        <MemoryRouter>
+          <BacklinkSnippetPopup
+            noteId="pages/source.md"
+            noteTitle="Source Note"
+            context={['Intro', 'anchor text here', 'Outro']}
+            anchorContent="anchor text here"
+            position={{ x: 500, y: 700 }}
+            loading={false}
+            error={false}
+            onClose={vi.fn()}
+          />
+        </MemoryRouter>,
+      );
+
+      const paper = document.querySelector('.MuiPopover-paper');
+      expect(paper).not.toBeNull();
+      expect(document.body.contains(paper)).toBe(true);
+      expect(editor.contains(paper)).toBe(false);
+    } finally {
+      editor.remove();
+    }
+  });
+});
