@@ -47,7 +47,11 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Stdout is the MCP JSON-RPC transport on `--transport stdio`, so all log
+    // output must go to stderr or it will corrupt the protocol frame stream.
+    // See crates/pkm-mcp/examples/smoke_stdio.py (the end-to-end smoke gate).
     tracing_subscriber::fmt()
+        .with_writer(std::io::stderr)
         .with_env_filter(
             EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
         )

@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 use rmcp::model::{CallToolRequestParams, CallToolResult};
 use rmcp::service::ServiceError;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use tempfile::TempDir;
 
 use pkm_mcp::config::McpConfig;
@@ -36,11 +36,7 @@ fn test_server() -> (TempDir, KbServer) {
 }
 
 /// Call a tool through the real client SDK; returns the `CallToolResult`.
-async fn call(
-    server: KbServer,
-    name: &str,
-    args: Value,
-) -> Result<CallToolResult, ServiceError> {
+async fn call(server: KbServer, name: &str, args: Value) -> Result<CallToolResult, ServiceError> {
     let (server_tx, client_tx) = tokio::io::duplex(64 * 1024);
     // Keep the server's RunningService alive for the duration of the test.
     let server_handle = tokio::spawn(async move {
@@ -88,7 +84,7 @@ fn call_ok(server: KbServer, name: &str, args: Value) -> Value {
     let res = poll_tokio(call(server, name, args));
     let result = res.expect("tool call should not be a protocol error");
     assert!(
-        result.is_error.unwrap_or(false) == false,
+        !result.is_error.unwrap_or(false),
         "expected success for {name}, got error payload {}",
         structured(result.clone())
     );
@@ -99,7 +95,8 @@ fn call_err_code(server: KbServer, name: &str, args: Value, expected: i32) {
     let res = poll_tokio(call(server, name, args));
     let result = res.expect("tool call should not be a protocol error");
     assert_eq!(
-        result.is_error, Some(true),
+        result.is_error,
+        Some(true),
         "expected error for {name}, got success {}",
         structured(result.clone())
     );
@@ -135,7 +132,9 @@ fn list_advertised_tools(server: KbServer) -> Vec<rmcp::model::Tool> {
                 let _ = svc.waiting().await;
             }
         });
-        let client = rmcp::serve_client((), client_tx).await.expect("client initialize");
+        let client = rmcp::serve_client((), client_tx)
+            .await
+            .expect("client initialize");
         let tools = client
             .peer()
             .list_tools(Default::default())
@@ -268,8 +267,10 @@ mod read_tools {
         let info = call_ok(server.clone(), "kb_vault_info", args(&[]));
         assert_eq!(info["page_count"].as_u64().unwrap(), 1);
         assert!(info["block_count"].as_u64().unwrap() >= 1);
-        assert!(info["vault_path"].as_str().unwrap().contains("stratum") ||
-            info["vault_path"].is_string());
+        assert!(
+            info["vault_path"].as_str().unwrap().contains("stratum")
+                || info["vault_path"].is_string()
+        );
     }
 }
 
@@ -452,8 +453,49 @@ mod search_tools {
         assert!(res["results"].is_array());
         let hits = res["results"].as_array().unwrap();
         assert!(
-            hits.iter().any(|h| h["content"].as_str().unwrap_or("").contains("zebra")),
+            hits.iter()
+                .any(|h| h["content"].as_str().unwrap_or("").contains("zebra")),
             "expected a hit for zebra"
+        );
+    }
+
+    #[test]
+    fn search_returns_exactly_one_hit_per_written_block() {
+        // Regression: `refresh_index_after_write` re-indexes SQLite blocks AFTER
+        // `IndexEngine::refresh_page` has already indexed fresh-UUID copies of
+        // the same blocks. Without deleting by page path first, both UUID
+        // variants remain searchable and `kb_search` returns duplicate hits for
+        // a single block. One write must produce exactly one hit whose
+        // `block_id` matches blocks.db (search index stays aligned with SQLite).
+        let (dir, server) = test_server();
+        call_ok(
+            server.clone(),
+            "kb_write_page",
+            args(&[
+                ("path", s("dupcheck.md")),
+                ("content", s("a single zebra block")),
+            ]),
+        );
+        let res = call_ok(
+            server.clone(),
+            "kb_search",
+            args(&[("query", s("zebra")), ("limit", json!(10))]),
+        );
+        let hits = res["results"].as_array().unwrap();
+        assert_eq!(
+            hits.len(),
+            1,
+            "expected exactly one hit per written block, got {hits:?}"
+        );
+        // Cross-check the returned block id exists in blocks.db (alignment).
+        let db = pkm_block::BlockStore::open(&dir.path().join(".pkm").join("blocks.db"))
+            .expect("open blocks.db");
+        let blocks = db.get_blocks_by_page("dupcheck.md").expect("read blocks");
+        assert_eq!(blocks.len(), 1, "expected one block in SQLite");
+        assert_eq!(
+            hits[0]["block_id"].as_str().unwrap_or(""),
+            blocks[0].id.to_string(),
+            "search hit block id must match blocks.db id"
         );
     }
 
@@ -469,7 +511,10 @@ mod search_tools {
         call_ok(
             server.clone(),
             "kb_write_page",
-            args(&[("path", s("t.md")), ("content", s("---\ntags: [mytag]\n---\nbody"))]),
+            args(&[
+                ("path", s("t.md")),
+                ("content", s("---\ntags: [mytag]\n---\nbody")),
+            ]),
         );
         let res = call_ok(
             server.clone(),
@@ -495,13 +540,11 @@ mod search_tools {
             "kb_autocomplete",
             args(&[("query", s("uniquepage")), ("kind", s("page"))]),
         );
-        assert!(
-            res["items"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|i| i["detail"].as_str().unwrap_or("").contains("uniquepage"))
-        );
+        assert!(res["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|i| i["detail"].as_str().unwrap_or("").contains("uniquepage")));
     }
 }
 
@@ -528,7 +571,8 @@ mod link_organize_tools {
         );
         let hits = res["backlinks"].as_array().unwrap();
         assert!(
-            hits.iter().any(|b| b["source_page"].as_str().unwrap_or("") == "source.md"),
+            hits.iter()
+                .any(|b| b["source_page"].as_str().unwrap_or("") == "source.md"),
             "expected backlink from source.md"
         );
     }
@@ -612,7 +656,10 @@ mod link_organize_tools {
             .collect();
         assert!(tags.contains(&"proj".to_string()), "tag not persisted");
         let disk = std::fs::read_to_string(vault_path(&_dir).join("tag.md")).unwrap();
-        assert!(disk.contains("proj"), "tag missing from on-disk frontmatter");
+        assert!(
+            disk.contains("proj"),
+            "tag missing from on-disk frontmatter"
+        );
     }
 
     #[test]
@@ -634,11 +681,7 @@ mod link_organize_tools {
             args(&[("path", s("rt.md")), ("tag", s("oldtag"))]),
         );
         assert_eq!(res["applied"].as_u64().unwrap(), 1);
-        let doc = call_ok(
-            server.clone(),
-            "kb_get_page",
-            args(&[("path", s("rt.md"))]),
-        );
+        let doc = call_ok(server.clone(), "kb_get_page", args(&[("path", s("rt.md"))]));
         let tags: Vec<String> = doc["tags"]
             .as_array()
             .unwrap()
