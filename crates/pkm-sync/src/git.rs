@@ -528,16 +528,42 @@ impl GitEngine {
                         conflicts: vec![],
                     });
                 }
-                // Real conflicts: list them from the worktree state.
-                let status = self.status().ok();
-                let conflict_files = status
-                    .map(|s| {
-                        s.into_iter()
-                            .filter(|(_, flags)| flags.is_conflicted())
-                            .map(|(path, _)| path)
-                            .collect::<Vec<_>>()
-                    })
-                    .unwrap_or_default();
+                // Real conflicts: list them from the worktree state. Reading the
+                // index via the platform status API immediately after the merge
+                // can race on loaded CI runners (in one CI run `status()`
+                // observed the index before the merge's conflict stages were
+                // visible, yielding an empty list despite a genuine conflict).
+                // Enumerate unmerged paths with `git diff --diff-filter=U`,
+                // which reflects the on-disk index and is stable under load.
+                let workdir = self
+                    .repo
+                    .workdir()
+                    .ok_or_else(|| PkmError::Git("no workdir".into()))?;
+                let diff_out = std::process::Command::new("git")
+                    .current_dir(workdir)
+                    .args(["diff", "--name-only", "--diff-filter=U"])
+                    .stderr(std::process::Stdio::piped())
+                    .stdout(std::process::Stdio::piped())
+                    .output()
+                    .map_err(|e| PkmError::Git(format!("conflict enumerate failed: {e}")))?;
+                let conflict_files = if diff_out.status.success() {
+                    String::from_utf8_lossy(&diff_out.stdout)
+                        .lines()
+                        .map(str::to_string)
+                        .filter(|s| !s.is_empty())
+                        .collect::<Vec<_>>()
+                } else {
+                    // Fall back to the platform status-derived list.
+                    self.status()
+                        .ok()
+                        .map(|s| {
+                            s.into_iter()
+                                .filter(|(_, flags)| flags.is_conflicted())
+                                .map(|(path, _)| path)
+                                .collect::<Vec<_>>()
+                        })
+                        .unwrap_or_default()
+                };
                 return Ok(PullResult {
                     success: false,
                     conflicts: conflict_files,
