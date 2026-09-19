@@ -6,6 +6,7 @@ import {
   isWikiLinkHref,
   extractWikiLinkTarget,
 } from './wikiLinks';
+import type { InlineItem } from './wikiLinks';
 
 /**
  * Round-trip tests for the wikilink parser/serializer.
@@ -108,5 +109,65 @@ describe('wikilink round-trip stability (ED-07 / FF-04 regression)', () => {
     for (const b of blocks) {
       expect(roundTrip(b)).toBe(b);
     }
+  });
+});
+
+/**
+ * E7.F1 — wiki-link AUTCOMPLETE insert contract.
+ *
+ * The editor's `[[` autocomplete (WikiLinkAutocomplete) inserts a link by
+ * calling `editor.createLink('stratum:' + slug, display)`. Whatever the editor
+ * produces as an inline link item, the serializer must write a byte-stable,
+ * resolvable `[[slug]]` (or `[[slug|display]]`) to disk — never a doubled or
+ * mangled form. These tests pin that the href shape the autocomplete constructs
+ * (kebab slug from `list_page`'s `file_stem`, pretty title as display) round-
+ * trips exactly to what the linker/navigation resolve (see resolve_link_target).
+ */
+describe('wiki-link autocomplete insert contract (E7.F1)', () => {
+  it('serializes a stratum:slug href created by createLink to [[slug]]', () => {
+    // `stratum:` + kebab slug is exactly what WikiLinkAutocomplete builds.
+    const items: InlineItem[] = [
+      { type: 'text', text: 'See ', styles: {} },
+      {
+        type: 'link',
+        href: 'stratum:alpha-project',
+        content: [{ type: 'text', text: 'Alpha Project', styles: {} }],
+      },
+      { type: 'text', text: ' for details.', styles: {} },
+    ];
+    expect(inlineItemsToContent(items)).toBe('See [[alpha-project|Alpha Project]] for details.');
+  });
+
+  it('serializes an untitled target (display === slug) to a bare [[slug]]', () => {
+    // When no title exists the autocomplete uses the slug as display; the
+    // serializer must collapse the duplicate into the clean form.
+    const items: InlineItem[] = [
+      {
+        type: 'link',
+        href: 'stratum:beta-notes',
+        content: [{ type: 'text', text: 'beta-notes', styles: {} }],
+      },
+    ];
+    expect(inlineItemsToContent(items)).toBe('[[beta-notes]]');
+  });
+
+  it('round-trips an autocomplete-inserted link byte-identically after a parse', () => {
+    const src = 'See [[alpha-project|Alpha Project]] for details.';
+    expect(roundTrip(src)).toBe(src);
+  });
+
+  it('keeps a no-display link stable (lowercase-slug target matches navigation)', () => {
+    // resolve_link_target lowercases + dashifies the target, so an autocomplete
+    // insert must stay resolvable across parse→serialize.
+    const items: InlineItem[] = [
+      {
+        type: 'link',
+        href: 'stratum:alpha-project',
+        content: [{ type: 'text', text: 'alpha-project', styles: {} }],
+      },
+    ];
+    const serialized = inlineItemsToContent(items);
+    expect(serialized).toBe('[[alpha-project]]');
+    expect(roundTrip(serialized)).toBe(serialized);
   });
 });

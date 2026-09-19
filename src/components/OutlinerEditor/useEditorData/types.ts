@@ -38,6 +38,8 @@ export interface EditorData {
   setStatus: Dispatch<SetStateAction<string>>;
   setError: Dispatch<SetStateAction<string | null>>;
   pageMarkers: string[];
+  /** Block metadata map (marker/priority/properties) shared with the suggestion menus. */
+  blockMetaRef: MutableRefObject<Map<string, import('../dtoConverters').BlockMeta>>;
   mathEdit: MathEditState;
   setMathEdit: Dispatch<SetStateAction<MathEditState>>;
   containerRef: RefObject<HTMLDivElement | null>;

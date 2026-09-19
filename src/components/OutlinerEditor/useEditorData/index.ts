@@ -478,6 +478,7 @@ export function useEditorData(
     setStatus,
     setError,
     pageMarkers,
+    blockMetaRef,
     mathEdit,
     setMathEdit,
     containerRef,
