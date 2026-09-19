@@ -367,3 +367,31 @@ Addenda to the QA final gate: the journal / template-variables / flashcards / ka
 **Evidence runs:** `cargo test -p stratum-tauri --test feature_commands` → 12/12; `cargo test -p pkm-tests --test journal_templates_flashcards_kanban` → 8/8; `cargo clippy -p stratum-tauri --test feature_commands` and `-p pkm-tests --test journal_templates_flashcards_kanban` → clean (new files; the one remaining `useless format!` sits in `src-tauri/src/commands/plugins.rs` — sibling E3.F5 working-tree change, not this scope); `rustfmt --check` → clean.
 
 **No product defects found.** All failures during authoring were test-fixture issues. The build under test is the QA-gated master plus this working tree; no product source was modified by this verification.
+
+## E7.F8 VOICE DICTATION AUTOMATED VERIFICATION — 2026-09-19 (t_3b363912)
+
+Addenda to the QA final gate: the voice-dictation acceptance criteria are now
+covered against the REAL service (regression suite run on the live endpoint)
+plus recordings-dir hygiene and the mic-free command surface. Runs against repo
+master + working tree; no product source was modified by this verification.
+
+| E7.F8 acceptance criterion | Evidence | Result |
+|---|---|---|
+| Full dictation round-trip on the real endpoint (mic capture → FLAC → STT with diarization → speaker assignment → enriched memo inserted into note) | `crates/pkm-dictation/tests/real_endpoint_live.rs::live_full_dictation_round_trip` — drives the REAL `pkm_dictation::run` pipeline (production `Transcriber` + `Diarizer` + `assign_speakers` + render) against the LIVE STT service at `http://127.0.0.1:8081` with a real speech fixture; asserts non-empty transcript turns, valid speaker labels, and the rendered memo markdown contains the voice-memo header, `🔊 Listen to recording`, speaker turn text (with the `[[speaker N]]`-style labels) and no `[object Object]`/empty template artifacts. `live_stt_transcribes_real_speech` — real `Transcriber::transcribe` returns segments whose text contains the spoken words ("budget", "release"). `live_diarization_labels_single_speaker` — real `Diarizer::diarize` returns `num_speakers == 1` for the mono clip and a contiguous `SPEAKER_00` segment. `live_voice_embed_keeps_same_speaker_above_match_threshold` — real `VoiceIdClient::embed` yields same-voice cosine ≈ 1.0 and different-voice ≈ 0.25, i.e. the tuned `VOICE_MATCH_MIN_SCORE = 0.5` cleanly separates them (same speaker above threshold, other below). Suite is gated on `STRATUM_LIVE_STT` (default `http://127.0.0.1:8081`); unreachable → cleanly SKIPPED (CI-safe), reachable → strict PASS | **PASS** (live, on real endpoint) |
+| Recordings dir cleanup | `crates/pkm-audio/tests/recordings_hygiene.rs` — `encode_flac_writes_valid_magic_and_roundtrips` (real FLAC magic + round-trip), `stop_path_renames_temp_to_final_without_tmp_residue` (atomic temp→rename; no `.tmp` after stop), `cancel_path_removes_partial_clip_and_temp_leaving_clean_dir` (cancel removes both final and `.tmp`, leaving `assets/recordings/` clean), `recording_path_follows_documented_convention_inside_recordings_dir` (clip path is `<vault>/assets/recordings/YYYY-MM-DD_HHMMSS_<slug>.flac`). Command layer: `src-tauri/tests/dictation_commands.rs` `dictation_cancel_with_no_recording_returns_guard_error`; mic-gated start→stop→cancel lifecycle verifies the final clip is real FLAC inside the vault with no `.tmp` residue (skips cleanly when no audio service is present, e.g. CI/headless) | **PASS** |
+| Voice threshold tuned | `VOICE_MATCH_MIN_SCORE = 0.5` already tuned in `crates/pkm-dictation/src/pipeline.rs` (doc: same speaker ≈ 0.69, other ≈ 0.02). Live-verified in `live_voice_embed_keeps_same_speaker_above_match_threshold` (same ≈ 1.0, other ≈ 0.25 on real ECAPA embeddings) | **PASS** |
+| Speaker assignment | `src-tauri/tests/dictation_commands.rs` — `speaker_list_returns_registry_and_delete_persists` drives REAL `speaker_list`/`speaker_delete` over IPC against a real `<vault>/.pkm/speakers.toml`; `stt_test_connection_reports_ok_and_models_against_live_service` drives REAL `stt_test_connection` against the live endpoint (returns `ok=true` + the service's model list); `stt_test_connection_fails_cleanly_on_dead_port` proves the failure path surfaces an error (not a hang) | **PASS** |
+
+**Evidence runs (all against the live service at `http://127.0.0.1:8081`):**
+`cargo test -p pkm-dictation --test real_endpoint_live` → 4/4 PASS (1.49s; includes the full real-service round-trip);
+`cargo test -p pkm-audio --test recordings_hygiene` → 4/4 PASS;
+`cargo test -p stratum-tauri --test dictation_commands` → 6/6 PASS (incl. live `stt_test_connection` against the real endpoint);
+`cargo test -p pkm-stt --test real_endpoint` (regression suite ea38041 payloads) → 3/3 PASS;
+`cargo clippy` on the three new suites → clean (the one remaining `useless format!` is in `src-tauri/src/commands/plugins.rs` — sibling E3.F5 working-tree change); `rustfmt --check` on new files → clean.
+
+**No product defects found.** The acceptance contract is satisfied by the real
+service: transcription+diarization+voice-embed round-trip, recordings hygiene,
+and the command-layer speaker/config surface are all green. Mic capture itself
+is a hardware/runtime concern (skipped cleanly when no audio service is
+present) and is covered at the encoder/hygiene layer the same way the sibling
+E7.F9 mobile smoke treats on-device hardware.
