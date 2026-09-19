@@ -48,3 +48,10 @@ tempfile.workspace = true
 pretty_assertions = { workspace = true }
 uuid.workspace = true
 chrono.workspace = true
+# Command-layer integration tests use the Tauri mock harness (`tauri::test`),
+# plus a real in-process WASM module (`wat`) and wiremock where HTTP is involved.
+tauri = { version = "2", features = ["test"] }
+wat.workspace = true
+wiremock = "0.6"
+tokio.workspace = true
+serde_json.workspace = true

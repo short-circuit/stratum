@@ -92,7 +92,7 @@ fn wire_command_vault(vault_path: &std::path::Path, remote: &std::path::Path) {
     // Seed a first commit on a local branch, then push -u to the remote so the
     // shared history exists and origin/main tracks.
     git(vault_path, &["init", "-b", "main"]);
-    let origin_url = file_url(&remote);
+    let origin_url = file_url(remote);
     git(
         vault_path,
         &["remote", "add", "origin", origin_url.as_str()],
@@ -106,7 +106,7 @@ fn wire_command_vault(vault_path: &std::path::Path, remote: &std::path::Path) {
     let toml = format!(
         "[sync]\nmode = \"Manual\"\nremote_url = \"{}\"\nbranch = \"main\"\n\
          ssh_key_path = \"\"\n",
-        file_url(&remote)
+        file_url(remote)
     );
     std::fs::write(vault_path.join(".pkm").join("config.toml"), toml).unwrap();
 }
@@ -260,7 +260,7 @@ fn sync_vault_conflict_workflow_resolves() {
     // Either way, the worktree now has a conflicted shared.md.
     let shared = std::fs::read_to_string(vault_b.join("shared.md")).unwrap();
     assert!(
-        shared.contains("<<<<<<<") || !res.as_object().is_none(),
+        shared.contains("<<<<<<<") || res.as_object().is_some(),
         "conflict markers expected in B: {shared:?}"
     );
 
