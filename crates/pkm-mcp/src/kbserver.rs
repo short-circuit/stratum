@@ -891,11 +891,18 @@ impl SharedVault {
         //    Tantivy ids match blocks.db exactly (same code path as
         //    commands::block::save_page). Doing this after the IndexEngine
         //    refresh prevents the fresh-UUID re-parse from drifting the ids.
+        //    We must delete-by-page-path first: `IndexEngine::refresh_page`
+        //    (step 1) indexes copies of the same blocks under FRESH UUIDs, so
+        //    without this delete those fresh-UUID duplicates would remain in
+        //    the index and `kb_search` would return duplicate hits for a single
+        //    block. Deleting by page path (not by block id) clears them.
         let store = self.store()?;
         if let Ok(blocks) = store.get_blocks_by_page(rel) {
-            let mut block_index =
-                BlockIndex::create(&self.vault_path.join(".pkm").join("search"))
-                    .map_err(|e| ErrorDataExt::external(format!("open search index: {e}")))?;
+            let mut block_index = BlockIndex::create(&self.vault_path.join(".pkm").join("search"))
+                .map_err(|e| ErrorDataExt::external(format!("open search index: {e}")))?;
+            block_index
+                .delete_blocks_by_page(rel)
+                .map_err(|e| ErrorDataExt::external(format!("clear stale search index: {e}")))?;
             for b in &blocks {
                 let _ = block_index.index_block(b, rel);
             }
