@@ -480,7 +480,7 @@ async fn interlink_suggestions_find_related_notes_and_rewrite_with_links() {
     let p1 = vault.path().join("pages/homelab.md");
     std::fs::create_dir_all(p1.parent().unwrap()).unwrap();
     std::fs::write(&p1, "The homelab runs on a Xeon E-2224 with a RTX 4090.").unwrap();
-    let page1 = pkm_block::Page::new(p1, &vault.path());
+    let page1 = pkm_block::Page::new(p1, vault.path());
     store.upsert_page(&page1).unwrap();
     let b1 = pkm_block::Block::new(
         uuid::Uuid::new_v4(),
@@ -496,7 +496,7 @@ async fn interlink_suggestions_find_related_notes_and_rewrite_with_links() {
         "Tomatoes need full sun and consistent watering to thrive.",
     )
     .unwrap();
-    let page2 = pkm_block::Page::new(p2, &vault.path());
+    let page2 = pkm_block::Page::new(p2, vault.path());
     store.upsert_page(&page2).unwrap();
     let b2 = pkm_block::Block::new(
         uuid::Uuid::new_v4(),
