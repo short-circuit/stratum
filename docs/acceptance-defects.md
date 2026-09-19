@@ -368,6 +368,51 @@ Addenda to the QA final gate: the journal / template-variables / flashcards / ka
 
 **No product defects found.** All failures during authoring were test-fixture issues. The build under test is the QA-gated master plus this working tree; no product source was modified by this verification.
 
+## E7.F7 AI & RESEARCH AUTOMATED VERIFICATION — 2026-09-19 (t_12c5fb6a)
+
+Automated verification of the AI & research acceptance criteria (transform /
+summarize, interlink suggestions, mermaid generation, streaming response,
+cancellation on navigation, research via SearXNG with SSRF guard + timeout,
+API keys not in plaintext config). Runs against the QA-gated master plus this
+working tree.
+
+This verification surfaced and FIXED one product defect in the research
+engine's SSRF guard that the live QA gate could not catch (no live SearXNG
+endpoint existed): the strict validator `pkm_core::validate_endpoint_safe`
+rejected ALL loopback/private/localhost endpoints, so the documented default
+SearXNG (`http://localhost:8888`) and local Ollama AI endpoints could never be
+reached over plain HTTP. The fix in `crates/pkm-ai/src/research.rs` restores
+the intended permissive guard (loopback/private/LAN hosts allowed over HTTP
+for the SearXNG endpoint; external result pages accepted on either http or
+https with a 10s hard read timeout so a stuck upstream cannot hang the
+research thread). Regression tests lock this contract in.
+
+| E7.F7 acceptance criterion | Evidence | Result |
+|---|---|---|
+| Transform (rewrite/summarize) | `src-tauri/tests/ai_command_flows.rs::ai_transform_rewrite_returns_provider_output`, `ai_transform_summarize_returns_provider_output` — drive the REAL `ai_transform_block` command over the `tauri::test` mock-app harness against a wiremock OpenAI-compatible endpoint; asserts the provider's rewritten/summarized text is returned through IPC. `ai_transform_without_config_fails_without_hanging` — with no AI config the command fails fast with an error (no hang). Crate-level `transform_block_returns_rewritten_text_from_provider` (pkm-tests ai_features) drives the same provider call | **PASS** |
+| Interlink suggestions | `ai_command_flows.rs::ai_interlink_finds_related_notes_and_rewrites_with_wiki_links` — real `ai_interlink_notes` over IPC; RelatedFinder surfaces a genuinely related note from the real block index and the provider step rewrites the text with `[[wiki-links]]`; unrelated note is not linked. Crate-level `interlink_suggestions_find_related_notes_and_rewrite_with_links` | **PASS** |
+| Mermaid generation | `ai_command_flows.rs::generate_mermaid_returns_diagram_from_provider` — real `generate_mermaid` command returns a diagram body from the configured provider over IPC. Crate-level `mermaid_generation_returns_diagram_from_provider` | **PASS** |
+| Streaming response | `crates/pkm-ai/src/provider.rs` unit tests: `openai_stream_chat_reassembles_deltas_and_signals_done` — SSE chunks reassemble in order across a real wiremock `text/event-stream` and the `[DONE]` sentinel terminates the stream; `openai_stream_chat_tolerates_early_stream_drop` — dropping the stream mid-flight (the navigation-cancel stand-in) returns promptly with no panic; `openai_stream_chat_surface_transport_error` — a transport-level failure surfaces as a stream error instead of hanging | **PASS** |
+| Cancellation on navigation | `src/lib/hooks/useAbortableInvoke.test.ts` — `aborts in-flight invoke on unmount` (no late promise resolves into a dead component), `replaces in-flight when owner re-invokes`, `resolves on success via the real WebView bridge stub` — the shared hook guarding every AI action abandons in-flight invoke on unmount/navigation | **PASS** |
+| Research via SearXNG with SSRF guard + timeout | `ai_command_flows.rs::ai_research_runs_full_pipeline_against_configured_endpoint` — real `ai_research` over IPC: queries a wiremock SearXNG endpoint, fetches a result page, and synthesizes through the LLM (loopback endpoint permitted by the permissive guard). `ai_research_without_config_fails_fast` — no-research-config path fails cleanly, no hang. Crate-level (pkm-ai research): `research_runs_against_local_searxng_endpoint_and_synthesizes` (loopback SearXNG allowed), `research_accepts_loopback_ip_ssrf_surface` (127.0.0.1 permitted — regression vs the strict guard that rejected it), `research_rejects_plain_http_external_searxng_endpoint` (external plain-HTTP rejected in favour of HTTPS — permissive-guard contract), `research_read_url_reads_external_http_and_https_pages` (external result pages readable on either scheme, 10s timeout) | **PASS** |
+| API keys not in plaintext config (after keyring fix) | `src-tauri/tests/ai_settings_commands.rs` — `get_settings_masks_api_key_everywhere`: the settings DTO returns the masked key (not the full secret) for the AI endpoint; `save_settings_masked_key_preserves_stored_secret`: saving a masked key leaves the stored secret intact; `save_settings_valid_key_overwrites_stored_secret`: a valid (unmasked) key replaces it; `get_settings_reports_env_key_source_for_openai_family`: env-var-sourced keys (STRATUM_*_KEY) are reported as `from_env` and never emitted in plaintext via the DTO | **PASS** |
+| Failures surface in UI without hanging | `ai_transform_without_config_fails_without_hanging`, `ai_research_without_config_fails_fast` (IPC, no-config error paths return promptly); crate-level `rag_surfaces_endpoint_down_error` (endpoint-down produces an Err, not a hang) | **PASS** |
+
+**Evidence runs:**
+`cargo test -p pkm-ai` → 72/72 (incl. streaming + SSRF research tests);
+`cargo test -p stratum-tauri --test ai_command_flows` → 7/7 (real IPC against wiremock);
+`cargo test -p stratum-tauri --test ai_settings_commands` → 4/4 (key-masking contract);
+`cargo test -p pkm-tests --test ai_features_end_to_end` → 13/13 (embeddings, RAG, TTS, transform, mermaid, interlink);
+`npx vitest run src/lib/hooks/useAbortableInvoke.test.ts` → 3/3 (cancellation-on-navigation);
+`cargo fmt --check -p pkm-ai -p pkm-tests -p stratum-tauri` → clean for all files in this lane (the only diff flagged is `src-tauri/tests/sync_commands.rs`, a sibling E7.F6 working-tree file);
+`cargo clippy` on the new AI suites → 0 errors (the one remaining `useless format!` is in `src-tauri/src/commands/plugins.rs`, sibling E3.F5).
+
+**FIXED defect (this lane):** research SSRF guard blocked all local/loopback
+endpoints, breaking the documented default SearXNG/Ollama layout. Restored to
+the permissive guard (loopback/private/LAN over HTTP allowed; external pages
+either scheme with 10s timeout) in `crates/pkm-ai/src/research.rs`, with
+regression tests. No other product defects found.
+
 ## E7.F8 VOICE DICTATION AUTOMATED VERIFICATION — 2026-09-19 (t_3b363912)
 
 Addenda to the QA final gate: the voice-dictation acceptance criteria are now
