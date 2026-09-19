@@ -123,6 +123,8 @@ stratum/
 │   │   ├── DictationPanel.tsx
 │   │   ├── AutocompletePopup.tsx
 │   │   ├── LinkPreviewPopup.tsx
+│   │   ├── BacklinkSnippetBody.tsx
+│   │   ├── BacklinkSnippetPopup.tsx
 │   │   ├── MathEditorModal.tsx
 │   │   ├── MathSymbolPalette.tsx
 │   │   ├── MermaidBlock.tsx
@@ -242,6 +244,7 @@ React app uses **Zustand** for state. Domain-specific stores in `src/stores/`:
 - **settingsStore** — theme, AI, research, sync configuration
 - **graphStore** — graph data, connected components, orphans, graph settings
 - **syncStore** — sync status, commit log, conflict state
+- **navigationStore** — modifier-click navigation state (source-editor scroll restore on return; session-scoped)
 
 All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rust command → crate logic.
 
@@ -268,7 +271,9 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | Component | Parent | Purpose |
 |-----------|--------|---------|
 | `OutlinerEditor` | `PageView` | BlockNote-based outliner with auto-save, markers, wiki-links — decomposed into `index.tsx` + `dtoConverters.ts` + `markerDetection.ts` |
-| `BacklinksPanel` | `PageView` | Linked references + unlinked mentions + hover preview |
+| `BacklinksPanel` | `PageView` | Linked references + unlinked mentions + hover preview; Ctrl+hover snippet popup + Ctrl+click navigation via `useBacklinkNavigation` |
+| `BacklinkSnippetBody` | `BacklinksPanel` | Renders backlinked block snippet (title, context, anchor highlight, loading/error) |
+| `BacklinkSnippetPopup` | `BacklinksPanel` (desktop) | Viewport-clamped popup for the backlink snippet (Ctrl+hover) |
 | `SuggestedConnectionsPanel` | `PageView` | AI-suggested wiki-link connections |
 | `MermaidBlock` | `OutlinerEditor` | Custom BlockNote block for Mermaid diagrams |
 | `AISlashMenu` | `OutlinerEditor` | Slash menu with AI actions (rewrite, summarize, etc.) |
