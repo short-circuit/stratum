@@ -7,8 +7,10 @@
 //   - sync.ts      — sync/git operations
 //   - settings.ts  — vault/settings
 //   - features.ts  — AI, dictation/TTS, export, flashcards, kanban, whiteboards, templates
+//   - plugins.ts   — WASM plugin lifecycle + host-function test commands
 export * from './commands/pages';
 export * from './commands/knowledge';
 export * from './commands/sync';
 export * from './commands/settings';
 export * from './commands/features';
+export * from './commands/plugins';

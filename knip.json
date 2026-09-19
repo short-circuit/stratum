@@ -1,0 +1,6 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreDependencies": [],
+  "include": ["dependencies", "devDependencies", "unlisted"],
+  "exclude": ["files", "exports", "types"]
+}

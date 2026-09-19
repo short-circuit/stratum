@@ -24,6 +24,7 @@ export default function MobileLayout({ error, children }: MobileLayoutProps) {
   else if (location.pathname.startsWith('/templates')) title = 'Templates';
   else if (location.pathname.startsWith('/flashcards')) title = 'Flashcards';
   else if (location.pathname.startsWith('/whiteboards')) title = 'Whiteboards';
+  else if (location.pathname.startsWith('/plugins')) title = 'Plugins';
   else if (location.pathname.startsWith('/settings')) title = 'Settings';
 
   return (

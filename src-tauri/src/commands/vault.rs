@@ -11,6 +11,8 @@ use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 use tracing::info;
 
+use crate::commands::plugins::PluginManager;
+
 /// Application state holding the active vault.
 pub struct VaultState {
     pub vault_path: PathBuf,
@@ -30,6 +32,9 @@ pub struct VaultState {
     /// Finished dictation sessions keyed by recording path, so speakers can
     /// be renamed/enrolled after insertion.
     pub dictation_sessions: std::collections::HashMap<String, DictationSession>,
+    /// Per-vault WASM plugin manager (registry + runtime + host), or `None`
+    /// until a vault is opened/initialized.
+    pub plugin_manager: Option<Arc<PluginManager>>,
 }
 
 /// An in-progress voice recording.
@@ -77,6 +82,7 @@ impl VaultState {
             indexing_in_progress: Arc::new(AtomicBool::new(false)),
             recorder: None,
             dictation_sessions: std::collections::HashMap::new(),
+            plugin_manager: None,
         }
     }
 
@@ -496,6 +502,15 @@ history/
     vstate.vault_path = vault_path.to_path_buf();
     vstate.db_path = db_path.clone();
     vstate.index_engine = index_engine;
+
+    // ── WASM plugins (spec §7.3) ────────────────────────────────────────────
+    // Scan `<vault>/.pkm/plugins/` and build the plugin manager. Enablement is
+    // taken from the vault config `plugins` list. Failures are logged and
+    // surfaced through `plugins_list`; a broken plugin never aborts load.
+    // Shares the same single entry point as the app startup scan.
+    let plugin_manager = crate::commands::plugins::PluginManager::init_for_vault(vault_path)
+        .map_err(|e| format!("Failed to initialize plugin manager: {e}"))?;
+    vstate.plugin_manager = Some(plugin_manager);
 
     let store = pkm_block::BlockStore::open(&db_path).map_err(|e| e.to_string())?;
     vstate.block_store = pkm_block::BlockStore::open(&db_path).ok();

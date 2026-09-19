@@ -197,7 +197,17 @@ pub struct SyncScheduler {
 
 impl SyncScheduler {
     /// Create a new `SyncScheduler` with the given engine and configuration.
-    pub fn new(git: GitEngine, config: SchedulerConfig) -> Self {
+    ///
+    /// The configured `SchedulerConfig::ssh_key_path` is applied to the
+    /// underlying `GitEngine` so the background sync thread can authenticate
+    /// with the key. Previously the config field was stored but never applied,
+    /// so a scheduler created via `SchedulerConfig { ssh_key_path: Some(..) }`
+    /// silently fell back to no key and every push/pull in AutoSync/Background
+    /// mode failed when the default key did not match the remote.
+    pub fn new(mut git: GitEngine, config: SchedulerConfig) -> Self {
+        if let Some(ref key) = config.ssh_key_path {
+            git.set_ssh_key_path(Some(key.clone()));
+        }
         Self {
             inner: Arc::new(Mutex::new(SchedulerInner::new(git))),
             config,

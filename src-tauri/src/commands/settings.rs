@@ -86,6 +86,8 @@ pub struct AiSettingsDto {
     pub models: Vec<AiModelDto>,
     pub rag_enabled: bool,
     pub rag_chunk_count: usize,
+    /// Expected embedding vector dimensionality; `0` = infer from response.
+    pub embedding_dimensions: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -176,6 +178,7 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
                 .collect(),
             rag_enabled: config.ai.rag_enabled,
             rag_chunk_count: config.ai.rag_chunk_count,
+            embedding_dimensions: config.ai.embedding_dimensions,
         },
         research: ResearchSettingsDto {
             searxng_endpoint: config.research.searxng_endpoint.clone(),
@@ -297,7 +300,7 @@ pub async fn save_settings(
                 .collect(),
             rag_enabled: settings.ai.rag_enabled,
             rag_chunk_count: settings.ai.rag_chunk_count,
-            embedding_model_path: None,
+            embedding_dimensions: settings.ai.embedding_dimensions,
         },
         research: pkm_core::ResearchConfig {
             searxng_endpoint: settings.research.searxng_endpoint,

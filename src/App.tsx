@@ -21,6 +21,7 @@ import KanbanPanel from './components/KanbanPanel';
 import WhiteboardPanel from './components/WhiteboardPanel';
 import GraphPanel from './components/GraphPanel';
 import AskNotesPanel from './components/AskNotesPanel';
+import PluginsPanel from './components/PluginsPanel';
 import SettingsPage from './components/SettingsPage';
 import MobileLayout from './components/MobileLayout';
 import VaultPicker from './components/VaultPicker';
@@ -132,6 +133,7 @@ function AppContent() {
           <Route path="/kanban" element={<ErrorBoundary><KanbanPanel /></ErrorBoundary>} />
           <Route path="/whiteboards" element={<ErrorBoundary><WhiteboardPanel /></ErrorBoundary>} />
           <Route path="/graph" element={<ErrorBoundary><GraphPanel /></ErrorBoundary>} />
+          <Route path="/plugins" element={<ErrorBoundary><PluginsPanel /></ErrorBoundary>} />
           <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
         </Routes>
         {/* Global modals for conflict & passphrase — visible on any page */}
@@ -173,6 +175,7 @@ function AppContent() {
           <Route path="/kanban" element={<ErrorBoundary><KanbanPanel /></ErrorBoundary>} />
           <Route path="/whiteboards" element={<ErrorBoundary><WhiteboardPanel /></ErrorBoundary>} />
           <Route path="/graph" element={<ErrorBoundary><GraphPanel /></ErrorBoundary>} />
+          <Route path="/plugins" element={<ErrorBoundary><PluginsPanel /></ErrorBoundary>} />
           <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
         </Routes>
       </Box>

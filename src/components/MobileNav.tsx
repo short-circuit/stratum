@@ -17,6 +17,7 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import QuizIcon from '@mui/icons-material/Quiz';
 import DrawIcon from '@mui/icons-material/Draw';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import ExtensionIcon from '@mui/icons-material/Extension';
 import SettingsIcon from '@mui/icons-material/Settings';
 
 const PRIMARY_TABS = [
@@ -33,6 +34,7 @@ const MORE_ITEMS = [
   { label: 'Templates', path: '/templates', icon: <DescriptionIcon /> },
   { label: 'Flashcards', path: '/flashcards', icon: <QuizIcon /> },
   { label: 'Whiteboards', path: '/whiteboards', icon: <DrawIcon /> },
+  { label: 'Plugins', path: '/plugins', icon: <ExtensionIcon /> },
   { label: 'Settings', path: '/settings', icon: <SettingsIcon /> },
 ] as const;
 
