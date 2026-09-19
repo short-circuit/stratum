@@ -13,7 +13,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["custom-protocol"] }
+tauri = { version = "2", features = ["custom-protocol", "test"] }
 tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
 serde.workspace = true
@@ -48,3 +48,4 @@ tempfile.workspace = true
 pretty_assertions = { workspace = true }
 uuid.workspace = true
 chrono.workspace = true
+wiremock = "0.6"
