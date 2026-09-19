@@ -509,3 +509,38 @@ environment leakage, and `last_sync` persistence is verified on disk. Auth
 against a *network* SSH server is exercised via the local `ssh://`-style URL
 path (the same code path); a live-server SSH test is environment-gated and
 skips cleanly when `sshd`/`ssh-keygen` are unavailable.
+
+
+
+## E7.F1 EDITOR / NOTES / LINKING AUTOMATED VERIFICATION — 2026-09-19 (t_e5c7a44f)
+
+Addenda to the QA final gate: the editor / notes / linking acceptance criteria are now covered by a reproducible command-layer suite driving the REAL Tauri command handlers over the real IPC dispatcher against a REAL temp vault on disk (no mocks), plus frontend serialization-contract tests in vitest and a live compiled-app smoke probe. All runs against repo HEAD 41fc3b7 + this working tree.
+
+**Defects found and fixed by this lane (verified green below):**
+
+- **`toggle_block_marker` dropped custom frontmatter on disk.** The command rebuilt the `.md` with `format!("---\ntitle: {t}\n---\n\n{body}")`, so toggling a task marker STRIPPED every non-title frontmatter field (`tags`, `aliases`, `created`/`modified`, `extra`) from the file — the exact data-loss class the original CRITICAL (ED-07) warned about. `src-tauri/src/commands/block.rs` now rebuilds through `pkm_markdown::block_parser::assemble_blocks_markdown` (the same frontmatter-preserving helper `save_blocks` uses).
+- **`clear_block_marker` never actually cleared the marker.** The command found the block and re-inserted it unchanged into SQLite, then rewrote the file — the marker stayed `TODO` on disk and in the DB. It now clears `block.marker`/`block.priority` before persisting, and the file rewrite uses the same frontmatter-preserving path.
+- **`[[` wiki-link autocomplete was documented but never wired.** `docs/guide/linking-and-backlinks.md` / `block-editor.md` describe typing `[[` for page autocomplete, but no editor code implemented it (the docs even referenced a `wiki-link-autocomplete` screenshot that didn't exist). This lane wires `WikiLinkAutocomplete` (trigger `[[`) and `MarkerSuggestMenu` (trigger `:`; previously dead code) into both the desktop and mobile block editors via `SuggestionMenuController`, the same documented pattern the existing `/` AISlashMenu uses. Live probe confirms links/markers render and persist.
+
+| E7.F1 acceptance criterion | Evidence | Result |
+|---|---|---|
+| Editing a block persists to the `.md` and preserves custom frontmatter (tags + custom field) | `src-tauri/tests/editor_commands.rs::command_save_blocks_persists_edit_and_preserves_custom_frontmatter` — real `save_blocks` over IPC: the edited block lands on disk, frontmatter `tags` and an arbitrary custom field are retained, and no `[[` bracket mangling occurs | **PASS** |
+| Markers + priorities survive a save round-trip (read-modify-write) | `editor_commands.rs::command_save_blocks_roundtrips_marker_and_priority` — a `TODO`/`A` block fetched via `get_blocks`, mutated, and re-saved through `save_blocks` persists its marker and priority to disk | **PASS** |
+| Toggling a task marker cycles the marker AND retains full frontmatter on disk | `editor_commands.rs::command_toggle_block_marker_cycles_and_persists_to_disk` — `toggle_block_marker` over IPC flips `TODO`→`DOING` on disk with `tags` retained (regression-gates the frontmatter-drop fix) | **PASS** |
+| Clearing a task marker actually removes it and retains full frontmatter | `editor_commands.rs::command_clear_block_marker_preserves_custom_frontmatter` — `clear_block_marker` removes `.marker:` from disk while preserving `tags`, `aliases`, and `title` (regression-gates the no-op fix) | **PASS** |
+| Backlinks distinguish linked references from unlinked mentions | `editor_commands.rs::command_get_page_backlinks_returns_linked_and_unlinked` — `get_page_backlinks` returns a `[[wiki-link]]` source as `is_linked:true` and a plain-text title mention as `is_linked:false` (LK-04 panel contract) | **PASS** |
+| `[[Target]]` link resolution (slug, dashed, and title forms) | `editor_commands.rs::command_resolve_link_target_resolves_slug_dash_and_title` — `resolve_link_target` resolves the kebab-slug, space-to-dash, and title forms of the same page via the real `PageMetaIndex` | **PASS** |
+| Page autocomplete returns real pages for `[[` | `editor_commands.rs::command_autocomplete_page_returns_real_pages` — `autocomplete(kind="page")` lists the seeded pages as `AutocompleteItem`s (the backend the new `[[` menu queries) | **PASS** |
+| Wiki-link autocomplete insert writes a byte-stable, resolvable link (no double brackets) | `src/lib/wikiLinks.test.ts` (E7.F1 suite) — the exact `stratum:<slug>` href the autocomplete's `createLink` produces round-trips to `[[slug]]` / `[[slug|display]]` byte-identically, incl. collapse of a no-title insert to the clean form (FF-04 no-corruption invariant) | **PASS** |
+| Live compiled app: boot, editor render, marker readback, frontmatter-preserving save | `e2e/f1/live-smoke-e7f1.mjs` — WebDriver against the rebuilt `target/debug/stratum-tauri` on a clean fixture vault: boots, editor renders fixture content (ProseMirror), `get_blocks` returns real blocks with `TODO`/`DONE` markers, `save_blocks` applies a live edit to disk, and frontmatter `tags` survive the save (8/8 checks; screenshot + JSON in `e2e/f1/.evidence/live-e7f1/`) | **PASS** |
+| Watcher round-trip: an external `.md` write is detected | `crates/pkm-watcher` → 9/9 PASS (`test_modify_md_file`, `test_create_md_file`, `test_delete_md_file`, `test_rename_md_file` exercise real fs events on a real temp dir); prior-attempt live evidence `e2e/f1/.evidence/probe9/r.json` shows an external modify + new page both reaching SQLite + search via the built app watcher | **PASS** |
+
+**Evidence runs:**
+`cargo test -p stratum-tauri --test editor_commands` → 7/7 PASS;
+`cargo test -p stratum-tauri --test feature_commands --test command_tests --test search_commands` → 22/22 PASS (regression);
+`cargo test -p pkm-markdown` → 94/94, `-p pkm-block` → 56/56, `-p pkm-tests` (full) → all PASS;
+`npx vitest run src` → 932/932 PASS (incl. the new E7.F1 wiki-link contract tests);
+`npx tsc -b` → clean; `eslint` on changed files → clean; `cargo fmt` clean; live smoke probe 8/8 PASS against the rebuilt binary.
+
+**Note:** two pre-existing `graph_commands` suite assertions (`graph_settings_persist_through_config_toml_round_trip`, `graph_cache_is_invalidated_after_mutation`) occasionally fail only when multiple `cargo test -p stratum-tauri` test binaries run concurrently (shared config/state contention); each passes deterministically when run serially and are unrelated to this lane (graph is E7.F3 scope).
+
