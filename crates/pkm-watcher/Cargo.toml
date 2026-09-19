@@ -8,10 +8,7 @@ license.workspace = true
 notify.workspace = true
 crossbeam-channel = "0.5"
 pkm-core = { path = "../pkm-core" }
-pkm-markdown = { path = "../pkm-markdown" }
-pkm-index = { path = "../pkm-index" }
 tracing.workspace = true
-serde.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

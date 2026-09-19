@@ -24,6 +24,8 @@ import '@blocknote/mantine/style.css';
 import AISlashMenu from '../AISlashMenu';
 import AIFormattingToolbar from '../AIFormattingToolbar';
 import MarkerBadge from '../MarkerBadge';
+import MarkerSuggestMenu from './MarkerSuggestMenu';
+import WikiLinkAutocomplete from './WikiLinkAutocomplete';
 import { useEditorData } from './OutlinerEditor.shared';
 import type { Props } from './OutlinerEditor.shared';
 import MobileEditorOverlays from './MobileEditorOverlays';
@@ -38,6 +40,8 @@ export default function OutlinerEditorMobile(props: Props) {
     setStatus,
     setError,
     pageMarkers,
+    blockMetaRef,
+    persistBlocks,
     mathEdit,
     setMathEdit,
     saving,
@@ -130,9 +134,20 @@ export default function OutlinerEditorMobile(props: Props) {
       >
         <AISlashMenu pagePath={pagePath} />
         <AIFormattingToolbar />
+        <MarkerSuggestMenu
+          blockMetaRef={blockMetaRef}
+          onSelect={() => {
+            try {
+              if (editor) persistBlocks(editor.document);
+            } catch (e) {
+              console.error('[OutlinerEditor] marker save failed:', e);
+            }
+          }}
+        />
+        <WikiLinkAutocomplete pagePath={pagePath} />
       </BlockNoteView>
     ),
-    [editor, pagePath, minHeight],
+    [editor, pagePath, minHeight, blockMetaRef, persistBlocks],
   );
 
   // -----------------------------------------------------------------------

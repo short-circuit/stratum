@@ -33,6 +33,8 @@ import AISlashMenu from '../AISlashMenu';
 import AIFormattingToolbar from '../AIFormattingToolbar';
 import MathEditorModal from '../MathEditorModal';
 import MarkerBadge from '../MarkerBadge';
+import MarkerSuggestMenu from './MarkerSuggestMenu';
+import WikiLinkAutocomplete from './WikiLinkAutocomplete';
 import { useEditorData } from './OutlinerEditor.shared';
 import type { Props } from './OutlinerEditor.shared';
 
@@ -46,6 +48,8 @@ export default function OutlinerEditorDesktop(props: Props) {
     setStatus,
     setError,
     pageMarkers,
+    blockMetaRef,
+    persistBlocks,
     mathEdit,
     setMathEdit,
     saving,
@@ -115,9 +119,20 @@ export default function OutlinerEditorDesktop(props: Props) {
       >
         <AISlashMenu pagePath={pagePath} />
         <AIFormattingToolbar />
+        <MarkerSuggestMenu
+          blockMetaRef={blockMetaRef}
+          onSelect={() => {
+            try {
+              if (editor) persistBlocks(editor.document);
+            } catch (e) {
+              console.error('[OutlinerEditor] marker save failed:', e);
+            }
+          }}
+        />
+        <WikiLinkAutocomplete pagePath={pagePath} />
       </BlockNoteView>
     ),
-    [editor, pagePath, minHeight],
+    [editor, pagePath, minHeight, blockMetaRef, persistBlocks],
   );
 
   if (status === 'init' || status === 'loading') {
