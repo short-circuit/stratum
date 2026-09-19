@@ -82,3 +82,29 @@ pub fn create_test_vault() -> TestVault {
         block_index: None,
     }
 }
+
+/// Create a `TestVault` rooted at an EXISTING directory with an explicit
+/// blocks DB path, without creating or owning a `TempDir`.
+///
+/// Used by tests that must wire real git/remote state into the vault path
+/// before the command layer runs (the vault directory already exists and the
+/// caller keeps it alive).
+pub fn create_test_vault_in(vault_path: &std::path::Path, db_path: &std::path::Path) -> TestVault {
+    std::fs::create_dir_all(vault_path.join(".pkm")).unwrap();
+    std::fs::create_dir_all(vault_path.join("pages")).unwrap();
+    std::fs::create_dir_all(vault_path.join("journals")).unwrap();
+    std::fs::create_dir_all(vault_path.join("templates")).unwrap();
+
+    let store = BlockStore::open(db_path).unwrap();
+
+    TestVault {
+        // A survive-forever temp dir is not needed; this fixture does not
+        // outlive the caller's own TempDir. Reuse a throwaway empty TempDir to
+        // satisfy the struct field (kept alive for the fixture's lifetime).
+        _dir: tempfile::tempdir().unwrap(),
+        vault_path: vault_path.to_path_buf(),
+        db_path: db_path.to_path_buf(),
+        store,
+        block_index: None,
+    }
+}

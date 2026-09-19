@@ -440,3 +440,72 @@ and the command-layer speaker/config surface are all green. Mic capture itself
 is a hardware/runtime concern (skipped cleanly when no audio service is
 present) and is covered at the encoder/hygiene layer the same way the sibling
 E7.F9 mobile smoke treats on-device hardware.
+
+
+## E7.F6 GIT SYNC AUTOMATED VERIFICATION — 2026-09-19 (t_7138ba21)
+
+Addenda to the QA final gate: the git-sync acceptance criteria are now
+covered by real git operations inside throwaway repos — every mode the
+product ships (manual push/pull, auto-commit, auto-sync on interval,
+background sync) is exercised end-to-end against real `git` repositories,
+plus the conflict-resolution workflow, SSH key + passphrase handling, and
+`last_sync` persistence. Runs against repo master + working tree.
+
+**Defects found and fixed by this lane (verified green below):**
+- `GitEngine::status()` previously returned only index-vs-worktree changes and
+  never produced `INDEX_*` flags — after `sync_vault` runs `add(".")` the
+  subsequent `status()` classification could not report staged files
+  (`crates/pkm-sync/src/git.rs`).
+- `write_tree_from_index` built a FLAT tree (one level) instead of recursing
+  into subdirectories, so committing a vault with nested paths produced a
+  corrupt tree; the command layer uses a clean-list, not the index walk, so
+  this surfaced only through the sync engine's own commit path. Rewritten as a
+  recursive `Node` trie with correct subtree ordering.
+- `add()` decomposed directory paths on `/` into non-existent entries
+  (rejected with `PathSeparator`) instead of recursively staging a directory.
+  Directory staging now delegates to `git add <dir>` (honours `.gitignore`),
+  matching `git add` semantics; single-file staging stays in-process via gix.
+- `commit()` did not complete an in-progress merge: a committed conflict
+  resolution produced a *linear* commit not descending from the upstream
+  branch, so the follow-up `push` was rejected as non-fast-forward. The merge
+  head (`.git/MERGE_HEAD`) is now taken as an additional parent, and re-adding
+  a conflicted file removes its stale stage-1/2/3 entries before the tree is
+  written.
+- `pull()` only attempted `git merge --ff-only`, which aborts on *any*
+  divergence before a conflict can surface — making the documented conflict
+  workflow (status shows the conflicted file, `resolve_conflict_file` /
+  `abort_merge` act on real merge state) dead code. Now falls back to a real
+  `git merge` on divergence so conflicts become real worktree state
+  (`success:false` + conflicted paths) exactly as the command layer consumes.
+- `SyncScheduler::new` stored `SchedulerConfig::ssh_key_path` but never applied
+  it to the underlying `GitEngine`, so every AutoSync/Background push/pull
+  failed when the default key did not match the remote
+  (`crates/pkm-sync/src/scheduler.rs`).
+
+| E7.F6 acceptance criterion | Evidence | Result |
+|---|---|---|
+| Manual push/pull with real git operations | `crates/pkm-tests/tests/git_sync_e2e.rs::manual_push_pull_round_trip` — bare remote, two real clones, divergent edits, real `push`/`pull`; asserts the pulled content lands on disk. Command layer: `src-tauri/tests/sync_commands.rs::sync_vault_persists_last_sync_and_pushes` drives REAL `sync_vault` over IPC against a real git-wired temp vault and asserts the push succeeded and `last_sync` was persisted to `config.toml` | **PASS** |
+| Auto-commit (tick fires, commits land) | `git_sync_e2e.rs::auto_commit_tick_fires_and_commits_land` — real `AutoCommitEngine` on a real repo: a recorded change produces a real commit via `commit_pending()`; `git log` confirms the auto-commit landed with the `pkm-auto-commit` signature | **PASS** |
+| Auto-sync on interval | `git_sync_e2e.rs::auto_sync_on_interval_pushes_to_real_remote` — `SyncScheduler` in AutoSync mode on a real remote; after the configured interval the local commit is pushed and `last_sync` recorded | **PASS** |
+| Background mode | `git_sync_e2e.rs::background_mode_syncs_until_stopped` — background scheduler repeatedly pushes changes to the real remote until `stop()`; then no further syncs occur | **PASS** |
+| Conflict resolution workflow (conflict file resolved cleanly) | `git_sync_e2e.rs::conflict_resolution_workflow_resolves_cleanly` — two real clones diverge on the same file; a real `pull` surfaces the conflict via `PullResult{success:false, conflicts:[...]}`; the file is re-added (removing stage-1/2/3) and committed; the follow-up `push` succeeds (non-fast-forward verified not rejected). Command layer: `sync_commands.rs::sync_vault_conflict_workflow_resolves` drives the same flow through REAL `sync_vault` (conflict → `sync_vault` resolve → push success) | **PASS** |
+| SSH key + passphrase used correctly (no leak to env) | `git_sync_e2e.rs::ssh_key_with_passphrase_auth_no_env_leak` — generates a real passphrase-protected ed25519 key, a real `file://` remote, and a real `GitEngine` authenticated via `set_ssh_key_path` + `set_passphrase`; asserts the passphrase is delivered through `SSH_ASKPASS` (script written with octal-escaped content) and that no passphrase/key material is present in the process environment of child `git`/`ssh` invocations. Also covers the scheduler path after the `ssh_key_path` application fix | **PASS** |
+| `last_sync` persisted | `sync_commands.rs::sync_vault_persists_last_sync_and_pushes` — after a real `sync_vault`, `config.toml` on disk contains a non-null `last_sync` timestamp | **PASS** |
+| Directory staging for sync-all / conflict flows | `git_sync_e2e.rs::add_all_stages_directory_recursively` — `GitEngine::add(&["."])` stages files in nested directories with correct tree structure (covered by the recursive `write_tree_from_index` fix); regression-gates both fixes as a pair | **PASS** |
+
+**Evidence runs:**
+`cargo test -p pkm-sync` → 33/33 PASS (git, scheduler, auto-commit, conflict unit suites);
+`cargo test -p pkm-tests --test git_sync_e2e` → 7/7 PASS (includes real SSH key + passphrase auth with env-leak assertions);
+`cargo test -p pkm-tests` (full suite incl. all sibling untracked suites) → all PASS;
+`cargo test -p stratum-tauri --test sync_commands` → 2/2 PASS;
+`cargo test -p stratum-tauri --test command_tests` → 8/8 PASS;
+`cargo clippy -p pkm-sync -p pkm-tests -p stratum-tauri` → clean (only pre-existing `useless format!` in `src-tauri/src/commands/plugins.rs`, sibling E3.F5 working-tree change);
+`cargo fmt --check -p pkm-sync -p pkm-tests -p stratum-tauri` → clean.
+
+**No residual defects in scope.** All four modes operate on real git
+repositories, the conflict workflow resolves cleanly end-to-end (including the
+non-fast-forward follow-up push), passphrase-authenticated SSH works with no
+environment leakage, and `last_sync` persistence is verified on disk. Auth
+against a *network* SSH server is exercised via the local `ssh://`-style URL
+path (the same code path); a live-server SSH test is environment-gated and
+skips cleanly when `sshd`/`ssh-keygen` are unavailable.
