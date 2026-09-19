@@ -36,6 +36,7 @@ interface AITabProps {
     models: { name: string; capabilities: string[] }[];
     rag_enabled: boolean;
     rag_chunk_count: number;
+    embedding_dimensions: number;
   };
   onAiChange: (patch: Partial<AITabProps['ai']>) => void;
   availableModels: string[];
@@ -246,6 +247,17 @@ export default function AITab({
             />
           )}
         </Box>
+
+        <TextField
+          label="Embedding Dimensions (0 = auto)"
+          type="number"
+          value={ai.embedding_dimensions || 0}
+          onChange={e => onAiChange({ embedding_dimensions: parseInt(e.target.value) || 0 })}
+          size="small"
+          slotProps={{ htmlInput: { min: 0, max: 4096 } }}
+          sx={{ width: 220 }}
+          helperText="Leave 0 to infer the vector size from your embedding model."
+        />
       </Box>
 
       {stt && onSttChange && (

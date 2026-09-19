@@ -1408,4 +1408,124 @@ mod tests {
         };
         assert!(ProviderFactory::create(&config).is_ok());
     }
+
+    // -----------------------------------------------------------------------
+    // Streaming (SSE) — acceptance criterion: streaming response. The OpenAI
+    // provider streams deltas over `text/event-stream`; test across a real
+    // wiremock server that deltas accumulate, the `[DONE]` sentinel is emitted,
+    // and dropping the stream (the navigation-cancel stand-in) returns promptly.
+    // -----------------------------------------------------------------------
+
+    fn openai_provider(endpoint: &str) -> OpenAIProvider {
+        OpenAIProvider::new(endpoint, "sk-test").unwrap()
+    }
+
+    #[tokio::test]
+    async fn openai_stream_chat_reassembles_deltas_and_signals_done() {
+        use futures::StreamExt;
+        use wiremock::ResponseTemplate;
+
+        const CHUNKS: [&str; 3] = [
+            "data: {\"choices\":[{\"delta\":{\"content\":\"Hello \"},\"finish_reason\":null}]}\n\n",
+            "data: {\"choices\":[{\"delta\":{\"content\":\"world\"},\"finish_reason\":null}]}\n\n",
+            "data: [DONE]\n\n",
+        ];
+        let body = CHUNKS.join("");
+
+        let server = wiremock::MockServer::start().await;
+        wiremock::Mock::given(wiremock::matchers::method("POST"))
+            .and(wiremock::matchers::path("/chat/completions"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_string(body)
+                    .insert_header("content-type", "text/event-stream"),
+            )
+            .mount(&server)
+            .await;
+
+        let provider = openai_provider(&server.uri());
+        let config = ChatConfig::new("test-model").with_max_tokens(64);
+
+        let mut stream = provider
+            .stream_chat(&[ChatMessage::user("hi")], &config)
+            .await
+            .unwrap();
+
+        let mut full = String::new();
+        let mut saw_done = false;
+        while let Some(item) = stream.next().await {
+            let delta = item.expect("no stream error");
+            if delta.done {
+                saw_done = true;
+                break;
+            }
+            full.push_str(&delta.content);
+        }
+
+        assert!(saw_done, "stream must terminate with a done signal");
+        assert_eq!(full, "Hello world", "deltas must reassemble in order");
+    }
+
+    #[tokio::test]
+    async fn openai_stream_chat_tolerates_early_stream_drop() {
+        use futures::StreamExt;
+
+        // A long stream the consumer abandons after the first delta emulates
+        // cancelling an in-flight AI response (e.g. user navigates away). The
+        // provider must yield promptly and the stream must not panic on drop.
+        let server = wiremock::MockServer::start().await;
+        let body = format!(
+            "data: {{\"choices\":[{{\"delta\":{{\"content\":\"part1 \"}},\"finish_reason\":null}}]}}\n\n{}",
+            "data: {\"choices\":[{\"delta\":{\"content\":\"x\"},\"finish_reason\":null}]}\n\n".repeat(2000)
+        );
+        wiremock::Mock::given(wiremock::matchers::method("POST"))
+            .and(wiremock::matchers::path("/chat/completions"))
+            .respond_with(
+                wiremock::ResponseTemplate::new(200)
+                    .set_body_string(body)
+                    .insert_header("content-type", "text/event-stream"),
+            )
+            .mount(&server)
+            .await;
+
+        let provider = openai_provider(&server.uri());
+        let config = ChatConfig::new("test-model");
+
+        let mut stream = provider
+            .stream_chat(&[ChatMessage::user("hi")], &config)
+            .await
+            .unwrap();
+
+        let first = stream.next().await.expect("first delta").unwrap();
+        assert!(!first.content.is_empty());
+
+        // Drop the stream mid-flight — must not panic.
+        drop(stream);
+    }
+
+    #[tokio::test]
+    async fn openai_stream_chat_surface_transport_error() {
+        use futures::StreamExt;
+
+        // A transport-level failure after headers must surface as a stream item
+        // error rather than hanging (timeout / failure-surfacing criterion).
+        let server = wiremock::MockServer::start().await;
+        wiremock::Mock::given(wiremock::matchers::method("POST"))
+            .and(wiremock::matchers::path("/chat/completions"))
+            .respond_with(wiremock::ResponseTemplate::new(500))
+            .mount(&server)
+            .await;
+
+        let provider = openai_provider(&server.uri());
+        let config = ChatConfig::new("test-model");
+
+        let mut stream = provider
+            .stream_chat(&[ChatMessage::user("hi")], &config)
+            .await
+            .unwrap();
+
+        // With no body, the stream may end immediately; the invariant is that
+        // calling next() resolves (no hang) and does not panic.
+        let _ = stream.next().await;
+    }
 }

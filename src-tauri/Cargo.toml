@@ -36,6 +36,7 @@ pkm-watcher = { path = "../crates/pkm-watcher" }
 pkm-audio = { path = "../crates/pkm-audio" }
 pkm-stt = { path = "../crates/pkm-stt" }
 pkm-dictation = { path = "../crates/pkm-dictation" }
+pkm-plugin = { path = "../crates/pkm-plugin" }
 pulldown-cmark.workspace = true
 reqwest.workspace = true
 gix.workspace = true

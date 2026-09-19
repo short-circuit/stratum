@@ -105,6 +105,13 @@ pub async fn search_blocks(
         })
         .collect();
 
+    // Dispatch the `onSearch` hook to enabled plugins that declare it (spec §8).
+    // Runs synchronously; a trapping plugin logs and is skipped, never aborting
+    // the search.
+    if let Some(manager) = state.plugin_manager.as_deref() {
+        crate::commands::plugins::dispatch_on_search(manager, &query, limit);
+    }
+
     Ok(SearchResultsDto { results: dtos })
 }
 

@@ -124,7 +124,7 @@ impl EmbeddingConfig {
             endpoint,
             api_key: ai.effective_api_key(),
             model,
-            dimensions: 0,
+            dimensions: ai.embedding_dimensions,
         })
     }
 }
@@ -550,6 +550,34 @@ mod tests {
         };
         let cfg = EmbeddingConfig::from_ai_config(&ai).unwrap();
         assert_eq!(cfg.endpoint, "https://api.openai.com/v1");
+    }
+
+    #[test]
+    fn from_ai_config_forwards_embedding_dimensions() {
+        let ai = AiConfig {
+            provider: AiProvider::CustomOpenAI,
+            endpoint: Some("https://api.example.com/v1".to_string()),
+            model: "text-embedding-3-small".to_string(),
+            embedding_dimensions: 1024,
+            ..Default::default()
+        };
+        let cfg = EmbeddingConfig::from_ai_config(&ai).unwrap();
+        assert_eq!(cfg.dimensions, 1024);
+    }
+
+    #[test]
+    fn from_ai_config_defaults_dimensions_to_infer() {
+        let ai = AiConfig {
+            provider: AiProvider::CustomOpenAI,
+            endpoint: Some("https://api.example.com/v1".to_string()),
+            model: "text-embedding-3-small".to_string(),
+            ..Default::default()
+        };
+        let cfg = EmbeddingConfig::from_ai_config(&ai).unwrap();
+        assert_eq!(
+            cfg.dimensions, 0,
+            "0 = infer dimensionality from the response"
+        );
     }
 
     #[test]

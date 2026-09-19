@@ -33,7 +33,9 @@ import ContentCutIcon from '@mui/icons-material/ContentCut';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import * as api from '../../lib/commands';
+import { speakText, textFromBlock } from '../../lib/audio';
 import LinkPreviewPopup from '../LinkPreviewPopup';
 import MathEditorModal from '../MathEditorModal';
 import MarkerBadge from '../MarkerBadge';
@@ -150,6 +152,21 @@ export default function MobileEditorOverlays({
             if (text) await navigator.clipboard.writeText(text);
           }
           ed.removeBlocks([blockId]);
+          break;
+        }
+        case 'speak': {
+          const doc3 = ed.document;
+          const block3 = doc3.find((b: { id: string }) => b.id === blockId);
+          const text = block3
+            ? textFromBlock(block3 as { id: string; content?: unknown })
+            : '';
+          if (!text.trim()) return;
+          try {
+            await speakText(text);
+          } catch (e) {
+            console.error('[TTS] read-aloud failed:', e);
+            alert(`Read-aloud failed: ${String(e)}`);
+          }
           break;
         }
       }
@@ -302,6 +319,10 @@ export default function MobileEditorOverlays({
           <MenuItem onClick={() => handleContextAction('copy')}>
             <ListItemIcon><ContentCopyIcon fontSize="small" /></ListItemIcon>
             <ListItemText>Copy</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => handleContextAction('speak')}>
+            <ListItemIcon><VolumeUpIcon fontSize="small" /></ListItemIcon>
+            <ListItemText>Read aloud</ListItemText>
           </MenuItem>
           <MenuItem onClick={() => handleContextAction('delete')}>
             <ListItemIcon><DeleteIcon fontSize="small" /></ListItemIcon>

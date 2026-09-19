@@ -21,14 +21,18 @@ task (`t_e132158a`) must expose it through the documented Tauri command surface.
 
 ## Decision
 
-1. **Runtime + ABI.** Plugins run as WebAssembly in wasmtime (`wasm32-unknown-unknown`
-   core module, WASI-free). Host functions are imported from the `"pkm"` module in
-   WASM linear-memory via the ABI in [`../advanced/plugins.md`](../advanced/plugins.md)
-   ("Host Function ABI" section). Every host call reads its request from WASM memory
-   at the guest-supplied offset and writes its response back at **offset 0** of the
-   plugin's linear memory, returning the byte length of the response. This convention
-   is what the current runtime (`crates/pkm-plugin/src/runtime.rs`) already implements
-   for its imports; it is preserved.
+1. **Runtime + ABI.** Plugins run as WebAssembly in wasmtime. `wasm32-unknown-unknown`
+   core modules (WASI-free) and genuine `wasm32-wasip1` modules both instantiate:
+   the linker registers a real WASI preview1 context (so `std` wasm32-wasip1
+   builds link), in addition to the `"pkm"` host module. Host functions are
+   imported from the `"pkm"` module in WASM linear-memory via the ABI in
+   [`../advanced/plugins.md`](../advanced/plugins.md) ("Host Function ABI"
+   section). Every host call reads its request from WASM memory at the
+   guest-supplied offset and writes its response back at **offset 0** of the
+   plugin's linear memory, returning the byte length of the response. This
+   convention is what the current runtime (`crates/pkm-plugin/src/runtime.rs`)
+   already implements for its imports; it is preserved. No filesystem is
+   preopened for WASI — vault I/O is scoped to the `pkm.*` host API.
 
 2. **Host functions.** Exactly four host imports exist: `pkm.log`, `pkm.note_read`,
    `pkm.note_write`, `pkm.http_request`. There are **no other host functions** in the
@@ -82,10 +86,9 @@ task (`t_e132158a`) must expose it through the documented Tauri command surface.
    (Enable/Disable)`, always externally visible through the documented Tauri
    command surface; a failed load records `PluginLoadError` and never returns a
    partial plugin. Hooks are dispatched per the hook table (`onSave`, `onOpen`,
-   `onLink`, `onSearch`) plus arbitrary `on*` names. The runtime instantiates the
-   module with **no** WASI context; the linker provides only the `pkm` module
-   imports (plus the reserved `imports.wasi_snapshot_preview1` no-op for
-   toolchain compatibility — see spec §7.1).
+   `onLink`, `onSearch`) plus arbitrary `on*` names. The runtime instantiates
+   the module with the `"pkm"` host imports plus the real WASI preview1
+   context (see spec §7.1); no filesystem is preopened.
 
 10. **Tauri command surface.** The five lifecycle commands and two host-test
     commands in the API spec (`list`, `enable`, `disable`, `reload`, `status`,
@@ -105,6 +108,15 @@ task (`t_e132158a`) must expose it through the documented Tauri command surface.
   directly to the error tables in the API spec.
 - Contract stability is a release-blocking criterion: the `HostFunction` enum and
   the four import names are ABI-frozen for the v0.7.x series.
+
+## Status of this ADR
+
+Implemented and verified as of commit `e1af45f` (epic E3): the host functions
+are real (see `crates/pkm-plugin/src/host.rs`), the crate is linked into and
+wired through `src-tauri` (`PluginManager`, Tauri plugin commands, vault
+startup scan), the management UI exists, and the contract is exercised
+end-to-end by `crates/pkm-tests/tests/plugin_e2e.rs`. The `Context` section
+above describes the state at decision time and is retained for the record.
 
 ## References
 
