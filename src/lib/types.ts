@@ -175,6 +175,20 @@ export interface BacklinkContextDto {
   page_title: string | null;
 }
 
+/** Snippet of a note's content surrounding a backlink anchor (get_backlink_snippet). */
+export interface BacklinkSnippetDto {
+  /** Vault-relative path of the note containing the anchor. */
+  note_id: string;
+  /** Display title of the note (frontmatter title, else slug-derived). */
+  note_title: string;
+  /** The block id of the backlinked anchor. */
+  anchor_id: string;
+  /** The exact content of the backlinked block/paragraph. */
+  anchor_content: string;
+  /** Window of surrounding content (document order), including the anchor. */
+  context: string[];
+}
+
 // --- AI types ---
 
 export type AiAction = 'rewrite' | 'format' | 'structure' | 'summarize' | 'connect' | 'mermaid';

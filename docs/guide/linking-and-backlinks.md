@@ -77,6 +77,52 @@ Each backlink shows:
 - A snippet of context around the link/mention
 - A click to navigate to the source
 
+### Hover Preview (Ctrl + hover)
+
+On desktop, hold **Ctrl** (or **Cmd** on macOS) while hovering a backlink to
+open a preview popup near the link. The popup shows the source note's title and
+the backlinked portion of its content in context, with the exact backlinked
+block highlighted. It closes when you release Ctrl, move the mouse away, press
+**Esc**, or navigate away — and it never renders off-screen (placement is
+clamped to the viewport).
+
+On mobile, the same preview opens on a **long-press** of a backlink row.
+
+A failed fetch (for example a note or anchor that was deleted) shows a short
+error message instead of leaving the popup stuck on a spinner.
+
+### Backlink Snippet API
+
+The backend exposes a snippet endpoint that returns the exact backlinked block
+plus a bounded window of surrounding context from the source note, with note
+title, note id, and anchor id. This powers the hover preview and any surface
+that needs to display the note content around a backlink anchor.
+
+```text
+GET /api/notes/:id/backlink-snippet?ref=<backlink-ref>
+```
+
+- `:id` — vault-relative path of the note containing the anchor
+- `ref` — the block id (UUID) of the backlinked anchor
+
+Response payload:
+
+```
+{
+  "note_id":        "pages/project-x.md",
+  "note_title":     "Project X",
+  "anchor_id":      "8f3e…uuid…",
+  "anchor_content": "See [[Project X]] for the launch timeline.",
+  "context":        ["Preceding paragraph", "See [[Project X]] for the launch timeline.", "Follow-up paragraph"]
+}
+```
+
+A missing note or missing anchor returns a 404-style error (`Note not found` /
+`Block not found`). The `context` array carries the anchor block itself plus up
+to two adjacent blocks on each side, in document order, so the UI can render
+the backlinked portion with surrounding context without shipping the whole
+note.
+
 ## Suggested Connections
 
 The **Suggested Connections** panel (below backlinks) uses AI to find pages that are semantically related but not yet linked:
