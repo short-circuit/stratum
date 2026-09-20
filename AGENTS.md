@@ -64,6 +64,8 @@ stratum/
 │   ├── pkm-dictation/          # Voice dictation: transcribe, summarize, render
 │   ├── pkm-index/              # Backlinks, graph, search (Tantivy)
 │   ├── pkm-markdown/           # Block-based markdown parser + serializer
+│   ├── pkm-mcp/                # MCP server exposing the KB to external AI clients (stdio + Streamable HTTP)
+│   ├── pkm-mcp-security/       # Security controls for the MCP server (PAT hashing, scope, rate limit)
 │   ├── pkm-plugin/             # WASM plugin runtime
 │   ├── pkm-query/              # Datalog query engine
 │   ├── pkm-stt/                # Speech-to-text, diarization, speaker recognition
@@ -216,6 +218,8 @@ pkm-sync       →  pkm-core, pkm-markdown
 pkm-watcher    →  pkm-core, pkm-markdown, pkm-index
 pkm-ai         →  pkm-core, pkm-index
 pkm-plugin     →  pkm-core
+pkm-mcp        →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query
+pkm-mcp-security →  (standalone security primitives)
 pkm-cli        →  pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
 src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm-sync, pkm-watcher, pkm-ai
 ```
