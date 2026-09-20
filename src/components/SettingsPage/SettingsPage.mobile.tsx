@@ -29,7 +29,7 @@ export default function SettingsPageMobile() {
     handleReindex,
     handleRepair,
     handleSyncNow,
-    pickVaultDirectory,
+    handlePickVaultDirectory,
   } = useSettingsPage();
 
   if (!settings) {
@@ -76,7 +76,7 @@ export default function SettingsPageMobile() {
           size="small"
           sx={{ mb: 1, '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.8rem' } }}
         />
-        <Button variant="outlined" size="small" onClick={pickVaultDirectory}>
+        <Button variant="outlined" size="small" onClick={handlePickVaultDirectory}>
           Browse
         </Button>
       </Box>

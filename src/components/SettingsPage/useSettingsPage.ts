@@ -330,6 +330,31 @@ export function useSettingsPage() {
     }
   };
 
+  // Wrap the store's folder-pick action so the Settings form reflects the newly
+  // selected vault path immediately.
+  //
+  // The backend `pick_vault_directory` / `pick_android_directory` commands return
+  // a `VaultInfo` and update the in-memory `VaultState.vault_path`, and
+  // `appStore.pickVaultDirectory` persists that into the zustand `vault`. The
+  // local `settings` state (fetched once on mount) is stale after a pick, and a
+  // naive re-fetch of `get_settings` can still return the OLD path when a stale
+  // `.pkm/config.toml` exists in the previous vault. So the picked path is read
+  // from the store (the authoritative source) and merged into `settings`.
+  const handlePickVaultDirectory = useCallback(async () => {
+    try {
+      await pickVaultDirectory();
+      const pickedPath = useStore.getState().vault?.path;
+      if (pickedPath) {
+        setSettings((prev: any) =>
+          prev ? { ...prev, vault_path: pickedPath } : prev
+        );
+      }
+    } catch {
+      // The store action surfaces errors via `useStore`'s `error` field; nothing
+      // to update in the form when the pick is cancelled or fails.
+    }
+  }, [pickVaultDirectory]);
+
   return {
     // State
     settings,
@@ -376,6 +401,6 @@ export function useSettingsPage() {
     handleToggleCommits,
     handleStartScheduler,
     handlePassphraseSubmit,
-    pickVaultDirectory,
+    handlePickVaultDirectory,
   };
 }

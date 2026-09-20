@@ -842,8 +842,16 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
     if full_path.exists() {
         let store = state.get_store().map_err(|e| e.to_string())?;
         let page = ensure_today_journal_core(&store, &state.vault_path, &today)?;
+        // Drop cached writers (both the temp BlockIndex and the persistent
+        // IndexEngine, which can leave a live .tantivy-writer.lock flock) so
+        // the writer below is not competing with a leaked lock in the same
+        // process — the exact LockBusy failure seen at boot on Android.
+        drop(state.index_engine.take());
         // Index the synced blocks into Tantivy, then release the directory lock
-        // before the file watcher can fire on the just-written page.
+        // before the file watcher can fire on the just-written page. The
+        // IndexingGuard serializes against the startup IndexEngine / sync
+        // writer on the same Tantivy directory, preventing LockBusy races.
+        let _guard = IndexingGuard::new(&state)?;
         let block_index = state.ensure_block_index()?;
         let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
         for block in &blocks {
@@ -879,6 +887,11 @@ pub async fn ensure_today_journal(state: tauri::State<'_, AppState>) -> Result<P
     }
     store.upsert_page(&page).map_err(|e| e.to_string())?;
 
+    // Serialize Tantivy writers against the startup engine (LockBusy guard).
+    // Drop any cached IndexEngine first so its BlockIndex cannot hold a live
+    // .tantivy-writer.lock flock from an earlier write this boot.
+    drop(state.index_engine.take());
+    let _guard = IndexingGuard::new(&state)?;
     let block_index = state.ensure_block_index()?;
     for block in &blocks {
         block_index
