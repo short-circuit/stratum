@@ -1,0 +1,161 @@
+name: MCP Server CI/CD
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'crates/pkm-mcp/**'
+      - 'crates/pkm-mcp-security/**'
+      - 'crates/pkm-core/**'
+      - 'crates/pkm-block/**'
+      - 'crates/pkm-markdown/**'
+      - 'crates/pkm-index/**'
+      - 'crates/pkm-query/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'deploy/mcp/**'
+      - '.github/workflows/mcp.yaml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'crates/pkm-mcp/**'
+      - 'crates/pkm-mcp-security/**'
+      - 'crates/pkm-core/**'
+      - 'crates/pkm-block/**'
+      - 'crates/pkm-markdown/**'
+      - 'crates/pkm-index/**'
+      - 'crates/pkm-query/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'deploy/mcp/**'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  REGISTRY: ghcr.io
+  IMAGE_NAME: short-circuit/stratum/mcp
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Build + unit/contract tests + stdio smoke gate ──────────────
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy, rustfmt
+          cache: false
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build pkm-mcp
+        run: cargo build -p pkm-mcp
+
+      - name: Run MCP unit + contract tests
+        run: cargo test -p pkm-mcp && cargo test -p pkm-mcp-security
+
+      - name: Lint (clippy) and format
+        run: |
+          cargo clippy -p pkm-mcp -p pkm-mcp-security --all-targets -- -D warnings
+          cargo fmt --all --check
+
+      - name: Run stdio smoke gate (real subprocess)
+        run: python3 crates/pkm-mcp/examples/smoke_stdio.py
+
+  # ── Build + push the OCI image (master only) ────────────────────
+  image:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: [test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
+          flavor: latest=false
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/mcp/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Deploy gate: prove the published image is runnable + healthy ─
+  deploy-smoke:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: [image]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull the freshly pushed image
+        run: docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Create a scratch vault dir (schema auto-inits on first open)
+        run: mkdir -p /tmp/smoke-vault
+
+      - name: Run the image and probe /health (observability gate)
+        run: |
+          docker run -d --name stratum-mcp-smoke \
+            --read-only --tmpfs /tmp \
+            --user "$(id -u):$(id -g)" \
+            -p 127.0.0.1:8787:8787 \
+            -v /tmp/smoke-vault:/vault \
+            -e PKM_MCP_VAULT=/vault -e PKM_MCP_TRANSPORT=http -e PKM_MCP_BIND=0.0.0.0:8787 \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          # The server initializes `.pkm/blocks.db` on first open against an
+          # empty vault; /health then reports store_connectivity=true (200).
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8787/health >/tmp/health.json 2>/dev/null; then
+              echo "HEALTHY: $(cat /tmp/health.json)"
+              docker logs stratum-mcp-smoke 2>&1 | tail -5
+              docker rm -f stratum-mcp-smoke >/dev/null
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::MCP container never became healthy"
+          docker logs stratum-mcp-smoke 2>&1 | tail -20
+          docker rm -f stratum-mcp-smoke >/dev/null
+          exit 1

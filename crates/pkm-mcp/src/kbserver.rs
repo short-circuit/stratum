@@ -124,14 +124,25 @@ pub struct HealthProbe {
 }
 
 /// Probe store connectivity and index health for the `/health` endpoint (§12).
+///
+/// Opens the block store and the search index, and reports whether the search
+/// index reflects the persisted store (a stale index is a deployment hazard:
+/// search would silently miss recent writes). Returns an error string when the
+/// store cannot be opened; when it can, `index_fresh` is false only when the
+/// non-empty index count diverges from the persisted page count.
 pub fn probe_health(vault_path: &Path, db_path: &Path) -> Result<HealthProbe, String> {
     let store = BlockStore::open(db_path).map_err(|e| format!("cannot open blocks.db: {e}"))?;
     let page_count = store.page_count().map_err(|e| e.to_string())?;
+    // The search engine keeps metadata in `.pkm/search`; IndexEngine::new()
+    // opens it, and its meta.note_count reflects the most recent index build.
+    // A non-zero mismatch with the persisted store count means the index is
+    // stale (search would silently miss writes) — degrade health.
     let indexed_pages = IndexEngine::new(vault_path)
         .map(|engine| engine.get_meta().note_count)
         .unwrap_or(0);
+    let index_fresh = indexed_pages == 0 || indexed_pages == page_count;
     Ok(HealthProbe {
-        index_fresh: true,
+        index_fresh,
         page_count,
         indexed_pages,
     })

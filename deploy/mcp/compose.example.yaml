@@ -1,0 +1,50 @@
+# Stratum MCP server — local compose example.
+#
+# Wires the published image to a host vault and a PAT token file.
+# Not the production target (that is the NixOS module or the GitHub Actions
+# deploy), but useful for a local smoke run:
+#
+#   docker compose -f deploy/mcp/compose.example.yaml up -d
+#   curl -fsS localhost:8787/health
+#
+# For local smoke runs only. The vault is mounted WRITABLE so the server can
+# create/lock `.pkm/blocks.db` on first open; for a fully-provisioned vault
+# (blocks.db already present) you may use :ro instead. UID 1000 matches a
+# typical host user — adjust to a UID that owns ./vault (the image's default
+# user is distroless nonroot, UID 65532).
+
+services:
+  pkm-mcp:
+    image: ghcr.io/short-circuit/stratum/mcp:latest
+    container_name: stratum-mcp
+    restart: unless-stopped
+    user: "1000:1000"
+    # Publish the MCP Streamable HTTP endpoint + health probe.
+    ports:
+      - "8787:8787"
+    environment:
+      PKM_MCP_VAULT: /vault
+      PKM_MCP_TRANSPORT: http
+      PKM_MCP_BIND: 0.0.0.0:8787
+      # Production: point at a secrets file instead of an inline token.
+      PKM_MCP_TOKEN_FILE: /run/secrets/pkm_mcp_tokens
+      #PKM_MCP_ALLOWED_HOSTS: "127.0.0.1,localhost"
+      #RUST_LOG: info
+    volumes:
+      # Writable so `.pkm/blocks.db` can be created/locked on first open.
+      - ./vault:/vault
+      # PATs, one per line (`token[:comma-separated-scopes]`).
+      - ./secrets/mcp-tokens:/run/secrets/pkm_mcp_tokens:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/pkm-mcp", "--health-probe"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
