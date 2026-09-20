@@ -93,3 +93,4 @@ Type `[[` to start a wiki-link. Stratum will autocomplete existing pages:
 - Explore [Wiki-Links and Backlinks](../guide/linking-and-backlinks.md)
 - Set up [Git Sync](../guide/git-sync.md) to backup your vault
 - Configure [AI features](../guide/ai-features.md) with Ollama or OpenAI
+- Expose your vault to external AI clients with the [MCP Server](../guide/mcp-server.md)

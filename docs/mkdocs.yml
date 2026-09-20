@@ -103,6 +103,7 @@ nav:
     - guide/git-sync.md
     - guide/export.md
     - guide/plugins.md
+    - guide/mcp-server.md
   - CLI Reference:
     - cli/command-reference.md
   - Advanced:
