@@ -65,8 +65,8 @@ base64 = "0.22"
 url = "2"
 
 # Plugin
-wasmtime = "26"
-wasmtime-wasi = "26"
+wasmtime = "36"
+wasmtime-wasi = "36"
 wat = "1"
 
 # Frontend
