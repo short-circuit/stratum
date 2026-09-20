@@ -100,7 +100,7 @@ See the [Installation Guide](getting-started/installation.md) for detailed setup
 
 ## Project Status
 
-Stratum is in active development. Version 0.7.0. All core features are implemented and working.
+Stratum is in active development. Version 0.7.1. All core features are implemented and working.
 
 - **License:** AGPL-3.0-only
 - **Repository:** [github.com/short-circuit/stratum](https://github.com/short-circuit/stratum)
