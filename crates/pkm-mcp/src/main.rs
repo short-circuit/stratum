@@ -216,8 +216,10 @@ mod tests {
 
     #[test]
     fn cli_defaults_to_stdio() {
+        // transport is Option<String>: unset flag defers to env/config, which
+        // defaults to stdio. See Cli::transport doc.
         let cli = Cli::try_parse_from(["pkm-mcp"]).expect("parse");
-        assert_eq!(cli.transport, "stdio");
+        assert_eq!(cli.transport, None);
         assert!(!cli.require_auth);
     }
 
@@ -232,7 +234,7 @@ mod tests {
         let cli =
             Cli::try_parse_from(["pkm-mcp", "--transport", "http", "--bind", "127.0.0.1:8080"])
                 .expect("parse");
-        assert_eq!(cli.transport, "http");
+        assert_eq!(cli.transport.as_deref(), Some("http"));
         assert_eq!(cli.bind, Some("127.0.0.1:8080".parse().unwrap()));
     }
 
@@ -247,7 +249,7 @@ mod tests {
         // clap accepts any string for the transport arg; main() ignores
         // invalid ones and falls back to the configured transport.
         let cli = Cli::try_parse_from(["pkm-mcp", "--transport", "bogus"]).expect("parse");
-        assert_eq!(cli.transport, "bogus");
+        assert_eq!(cli.transport.as_deref(), Some("bogus"));
     }
 
     #[test]
