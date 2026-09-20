@@ -132,6 +132,11 @@ export function useKanbanPanel(): UseKanbanPanelReturn {
         ...block,
         marker: targetMarker,
       } as BlockDto);
+      // update_block is SQLite-only; reserialize the whole page to disk so the
+      // marker change survives an app restart (boot-time disk sync rebuilds the
+      // DB from the .md files). Mirrors handleEditSave.
+      const pageBlocks = await api.getBlocks(block.page_path);
+      await api.saveBlocks(block.page_path, pageBlocks.blocks);
       await loadBlocks();
     } catch {
       await loadBlocks();

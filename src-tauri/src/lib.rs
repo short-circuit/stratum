@@ -77,147 +77,185 @@ pub fn run() {
             }
 
             let config_path = vault_path.join(".pkm").join("config.toml");
-            if config_path.exists() {
-                if let Ok(config) = pkm_core::Config::load(&config_path) {
-                    if config.sync.mode == pkm_core::SyncMode::AutoCommit
-                        || config.sync.mode == pkm_core::SyncMode::AutoSync
-                        || config.sync.mode == pkm_core::SyncMode::Background
-                    {
-                        if let Ok(git) = pkm_sync::git::GitEngine::init(&vault_path) {
-                            let auto_commit = pkm_sync::AutoCommitEngine::new(
-                                git,
-                                config.sync.auto_commit_interval_secs,
+            // Resolve the effective config: load from `<vault>/.pkm/config.toml`
+            // when present, else fall back to code defaults. A vault without a
+            // config file is fully supported — every field has a safe default
+            // (watcher.enabled defaults to true) — and must still get the
+            // auto-commit engine, sync scheduler and file watcher. Previously
+            // these were gated behind `config_path.exists()`, silently disabling
+            // the file watcher on any default vault (E7.F1).
+            let config = if config_path.exists() {
+                pkm_core::Config::load(&config_path)
+                    .or_else(|e| {
+                        tracing::warn!(
+                            "[stratum] Unreadable config at {} ({}); using defaults",
+                            config_path.display(),
+                            e
+                        );
+                        Ok::<_, std::convert::Infallible>(pkm_core::Config::default())
+                    })
+                    .unwrap_or_default()
+            } else {
+                pkm_core::Config::default()
+            };
+            {
+                if config.sync.mode == pkm_core::SyncMode::AutoCommit
+                    || config.sync.mode == pkm_core::SyncMode::AutoSync
+                    || config.sync.mode == pkm_core::SyncMode::Background
+                {
+                    if let Ok(git) = pkm_sync::git::GitEngine::init(&vault_path) {
+                        let auto_commit = pkm_sync::AutoCommitEngine::new(
+                            git,
+                            config.sync.auto_commit_interval_secs,
+                        );
+                        if let Ok(mut state) = app.state::<AppState>().lock() {
+                            state.auto_commit_engine = Some(auto_commit);
+                            tracing::info!(
+                                "[stratum] Auto-commit engine initialized (interval={}s)",
+                                config.sync.auto_commit_interval_secs
                             );
-                            if let Ok(mut state) = app.state::<AppState>().lock() {
-                                state.auto_commit_engine = Some(auto_commit);
-                                tracing::info!(
-                                    "[stratum] Auto-commit engine initialized (interval={}s)",
-                                    config.sync.auto_commit_interval_secs
-                                );
-                            }
                         }
                     }
+                }
 
-                    if config.sync.mode == pkm_core::SyncMode::AutoSync
-                        || config.sync.mode == pkm_core::SyncMode::Background
-                    {
-                        if let Ok(git) = pkm_sync::git::GitEngine::init(&vault_path) {
-                            let sched_config = pkm_sync::SchedulerConfig {
-                                remote: "origin".to_string(),
-                                branch: config.sync.branch.clone(),
-                                interval_secs: config.sync.auto_sync_interval_secs,
-                                ssh_key_path: config
-                                    .sync
-                                    .ssh_key_path
-                                    .clone()
-                                    .map(std::path::PathBuf::from),
-                            };
-                            let mut scheduler = pkm_sync::SyncScheduler::new(git, sched_config);
-                            scheduler.start();
-                            if let Ok(mut state) = app.state::<AppState>().lock() {
-                                state.sync_scheduler = Some(scheduler);
-                                tracing::info!("[stratum] Sync scheduler started");
-                            }
+                if config.sync.mode == pkm_core::SyncMode::AutoSync
+                    || config.sync.mode == pkm_core::SyncMode::Background
+                {
+                    if let Ok(git) = pkm_sync::git::GitEngine::init(&vault_path) {
+                        let sched_config = pkm_sync::SchedulerConfig {
+                            remote: "origin".to_string(),
+                            branch: config.sync.branch.clone(),
+                            interval_secs: config.sync.auto_sync_interval_secs,
+                            ssh_key_path: config
+                                .sync
+                                .ssh_key_path
+                                .clone()
+                                .map(std::path::PathBuf::from),
+                        };
+                        let mut scheduler = pkm_sync::SyncScheduler::new(git, sched_config);
+                        scheduler.start();
+                        if let Ok(mut state) = app.state::<AppState>().lock() {
+                            state.sync_scheduler = Some(scheduler);
+                            tracing::info!("[stratum] Sync scheduler started");
                         }
                     }
+                }
 
-                    // ── File watcher ──────────────────────────────────────
-                    #[cfg(not(target_os = "android"))]
-                    if config.watcher.enabled {
-                        let app_handle = app.handle().clone();
-                        let vault_path_clone = vault_path.clone();
-                        let on_event = Box::new(move |event: pkm_watcher::FileChangeEvent| {
-                            // Skip events from our own recent saves (avoid reindex loops)
-                            let state_guard = app_handle.state::<AppState>();
-                            let state = match state_guard.lock() {
-                                Ok(s) => s,
-                                Err(_) => return,
-                            };
-                            // Skip events during bulk operations (normalize/reindex)
-                            if state.is_indexing() {
+                // ── File watcher ──────────────────────────────────────
+                #[cfg(not(target_os = "android"))]
+                if config.watcher.enabled {
+                    let app_handle = app.handle().clone();
+                    let vault_path_clone = vault_path.clone();
+                    let on_event = Box::new(move |event: pkm_watcher::FileChangeEvent| {
+                        tracing::debug!(
+                            "[stratum] watcher event: kind={:?} path={}",
+                            event.kind,
+                            event.path.display()
+                        );
+                        // Skip events from our own recent saves (avoid reindex loops)
+                        let state_guard = app_handle.state::<AppState>();
+                        let state = match state_guard.lock() {
+                            Ok(s) => s,
+                            Err(_) => {
+                                tracing::warn!("[stratum] watcher: state lock poisoned");
                                 return;
                             }
-                            if state.watcher_last_save != std::time::SystemTime::UNIX_EPOCH {
-                                if let Ok(elapsed) =
-                                    event.timestamp.duration_since(state.watcher_last_save)
-                                {
-                                    if elapsed.as_millis() < 2000 {
-                                        return;
-                                    }
-                                }
-                            }
-                            drop(state);
-
-                            let rel = match event.path.strip_prefix(&vault_path_clone) {
-                                Ok(r) => r.to_string_lossy().to_string(),
-                                Err(_) => return,
-                            };
-
-                            match event.kind {
-                                pkm_core::FileEvent::Created
-                                | pkm_core::FileEvent::Modified
-                                | pkm_core::FileEvent::Renamed => {
-                                    let state_guard = app_handle.state::<AppState>();
-                                    let mut state = match state_guard.lock() {
-                                        Ok(s) => s,
-                                        Err(_) => return,
-                                    };
-                                    let store = match state.get_store() {
-                                        Ok(s) => s,
-                                        Err(_) => return,
-                                    };
-                                    let vp = state.vault_path.clone();
-                                    // Sync page data into SQLite
-                                    let _ = crate::commands::page::sync_page_from_disk(
-                                        &store, &rel, &vp, None,
+                        };
+                        // Skip events during bulk operations (normalize/reindex)
+                        if state.is_indexing() {
+                            tracing::warn!("[stratum] watcher: skipped while indexing");
+                            return;
+                        }
+                        if state.watcher_last_save != std::time::SystemTime::UNIX_EPOCH {
+                            if let Ok(elapsed) =
+                                event.timestamp.duration_since(state.watcher_last_save)
+                            {
+                                if elapsed.as_millis() < 2000 {
+                                    tracing::debug!(
+                                        "[stratum] watcher: skipped own-save window ({}ms)",
+                                        elapsed.as_millis()
                                     );
-                                    // Drop BlockStore and cached BlockIndex before
-                                    // accessing IndexEngine (same Tantivy dir).
-                                    drop(store);
-                                    drop(state.block_index.take());
-                                    if let Ok(ie) = state.ensure_index() {
-                                        let _ = ie.refresh_page(&rel, &vp);
-                                    }
-                                }
-                                pkm_core::FileEvent::Deleted => {
-                                    let state_guard = app_handle.state::<AppState>();
-                                    let mut state = match state_guard.lock() {
-                                        Ok(s) => s,
-                                        Err(_) => return,
-                                    };
-                                    let store = match state.get_store() {
-                                        Ok(s) => s,
-                                        Err(_) => return,
-                                    };
-                                    let _ = store.delete_blocks_by_page(&rel);
-                                    let _ = store.delete_page(&rel);
-                                    drop(store);
-                                    drop(state.block_index.take());
-                                    if let Ok(ie) = state.ensure_index() {
-                                        let _ = ie.remove_note(&rel);
-                                    }
+                                    return;
                                 }
                             }
-                        });
+                        }
+                        drop(state);
 
-                        let mut watcher = pkm_watcher::FileWatcher::new(
-                            vault_path.clone(),
-                            config.watcher.debounce_ms,
-                            on_event,
-                        );
-                        match watcher.start() {
-                            Ok(()) => {
-                                if let Ok(mut state) = app.state::<AppState>().lock() {
-                                    state.watcher = Some(watcher);
-                                }
-                                tracing::info!(
-                                    "[stratum] File watcher started (debounce={}ms)",
-                                    config.watcher.debounce_ms
+                        let rel = match event.path.strip_prefix(&vault_path_clone) {
+                            Ok(r) => r.to_string_lossy().to_string(),
+                            Err(_) => {
+                                tracing::warn!(
+                                    "[stratum] watcher: path outside vault {}",
+                                    event.path.display()
                                 );
+                                return;
                             }
-                            Err(e) => {
-                                tracing::error!("[stratum] Failed to start file watcher: {}", e);
+                        };
+
+                        match event.kind {
+                            pkm_core::FileEvent::Created
+                            | pkm_core::FileEvent::Modified
+                            | pkm_core::FileEvent::Renamed => {
+                                let state_guard = app_handle.state::<AppState>();
+                                let mut state = match state_guard.lock() {
+                                    Ok(s) => s,
+                                    Err(_) => return,
+                                };
+                                let store = match state.get_store() {
+                                    Ok(s) => s,
+                                    Err(_) => return,
+                                };
+                                let vp = state.vault_path.clone();
+                                // Sync page data into SQLite
+                                let _ = crate::commands::page::sync_page_from_disk(
+                                    &store, &rel, &vp, None,
+                                );
+                                // Drop BlockStore and cached BlockIndex before
+                                // accessing IndexEngine (same Tantivy dir).
+                                drop(store);
+                                drop(state.block_index.take());
+                                if let Ok(ie) = state.ensure_index() {
+                                    let _ = ie.refresh_page(&rel, &vp);
+                                }
                             }
+                            pkm_core::FileEvent::Deleted => {
+                                let state_guard = app_handle.state::<AppState>();
+                                let mut state = match state_guard.lock() {
+                                    Ok(s) => s,
+                                    Err(_) => return,
+                                };
+                                let store = match state.get_store() {
+                                    Ok(s) => s,
+                                    Err(_) => return,
+                                };
+                                let _ = store.delete_blocks_by_page(&rel);
+                                let _ = store.delete_page(&rel);
+                                drop(store);
+                                drop(state.block_index.take());
+                                if let Ok(ie) = state.ensure_index() {
+                                    let _ = ie.remove_note(&rel);
+                                }
+                            }
+                        }
+                    });
+
+                    let mut watcher = pkm_watcher::FileWatcher::new(
+                        vault_path.clone(),
+                        config.watcher.debounce_ms,
+                        on_event,
+                    );
+                    match watcher.start() {
+                        Ok(()) => {
+                            if let Ok(mut state) = app.state::<AppState>().lock() {
+                                state.watcher = Some(watcher);
+                            }
+                            tracing::info!(
+                                "[stratum] File watcher started (debounce={}ms)",
+                                config.watcher.debounce_ms
+                            );
+                        }
+                        Err(e) => {
+                            tracing::error!("[stratum] Failed to start file watcher: {}", e);
                         }
                     }
                 }
@@ -275,7 +313,6 @@ pub fn run() {
             commands::search::rebuild_search_index,
             commands::search::get_backlinks,
             commands::search::get_page_backlinks,
-            commands::search::get_backlink_snippet,
             commands::search::autocomplete,
             commands::search::suggest_connections,
             commands::search::get_backlink_context,
