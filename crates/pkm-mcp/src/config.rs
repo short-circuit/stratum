@@ -64,6 +64,7 @@ pub enum AuthMode {
 }
 
 /// Validation of the configured vault at startup to fail fast.
+#[derive(Debug)]
 pub struct VaultCheck {
     pub vault_path: PathBuf,
     pub db_path: PathBuf,
@@ -209,6 +210,18 @@ pub fn default_personal_scopes() -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+    use std::sync::MutexGuard;
+
+    // `std::env` mutation is process-global and racy across parallel test
+    // threads; serialize the env-mutating tests. Note: on this edition the
+    // env mutators are safe fns (no `unsafe` block needed, and the crate is
+    // `#![forbid(unsafe_code)]`).
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    fn env_guard() -> MutexGuard<'static, ()> {
+        ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner())
+    }
 
     #[test]
     fn test_transport_parse() {
@@ -236,5 +249,70 @@ mod tests {
         let tokens = load_tokens_from_file(&f).unwrap();
         assert_eq!(tokens[0].0, "tokX");
         assert_eq!(tokens[0].1, vec!["kb:read", "kb:write"]);
+    }
+
+    #[test]
+    fn test_from_env_requires_vault() {
+        let _g = env_guard();
+        // No PKM_MCP_VAULT -> error naming the variable.
+        std::env::remove_var("PKM_MCP_VAULT");
+        let err = McpConfig::from_env().expect_err("must fail without vault");
+        assert!(err.to_string().contains("PKM_MCP_VAULT"));
+    }
+
+    #[test]
+    fn test_from_env_parses_knobs() {
+        let _g = env_guard();
+        let dir = tempfile::TempDir::new().unwrap();
+        std::env::set_var("PKM_MCP_VAULT", dir.path());
+        std::env::set_var("PKM_MCP_TRANSPORT", "http");
+        std::env::set_var("PKM_MCP_BIND", "127.0.0.1:9999");
+        std::env::set_var("PKM_MCP_RATE_LIMIT_BURST", "5");
+        std::env::set_var("PKM_MCP_RATE_LIMIT_RPS", "2.5");
+        std::env::set_var("PKM_MCP_ALLOWED_HOSTS", "a.example,b.example");
+        let cfg = McpConfig::from_env().expect("parse");
+        assert_eq!(cfg.transport, Transport::Http);
+        assert_eq!(cfg.bind.to_string(), "127.0.0.1:9999");
+        assert_eq!(cfg.rate_limit_burst, 5);
+        assert_eq!(cfg.rate_limit_rps, 2.5);
+        assert_eq!(cfg.allowed_hosts, vec!["a.example", "b.example"]);
+        // HTTP transport forces PAT auth (contract §7.1).
+        assert_eq!(cfg.auth_mode, AuthMode::Pat);
+    }
+
+    #[test]
+    fn test_from_env_transport_both_forces_pat() {
+        let _g = env_guard();
+        let dir = tempfile::TempDir::new().unwrap();
+        std::env::set_var("PKM_MCP_VAULT", dir.path());
+        std::env::set_var("PKM_MCP_TRANSPORT", "both");
+        let cfg = McpConfig::from_env().expect("parse");
+        assert_eq!(cfg.transport, Transport::Both);
+        assert_eq!(cfg.auth_mode, AuthMode::Pat);
+    }
+
+    #[test]
+    fn test_validate_vault_missing_dir_fails() {
+        let cfg = McpConfig::new(PathBuf::from("/nonexistent/does-not-exist"));
+        let err = cfg.validate_vault().expect_err("must fail");
+        assert!(err.to_string().contains("not a directory"));
+    }
+
+    #[test]
+    fn test_validate_vault_missing_db_reports_false() {
+        let dir = tempfile::TempDir::new().unwrap();
+        std::fs::create_dir_all(dir.path().join(".pkm")).unwrap();
+        let cfg = McpConfig::new(dir.path().to_path_buf());
+        let check = cfg.validate_vault().expect("valid dir");
+        assert!(!check.has_blocks_db);
+        assert!(check.db_path.ends_with(".pkm/blocks.db"));
+    }
+
+    #[test]
+    fn test_transport_from_str_variants() {
+        assert_eq!("stdio".parse::<Transport>().unwrap(), Transport::Stdio);
+        assert_eq!("http".parse::<Transport>().unwrap(), Transport::Http);
+        assert_eq!("both".parse::<Transport>().unwrap(), Transport::Both);
+        assert_eq!("STDIO".parse::<Transport>().unwrap(), Transport::Stdio);
     }
 }

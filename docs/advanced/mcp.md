@@ -807,3 +807,27 @@ The backend card (t_96591769) SHALL implement in this order:
 Acceptance for the backend card: all 15 tools functional against a real temp
 vault via an MCP client, missing notes handled per §8, atomic writes verified,
 schemas validate.
+
+## 14. QA test suite & coverage gate
+
+The QA suite for the MCP server lives in `crates/pkm-mcp/tests/` and is enforced
+in CI by the `mcp-coverage` job (`scripts/mcp-coverage-gate.sh`), which asserts
+≥80% line coverage of the MCP crates:
+
+- `tests/contract.rs` — contract tests for all 15 `kb_*` tools (schemas, error
+  codes, atomic writes, path traversal, malformed input, concurrent writes).
+- `tests/http_scope.rs` — permission-denial (scope enforcement) coverage at the
+  dispatch layer.
+- `tests/http_transport.rs` — live-wire tests over the real axum router
+  (auth middleware, session handshake, write→read roundtrip, unknown tool,
+  `GET /mcp` → 405, `/health` unauthenticated).
+- `tests/http_rate_limit.rs` — HTTP-boundary 429 rate limiting.
+- `tests/common/http.rs` — shared live-HTTP harness (parses both SSE and JSON
+  responses, since the rmcp legacy-session transport frames responses as SSE).
+- `src/main.rs` / `src/config.rs` — unit tests for CLI parsing, env overrides,
+  and config validation (env mutation is serialized to avoid parallel-test
+  races).
+
+Coverage is measured with rustup `llvm-tools` (`-Cinstrument-coverage`); the
+gate threshold is 80%. Untested additions to the MCP tool/adapter layer fail the
+gate even when `cargo test` passes.

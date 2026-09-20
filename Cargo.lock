@@ -5265,6 +5265,7 @@ dependencies = [
  "pkm-query",
  "pretty_assertions",
  "regex",
+ "reqwest 0.12.28",
  "rmcp",
  "serde",
  "serde_json",

@@ -8,7 +8,6 @@
 //! All `path` values are vault-relative POSIX paths; `slug` is the page path
 //! with `.md` removed; timestamps are RFC 3339 UTC.
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// A note's full content model (§4.1).
@@ -201,13 +200,4 @@ pub struct ResolvedTarget {
     pub path: String,
     pub slug: String,
     pub title: String,
-}
-
-/// Utility to produce RFC 3339 UTC timestamps.
-pub fn now_rfc3339() -> String {
-    Utc::now().to_rfc3339()
-}
-
-pub fn to_rfc3339(dt: DateTime<Utc>) -> String {
-    dt.to_rfc3339()
 }

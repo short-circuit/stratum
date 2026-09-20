@@ -95,6 +95,35 @@ jobs:
       - name: Run frontend unit tests
         run: npm test
 
+  # ── MCP server coverage gate (required for PR merge) ──────────────
+  # Enforces >=80% line coverage of the MCP server crate (QA acceptance for
+  # t_547e25f1). Runs the pkm-mcp suites under -Cinstrument-coverage using
+  # the rustup llvm-tools (no external crates) and fails if the MCP crates'
+  # line coverage drops below the threshold. Under-instrumented changes to
+  # the MCP tool/adapter layer are caught here even though `cargo test`
+  # passes.
+  mcp-coverage:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (+ llvm-tools for coverage)
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: llvm-tools-preview
+          cache: false
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Linux dependencies (rusqlite build)
+        uses: ./.github/actions/install-linux-deps
+
+      - name: Run MCP coverage gate (>=80%)
+        run: bash scripts/mcp-coverage-gate.sh
+
   # ── Supply-chain security gate ─────────────────────────────────
   security-audit:
     if: github.event_name == 'push' || github.event_name == 'pull_request'

@@ -56,6 +56,12 @@ cargo test -p pkm-index
 # Run a specific test
 cargo test -p pkm-index -- graph::tests::test_get_backlinks
 
+# Run the MCP server test suite
+cargo test -p pkm-mcp --all-targets
+
+# Run the MCP coverage gate (>=80% line coverage of the MCP crates)
+bash scripts/mcp-coverage-gate.sh
+
 # Run frontend tests
 npm run test
 
