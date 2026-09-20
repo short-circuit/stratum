@@ -6,6 +6,33 @@ use crate::commands::vault::AppState;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// Persist a page's full block set back to its `.md` file, preserving the
+/// existing frontmatter (title/tags/aliases/created/modified/extra) and
+/// notifying the auto-commit engine. Mirrors the disk-write contract of
+/// `save_blocks` / `toggle_block_marker` so DB-only mutations (SM-2
+/// scheduling) survive an app restart, where the boot-time
+/// `sync_filesystem_to_db` rebuilds SQLite from disk.
+fn write_page_to_disk(
+    state: &crate::commands::vault::VaultState,
+    store: &pkm_block::BlockStore,
+    page_path: &str,
+) -> Result<(), String> {
+    let all_blocks = store
+        .get_blocks_by_page(page_path)
+        .map_err(|e| e.to_string())?;
+    let body = pkm_markdown::block_parser::serialize_blocks(&all_blocks);
+    let full_path = state.vault_path.join(page_path);
+    let existing = std::fs::read_to_string(&full_path).unwrap_or_default();
+    let markdown = pkm_markdown::block_parser::assemble_blocks_markdown(&existing, &body, None);
+
+    if let Some(parent) = full_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(&full_path, &markdown).map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FlashcardDto {
     pub id: String,
@@ -41,7 +68,7 @@ pub async fn generate_flashcards(
         for block in &blocks {
             let question = block.properties.get("question");
             let answer = block.properties.get("answer");
-            if let (Some(q), Some(a)) = (question, answer) {
+            if let (Some(_q), Some(a)) = (question, answer) {
                 let ease_factor = block
                     .properties
                     .get("ease")
@@ -65,7 +92,10 @@ pub async fn generate_flashcards(
 
                 cards.push(FlashcardDto {
                     id: block.id.to_string(),
-                    front: q.clone(),
+                    // Documented contract (docs/guide/flashcards.md §Card Properties):
+                    // the block CONTENT is the question; `.question:: true` is a boolean
+                    // marker. Using q.clone() ("true") as the front is wrong.
+                    front: block.content.clone(),
                     back: a.clone(),
                     page_path: page_path.clone(),
                     ease_factor,
@@ -108,7 +138,7 @@ pub async fn review_card(
     page_path: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<FlashcardDto, String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
+    let mut state = state.lock().map_err(|e| e.to_string())?;
     let id = Uuid::parse_str(&card_id).map_err(|e| e.to_string())?;
     let store = state.get_store().map_err(|e| e.to_string())?;
     let mut block = store.get_block(id).map_err(|e| e.to_string())?;
@@ -168,13 +198,29 @@ pub async fn review_card(
         .insert_block(&block, &page_path)
         .map_err(|e| e.to_string())?;
 
+    // Persist the updated schedule to the `.md` file, then keep the search
+    // index in sync. Without this, the SM-2 schedule is DB-only and is
+    // overwritten on the next app boot by `sync_filesystem_to_db`.
+    write_page_to_disk(&state, &store, &page_path)?;
+    state.record_change(&page_path);
+    let block_index = state.ensure_block_index()?;
+    block_index
+        .index_block(&block, &page_path)
+        .map_err(|e| e.to_string())?;
+    block_index.flush().map_err(|e| e.to_string())?;
+    drop(state.block_index.take());
+
+    // Keep IndexEngine in sync with the written file
+    let vault_path = state.vault_path.clone();
+    state
+        .ensure_index()?
+        .refresh_page(&page_path, &vault_path)
+        .map_err(|e| format!("Index refresh failed: {e}"))?;
+
     Ok(FlashcardDto {
         id: block.id.to_string(),
-        front: block
-            .properties
-            .get("question")
-            .cloned()
-            .unwrap_or_default(),
+        // Same contract as generate_flashcards: block content is the question.
+        front: block.content.clone(),
         back: block.properties.get("answer").cloned().unwrap_or_default(),
         page_path,
         ease_factor: ease,

@@ -107,6 +107,32 @@ impl GitEngine {
             .ok_or_else(|| PkmError::Git("no working directory".into()))?
             .to_path_buf();
 
+        // Expand any directory paths into the full recursive set of files,
+        // matching `git add <dir>` (honours .gitignore, recurses into
+        // subdirectories, skips binary/ignored content). Directory expansion
+        // delegates to the system git so we do not reimplement ignore rules;
+        // single-file staging stays in-process via gix below.
+        let file_paths = paths
+            .iter()
+            .filter_map(|p| {
+                let full = workdir.join(p);
+                if full.is_dir() {
+                    None
+                } else {
+                    Some(*p)
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let dirs = paths
+            .iter()
+            .filter(|p| workdir.join(p).is_dir())
+            .copied()
+            .collect::<Vec<_>>();
+        if !dirs.is_empty() {
+            self.add_directory_paths(&dirs)?;
+        }
+
         let index_file = self
             .repo
             .open_index()
@@ -122,7 +148,17 @@ impl GitEngine {
 
         let mut state = index_file.into_parts().0;
 
-        for p in paths {
+        // Remove any existing entries for the staged paths (all stages). This
+        // is what makes `add()` usable for conflict resolution: after
+        // `git merge` writes stage-1/2/3 conflict entries, re-adding the file
+        // must replace them with a single resolved stage-0 entry — otherwise
+        // the tree built by `commit()` still contains stale conflict stages
+        // and `status()` keeps reporting the path as conflicted even after the
+        // "resolution" commit.
+        let to_remove = file_paths.to_vec();
+        state.remove_entries(|_, path, _| to_remove.contains(&path.to_string().as_str()));
+
+        for p in &file_paths {
             let full_path = workdir.join(p);
             let content =
                 std::fs::read(&full_path).map_err(|e| PkmError::Git(format!("read {p}: {e}")))?;
@@ -182,12 +218,45 @@ impl GitEngine {
         Ok(())
     }
 
+    /// Stage every file under the given directory paths, honouring gitignore,
+    /// by delegating to the system `git add <dir>` (the same semantics the
+    /// manual "sync all" and conflict-resolution flows depend on). Directory
+    /// staging needs ignore rules and recursive walks that gix's index API
+    /// does not expose here, so the CLI is the correct tool — and the engine
+    /// already shells out to `git` for push/pull/merge.
+    fn add_directory_paths(&self, dirs: &[&str]) -> PkmResult<()> {
+        let workdir = self
+            .repo
+            .workdir()
+            .ok_or_else(|| PkmError::Git("no working directory".into()))?
+            .to_path_buf();
+        let mut cmd = std::process::Command::new("git");
+        cmd.current_dir(&workdir)
+            .arg("add")
+            .arg("--")
+            .args(dirs)
+            .stderr(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped());
+        let output = cmd
+            .output()
+            .map_err(|e| PkmError::Git(format!("git add execution failed: {e}")))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(PkmError::Git(format!(
+                "git add {} failed: {}",
+                dirs.join(", "),
+                stderr.trim()
+            )));
+        }
+        Ok(())
+    }
+
     pub fn commit(&self, message: &str, author: &str) -> PkmResult<String> {
         let tree_id = self
             .write_tree_from_index()
             .map_err(|e| PkmError::Git(format!("build tree: {e}")))?;
 
-        let parents: Vec<gix::ObjectId> = self
+        let mut parents: Vec<gix::ObjectId> = self
             .repo
             .head()
             .ok()
@@ -195,6 +264,27 @@ impl GitEngine {
             .map(|c| c.id().detach())
             .into_iter()
             .collect();
+
+        // If a merge is in progress (`.git/MERGE_HEAD`), complete it: the
+        // commit must take the in-progress merge head as an additional parent,
+        // exactly like `git commit` does. Without this, committing a resolved
+        // conflict produced a *linear* commit that did not descend from the
+        // upstream branch, so the follow-up `push` was rejected as
+        // non-fast-forward.
+        let merge_head_path = self.repo.git_dir().join("MERGE_HEAD");
+        if let Ok(raw) = std::fs::read_to_string(&merge_head_path) {
+            let first_line = raw.lines().next().map(|s| s.trim().to_string());
+            if let Some(oid) = first_line
+                .filter(|s| !s.is_empty())
+                .and_then(|s| gix::ObjectId::from_hex(s.as_bytes()).ok())
+            {
+                if !parents.contains(&oid) {
+                    parents.push(oid);
+                }
+                // The merge is being completed by this commit.
+                let _ = std::fs::remove_file(&merge_head_path);
+            }
+        }
 
         let sig = gix::actor::Signature {
             name: author.into(),
@@ -224,30 +314,113 @@ impl GitEngine {
         }
 
         let backing = state.path_backing();
-        let mut entries: Vec<gix::objs::tree::Entry> = state
-            .entries()
-            .iter()
-            .map(|entry| {
-                let mode_val: u32 = entry.mode.bits();
-                let file_mode = 0o100644u32;
-                gix::objs::tree::Entry {
-                    mode: gix::objs::tree::EntryMode::try_from(mode_val).unwrap_or_else(|_| {
-                        gix::objs::tree::EntryMode::try_from(file_mode).unwrap()
-                    }),
-                    filename: entry.path_in(backing).to_owned(),
-                    oid: entry.id,
+
+        // Collect every staged path as (full path, tree entry mode, oid).
+        // The paths are stored flat in the index (`a/b/c` as one entry), so we
+        // must split them into components and rebuild a properly NESTED tree
+        // object graph. Writing a flat `Tree { entries: [".pkm/blocks.db"] }`
+        // produces a tree with a literal '/' in an entry name, which git
+        // itself treats as a corrupt tree and `gix`'s `from_tree()` (used by
+        // `status()` full iteration) rejects with `PathSeparator`.
+        use std::collections::BTreeMap;
+        struct Node {
+            // Child name -> (mode, oid) for leaf entries (files/symlinks).
+            leaves: Vec<(Vec<u8>, gix::objs::tree::EntryMode, gix::ObjectId)>,
+            // Child name -> nested directory contents.
+            dirs: BTreeMap<Vec<u8>, Node>,
+        }
+        impl Node {
+            fn new() -> Self {
+                Node {
+                    leaves: Vec::new(),
+                    dirs: BTreeMap::new(),
                 }
-            })
-            .collect();
+            }
 
-        entries.sort_by(|a, b| a.filename.cmp(&b.filename));
+            /// Insert `(rel_path, mode, oid)` splitting on '/'.
+            fn insert(
+                &mut self,
+                rel_path: &[u8],
+                mode: gix::objs::tree::EntryMode,
+                oid: gix::ObjectId,
+            ) {
+                let mut parts = rel_path.split(|b| *b == b'/');
+                let first = parts.next().expect("non-empty path");
+                let rest: Vec<&[u8]> = parts.collect();
+                if rest.is_empty() {
+                    self.leaves.push((first.to_vec(), mode, oid));
+                } else {
+                    self.dirs
+                        .entry(first.to_vec())
+                        .or_insert_with(Node::new)
+                        .insert_with_components(&rest, mode, oid);
+                }
+            }
 
-        let tree = gix::objs::Tree { entries };
-        let tree_id = self
-            .repo
-            .write_object(&tree)
-            .map_err(|e| PkmError::Git(format!("write tree: {e}")))?;
-        Ok(tree_id.detach())
+            fn insert_with_components(
+                &mut self,
+                parts: &[&[u8]],
+                mode: gix::objs::tree::EntryMode,
+                oid: gix::ObjectId,
+            ) {
+                if parts.len() == 1 {
+                    self.leaves.push((parts[0].to_vec(), mode, oid));
+                } else {
+                    self.dirs
+                        .entry(parts[0].to_vec())
+                        .or_insert_with(Node::new)
+                        .insert_with_components(&parts[1..], mode, oid);
+                }
+            }
+        }
+
+        let mut root = Node::new();
+        for entry in state.entries() {
+            let mode_val: u32 = entry.mode.bits();
+            let file_mode = 0o100644u32;
+            let mode = gix::objs::tree::EntryMode::try_from(mode_val)
+                .unwrap_or_else(|_| gix::objs::tree::EntryMode::try_from(file_mode).unwrap());
+            root.insert(entry.path_in(backing).as_bytes(), mode, entry.id);
+        }
+
+        /// Recursively materialise `node` into a tree object and return its id.
+        fn write_node(node: &Node, repo: &gix::Repository) -> PkmResult<gix::ObjectId> {
+            let mut entries: Vec<gix::objs::tree::Entry> = Vec::new();
+
+            // Directories first (git tree ordering: subtrees sort before
+            // blobs within the same name scope, and are compared by name).
+            for (name, child) in &node.dirs {
+                let child_id = write_node(child, repo)?;
+                entries.push(gix::objs::tree::Entry {
+                    mode: gix::objs::tree::EntryMode::try_from(0o40000u32)
+                        .expect("dir mode is valid"),
+                    filename: name.clone().into(),
+                    oid: child_id,
+                });
+            }
+
+            for (name, mode, oid) in &node.leaves {
+                entries.push(gix::objs::tree::Entry {
+                    mode: *mode,
+                    filename: name.clone().into(),
+                    oid: *oid,
+                });
+            }
+
+            // Git requires tree entries to be serialized sorted by filename
+            // (byte order). The `gix-object` writer asserts exactly this; no
+            // directories-first rule applies (that is only an artifact of how
+            // git compares full paths, not a flat name sort).
+            entries.sort_by(|a, b| a.filename.cmp(&b.filename));
+
+            let tree = gix::objs::Tree { entries };
+            let tree_id = repo
+                .write_object(&tree)
+                .map_err(|e| PkmError::Git(format!("write tree: {e}")))?;
+            Ok(tree_id.detach())
+        }
+
+        write_node(&root, &self.repo)
     }
 
     pub fn push(&self, remote: &str, branch: &str) -> PkmResult<()> {
@@ -304,7 +477,23 @@ impl GitEngine {
             let stderr = String::from_utf8_lossy(&fetch_output.stderr);
             return Err(PkmError::Git(format!("fetch failed: {}", stderr.trim())));
         }
-        // Step 2: Try fast-forward merge (rebase-like)
+        // Step 2: Fast-forward merge when possible; otherwise fall back to a
+        // real merge so conflicts are surfaced (not just aborted).
+        //
+        // `git merge --ff-only` aborts (rc≠0, "Not possible to fast-forward,
+        // aborting") as soon as the histories diverge — BEFORE any conflict
+        // markers or MERGE_HEAD state exist. The old code returned
+        // `Err(merge failed: ...)` in that case, which made the
+        // PullResult{success:false, conflicts} path dead code and broke the
+        // documented conflict workflow (status never showed a conflicted file,
+        // `resolve_conflict_file`/`abort_merge` had no merge state to act on).
+        //
+        // Fix: when the FF-only merge refuses because the branches diverged,
+        // perform a real `git merge` of the fetched branch. A clean merge
+        // commits automatically (still reported as success); a textual
+        // conflict leaves conflict markers + MERGE_HEAD in the worktree and is
+        // reported as `success:false` with the conflicted paths, exactly what
+        // the command layer and conflict-resolution UI consume.
         let mut merge_cmd = std::process::Command::new("git");
         merge_cmd
             .current_dir(workdir)
@@ -318,23 +507,69 @@ impl GitEngine {
             .map_err(|e| PkmError::Git(format!("merge execution failed: {e}")))?;
         if !merge_output.status.success() {
             let stderr = String::from_utf8_lossy(&merge_output.stderr);
-            // Check if there are conflicts
-            if stderr.contains("conflict") || stderr.contains("would be overwritten") {
-                // Run merge with no-commit to detect conflicts
-                let status = self.status().ok();
-                let conflict_files = status
-                    .map(|s| {
-                        s.into_iter()
-                            .filter(|(_, flags)| flags.is_conflicted())
-                            .map(|(path, _)| path)
-                            .collect::<Vec<_>>()
-                    })
-                    .unwrap_or_default();
+            // Divergence -> do a real merge so conflicts become real state.
+            let divergence = stderr.contains("fast-forward");
+            if divergence {
+                let mut real_merge = std::process::Command::new("git");
+                real_merge
+                    .current_dir(workdir)
+                    .arg("merge")
+                    .arg("--no-edit")
+                    .arg(format!("{}/{}", remote, branch))
+                    .stderr(std::process::Stdio::piped())
+                    .stdout(std::process::Stdio::piped());
+                let real_output = real_merge
+                    .output()
+                    .map_err(|e| PkmError::Git(format!("real merge execution failed: {e}")))?;
+                if real_output.status.success() {
+                    // Clean auto-merge: committed the join; still a successful pull.
+                    return Ok(PullResult {
+                        success: true,
+                        conflicts: vec![],
+                    });
+                }
+                // Real conflicts: list them from the worktree state. Reading the
+                // index via the platform status API immediately after the merge
+                // can race on loaded CI runners (in one CI run `status()`
+                // observed the index before the merge's conflict stages were
+                // visible, yielding an empty list despite a genuine conflict).
+                // Enumerate unmerged paths with `git diff --diff-filter=U`,
+                // which reflects the on-disk index and is stable under load.
+                let workdir = self
+                    .repo
+                    .workdir()
+                    .ok_or_else(|| PkmError::Git("no workdir".into()))?;
+                let diff_out = std::process::Command::new("git")
+                    .current_dir(workdir)
+                    .args(["diff", "--name-only", "--diff-filter=U"])
+                    .stderr(std::process::Stdio::piped())
+                    .stdout(std::process::Stdio::piped())
+                    .output()
+                    .map_err(|e| PkmError::Git(format!("conflict enumerate failed: {e}")))?;
+                let conflict_files = if diff_out.status.success() {
+                    String::from_utf8_lossy(&diff_out.stdout)
+                        .lines()
+                        .map(str::to_string)
+                        .filter(|s| !s.is_empty())
+                        .collect::<Vec<_>>()
+                } else {
+                    // Fall back to the platform status-derived list.
+                    self.status()
+                        .ok()
+                        .map(|s| {
+                            s.into_iter()
+                                .filter(|(_, flags)| flags.is_conflicted())
+                                .map(|(path, _)| path)
+                                .collect::<Vec<_>>()
+                        })
+                        .unwrap_or_default()
+                };
                 return Ok(PullResult {
                     success: false,
                     conflicts: conflict_files,
                 });
             }
+            // Not a divergence: surface the actual error.
             return Err(PkmError::Git(format!("merge failed: {}", stderr.trim())));
         }
         Ok(PullResult {
@@ -348,9 +583,16 @@ impl GitEngine {
     /// When an SSH key is configured, sets `GIT_SSH_COMMAND` to use that key
     /// with strict host key checking.
     ///
-    /// When a passphrase is also configured, sets `GIT_ASKPASS` pointing to
-    /// the helper script (written by `set_passphrase`) so the passphrase is
-    /// never embedded in an environment variable or command line.
+    /// When a passphrase is also configured, sets `SSH_ASKPASS` (plus
+    /// `SSH_ASKPASS_REQUIRE=force`) pointing to the helper script (written by
+    /// `set_passphrase`) so the passphrase is never embedded in an environment
+    /// variable or command line.
+    ///
+    /// Note: OpenSSH's `ssh(1)` reads `SSH_ASKPASS`, not `GIT_ASKPASS`
+    /// (`GIT_ASKPASS` is git's variable for the HTTP transport only). Failing
+    /// to set the SSH_* variables silently broke every push/pull that used a
+    /// passphrase-protected key (the key could be loaded but never decrypted),
+    /// so this is a correctness fix, not a refactor.
     fn inject_ssh_key(&self, cmd: &mut std::process::Command) {
         if let Some(ref key_path) = self.ssh_key_path {
             let ssh_base = format!(
@@ -360,7 +602,11 @@ impl GitEngine {
 
             if self.passphrase.is_some() {
                 if let Some(ref script_path) = self.askpass_script_path {
-                    cmd.env("GIT_ASKPASS", script_path);
+                    cmd.env("SSH_ASKPASS", script_path);
+                    // Without this, ssh ignores SSH_ASKPASS when there is no
+                    // controlling terminal / DISPLAY. `force` makes it always
+                    // call the askpass program (OpenSSH >= 8.4).
+                    cmd.env("SSH_ASKPASS_REQUIRE", "force");
                 }
             }
 
@@ -368,7 +614,7 @@ impl GitEngine {
         }
     }
 
-    /// Write the GIT_ASKPASS helper script that provides the SSH key passphrase.
+    /// Write the SSH_ASKPASS helper script that provides the SSH key passphrase.
     ///
     /// The script uses `printf` with octal-encoded bytes so there are no shell
     /// escaping concerns regardless of passphrase content. The file is written
@@ -399,7 +645,7 @@ impl GitEngine {
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700))
             .map_err(|e| PkmError::Git(format!("chmod askpass script: {e}")))?;
 
-        tracing::debug!("wrote GIT_ASKPASS script to {}", path.display());
+        tracing::debug!("wrote SSH_ASKPASS script to {}", path.display());
 
         self.askpass_script_path = Some(path.clone());
         Ok(path)
@@ -409,7 +655,7 @@ impl GitEngine {
     fn cleanup_askpass_script(&mut self) {
         if let Some(ref path) = self.askpass_script_path.take() {
             let _ = std::fs::remove_file(path);
-            tracing::debug!("cleaned up GIT_ASKPASS script {}", path.display());
+            tracing::debug!("cleaned up SSH_ASKPASS script {}", path.display());
         }
     }
 
@@ -420,41 +666,78 @@ impl GitEngine {
             .status(gix::progress::Discard)
             .map_err(|e| PkmError::Git(format!("status init: {e}")))?;
 
+        // Full status: changes between HEAD and the index (staged) plus changes
+        // between the index and the working tree (unstaged/untracked). This must
+        // ALSO report staged changes — the command layer (`sync_vault`) runs
+        // `add(".")` BEFORE `status()` to classify files, so an index-vs-HEAD
+        // comparison is required for INDEX_* flags to ever be produced.
         let iter = platform
-            .into_index_worktree_iter(Vec::<gix::bstr::BString>::new())
+            .into_iter(Vec::<gix::bstr::BString>::new())
             .map_err(|e| PkmError::Git(format!("status iter: {e}")))?;
 
         for item_res in iter {
-            let item = item_res.map_err(|e| PkmError::Git(format!("status item: {e}")))?;
-            let path = item.rela_path().to_string();
+            let item =
+                item_res.map_err(|e| PkmError::Git(format!("status item (full): {e:#?}")))?;
+            let path = item.location().to_string();
             let mut flags = StatusFlags::CURRENT;
 
-            use gix::status::index_worktree::Item;
+            use gix::status::Item;
             match &item {
-                Item::Modification { status, .. } => {
-                    use gix::status::plumbing::index_as_worktree::EntryStatus;
-                    match status {
-                        EntryStatus::Conflict { .. } => flags = flags | StatusFlags::CONFLICTED,
-                        EntryStatus::Change(change) => {
-                            use gix::status::plumbing::index_as_worktree::Change;
-                            match change {
-                                Change::Modification { .. } | Change::SubmoduleModification(_) => {
-                                    flags = flags | StatusFlags::WT_MODIFIED
-                                }
-                                Change::Removed => flags = flags | StatusFlags::WT_DELETED,
-                                Change::Type { .. } => flags = flags | StatusFlags::WT_TYPECHANGE,
+                // Changes between HEAD and the index (staged).
+                Item::TreeIndex(change) => {
+                    use gix::diff::index::ChangeRef;
+                    match change {
+                        ChangeRef::Addition { entry_mode, .. } => {
+                            flags = flags | StatusFlags::INDEX_NEW;
+                            if entry_mode.is_submodule() {
+                                flags = flags | StatusFlags::INDEX_TYPECHANGE
                             }
                         }
-                        _ => {}
+                        ChangeRef::Deletion { .. } => flags = flags | StatusFlags::INDEX_DELETED,
+                        ChangeRef::Modification { entry_mode, .. } => {
+                            flags = flags | StatusFlags::INDEX_MODIFIED;
+                            if entry_mode.is_submodule() {
+                                flags = flags | StatusFlags::INDEX_TYPECHANGE
+                            }
+                        }
+                        ChangeRef::Rewrite { .. } => flags = flags | StatusFlags::INDEX_RENAMED,
                     }
                 }
-                Item::DirectoryContents { entry, .. } => {
-                    if entry.status == gix::dir::entry::Status::Untracked {
-                        flags = flags | StatusFlags::WT_NEW;
+                // Changes between the index and the working tree (unstaged).
+                Item::IndexWorktree(change) => {
+                    use gix::status::index_worktree::Item;
+                    match change {
+                        Item::Modification { status, .. } => {
+                            use gix::status::plumbing::index_as_worktree::EntryStatus;
+                            match status {
+                                EntryStatus::Conflict { .. } => {
+                                    flags = flags | StatusFlags::CONFLICTED
+                                }
+                                EntryStatus::Change(change) => {
+                                    use gix::status::plumbing::index_as_worktree::Change;
+                                    match change {
+                                        Change::Modification { .. }
+                                        | Change::SubmoduleModification(_) => {
+                                            flags = flags | StatusFlags::WT_MODIFIED
+                                        }
+                                        Change::Removed => flags = flags | StatusFlags::WT_DELETED,
+                                        Change::Type { .. } => {
+                                            flags = flags | StatusFlags::WT_TYPECHANGE
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                        Item::DirectoryContents { entry, .. } => {
+                            if entry.status == gix::dir::entry::Status::Untracked {
+                                flags = flags | StatusFlags::WT_NEW;
+                            }
+                        }
+                        Item::Rewrite { .. } => {
+                            flags = flags | StatusFlags::WT_RENAMED;
+                        }
                     }
-                }
-                Item::Rewrite { .. } => {
-                    flags = flags | StatusFlags::WT_RENAMED;
                 }
             }
 

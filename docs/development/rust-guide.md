@@ -53,10 +53,12 @@ pkm-watcher    -> pkm-core, pkm-markdown, pkm-index
 pkm-ai         -> pkm-core, pkm-index
 pkm-plugin     -> pkm-core
 pkm-cli        -> pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
-src-tauri      -> pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm-sync, pkm-watcher, pkm-ai
+src-tauri      -> pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
 ```
 
-Note: `src-tauri` does NOT depend on `pkm-plugin`. The CLI does NOT depend on `pkm-block` or `pkm-query`.
+Note: the deskbound app (`src-tauri`) and the CLI both depend on `pkm-plugin`
+(the WASM plugin runtime is wired into the desktop app's vault state and
+surfaced through the Tauri plugin commands; the CLI links the same crate).
 
 ---
 

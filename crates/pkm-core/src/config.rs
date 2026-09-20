@@ -26,6 +26,8 @@ pub struct Config {
     pub research: ResearchConfig,
     /// Plugin enable/disable.
     pub plugins: Vec<PluginConfig>,
+    /// Network egress configuration (SSRF allowlist for plugin HTTP).
+    pub network: NetworkConfig,
     /// File watcher configuration.
     pub watcher: WatcherConfig,
     /// Graph visualization settings.
@@ -45,6 +47,7 @@ impl Default for Config {
             tts: TtsConfig::default(),
             research: ResearchConfig::default(),
             plugins: Vec::new(),
+            network: NetworkConfig::default(),
             watcher: WatcherConfig::default(),
             graph: GraphConfig::default(),
         }
@@ -211,8 +214,10 @@ pub struct AiConfig {
     pub rag_enabled: bool,
     /// Max chunks to retrieve for RAG context.
     pub rag_chunk_count: usize,
-    /// Embedding model path (for local ONNX/llama.cpp).
-    pub embedding_model_path: Option<String>,
+    /// Expected embedding vector dimensionality. `0` means "infer from the
+    /// first response" (recommended; some providers expose variable or
+    /// version-pinned dimensions).
+    pub embedding_dimensions: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -231,7 +236,7 @@ impl Default for AiConfig {
             models: Vec::new(),
             rag_enabled: true,
             rag_chunk_count: 5,
-            embedding_model_path: None,
+            embedding_dimensions: 0,
         }
     }
 }
@@ -360,14 +365,18 @@ pub struct GraphConfig {
 
 impl Default for GraphConfig {
     fn default() -> Self {
+        // Values match the documented defaults in
+        // docs/getting-started/configuration.md (the canonical spec). Keeping
+        // these in sync prevents `stratum init`-generated configs from drifting
+        // from the documentation (acceptance defect GR-06).
         Self {
             show_connected: true,
             show_orphaned: true,
             show_tags: true,
-            charge_strength: -8.0,
-            link_distance: 40.0,
-            alpha_decay: 0.08,
-            velocity_decay: 0.3,
+            charge_strength: -30.0,
+            link_distance: 100.0,
+            alpha_decay: 0.02,
+            velocity_decay: 0.4,
             link_curvature: 0.15,
         }
     }
@@ -401,6 +410,20 @@ pub struct PluginConfig {
     pub enabled: bool,
     pub wasm_path: PathBuf,
     pub permissions: Vec<String>,
+}
+
+/// Network egress configuration for plugin `pkm.http_request`.
+///
+/// `allowlist` entries are host strings or CIDR strings (e.g. `api.example.com`
+/// or `10.0.0.0/8`). The SSRF guard (contract §10) allows an HTTP target if
+/// its host matches an entry, or if it resolves to a private/loopback/link-local
+/// address (making `localhost` and LAN access work by default). Empty allowlist
+/// means "private/loopback only".
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct NetworkConfig {
+    /// Host or CIDR entries allowed to be reached by plugin HTTP requests.
+    pub allowlist: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -588,6 +611,50 @@ mod tests {
     }
 
     #[test]
+    fn test_ai_config_embedding_dimensions_roundtrip() {
+        let dir = TempDir::new().unwrap();
+        let config_path = dir.path().join("config.toml");
+
+        let cfg = Config {
+            ai: AiConfig {
+                endpoint: Some("http://127.0.0.1:11434".to_string()),
+                model: "nomic-embed-text".to_string(),
+                embedding_dimensions: 768,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        cfg.save(&config_path).unwrap();
+
+        let loaded = Config::load(&config_path).unwrap();
+        assert_eq!(
+            loaded.ai.endpoint.as_deref(),
+            Some("http://127.0.0.1:11434")
+        );
+        assert_eq!(loaded.ai.model, "nomic-embed-text");
+        assert_eq!(loaded.ai.embedding_dimensions, 768);
+        // Default remains "infer from response".
+        assert_eq!(AiConfig::default().embedding_dimensions, 0);
+    }
+
+    #[test]
+    fn test_old_config_without_embedding_dimensions_loads() {
+        let dir = TempDir::new().unwrap();
+        let config_path = dir.path().join("config.toml");
+        // Config predating the embedding_dimensions field must still parse
+        // (falls back to 0 = infer), and must not carry the removed
+        // embedding_model_path field.
+        std::fs::write(
+            &config_path,
+            "[theme]\ndark_mode = false\n\n[ai]\nmodel = \"llama3.2\"\nrag_enabled = false\n",
+        )
+        .unwrap();
+        let loaded = Config::load(&config_path).unwrap();
+        assert_eq!(loaded.ai.embedding_dimensions, 0);
+        assert!(!loaded.theme.dark_mode);
+    }
+
+    #[test]
     fn test_stt_config_roundtrip() {
         let dir = TempDir::new().unwrap();
         let config_path = dir.path().join("config.toml");
@@ -667,6 +734,18 @@ mod tests {
         let json = serde_json::to_string(&cfg).unwrap();
         let deserialized: GraphConfig = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.link_curvature, 0.3);
+    }
+
+    #[test]
+    fn test_graph_config_defaults_match_docs() {
+        // Regression for GR-06: defaults must equal the documented values in
+        // docs/getting-started/configuration.md so `stratum init` configs never
+        // drift from the spec.
+        let cfg = GraphConfig::default();
+        assert_eq!(cfg.charge_strength, -30.0);
+        assert_eq!(cfg.link_distance, 100.0);
+        assert_eq!(cfg.alpha_decay, 0.02);
+        assert_eq!(cfg.velocity_decay, 0.4);
     }
 
     #[test]

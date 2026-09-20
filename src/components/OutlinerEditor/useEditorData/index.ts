@@ -1,84 +1,50 @@
 /**
- * useEditorData hook and shared editor types for the Outliner editor.
+ * useEditorData hook for the Outliner editor.
  *
- * Extracted from OutlinerEditor.shared.tsx during the E6 sizing-gate refactor
- * (§2.2 of .sisyphus/refactoring-plan.md). Consumers import these from
- * OutlinerEditor.shared, which re-exports them.
+ * Extracted from OutlinerEditor.shared.tsx during the E6 sizing-gate refactor.
+ * Encapsulates editor state management: creation, block loading, debounced
+ * auto-save, math rendering, wiki-link preview, dead-link detection, and
+ * hover/click delegation.
  *
- * Encapsulates all editor state management: creation, block loading, auto-save
- * (debounced), math rendering, wiki-link preview popup, dead-link detection,
- * and hover/click event delegation.
+ * Directory module (E6.F1 sizing-gate followup) to stay under the 500-line
+ * gate: types → ./types, serialization → ./serialization.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCreateBlockNote } from '@blocknote/react';
 import { useNavigate } from 'react-router-dom';
-import * as api from '../../lib/commands';
+import * as api from '../../../lib/commands';
 import {
   normalizeContent,
   isWikiLinkHref,
   extractWikiLinkTarget,
   isTagHref,
   extractTagTarget,
-} from '../../lib/wikiLinks';
-import { useCtrlHeld } from '../../lib/useCtrlHeld';
-import { useMathInline, setupMathDblClick } from '../../lib/useMathInline';
-import { dtoToBlockNote, blockNoteToDto } from './dtoConverters';
-import { detectAndApplyMarkers } from './markerDetection';
-import type { BlockMeta } from './dtoConverters';
-import { useStore } from '../../stores/appStore';
-import { schema } from './editorSchema';
+} from '../../../lib/wikiLinks';
+import { useCtrlHeld } from '../../../lib/useCtrlHeld';
+import { useMathInline, setupMathDblClick } from '../../../lib/useMathInline';
+import { dtoToBlockNote, blockNoteToDto } from '../dtoConverters';
+import { detectAndApplyMarkers } from '../markerDetection';
+import { useStore } from '../../../stores/appStore';
+import { schema } from '../editorSchema';
+import type {
+  MathEditState,
+  PreviewState,
+  DeadLinkPopupState,
+  EditorData,
+} from './types';
+import { computeSerializedKey } from './serialization';
 
-// ---------------------------------------------------------------------------
-// Shared Props & types
-// ---------------------------------------------------------------------------
-
-export interface Props {
-  pagePath: string;
-  autoFocus?: boolean;
-  minHeight?: string;
-}
-
-export type MathEditState = { latex: string; pos: number } | null;
-export type PreviewState = {
-  content: string;
-  pageTitle: string | null;
-  pagePath: string;
-  position: { x: number; y: number };
-  loading: boolean;
-} | null;
-export type DeadLinkPopupState = {
-  target: string;
-  position: { x: number; y: number };
-} | null;
-
-// ---------------------------------------------------------------------------
-// EditorData — returned by useEditorData()
-// ---------------------------------------------------------------------------
-
-export interface EditorData {
-  editor: ReturnType<typeof useCreateBlockNote>;
-  status: string;
-  error: string | null;
-  setStatus: React.Dispatch<React.SetStateAction<string>>;
-  setError: React.Dispatch<React.SetStateAction<string | null>>;
-  pageMarkers: string[];
-  mathEdit: MathEditState;
-  setMathEdit: React.Dispatch<React.SetStateAction<MathEditState>>;
-  containerRef: React.RefObject<HTMLDivElement | null>;
-  ctrlHeld: React.MutableRefObject<boolean>;
-  preview: PreviewState;
-  setPreview: React.Dispatch<React.SetStateAction<PreviewState>>;
-  deadLinkPopup: DeadLinkPopupState;
-  setDeadLinkPopup: React.Dispatch<React.SetStateAction<DeadLinkPopupState>>;
-  markDeadLinks: (root: HTMLElement) => void;
-  showPreview: (href: string, x: number, y: number) => void;
-  dismissPreview: () => void;
-  navigateRef: React.MutableRefObject<(path: string) => void>;
-  pagePath: string;
-  minHeight: string;
-  persistBlocks: (blockNoteBlocks: any[]) => void;
-}
+// Re-export the split-out types so existing consumers of the useEditorData
+// module (OutlinerEditor.shared barrel, MobileEditorOverlays) keep resolving
+// them under the same path.
+export type {
+  Props,
+  MathEditState,
+  PreviewState,
+  DeadLinkPopupState,
+  EditorData,
+} from './types';
 
 // ---------------------------------------------------------------------------
 // useEditorData() — shared editor lifecycle hook
@@ -108,12 +74,20 @@ export function useEditorData(
   minHeight = '400px',
 ): EditorData {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const blockMetaRef = useRef<Map<string, BlockMeta>>(new Map());
+  const blockMetaRef = useRef<Map<string, import('../dtoConverters').BlockMeta>>(new Map());
   const isProcessingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState('init');
   const [mathEdit, setMathEdit] = useState<MathEditState>(null);
   const [pageMarkers, setPageMarkers] = useState<string[]>([]);
+  // Content snapshot taken right after the initial load, so auto-save can skip
+  // writes when nothing changed. Prevents the ED-07 load-rewrite corruption:
+  // a programmatic onChange (from replaceBlocks or an external sync) must not
+  // re-serialize an untouched document back to disk.
+  const loadedSnapshotRef = useRef<string | null>(null);
+  const savePendingRef = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const ctrlHeld = useCtrlHeld();
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -169,16 +143,33 @@ export function useEditorData(
   // -----------------------------------------------------------------------
   // Step 1: Load blocks from backend
   // -----------------------------------------------------------------------
+
   useEffect(() => {
     api
       .getBlocks(pagePath)
       .then(({ blocks }) => {
         try {
           blockMetaRef.current.clear();
+          let bnBlocks: any[] = [];
           for (const b of blocks) b.content = normalizeContent(b.content);
-          const bnBlocks = dtoToBlockNote(blocks, blockMetaRef.current);
+          bnBlocks = dtoToBlockNote(blocks, blockMetaRef.current);
           if (bnBlocks.length > 0) {
-            editor.replaceBlocks(editor.document, bnBlocks);
+            // Suppress the onChange fired by replaceBlocks so the programmatic
+            // load does not trigger an auto-save that would rewrite the file
+            // before the user has typed anything (ED-07: autosave-on-load).
+            isProcessingRef.current = true;
+            try {
+              editor.replaceBlocks(editor.document, bnBlocks);
+            } finally {
+              isProcessingRef.current = false;
+            }
+          }
+          // Snapshot the post-load editor state (through the same conversion the
+          // save path uses) so auto-save skip logic can compare exact equality.
+          try {
+            loadedSnapshotRef.current = computeSerializedKey(editor.document, blockMetaRef.current);
+          } catch {
+            loadedSnapshotRef.current = null;
           }
           const markers = [
             ...new Set(
@@ -221,18 +212,37 @@ export function useEditorData(
       saveTimer.current = null;
     }
     const { blocks, pagePath: ctxPath } = pending;
+    (window as any).__saveDebug = { called: true, at: Date.now() };
+    // Clone blocks before marker detection so the editor document is never
+    // mutated if saveBlocks() fails — prevents marker keyword data loss.
+    const work = structuredClone(blocks);
+    detectAndApplyMarkers(work, ctxPath, blockMetaRef.current);
+    // Compare the exact serialization that would be written against the snapshot
+    // captured at load. If nothing changed, skip the write entirely — this is the
+    // defense-in-depth ED-07 fix: even if a post-load onChange slips through, an
+    // untouched document never rewrites the file (idle saves previously fused
+    // blocks, dropped markers, and mangled properties via the lossy serialiser).
+    const prospectiveKey = computeSerializedKey(work, blockMetaRef.current);
+    if (loadedSnapshotRef.current !== null && prospectiveKey === loadedSnapshotRef.current) {
+      // DEB[/tmp]-probe: mark the no-op skip so we can detect it in the DOM.
+      (window as any).__saveDebug = { skipped: true, at: Date.now() };
+      return;
+    }
+    savePendingRef.current = true;
+    setSaving(true);
     try {
-      // Clone blocks before marker detection so the editor document is never
-      // mutated if saveBlocks() fails — prevents marker keyword data loss.
-      detectAndApplyMarkers(
-        structuredClone(blocks),
-        ctxPath,
-        blockMetaRef.current,
-      );
-      const dtos = blockNoteToDto(blocks, blockMetaRef.current);
+      const dtos = blockNoteToDto(work, blockMetaRef.current);
       await api.saveBlocks(ctxPath, dtos);
+      setLastSavedAt(Date.now());
+      (window as any).__saveDebug = { saved: true, at: Date.now() };
+      // The document just saved — refresh the baseline so an identical
+      // round-trip that fires again (e.g. StrictMode remount) is still a no-op.
+      loadedSnapshotRef.current = prospectiveKey;
     } catch (e) {
       console.error('[OutlinerEditor] save failed:', e);
+    } finally {
+      savePendingRef.current = false;
+      setSaving(false);
     }
   }, []);
 
@@ -468,6 +478,7 @@ export function useEditorData(
     setStatus,
     setError,
     pageMarkers,
+    blockMetaRef,
     mathEdit,
     setMathEdit,
     containerRef,
@@ -483,5 +494,7 @@ export function useEditorData(
     pagePath,
     minHeight,
     persistBlocks,
+    saving,
+    lastSavedAt,
   };
 }

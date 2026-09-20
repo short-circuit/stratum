@@ -1,6 +1,7 @@
 //! Search and query commands.
 
 use crate::commands::vault::{AppState, IndexingGuard};
+use pkm_core::error::PkmError;
 use pkm_index::block_search::BlockIndex;
 use pkm_markdown::linker::extract_links;
 use serde::{Deserialize, Serialize};
@@ -104,6 +105,13 @@ pub async fn search_blocks(
             score: r.score,
         })
         .collect();
+
+    // Dispatch the `onSearch` hook to enabled plugins that declare it (spec §8).
+    // Runs synchronously; a trapping plugin logs and is skipped, never aborting
+    // the search.
+    if let Some(manager) = state.plugin_manager.as_deref() {
+        crate::commands::plugins::dispatch_on_search(manager, &query, limit);
+    }
 
     Ok(SearchResultsDto { results: dtos })
 }
@@ -387,6 +395,108 @@ pub struct BacklinkContextDto {
     pub page_title: Option<String>,
 }
 
+/// A snippet of a note's content surrounding a backlink anchor.
+///
+/// Returned by `get_backlink_snippet`. The `anchor_*` fields identify and
+/// carry the exact block that is backlinked; `context` is a bounded window of
+/// adjacent blocks (document order) providing surrounding context for display.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct BacklinkSnippetDto {
+    /// Vault-relative path of the note that contains the anchor (the ":id" in
+    /// GET /api/notes/:id/backlink-snippet).
+    pub note_id: String,
+    /// Display title of the note (frontmatter title, falling back to slug).
+    pub note_title: String,
+    /// The block id of the backlinked anchor (the "?ref=" backlink-ref).
+    pub anchor_id: String,
+    /// The exact content of the backlinked block/paragraph.
+    pub anchor_content: String,
+    /// A window of content around the anchor for display. Includes the anchor
+    /// block itself plus up to `context_before` prior and `context_after`
+    /// subsequent blocks in document order.
+    pub context: Vec<String>,
+}
+
+/// Build a backlink snippet for the note at `note_id`, anchored at the block
+/// `anchor_id`.
+///
+/// * 404 for a missing note: `PkmError::NoteNotFound`
+/// * 404 for a missing anchor: `PkmError::BlockNotFound`
+///
+/// Surrounding context is bounded to avoid shipping the whole note: at most
+/// `CONTEXT_BEFORE` blocks before and `CONTEXT_AFTER` blocks after the anchor,
+/// in the same document order the editor uses (block rowid order).
+const CONTEXT_BEFORE: usize = 2;
+const CONTEXT_AFTER: usize = 2;
+
+pub fn build_backlink_snippet_from_store(
+    store: &pkm_block::BlockStore,
+    note_id: &str,
+    anchor_id: &str,
+) -> Result<BacklinkSnippetDto, PkmError> {
+    let note_fm = store
+        .get_page(note_id)?
+        .ok_or_else(|| PkmError::NoteNotFound(note_id.to_string()))?;
+
+    let anchor_uuid = uuid::Uuid::parse_str(anchor_id)
+        .map_err(|_| PkmError::BlockNotFound(anchor_id.to_string()))?;
+    // Early existence check: unknown block ids are a missing-anchor 404. The
+    // returned `_page_path` is not used; membership on the requested note is
+    // verified below against `blocks` so a valid id on a different page still
+    // counts as a missing anchor.
+    let (anchor, _page_path) = store
+        .get_block_with_page_path(anchor_uuid)
+        .map_err(|_| PkmError::BlockNotFound(anchor_id.to_string()))?;
+
+    // Load the note's blocks in document order. `get_blocks_by_page` orders by
+    // rowid (`ORDER BY rowid`), which is the same order the editor loads and
+    // renders the page — so the context window below matches what a user sees.
+    let blocks = store.get_blocks_by_page(note_id)?;
+
+    // Verify the anchor actually lives on the requested note. A block id may
+    // exist in the store while the caller passed a note id for a *different*
+    // page; treat that as a missing anchor rather than silently returning
+    // content from another note.
+    let anchor_pos = blocks
+        .iter()
+        .position(|b| b.id == anchor_uuid)
+        .ok_or_else(|| PkmError::BlockNotFound(anchor_id.to_string()))?;
+
+    let start = anchor_pos.saturating_sub(CONTEXT_BEFORE);
+    let end = (anchor_pos + CONTEXT_AFTER + 1).min(blocks.len());
+    let context: Vec<String> = blocks[start..end]
+        .iter()
+        .map(|b| b.content.clone())
+        .collect();
+
+    let note_title = note_fm.title.unwrap_or_else(|| {
+        std::path::Path::new(note_id)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or(note_id)
+            .replace('-', " ")
+    });
+
+    Ok(BacklinkSnippetDto {
+        note_id: note_id.to_string(),
+        note_title: note_title.clone(),
+        anchor_id: anchor_id.to_string(),
+        anchor_content: anchor.content.clone(),
+        context,
+    })
+}
+
+#[tauri::command]
+pub async fn get_backlink_snippet(
+    note_id: String,
+    backlink_ref: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<BacklinkSnippetDto, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
+    build_backlink_snippet_from_store(&store, &note_id, &backlink_ref).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub async fn get_backlink_context(
     target_page: String,
@@ -530,4 +640,130 @@ pub async fn search_by_tag(
     }
 
     Ok(SearchResultsDto { results })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pkm_block::Block;
+    use std::path::PathBuf;
+    use uuid::Uuid;
+
+    /// Insert a page into the store with the given vault-relative path and
+    /// frontmatter title (if any).
+    fn insert_page(
+        store: &pkm_block::BlockStore,
+        vault_root: &std::path::Path,
+        rel_path: &str,
+        title: Option<&str>,
+    ) {
+        let mut page = pkm_block::Page::new(vault_root.join(rel_path), vault_root);
+        page.frontmatter.title = title.map(|t| t.to_string());
+        store.upsert_page(&page).unwrap();
+    }
+
+    /// A test fixture with a source note that links to a target note.
+    fn fixture() -> (pkm_block::BlockStore, Uuid) {
+        let store = pkm_block::BlockStore::open_in_memory().unwrap();
+        let vault_root = PathBuf::from("/tmp/test-vault");
+
+        insert_page(&store, &vault_root, "pages/source.md", Some("Source"));
+        insert_page(&store, &vault_root, "pages/target.md", Some("Target"));
+
+        // Blocks on the source page in document order.
+        let b1 = Block::new(Uuid::new_v4(), "Intro paragraph that sets context.".into());
+        let b2 = Block::new(
+            Uuid::new_v4(),
+            "Here is a [[target]] backlink anchor.".into(),
+        );
+        let b3 = Block::new(Uuid::new_v4(), "Follow-up paragraph after the link.".into());
+
+        store.insert_block(&b1, "pages/source.md").unwrap();
+        store.insert_block(&b2, "pages/source.md").unwrap();
+        store.insert_block(&b3, "pages/source.md").unwrap();
+
+        // A separate block on the target page must not be picked up.
+        let other = Block::new(Uuid::new_v4(), "Unrelated block on the target page.".into());
+        store.insert_block(&other, "pages/target.md").unwrap();
+
+        (store, b2.id)
+    }
+
+    #[test]
+    fn backlink_snippet_success() {
+        let (store, anchor) = fixture();
+        let result =
+            build_backlink_snippet_from_store(&store, "pages/source.md", &anchor.to_string())
+                .unwrap();
+
+        assert_eq!(result.note_id, "pages/source.md");
+        assert_eq!(result.note_title, "Source");
+        assert_eq!(result.anchor_id, anchor.to_string());
+        assert_eq!(
+            result.anchor_content,
+            "Here is a [[target]] backlink anchor."
+        );
+        // Context window: the anchor block plus adjacent blocks in document order.
+        assert!(result
+            .context
+            .contains(&"Here is a [[target]] backlink anchor.".to_string()));
+        assert!(result
+            .context
+            .contains(&"Intro paragraph that sets context.".to_string()));
+        assert!(result
+            .context
+            .contains(&"Follow-up paragraph after the link.".to_string()));
+        // The unrelated block on the target page must not appear.
+        assert!(!result
+            .context
+            .contains(&"Unrelated block on the target page.".to_string()));
+    }
+
+    #[test]
+    fn backlink_snippet_missing_note() {
+        let (store, anchor) = fixture();
+        let err = build_backlink_snippet_from_store(&store, "pages/ghost.md", &anchor.to_string())
+            .unwrap_err();
+        assert!(
+            matches!(err, PkmError::NoteNotFound(_)),
+            "expected NoteNotFound, got {err}"
+        );
+    }
+
+    #[test]
+    fn backlink_snippet_missing_anchor() {
+        let (store, _anchor) = fixture();
+        // A well-formed UUID that does not exist in the store.
+        let ghost = Uuid::new_v4();
+        let err = build_backlink_snippet_from_store(&store, "pages/source.md", &ghost.to_string())
+            .unwrap_err();
+        assert!(
+            matches!(err, PkmError::BlockNotFound(_)),
+            "expected BlockNotFound, got {err}"
+        );
+    }
+
+    #[test]
+    fn backlink_snippet_anchor_from_wrong_note() {
+        let (store, anchor) = fixture();
+        // The anchor lives on pages/source.md; asking for pages/target.md with
+        // that anchor must be a missing-anchor error (not scavenged content).
+        let err = build_backlink_snippet_from_store(&store, "pages/target.md", &anchor.to_string())
+            .unwrap_err();
+        assert!(
+            matches!(err, PkmError::BlockNotFound(_)),
+            "expected BlockNotFound, got {err}"
+        );
+    }
+
+    #[test]
+    fn backlink_snippet_malformed_anchor() {
+        let (store, _anchor) = fixture();
+        let err =
+            build_backlink_snippet_from_store(&store, "pages/source.md", "not-a-uuid").unwrap_err();
+        assert!(
+            matches!(err, PkmError::BlockNotFound(_)),
+            "expected BlockNotFound, got {err}"
+        );
+    }
 }

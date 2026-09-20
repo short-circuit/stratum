@@ -368,11 +368,11 @@ pub async fn toggle_block_marker(
     let existing = std::fs::read_to_string(&full_path).unwrap_or_default();
     let title = extract_title_from_frontmatter(&existing);
 
-    let final_md = if let Some(t) = &title {
-        format!("---\ntitle: {t}\n---\n\n{body}")
-    } else {
-        body
-    };
+    // Rebuild the .md from the existing file so custom frontmatter (tags,
+    // aliases, created/modified/dates, and any extra fields) is preserved —
+    // not recreated from the title alone, which dropped every non-title field.
+    let final_md =
+        pkm_markdown::block_parser::assemble_blocks_markdown(&existing, &body, title.as_deref());
     std::fs::write(&full_path, &final_md).map_err(|e| e.to_string())?;
 
     // Notify auto-commit engine
@@ -436,6 +436,11 @@ pub async fn clear_block_marker(
         .map_err(|e| e.to_string())?;
 
     if let Some(block) = blocks.iter_mut().find(|b| b.id == id) {
+        // Clear the task marker (and priority, which is marker-scoped) before
+        // persisting — the previous code re-inserted the block unchanged, so
+        // `clear_block_marker` only rewrote the file without actually clearing.
+        block.marker = None;
+        block.priority = None;
         // Wrap SQLite operation in a transaction
         store.execute_batch("BEGIN").map_err(|e| e.to_string())?;
         let result = (|| -> Result<(), String> {
@@ -458,11 +463,11 @@ pub async fn clear_block_marker(
     let existing = std::fs::read_to_string(&full_path).unwrap_or_default();
     let title = extract_title_from_frontmatter(&existing);
 
-    let final_md = if let Some(t) = &title {
-        format!("---\ntitle: {t}\n---\n\n{body}")
-    } else {
-        body
-    };
+    // Rebuild the .md from the existing file so custom frontmatter (tags,
+    // aliases, created/modified, extra fields) is preserved — not recreated
+    // from the title alone (same fix as toggle_block_marker).
+    let final_md =
+        pkm_markdown::block_parser::assemble_blocks_markdown(&existing, &body, title.as_deref());
     std::fs::write(&full_path, &final_md).map_err(|e| e.to_string())?;
 
     // Notify auto-commit engine
