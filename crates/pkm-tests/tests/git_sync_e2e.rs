@@ -438,6 +438,27 @@ impl SshdFixture {
                     .spawn()
                     .expect("spawn sshd (tried /usr/sbin and /usr/bin)")
             });
+        // Wait for sshd to actually start listening before returning: it runs
+        // with `-D` and the push below connects immediately, so a slow start on
+        // a loaded CI runner races the test (flaky "Connection refused"). Poll
+        // the bound port with bounded backoff until it accepts connections.
+        let start = std::time::Instant::now();
+        let deadline = std::time::Duration::from_secs(15);
+        let mut port_ready = false;
+        while start.elapsed() < deadline {
+            if std::net::TcpStream::connect(("127.0.0.1", port)).is_ok() {
+                port_ready = true;
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(250));
+        }
+        assert!(
+            port_ready,
+            "sshd did not start listening on 127.0.0.1:{port} within {deadline:?}; \
+             see {}",
+            dir.path().join("sshd.log").display()
+        );
+
         SshdFixture {
             _dir: dir,
             key_path,
