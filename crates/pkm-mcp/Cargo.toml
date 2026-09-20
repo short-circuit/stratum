@@ -42,3 +42,5 @@ pkm-query = { path = "../pkm-query" }
 tempfile.workspace = true
 pretty_assertions.workspace = true
 futures.workspace = true
+reqwest.workspace = true
+tokio.workspace = true

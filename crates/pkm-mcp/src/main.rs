@@ -142,3 +142,116 @@ async fn run_stdio(vault: Arc<SharedVault>) -> anyhow::Result<()> {
         .map_err(|e| anyhow::anyhow!("stdio transport error: {e}"))?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Mutex;
+
+    // `std::env::set_var` mutates process-global state that the Rust test
+    // harness shares across threads. Serialize the env-mutating tests behind
+    // a static lock so one test's PKM_MCP_* value cannot bleed into a
+    // concurrently-running sibling test (a race that makes the suite flaky).
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    /// Apply the given env overrides, run `f`, then restore the previous env.
+    fn with_env<F, R>(vars: &[(&str, &str)], f: F) -> R
+    where
+        F: FnOnce() -> R,
+    {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let mut previous = Vec::with_capacity(vars.len());
+        for &(k, v) in vars {
+            previous.push((k, std::env::var_os(k)));
+            unsafe { std::env::set_var(k, v) };
+        }
+        let result = std::hint::black_box(f());
+        for (k, prev) in previous {
+            match prev {
+                Some(v) => unsafe { std::env::set_var(k, v) },
+                None => unsafe { std::env::remove_var(k) },
+            };
+        }
+        result
+    }
+
+    #[test]
+    fn cli_defaults_to_stdio() {
+        let cli = Cli::try_parse_from(["pkm-mcp"]).expect("parse");
+        assert_eq!(cli.transport, "stdio");
+        assert!(!cli.require_auth);
+    }
+
+    #[test]
+    fn cli_vault_flag_sets_path() {
+        let cli = Cli::try_parse_from(["pkm-mcp", "--vault", "/tmp/v"]).expect("parse");
+        assert_eq!(cli.vault.as_deref(), Some(std::path::Path::new("/tmp/v")));
+    }
+
+    #[test]
+    fn cli_http_transport_and_bind() {
+        let cli =
+            Cli::try_parse_from(["pkm-mcp", "--transport", "http", "--bind", "127.0.0.1:8080"])
+                .expect("parse");
+        assert_eq!(cli.transport, "http");
+        assert_eq!(cli.bind, Some("127.0.0.1:8080".parse().unwrap()));
+    }
+
+    #[test]
+    fn cli_require_auth_flag() {
+        let cli = Cli::try_parse_from(["pkm-mcp", "--require-auth"]).expect("parse");
+        assert!(cli.require_auth);
+    }
+
+    #[test]
+    fn cli_invalid_transport_accepts_string() {
+        // clap accepts any string for the transport arg; main() ignores
+        // invalid ones and falls back to the configured transport.
+        let cli = Cli::try_parse_from(["pkm-mcp", "--transport", "bogus"]).expect("parse");
+        assert_eq!(cli.transport, "bogus");
+    }
+
+    #[test]
+    fn env_overrides_apply_bind() {
+        with_env(&[("PKM_MCP_BIND", "127.0.0.1:9999")], || {
+            let mut cfg = McpConfig::new(std::path::PathBuf::from("/tmp/v"));
+            apply_env_overrides(&mut cfg).expect("apply");
+            assert_eq!(cfg.bind.to_string(), "127.0.0.1:9999");
+        });
+    }
+
+    #[test]
+    fn env_overrides_invalid_bind_errors() {
+        with_env(&[("PKM_MCP_BIND", "not-an-addr")], || {
+            let mut cfg = McpConfig::new(std::path::PathBuf::from("/tmp/v"));
+            let err = apply_env_overrides(&mut cfg).expect_err("must error");
+            assert!(err.to_string().contains("PKM_MCP_BIND"));
+        });
+    }
+
+    #[test]
+    fn env_overrides_rate_limit_vals() {
+        with_env(
+            &[
+                ("PKM_MCP_RATE_LIMIT_BURST", "5"),
+                ("PKM_MCP_RATE_LIMIT_RPS", "2.5"),
+            ],
+            || {
+                let mut cfg = McpConfig::new(std::path::PathBuf::from("/tmp/v"));
+                apply_env_overrides(&mut cfg).expect("apply");
+                assert_eq!(cfg.rate_limit_burst, 5);
+                assert_eq!(cfg.rate_limit_rps, 2.5);
+            },
+        );
+    }
+
+    #[test]
+    fn env_overrides_no_auth() {
+        with_env(&[("PKM_MCP_NO_AUTH", "1")], || {
+            let mut cfg = McpConfig::new(std::path::PathBuf::from("/tmp/v"));
+            cfg.auth_mode = AuthMode::Pat;
+            apply_env_overrides(&mut cfg).expect("apply");
+            assert_eq!(cfg.auth_mode, AuthMode::None);
+        });
+    }
+}

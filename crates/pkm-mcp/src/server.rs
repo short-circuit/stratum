@@ -87,16 +87,6 @@ impl KbServer {
         self.tools.iter().find(|t| t.name == name).cloned()
     }
 
-    fn apply_rate_limit(&self, ctx: &AuthContext) -> Result<(), KbError> {
-        if let Some(bucket) = &self.rate_limiter {
-            if !bucket.try_acquire() {
-                return Err(ErrorDataExt::rate_limited(bucket.retry_after_secs()));
-            }
-        }
-        let _ = ctx;
-        Ok(())
-    }
-
     fn check_scope(&self, tool: &ToolDef, ctx: &AuthContext) -> Result<(), KbError> {
         // Local (no-auth) mode grants all scopes.
         if self.auth_mode == crate::config::AuthMode::None {
@@ -197,15 +187,30 @@ impl KbServer {
             .unwrap_or_default();
         let auth = meta.auth;
         let rate_limited = meta.rate_limited;
+        self.dispatch_with_meta(name, args, auth, rate_limited)
+            .await
+    }
 
+    /// The core dispatch path once the per-request auth context is resolved.
+    ///
+    /// This is the single code path through which every authenticated tool call
+    /// passes: per-token rate limiting, scope enforcement, schema validation,
+    /// then execution. It is factored out of [`dispatch`] so the HTTP transport
+    /// and the test suite can drive it with an explicit [`AuthContext`] instead
+    /// of constructing an rmcp [`RequestContext`].
+    pub async fn dispatch_with_meta(
+        &self,
+        name: &str,
+        args: Option<Value>,
+        auth: AuthContext,
+        rate_limited: bool,
+    ) -> Result<CallToolResponse, McpError> {
         // Rate limit (per-token) at the start of the request; only applies when
         // the HTTP transport marked this session rate-limited.
         if rate_limited {
             if let Err(e) = self.apply_rate_limit_result() {
                 return Ok(CallToolResult::structured_error(error_json(&e)).into());
             }
-        } else if let Err(e) = self.apply_rate_limit(&auth) {
-            return Ok(CallToolResult::structured_error(error_json(&e)).into());
         }
 
         let tool = match self.tool_by_name(name) {
