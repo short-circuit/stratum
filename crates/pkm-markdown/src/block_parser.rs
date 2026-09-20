@@ -38,7 +38,15 @@ fn block_content(line: &str) -> &str {
     &line[indent + 2..] // skip indent + "- "
 }
 
-/// Parse a property line: returns `(key, value)` if the line looks like `.key: value`.
+/// Parse a property line: returns `(key, value)` if the line looks like `.key: value`
+/// or `.key:: value` (flashcard properties documented in `docs/guide/flashcards.md`
+/// and `docs/advanced/file-format.md` §Property Syntax).
+///
+/// The `::` form is normalized to the raw `key` so flashcard properties parse into
+/// the same `properties` map as other custom properties (`question`/`answer`), which
+/// is what the flashcard generator reads. Without this normalization a documented
+/// `.question:: true` line would produce a malformed `": true"` property value during
+/// round-trip (acceptance defect ED-04 / FC-01).
 fn parse_property(line: &str) -> Option<(String, String)> {
     let trimmed = line.trim_start();
     if !trimmed.starts_with('.') {
@@ -47,10 +55,54 @@ fn parse_property(line: &str) -> Option<(String, String)> {
     if let Some(colon_pos) = trimmed[1..].find(':') {
         let key = &trimmed[1..1 + colon_pos]; // after '.', before ':'
         let value = trimmed[1 + colon_pos + 1..].trim(); // after ':'
+                                                         // The `::` suffix form: the delimiter consumed one colon, so a second
+                                                         // colon may begin the value (`.question:: true` → `: true`). Strip it to
+                                                         // recover the documented property value `true`.
+        let value = value.trim_start_matches(':').trim();
         Some((key.to_string(), value.to_string()))
     } else {
         None
     }
+}
+
+/// Detect a leading task-marker and optional priority prefix on a plain-note line:
+/// `TODO …`, `DOING …`, `A TODO …`, `C LATER …` (see docs/guide/tasks.md).
+/// Returns `(marker, priority, rest_of_line)`. None if the line is not a task line.
+fn parse_task_prefix(line: &str) -> Option<(Option<TaskMarker>, Option<Priority>, String)> {
+    let rest = line.trim();
+    let mut words = rest.split_whitespace();
+    let first = words.next()?.to_uppercase();
+    let second = words.next().map(|w| w.to_uppercase());
+
+    let (marker, priority, content) = if let Some(m) = TaskMarker::parse(&first) {
+        // `TODO …` — marker only.
+        (
+            Some(m),
+            None,
+            rest.trim_start_matches(&first).trim().to_string(),
+        )
+    } else if let Some(p) = Priority::parse(&first) {
+        if let Some(m) = second.as_deref().and_then(TaskMarker::parse) {
+            // `A TODO …` — priority then marker.
+            let content = rest
+                .trim_start_matches(&first)
+                .trim_start()
+                .trim_start_matches(&second.unwrap())
+                .trim()
+                .to_string();
+            (Some(m), Some(p), content)
+        } else {
+            // Priority-only leading word is not a task line (no marker).
+            (None, None, String::new())
+        }
+    } else {
+        (None, None, String::new())
+    };
+
+    if marker.is_none() && priority.is_none() {
+        return None;
+    }
+    Some((marker, priority, content))
 }
 
 /// Parse raw body into a flat list of `RawBlock`s.
@@ -152,6 +204,21 @@ fn parse_raw_blocks(body: &str) -> Vec<RawBlock> {
                 block_id: None,
             });
             i += 1;
+        } else if let Some((marker, priority, task_content)) = parse_task_prefix(line) {
+            // A standalone task-marker line (`TODO …`, `A TODO …`) is its own
+            // block — never merge it into a paragraph. Otherwise consecutive
+            // task lines collapse into one marker=NULL block, breaking the
+            // Kanban board and task search (acceptance defect TK-01/TK-02/KN-02).
+            blocks.push(RawBlock {
+                indent: 0,
+                content_lines: vec![task_content],
+                properties: BTreeMap::new(),
+                marker: marker.map(|m| m.as_str().to_string()),
+                priority: priority.map(|p| p.as_str().to_string()),
+                heading_level: None,
+                block_id: None,
+            });
+            i += 1;
         } else {
             // Group consecutive non-block lines into a paragraph block
             let mut para_lines = vec![line];
@@ -163,6 +230,11 @@ fn parse_raw_blocks(body: &str) -> Vec<RawBlock> {
                     break;
                 }
                 if is_block_line(next) || parse_atx_heading(next).is_some() {
+                    break;
+                }
+                // A marker line also terminates the paragraph so it becomes its
+                // own task block (e.g. "intro text\nTODO ship" must not merge).
+                if parse_task_prefix(next).is_some() {
                     break;
                 }
                 para_lines.push(next);
@@ -399,7 +471,18 @@ pub fn convert_body_to_blocks(body: &str) -> Vec<Block> {
         }
 
         // Default: paragraph block. Accumulate lines until we hit a blank line
-        // or a line that starts a new block type.
+        // or a line that starts a new block type. A standalone task-marker line
+        // (`TODO …`, `A TODO …`) becomes its own block with the marker/priority
+        // set, so consecutive task lines never collapse into one marker=NULL
+        // paragraph (acceptance defect TK-01/TK-02/KN-02).
+        if let Some((marker, priority, task_content)) = parse_task_prefix(line) {
+            let mut block = Block::new(Uuid::new_v4(), task_content);
+            block.marker = marker;
+            block.priority = priority;
+            blocks.push(block);
+            i += 1;
+            continue;
+        }
         let mut para_lines = vec![line];
         i += 1;
         while i < lines.len() {
@@ -417,6 +500,7 @@ pub fn convert_body_to_blocks(body: &str) -> Vec<Block> {
                 || nt.starts_with("+ ")
                 || is_ordered_list_item(nt)
                 || match_fence(nl).is_some()
+                || parse_task_prefix(nl).is_some()
             {
                 break;
             }
@@ -704,6 +788,26 @@ mod tests {
         assert_eq!(raw[0].marker, Some("TODO".into()));
         assert_eq!(raw[0].priority, Some("A".into()));
         assert_eq!(raw[0].properties.get("deadline").unwrap(), "tomorrow");
+    }
+
+    #[test]
+    fn test_parse_property_double_colon_flashcard() {
+        // ED-04 / FC-01: `.question:: true` must parse to key=`question`, value=`true`
+        // (not key=`question`, value=`: true`), so the serializer round-trips the
+        // documented flashcard property form instead of mangling into `.question: : true`.
+        assert_eq!(
+            parse_property(".question:: true"),
+            Some(("question".into(), "true".into()))
+        );
+        assert_eq!(
+            parse_property(".answer:: A design pattern."),
+            Some(("answer".into(), "A design pattern.".into()))
+        );
+        // Single-colon form is unaffected.
+        assert_eq!(
+            parse_property(".question: false"),
+            Some(("question".into(), "false".into()))
+        );
     }
 
     #[test]
@@ -1070,6 +1174,76 @@ mod tests {
         assert_eq!(
             assemble_blocks_markdown("hello", "- b\n", Some("T")),
             "---\ntitle: T\n---\n\n- b\n"
+        );
+    }
+
+    #[test]
+    fn test_plain_task_marker_lines_split_into_own_blocks() {
+        // Regression for acceptance TK-01/TK-02/KN-02: consecutive plain-note
+        // task lines must each become their own block with the marker set,
+        // not one merged marker=NULL paragraph.
+        for (i, block) in blocks_from_plain_markdown().iter().enumerate() {
+            if i < 5 {
+                assert!(block.marker.is_some(), "block {} should carry a marker", i);
+            }
+        }
+    }
+
+    /// Parse the alpha-project task block section as plain markdown (the format
+    /// a user actually types before any editor conversion).
+    fn blocks_from_plain_markdown() -> Vec<pkm_block::Block> {
+        let body = "A TODO ship MVP\nB DOING write docs\nC LATER evaluate database options\nWAITING get design sign-off\nNOW drafting proposal\nDONE initial research\n";
+        convert_body_to_blocks(body)
+    }
+
+    #[test]
+    fn test_convert_body_plain_task_lines_distinct_blocks() {
+        let blocks = blocks_from_plain_markdown();
+        assert_eq!(
+            blocks.len(),
+            6,
+            "each task line must be its own block (was merged previously)"
+        );
+        assert_eq!(blocks[0].content, "ship MVP");
+        assert_eq!(blocks[0].marker.map(|m| m.as_str()), Some("TODO"));
+        assert_eq!(blocks[0].priority.map(|p| p.as_str()), Some("A"));
+        assert_eq!(blocks[2].priority.map(|p| p.as_str()), Some("C"));
+        assert_eq!(blocks[2].marker.map(|m| m.as_str()), Some("LATER"));
+        assert_eq!(blocks[4].marker.map(|m| m.as_str()), Some("NOW"));
+        assert_eq!(blocks[5].marker.map(|m| m.as_str()), Some("DONE"));
+    }
+
+    #[test]
+    fn test_flashcard_property_round_trip() {
+        // Regression for ED-04/FC-01: the documented `::` property form must
+        // parse into the `question`/`answer` properties map (not malformed
+        // `.question: :` content), so the flashcard generator finds them.
+        let raw = "---\ntitle: F\n---\n- What is a monad?\n  .question:: true\n  .answer:: A design pattern.\n";
+        let (_fm, _body, blocks) = parse_document(raw);
+        assert_eq!(blocks.len(), 1);
+        assert_eq!(
+            blocks[0].properties.get("question").map(String::as_str),
+            Some("true")
+        );
+        assert_eq!(
+            blocks[0].properties.get("answer").map(String::as_str),
+            Some("A design pattern.")
+        );
+        assert_eq!(blocks[0].content, "What is a monad?");
+    }
+
+    #[test]
+    fn test_double_colon_does_not_gain_leading_colon_content() {
+        // The malformed form produced during the acceptance defect was
+        // content=": true" + property key "question" with value ": true".
+        // Ensures the reprised block stays clean.
+        let body = "- Q\n  .question:: true\n";
+        let (_fm, _body, blocks) = parse_document(body);
+        assert_eq!(blocks.len(), 1);
+        assert_eq!(blocks[0].content, "Q");
+        assert_eq!(
+            blocks[0].properties.get("question").map(String::as_str),
+            Some("true")
         );
     }
 }

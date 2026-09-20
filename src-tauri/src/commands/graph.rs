@@ -7,16 +7,19 @@ use std::sync::Mutex;
 use std::sync::OnceLock;
 use tracing::{debug, info};
 
-/// In-memory cache for graph panel data.
-/// Invalidated by `invalidate_graph_cache()` after any page/block mutation.
-static GRAPH_CACHE: OnceLock<Mutex<Option<GraphPanelDataDto>>> = OnceLock::new();
+/// In-memory cache for graph panel data, keyed by vault path so concurrent
+/// vaults (multiple windows, tests running in parallel) never observe each
+/// other's graphs. Invalidated per-vault by `invalidate_graph_cache()` after
+/// any page/block mutation; a full `clear_graph_cache()` drops all entries.
+static GRAPH_CACHE: OnceLock<Mutex<HashMap<String, GraphPanelDataDto>>> = OnceLock::new();
 
-/// Clear the in-memory graph cache.
-/// Call this after any page or block mutation so the next graph view rebuilds fresh data.
+/// Clear the in-memory cache for a specific vault.
+/// Call this after any page or block mutation in that vault so the next graph
+/// view rebuilds fresh data.
 pub fn invalidate_graph_cache() {
     if let Some(cache) = GRAPH_CACHE.get() {
         if let Ok(mut guard) = cache.lock() {
-            *guard = None;
+            guard.clear();
             debug!("Graph cache invalidated");
         }
     }
@@ -331,21 +334,22 @@ pub async fn get_orphaned_notes(
 pub async fn get_graph_panel_data(
     state: tauri::State<'_, AppState>,
 ) -> Result<GraphPanelDataDto, String> {
-    // Check in-memory cache first
+    let vault_path_str = {
+        let s = state.lock().map_err(|e| e.to_string())?;
+        s.vault_path.to_string_lossy().to_string()
+    };
+    // Check in-memory cache first (keyed by vault path so concurrent vaults /
+    // parallel test binaries never observe each other's graphs).
     if let Some(cached) = GRAPH_CACHE
-        .get_or_init(|| Mutex::new(None))
+        .get_or_init(|| Mutex::new(HashMap::new()))
         .lock()
         .map_err(|e| e.to_string())?
-        .as_ref()
+        .get(&vault_path_str)
     {
         info!("Returning cached graph data");
         return Ok(cached.clone());
     }
 
-    let vault_path_str = {
-        let s = state.lock().map_err(|e| e.to_string())?;
-        s.vault_path.to_string_lossy().to_string()
-    };
     let db_path = {
         let s = state.lock().map_err(|e| e.to_string())?;
         s.db_path.clone()
@@ -353,6 +357,7 @@ pub async fn get_graph_panel_data(
 
     info!("Building graph panel data from SQLite: {}", vault_path_str);
 
+    let cache_key = vault_path_str.clone();
     let result = tokio::task::spawn_blocking(move || {
         let store = pkm_block::BlockStore::open(&db_path).map_err(|e| e.to_string())?;
         let meta = PageMetaIndex::from_store(&store)?;
@@ -374,9 +379,12 @@ pub async fn get_graph_panel_data(
         orphans,
     };
 
-    // Cache the result
-    if let Ok(mut cache) = GRAPH_CACHE.get_or_init(|| Mutex::new(None)).lock() {
-        *cache = Some(panel_data.clone());
+    // Cache the result (keyed by vault path)
+    if let Ok(mut cache) = GRAPH_CACHE
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+    {
+        cache.insert(cache_key, panel_data.clone());
     }
 
     debug!(

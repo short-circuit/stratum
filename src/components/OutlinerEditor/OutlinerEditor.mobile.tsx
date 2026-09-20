@@ -24,6 +24,8 @@ import '@blocknote/mantine/style.css';
 import AISlashMenu from '../AISlashMenu';
 import AIFormattingToolbar from '../AIFormattingToolbar';
 import MarkerBadge from '../MarkerBadge';
+import MarkerSuggestMenu from './MarkerSuggestMenu';
+import WikiLinkAutocomplete from './WikiLinkAutocomplete';
 import { useEditorData } from './OutlinerEditor.shared';
 import type { Props } from './OutlinerEditor.shared';
 import MobileEditorOverlays from './MobileEditorOverlays';
@@ -38,8 +40,12 @@ export default function OutlinerEditorMobile(props: Props) {
     setStatus,
     setError,
     pageMarkers,
+    blockMetaRef,
+    persistBlocks,
     mathEdit,
     setMathEdit,
+    saving,
+    lastSavedAt,
     containerRef,
     preview,
     setPreview,
@@ -47,6 +53,12 @@ export default function OutlinerEditorMobile(props: Props) {
     setDeadLinkPopup,
     navigateRef,
   } = useEditorData(pagePath, autoFocus, minHeight);
+
+  const saveLabel = useMemo(() => {
+    if (saving) return 'Saving…';
+    if (lastSavedAt) return `Saved ${new Date(lastSavedAt).toLocaleTimeString()}`;
+    return null;
+  }, [saving, lastSavedAt]);
 
   // -----------------------------------------------------------------------
   // Insert actions
@@ -122,9 +134,20 @@ export default function OutlinerEditorMobile(props: Props) {
       >
         <AISlashMenu pagePath={pagePath} />
         <AIFormattingToolbar />
+        <MarkerSuggestMenu
+          blockMetaRef={blockMetaRef}
+          onSelect={() => {
+            try {
+              if (editor) persistBlocks(editor.document);
+            } catch (e) {
+              console.error('[OutlinerEditor] marker save failed:', e);
+            }
+          }}
+        />
+        <WikiLinkAutocomplete pagePath={pagePath} />
       </BlockNoteView>
     ),
-    [editor, pagePath, minHeight],
+    [editor, pagePath, minHeight, blockMetaRef, persistBlocks],
   );
 
   // -----------------------------------------------------------------------
@@ -195,8 +218,31 @@ export default function OutlinerEditorMobile(props: Props) {
         // Full-width: no side margins on mobile
         mx: 0,
         width: '100%',
+        position: 'relative',
       }}
     >
+      {saveLabel && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 12,
+            zIndex: 5,
+            px: 1,
+            py: 0.25,
+            borderRadius: 1,
+            bgcolor: 'background.paper',
+            border: '1px solid',
+            borderColor: 'divider',
+            boxShadow: 1,
+            pointerEvents: 'none',
+          }}
+        >
+          <Typography variant="caption" color={saving ? 'text.secondary' : 'text.disabled'}>
+            {saveLabel}
+          </Typography>
+        </Box>
+      )}
       {/* Marker badges row */}
       {pageMarkers.length > 0 && (
         <Box

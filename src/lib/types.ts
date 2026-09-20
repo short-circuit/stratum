@@ -175,6 +175,20 @@ export interface BacklinkContextDto {
   page_title: string | null;
 }
 
+/** Snippet of a note's content surrounding a backlink anchor (get_backlink_snippet). */
+export interface BacklinkSnippetDto {
+  /** Vault-relative path of the note containing the anchor. */
+  note_id: string;
+  /** Display title of the note (frontmatter title, else slug-derived). */
+  note_title: string;
+  /** The block id of the backlinked anchor. */
+  anchor_id: string;
+  /** The exact content of the backlinked block/paragraph. */
+  anchor_content: string;
+  /** Window of surrounding content (document order), including the anchor. */
+  context: string[];
+}
+
 // --- AI types ---
 
 export type AiAction = 'rewrite' | 'format' | 'structure' | 'summarize' | 'connect' | 'mermaid';
@@ -308,4 +322,48 @@ export interface SpeakerAssignDto {
   markdown: string;
   speaker_names: Record<string, string>;
   inserted_block_ids: string[];
+}
+
+// --- WASM plugins ---
+
+/** A plugin's runtime status as surfaced by `plugins_list`/`plugins_status`. */
+export type PluginStatus = 'ready' | 'disabled' | 'error';
+
+export interface PluginInfoDto {
+  id: string;
+  name: string;
+  version: string;
+  status: PluginStatus;
+  enabled: boolean;
+  permissions: string[];
+  /** Enabled hooks declared by the manifest (spec §8), e.g. `onSave`, `onOpen`. */
+  hooks?: string[];
+  /** Manifest author (spec §2). Present only when the manifest declares one. */
+  author?: string;
+  /** Manifest description (spec §2). Present only when the manifest declares one. */
+  description?: string;
+  /** Present only when `status === 'error'`. */
+  error?: string | null;
+}
+
+export interface PluginListResultDto {
+  plugins: PluginInfoDto[];
+}
+
+export interface PluginNoteReadDto {
+  path: string;
+  content: string;
+  mtime: string;
+}
+
+export interface PluginHttpRequestParams {
+  method: string;
+  url: string;
+  timeout_ms?: number;
+}
+
+export interface PluginHttpRequestDto {
+  status: number;
+  headers: [string, string][];
+  body: string;
 }

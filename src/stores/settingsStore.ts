@@ -12,6 +12,7 @@ export interface AiConfig {
   models: { name: string; capabilities: string[] }[];
   rag_enabled: boolean;
   rag_chunk_count: number;
+  embedding_dimensions: number;
 }
 
 export interface ThemeSettings {
@@ -119,6 +120,7 @@ const DEFAULT_AI: AiConfig = {
   models: [],
   rag_enabled: false,
   rag_chunk_count: 3,
+  embedding_dimensions: 0,
 };
 
 const DEFAULT_STT: SttSettings = {

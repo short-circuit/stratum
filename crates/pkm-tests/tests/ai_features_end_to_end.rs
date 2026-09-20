@@ -398,3 +398,172 @@ async fn tts_tauri_command_shape_is_consistent_with_client() {
         .unwrap();
     assert!(!bytes.is_empty());
 }
+
+// ── Transform / Mermaid / Interlink ────────────────────────────────────────
+// These mirror the building blocks used by `ai_transform_block`,
+// `generate_mermaid`, and `ai_interlink_notes`: a real provider built from the
+// vault config, driven with the same prompts against the mock OpenAI server,
+// producing the exact output the commands would return to the editor.
+
+#[tokio::test]
+async fn transform_block_returns_rewritten_text_from_provider() {
+    // `ai_transform_block` builds ProviderFactory::create(config.ai) and calls
+    // provider.chat with a system prompt + the selected text. Drive the same
+    // provider against the mock server and verify the response carries the
+    // LLM output the UI would paste back.
+    let server = mount_openai_server().await;
+    let provider = ProviderFactory::create(&ai_config(&server.uri())).unwrap();
+
+    let chat_config = ChatConfig::new(CHAT_MODEL)
+        .with_temperature(0.3)
+        .with_system_prompt("You are a writing assistant. Rewrite the text to be clearer.");
+    let response = provider
+        .chat(
+            &[pkm_ai::provider::ChatMessage::user(
+                "the quick brown fox jumps over the lazy dog",
+            )],
+            &chat_config,
+        )
+        .await
+        .unwrap();
+
+    assert!(
+        response.content.contains("memory safety"),
+        "transform must return the provider output: {}",
+        response.content
+    );
+    assert_eq!(response.usage.completion_tokens, 5);
+}
+
+#[tokio::test]
+async fn mermaid_generation_returns_diagram_from_provider() {
+    // `generate_mermaid` calls provider.chat with the mermaid system prompt and
+    // returns the code block the editor inserts as a mermaid block.
+    let server = mount_openai_server().await;
+    let provider = ProviderFactory::create(&ai_config(&server.uri())).unwrap();
+
+    let chat_config = ChatConfig::new(CHAT_MODEL)
+        .with_temperature(0.3)
+        .with_system_prompt("You generate Mermaid diagrams. Respond only with the Mermaid code.");
+    let response = provider
+        .chat(
+            &[pkm_ai::provider::ChatMessage::user(
+                "a flowchart for a login flow",
+            )],
+            &chat_config,
+        )
+        .await
+        .unwrap();
+
+    assert!(
+        !response.content.trim().is_empty(),
+        "mermaid generation must return diagram code"
+    );
+}
+
+#[tokio::test]
+async fn interlink_suggestions_find_related_notes_and_rewrite_with_links() {
+    // `ai_interlink_notes` runs RelatedFinder over the vault store + index to
+    // surface candidate [[wiki-links]], then asks the provider to add up to 1-3
+    // genuine links. Build the real store + block index, seed two related
+    // pages, and verify the whole suggestion pipeline resolves.
+    let server = mount_openai_server().await;
+
+    let vault = TempDir::new().unwrap();
+    let index_path = vault.path().join(".pkm").join("search");
+    std::fs::create_dir_all(&index_path).unwrap();
+    let mut index = pkm_index::block_search::BlockIndex::create(&index_path).unwrap();
+
+    let store = pkm_block::BlockStore::open(&vault.path().join(".pkm").join("blocks.db")).unwrap();
+
+    // Seed two pages: one about "homelab hardware" and one about "gardening".
+    let p1 = vault.path().join("pages/homelab.md");
+    std::fs::create_dir_all(p1.parent().unwrap()).unwrap();
+    std::fs::write(&p1, "The homelab runs on a Xeon E-2224 with a RTX 4090.").unwrap();
+    let page1 = pkm_block::Page::new(p1, vault.path());
+    store.upsert_page(&page1).unwrap();
+    let b1 = pkm_block::Block::new(
+        uuid::Uuid::new_v4(),
+        "The homelab runs on a Xeon E-2224 with a RTX 4090.".into(),
+    );
+    store.insert_block(&b1, "pages/homelab.md").unwrap();
+    index.index_block(&b1, "pages/homelab.md").unwrap();
+
+    let p2 = vault.path().join("pages/gardening.md");
+    std::fs::create_dir_all(p2.parent().unwrap()).unwrap();
+    std::fs::write(
+        &p2,
+        "Tomatoes need full sun and consistent watering to thrive.",
+    )
+    .unwrap();
+    let page2 = pkm_block::Page::new(p2, vault.path());
+    store.upsert_page(&page2).unwrap();
+    let b2 = pkm_block::Block::new(
+        uuid::Uuid::new_v4(),
+        "Tomatoes need full sun and consistent watering to thrive.".into(),
+    );
+    store.insert_block(&b2, "pages/gardening.md").unwrap();
+    index.index_block(&b2, "pages/gardening.md").unwrap();
+    index.flush().unwrap();
+
+    // The interlink command's keyword split predicate + RelatedFinder.
+    let split_pred = |c: char| c.is_whitespace() || c == '#' || c == '*' || c == '[' || c == ']';
+    let related = pkm_index::related::RelatedFinder::new()
+        .split_predicate(split_pred)
+        .find_related(
+            &store,
+            &index_path,
+            "the homelab gpu and cpu specs",
+            Some("current"),
+        )
+        .unwrap();
+
+    assert!(
+        !related.is_empty(),
+        "related-finder must surface the homelab page from keyword overlap"
+    );
+    assert!(
+        related.iter().any(|r| r.title == "homelab"),
+        "homelab page must be a related candidate: {:?}",
+        related.iter().map(|r| r.title.as_str()).collect::<Vec<_>>()
+    );
+
+    // The LLM step then returns markdown with wiki-links added — same provider
+    // call the command makes.
+    let provider = ProviderFactory::create(&ai_config(&server.uri())).unwrap();
+    let notes_list = format!(
+        "\n\nExisting notes in your vault that you can link to:\n{}",
+        related
+            .iter()
+            .map(|r| format!("- [[{}]]", r.title))
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    let system = format!(
+        "You are a knowledge connection assistant. Analyze the markdown text and add [[wiki-links]] \
+         to genuinely related notes from the vault list below.\n\n\
+         RULES:\n\
+         - Only link a word/phrase if IT IS the main topic of the target note, not just a word match.\n\
+         - Aim for 1-3 high-quality links total.\n\
+         - Preserve ALL existing markdown formatting exactly as-is.\n\
+         - Return ONLY the markdown with wiki-links added. No explanations.\n\n\
+         Available notes to link to:{notes_list}"
+    );
+    let chat_config = ChatConfig::new(CHAT_MODEL)
+        .with_temperature(0.2)
+        .with_system_prompt(system);
+    let response = provider
+        .chat(
+            &[pkm_ai::provider::ChatMessage::user(
+                "The homelab GPU is a RTX 4090.",
+            )],
+            &chat_config,
+        )
+        .await
+        .unwrap();
+
+    assert!(
+        !response.content.trim().is_empty(),
+        "interlink provider step must return linked markdown"
+    );
+}

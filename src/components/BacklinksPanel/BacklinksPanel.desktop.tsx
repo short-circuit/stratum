@@ -14,9 +14,11 @@ import { useCtrlHeld } from '../../lib/useCtrlHeld';
 import type { BacklinkItem } from '../../lib/types';
 import { useBacklinksData, usePreview } from './BacklinksPanel.shared';
 import type { BacklinksPanelProps } from './BacklinksPanel.shared';
+import { useBacklinkNavigation } from '../../lib/backlinkNavigation';
 
 const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: BacklinksPanelProps) {
   const navigate = useNavigate();
+  const navigateBacklink = useBacklinkNavigation();
   const { backlinks, loading, linked, unlinked } = useBacklinksData(pagePath);
   const { preview, showPreview, dismissPreview } = usePreview();
   const ctrlHeld = useCtrlHeld();
@@ -55,7 +57,7 @@ const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: 
                   <ListItemButton
                     key={i}
                     dense
-                    onClick={() => navigate(`/page/${encodeURIComponent(bl.source_page)}`)}
+                    onClick={(e) => navigateBacklink(bl.source_page, e)}
                     onMouseEnter={(e) => handleMouseEnter(bl, e)}
                     onMouseLeave={handleMouseLeave}
                     sx={{ borderRadius: 1, flexDirection: 'column', alignItems: 'flex-start' }}
@@ -78,7 +80,7 @@ const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: 
                   <ListItemButton
                     key={i}
                     dense
-                    onClick={() => navigate(`/page/${encodeURIComponent(bl.source_page)}`)}
+                    onClick={(e) => navigateBacklink(bl.source_page, e)}
                     onMouseEnter={(e) => handleMouseEnter(bl, e)}
                     onMouseLeave={handleMouseLeave}
                     sx={{ borderRadius: 1, flexDirection: 'column', alignItems: 'flex-start' }}

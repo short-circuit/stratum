@@ -53,6 +53,7 @@ export interface MobileAiAccordionProps {
     api_key_from_env: boolean;
     model: string;
     rag_enabled: boolean;
+    embedding_dimensions: number;
   };
   updateAi: (patch: any) => void;
 }
@@ -139,6 +140,14 @@ export default function MobileAiAccordion({ ai, updateAi }: MobileAiAccordionPro
                 />
               }
               label="Enable RAG"
+            />
+            <TextField
+              label="Embedding Dimensions (0 = auto)"
+              type="number"
+              value={ai?.embedding_dimensions ?? 0}
+              onChange={e => updateAi({ embedding_dimensions: parseInt(e.target.value) || 0 })}
+              size="small"
+              slotProps={{ htmlInput: { min: 0, max: 4096 } }}
             />
           </Box>
         </AccordionDetails>

@@ -49,12 +49,33 @@ export function normalizeContent(text: string): string {
     if (d.toLowerCase() === t.toLowerCase()) return `[[${t}]]`;
     return `[[${t}|${d}]]`;
   });
-  // [[[[[text]]]]] → [[text]]
-  // eslint-disable-next-line no-useless-escape
-  r = r.replace(/\[{2,}([^\[\]]+)\]{2,}/g, '[[$1]]');
-  // [[[text]]]() → [[text]]  (orphaned () from corrupted markdown links)
-  // eslint-disable-next-line no-useless-escape
-  r = r.replace(/\[{2,}([^\[\]]+)\]{2,}\(\)/g, '[[$1]]');
+  // Collapse any number of doubled brackets iteratively until stable:
+  //   [[[[[text]]]]] → [[text]]
+  //   [[[[Target|display]]|display]] → [[Target|display]]   (piped double-wrap)
+  //   [[[text]]]() → [[text]]          (orphaned () from corrupted markdown links)
+  // A single pass is insufficient because pipes can leave a trailing wrapper
+  // ([[A|B]]|B]]) that earlier collapses cannot see.
+  let prev: string;
+  let guard = 0;
+  do {
+    prev = r;
+    // eslint-disable-next-line no-useless-escape
+    r = r.replace(/\[{2,}([^\[\]]+)\]{2,}/g, '[[$1]]');
+    // Fix piped double-wrap where the outer trailing segment repeats the display.
+    r = r.replace(
+      // eslint-disable-next-line no-useless-escape
+      /\[\[([^\[\]]+)\|([^\[\]]*)\]\](?:\|([^\[\]]*))?\]\]/g,
+      (full, target, display, tail) => {
+        if (tail === undefined) return `[[${target}|${display}]]`;
+        if (tail === display) return `[[${target}|${display}]]`;
+        return full;
+      },
+    );
+    // Orphaned () from corrupted markdown links.
+    // eslint-disable-next-line no-useless-escape
+    r = r.replace(/\[{2,}([^\[\]]+)\]{2,}\(\)/g, '[[$1]]');
+    if (++guard > 10) break;
+  } while (r !== prev);
   return r;
 }
 
@@ -64,7 +85,16 @@ export function parseContentToInlineItems(text: string): InlineItem[] {
   if (!text) return [{ type: 'text', text: '', styles: {} }];
   const items: InlineItem[] = [];
   let pos = 0;
-  const RE = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(~~(.+?)~~)|(`(.+?)`)|(\[\[([^\]]+?)(?:\|([^\]]*))?\]\])|(#([a-zA-Z][a-zA-Z0-9_\-/]*))/g;
+  // Note: the wiki-link target capture excludes `[` as well as `]`. Legacy
+  // corruption can carry extra brackets inside the target (e.g. `[[[[T]]]]`).
+  // If we allowed `[` in the target, the first match would absorb the leading
+  // bracket pair into the target and re-serialize into a mangled piped link
+  // (`[[T|[[T]]]]`). Excluding it makes such input fall through to the text
+  // branch, which round-trips byte-stable (the app normalizes it at load).
+  // Note: `\[`/`\]` inside the character class are intentionally kept — they
+  // exclude literal brackets from the wiki-link target capture (see above).
+  // eslint-disable-next-line no-useless-escape -- brackets must be excluded literally
+  const RE = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(~~(.+?)~~)|(`(.+?)`)|(\[\[([^\[\]]+?)(?:\|([^\[\]]*))?\]\])|(#([a-zA-Z][a-zA-Z0-9_\-/]*))/g;
   let m: RegExpExecArray | null;
   while ((m = RE.exec(text)) !== null) {
     if (m.index > pos) {
@@ -79,8 +109,8 @@ export function parseContentToInlineItems(text: string): InlineItem[] {
     } else if (m[8] !== undefined) {
       items.push({ type: 'text', text: m[8], styles: { code: true } });
     } else if (m[9] !== undefined) {
-      const target = m[9].trim();
-      const display = (m[11] || m[9]).trim();
+      const target = (m[10] ?? m[9]).trim();
+      const display = (m[11] || m[10] || m[9]).trim();
       items.push({
         type: 'link',
         href: PREFIX + target,
@@ -118,7 +148,10 @@ export function inlineItemsToContent(items: InlineItem[]): string {
         const text = item.content?.map((c: TextItem) => c?.text || '').join('') || '';
         out += text;
       } else if (isWikiLinkHref(item.href || '')) {
-        const target = extractWikiLinkTarget(item.href);
+        // Guard against legacy corrupted hrefs that carry stray brackets
+        // ([[Target]] wrapped into the target) — strip them so the serializer
+        // cannot re-wrap into [[[[Target]]]] on the next round trip.
+        const target = extractWikiLinkTarget(item.href).replace(/[[\]]/g, '').trim();
         const display = item.content?.map((c: TextItem) => c?.text || '').join('') || target;
         if (display === target || display.replace(/-/g, ' ') === target.replace(/-/g, ' ')) {
           out += `[[${target}]]`;
