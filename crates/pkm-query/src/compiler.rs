@@ -373,7 +373,7 @@ mod tests {
         )
         .unwrap();
         let c = compile(&q).unwrap();
-        assert!(c.sql.contains("json_each"), "SQL: {}\n", c.sql);
+        assert!(c.sql.contains("json_each"), "SQL: {}", c.sql);
         // A substring #project match is required so `:block/tags "project"`
         // actually finds blocks whose content carries `#project`; the JSON
         // `tags` property check binds the second parameter.
