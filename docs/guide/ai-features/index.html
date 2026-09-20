@@ -646,6 +646,8 @@
       
         
       
+        
+      
     
     
     
@@ -1225,10 +1227,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ai-chat-slash-menu" class="md-nav__link">
+  <a href="#ai-slash-menu" class="md-nav__link">
     <span class="md-ellipsis">
       
-        AI Chat (Slash Menu)
+        AI Slash Menu
       
     </span>
   </a>
@@ -1387,6 +1389,34 @@
     
   
     Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
   
 
     
@@ -1998,10 +2028,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ai-chat-slash-menu" class="md-nav__link">
+  <a href="#ai-slash-menu" class="md-nav__link">
     <span class="md-ellipsis">
       
-        AI Chat (Slash Menu)
+        AI Slash Menu
       
     </span>
   </a>
@@ -2122,7 +2152,7 @@
 <li>Enter the <strong>API Endpoint</strong> (for Ollama/custom) or <strong>API Key</strong> (for cloud)</li>
 <li>Set the <strong>Default Chat Model</strong></li>
 <li>Click <strong>Fetch Models</strong> to refresh the model list</li>
-<li>Assign <strong>capabilities</strong> to each model: <code>chat</code>, <code>embedding</code></li>
+<li>Assign <strong>capabilities</strong> to each model: <code>chat</code>, <code>embedding</code>, <code>tts</code></li>
 <li>Toggle <strong>RAG</strong> on for retrieval-augmented generation</li>
 <li>Click <strong>Save</strong></li>
 </ol>
@@ -2143,6 +2173,10 @@ above — no separate configuration is required.</p>
 <li>The <strong>model</strong> is selected from the model list you assign the <code>embedding</code>
   capability to in Settings → AI. If no model has that capability, the default
   chat model is used instead.</li>
+<li>The <strong>embedding dimensions</strong> are inferred automatically from the first
+  response (set <strong>0 = auto</strong> in Settings → AI). Some OpenAI-compatible
+  endpoints support a fixed-size request; you can pin it explicitly in
+  Settings → AI if the server accepts only a locked dimensionality.</li>
 <li>An <strong>API key</strong> (when configured) is sent as <code>Authorization: Bearer &lt;key&gt;</code>.
   For OpenAI-compatible providers the <code>OPENAI_API_KEY</code> environment variable is
   respected as a fallback.</li>
@@ -2189,43 +2223,100 @@ endpoint's message.</p>
   do.</li>
 </ul>
 <h2 id="ai-transform-actions">AI Transform Actions<a class="headerlink" href="#ai-transform-actions" title="Permanent link">&para;</a></h2>
-<p>The AI can transform block content directly in the editor. Select text and choose an action:</p>
+<p>The editor formatting toolbar provides AI actions for the selected text:</p>
 <table>
 <thead>
 <tr>
-<th>Action</th>
+<th>Toolbar action</th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>Rewrite</strong></td>
+<td><strong>Rewrite</strong> (✨)</td>
 <td>Improve clarity and flow while preserving meaning</td>
 </tr>
 <tr>
-<td><strong>Format</strong></td>
+<td><strong>Format</strong> (🎨)</td>
 <td>Clean up markdown, fix syntax, consistent headings</td>
 </tr>
 <tr>
-<td><strong>Structure</strong></td>
-<td>Organize notes into hierarchical sections</td>
-</tr>
-<tr>
-<td><strong>Summarize</strong></td>
+<td><strong>Summarize</strong> (📝)</td>
 <td>Condense text while preserving key points</td>
 </tr>
 <tr>
-<td><strong>Connect</strong></td>
-<td>Add relevant <code>[[wiki-links]]</code> to related concepts</td>
+<td><strong>Research</strong> (🌐)</td>
+<td>Search the web and write a research summary</td>
 </tr>
 <tr>
-<td><strong>Generate Mermaid</strong></td>
-<td>Create a diagram from a text description</td>
+<td><strong>Mermaid</strong> (📊)</td>
+<td>Generate a Mermaid diagram from the selection</td>
+</tr>
+<tr>
+<td><strong>Read aloud</strong> (🔊)</td>
+<td>Synthesize the selection to speech (see TTS below)</td>
 </tr>
 </tbody>
 </table>
-<h2 id="ai-chat-slash-menu">AI Chat (Slash Menu)<a class="headerlink" href="#ai-chat-slash-menu" title="Permanent link">&para;</a></h2>
-<p>Type <code>/</code> in the editor to open the AI slash menu. This gives you access to inline AI operations.</p>
+<h2 id="ai-slash-menu">AI Slash Menu<a class="headerlink" href="#ai-slash-menu" title="Permanent link">&para;</a></h2>
+<p>Type <code>/</code> in the editor to open the AI slash menu. All transforms are
+available there too, plus page-scoped operations:</p>
+<table>
+<thead>
+<tr>
+<th>Slash command</th>
+<th>Scope</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rewrite / Format Selection / Summarize</td>
+<td>Selection</td>
+<td>Same as the toolbar actions</td>
+</tr>
+<tr>
+<td>Structure Journal</td>
+<td>Page (journal)</td>
+<td>Organize daily notes into sections</td>
+</tr>
+<tr>
+<td>Format Notes</td>
+<td>Page (journal)</td>
+<td>Clean up formatting and markdown for the whole journal</td>
+</tr>
+<tr>
+<td>Format &amp; Structure</td>
+<td>Page</td>
+<td>Organize and clean up formatting for the whole page</td>
+</tr>
+<tr>
+<td>Summarize Page</td>
+<td>Page</td>
+<td>Create a concise page summary</td>
+</tr>
+<tr>
+<td>Research with Web</td>
+<td>Page</td>
+<td>Search the web and write research notes from the page or selection</td>
+</tr>
+<tr>
+<td>Interlink Notes</td>
+<td>Page</td>
+<td>Add <code>[[wiki-links]]</code> to related notes found in your vault</td>
+</tr>
+<tr>
+<td>Generate Mermaid Diagram</td>
+<td>Page</td>
+<td>Create a diagram from a description</td>
+</tr>
+<tr>
+<td>Math Equation</td>
+<td>Insert</td>
+<td>Insert a LaTeX math equation</td>
+</tr>
+</tbody>
+</table>
 <!-- SCREENSHOT: [ai-slash-menu] AI slash menu with available actions -->
 
 <h2 id="rag-chat-ask-your-notes">RAG Chat — "Ask your notes"<a class="headerlink" href="#rag-chat-ask-your-notes" title="Permanent link">&para;</a></h2>
@@ -2248,17 +2339,23 @@ down or misconfigured, the error is surfaced in the panel.</p>
 
 <p>This means the AI answers based on <em>your</em> knowledge, not just its training data.</p>
 <h2 id="text-to-speech-read-aloud">Text-to-Speech — Read Aloud<a class="headerlink" href="#text-to-speech-read-aloud" title="Permanent link">&para;</a></h2>
-<p>Beyond the Settings test button, TTS playback is wired into two entry points:</p>
+<p>Beyond the Settings test button, TTS playback is wired into these entry points:</p>
 <ul>
 <li><strong>Formatting toolbar</strong> — select text in the editor and click <strong>Read aloud</strong>
   (🔊) to synthesize and play the selection via the configured endpoint.</li>
+<li><strong>Block context menu</strong> — right-click a block in the editor (desktop), or
+  long-press a block (mobile) and choose <strong>Read aloud</strong>, to hear that block's
+  content spoken.</li>
 <li><strong>Ask Notes panel</strong> — click the speaker icon next to an answer to hear it
   read aloud.</li>
 </ul>
-<p>Both surface endpoint errors inline if synthesis fails. Audio is synthesized
-per request and played in place — nothing is written to disk.</p>
+<p>All of these surface endpoint errors inline if synthesis fails. Audio is
+synthesized per request and played in place — nothing is written to disk.</p>
 <h2 id="interlink-notes">Interlink Notes<a class="headerlink" href="#interlink-notes" title="Permanent link">&para;</a></h2>
-<p>The <strong>Connect</strong> action scans a block and suggests <code>[[wiki-links]]</code> to related pages in your vault. This is useful for:</p>
+<p>The <strong>Interlink Notes</strong> slash command (see above) scans a note and suggests
+<code>[[wiki-links]]</code> to genuinely related pages in your vault. The LLM is only
+allowed to link to notes that already exist in your vault, and it aims for
+1–3 high-quality links rather than one per keyword. This is useful for:</p>
 <ul>
 <li>Backfilling links when importing notes</li>
 <li>Discovering connections between separate topics</li>

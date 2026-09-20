@@ -646,6 +646,8 @@
       
         
       
+        
+      
     
     
     
@@ -913,6 +915,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Backlinks Panel">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backlink-snippet-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backlink Snippet API
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1382,6 +1401,34 @@
     
   
     Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
   
 
     
@@ -2018,6 +2065,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Backlinks Panel">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backlink-snippet-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backlink Snippet API
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2121,6 +2185,31 @@
 - The source page title
 - A snippet of context around the link/mention
 - A click to navigate to the source</p>
+<h3 id="backlink-snippet-api">Backlink Snippet API<a class="headerlink" href="#backlink-snippet-api" title="Permanent link">&para;</a></h3>
+<p>The backend exposes a snippet endpoint that returns the exact backlinked block
+plus a bounded window of surrounding context from the source note, with note
+title, note id, and anchor id. This powers the hover preview and any surface
+that needs to display the note content around a backlink anchor.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>GET /api/notes/:id/backlink-snippet?ref=&lt;backlink-ref&gt;
+</code></pre></div>
+<ul>
+<li><code>:id</code> — vault-relative path of the note containing the anchor</li>
+<li><code>ref</code> — the block id (UUID) of the backlinked anchor</li>
+</ul>
+<p>Response payload:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>{
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  "note_id":        "pages/project-x.md",
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  "note_title":     "Project X",
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>  "anchor_id":      "8f3e…uuid…",
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>  "anchor_content": "See [[Project X]] for the launch timeline.",
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>  "context":        ["Preceding paragraph", "See [[Project X]] for the launch timeline.", "Follow-up paragraph"]
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>}
+</code></pre></div>
+<p>A missing note or missing anchor returns a 404-style error (<code>Note not found</code> /
+<code>Block not found</code>). The <code>context</code> array carries the anchor block itself plus up
+to two adjacent blocks on each side, in document order, so the UI can render
+the backlinked portion with surrounding context without shipping the whole
+note.</p>
 <h2 id="suggested-connections">Suggested Connections<a class="headerlink" href="#suggested-connections" title="Permanent link">&para;</a></h2>
 <p>The <strong>Suggested Connections</strong> panel (below backlinks) uses AI to find pages that are semantically related but not yet linked:</p>
 <ol>

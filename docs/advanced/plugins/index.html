@@ -644,6 +644,8 @@
       
         
       
+        
+      
     
     
     
@@ -1210,6 +1212,34 @@
     
   
     Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
   
 
     
@@ -1929,6 +1959,28 @@
     <span class="md-ellipsis">
       
         9.7 plugin_http_request (host test)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#98-plugins_install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.8 plugins_install
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#99-plugins_uninstall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.9 plugins_uninstall
       
     </span>
   </a>
@@ -2757,6 +2809,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#98-plugins_install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.8 plugins_install
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#99-plugins_uninstall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.9 plugins_uninstall
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3007,9 +3081,18 @@ parse, schema validation, or permission validation yields
 </code></pre></div>
 <h2 id="3-host-function-abi">3. Host function ABI<a class="headerlink" href="#3-host-function-abi" title="Permanent link">&para;</a></h2>
 <h3 id="31-module-layout">3.1 Module layout<a class="headerlink" href="#31-module-layout" title="Permanent link">&para;</a></h3>
-<p>Plugins are instantiated as <strong>core modules</strong> with <strong>no WASI context</strong>. The host
-linker provides a single import namespace <code>"pkm"</code> with the imports below, plus the
-reserved no-op <code>"wasi_snapshot_preview1"</code> module (see §7.1).</p>
+<p>Plugins are instantiated as <strong>wasm32 core modules</strong>. The host linker provides
+two import namespaces:</p>
+<ul>
+<li><code>"pkm"</code> — the plugin host API below (the sanctioned way to touch the vault).</li>
+<li><code>"wasi_snapshot_preview1"</code> — the <strong>real WASI preview1</strong> surface
+  (<code>fd_write</code>, <code>environ_get</code>, <code>proc_exit</code>, <code>random_get</code>, clocks, …). This is
+  wired through wasmtime's WASIp1 implementation, so genuine <code>wasm32-wasip1</code>
+  builds — including Rust <code>std</code> cdylibs whose CRT references these symbols —
+  instantiate with their real import signatures. See §7.1.</li>
+</ul>
+<p>There are no other import namespaces; an import from any other module/name
+fails instantiation with <code>PluginLoadError</code>.</p>
 <h3 id="32-imported-functions">3.2 Imported functions<a class="headerlink" href="#32-imported-functions" title="Permanent link">&para;</a></h3>
 <p>Every host function has the WASM type <code>(param i32 i32) (result i32)</code>:</p>
 <ul>
@@ -3433,12 +3516,16 @@ v0.7.x series.</p>
 <h2 id="7-runtime-instantiation-lifecycle">7. Runtime instantiation &amp; lifecycle<a class="headerlink" href="#7-runtime-instantiation-lifecycle" title="Permanent link">&para;</a></h2>
 <h3 id="71-instantiation">7.1 Instantiation<a class="headerlink" href="#71-instantiation" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Engine: wasmtime, <code>wasm32-unknown-unknown</code> target, <strong>no</strong> WASI context.</li>
+<li>Engine: wasmtime. <code>wasm32-unknown-unknown</code> modules (no WASI imports) and
+  genuine <code>wasm32-wasip1</code> modules (WASI preview1 imports) both instantiate.</li>
 <li>The linker registers:</li>
 <li>the <code>pkm</code> module with the four imports in §3.2, and</li>
-<li>the reserved <code>wasi_snapshot_preview1</code> module, whose <code>fd_write</code> is a no-op,
-    so toolchains that reference it (e.g. <code>wasm32-wasi</code>-built modules) instantiate
-    without error.</li>
+<li>the <strong>real WASI preview1</strong> implementation from wasmtime's WASIp1 support
+    (<code>fd_write</code>, <code>environ_get</code>, <code>environ_sizes_get</code>, <code>proc_exit</code>, <code>random_get</code>,
+    clock functions, …) with their standard signatures.</li>
+<li>No filesystem is preopened for WASI: a plugin that wants raw <code>std::fs</code> access
+  to the host filesystem sees WASI's default empty host — vault I/O is done
+  exclusively through the <code>pkm.*</code> host API, which keeps the sandbox exact.</li>
 <li>A module that imports any other namespace/name fails instantiation with
   <code>PluginLoadError</code> and a descriptive message; the plugin does not load.</li>
 </ul>
@@ -3516,9 +3603,14 @@ Presently recognized hook names and their host call signatures:</p>
 </tbody>
 </table>
 <p>Hook dispatch runs synchronously within the triggering host operation; a hook
-that traps logs the error and does not abort the surrounding operation. This is
-defined for future consumers; hook <strong>delivery</strong> is implemented in the E3
-integration task.</p>
+that traps logs the error and does not abort the surrounding operation. <strong>Hook
+delivery:</strong> <code>onSave</code> and <code>onLink</code> are dispatched from the page save flow
+(<code>dispatch_on_save</code> / <code>dispatch_on_link</code> — the link targets are extracted from
+the saved content via <code>pkm_markdown::linker::extract_links</code>). <code>onOpen</code> is
+dispatched from the page open flow (<code>dispatch_on_open</code> in <code>open_page</code>), and
+<code>onSearch</code> from the full-text search flow (<code>dispatch_on_search</code> in
+<code>search_blocks</code>). Any hook that traps or fails is logged and skipped — it never
+aborts the surrounding operation.</p>
 <h2 id="9-tauri-command-surface">9. Tauri command surface<a class="headerlink" href="#9-tauri-command-surface" title="Permanent link">&para;</a></h2>
 <p>The frontend calls only the commands below. Names, argument names, and DTO shapes
 are normative.</p>
@@ -3534,14 +3626,23 @@ are normative.</p>
 <a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">status</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span><span class="w">       </span><span class="c1">// "ready" | "disabled" | "error"</span>
 <a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">enabled</span><span class="p">:</span><span class="w"> </span><span class="kt">bool</span><span class="p">,</span>
 <a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">permissions</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
-<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a><span class="w">    </span><span class="cp">#[serde(skip_serializing_if = </span><span class="s">"Option::is_none"</span><span class="cp">)]</span>
-<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">error</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="c1">// set when status == "error"</span>
-<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="p">}</span>
-<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a>
-<a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a><span class="cp">#[derive(Debug, Clone, Serialize)]</span>
-<a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">PluginListResult</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">plugins</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">PluginInfo</span><span class="o">&gt;</span><span class="p">,</span>
-<a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a><span class="p">}</span>
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a><span class="w">    </span><span class="sd">/// Enabled hooks declared by the manifest (spec §8); empty when none.</span>
+<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="w">    </span><span class="cp">#[serde(default, skip_serializing_if = </span><span class="s">"Vec::is_empty"</span><span class="cp">)]</span>
+<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">hooks</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="w">    </span><span class="sd">/// Manifest author (spec §2); empty when the manifest omits it.</span>
+<a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a><span class="w">    </span><span class="cp">#[serde(default, skip_serializing_if = </span><span class="s">"String::is_empty"</span><span class="cp">)]</span>
+<a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">author</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a><span class="w">    </span><span class="sd">/// Manifest description (spec §2); empty when the manifest omits it.</span>
+<a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a><span class="w">    </span><span class="cp">#[serde(default, skip_serializing_if = </span><span class="s">"String::is_empty"</span><span class="cp">)]</span>
+<a id="__codelineno-17-17" name="__codelineno-17-17" href="#__codelineno-17-17"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">description</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-17-18" name="__codelineno-17-18" href="#__codelineno-17-18"></a><span class="w">    </span><span class="cp">#[serde(skip_serializing_if = </span><span class="s">"Option::is_none"</span><span class="cp">)]</span>
+<a id="__codelineno-17-19" name="__codelineno-17-19" href="#__codelineno-17-19"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">error</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="c1">// set when status == "error"</span>
+<a id="__codelineno-17-20" name="__codelineno-17-20" href="#__codelineno-17-20"></a><span class="p">}</span>
+<a id="__codelineno-17-21" name="__codelineno-17-21" href="#__codelineno-17-21"></a>
+<a id="__codelineno-17-22" name="__codelineno-17-22" href="#__codelineno-17-22"></a><span class="cp">#[derive(Debug, Clone, Serialize)]</span>
+<a id="__codelineno-17-23" name="__codelineno-17-23" href="#__codelineno-17-23"></a><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">PluginListResult</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-17-24" name="__codelineno-17-24" href="#__codelineno-17-24"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">plugins</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">PluginInfo</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-17-25" name="__codelineno-17-25" href="#__codelineno-17-25"></a><span class="p">}</span>
 </code></pre></div>
 <h3 id="91-plugins_list">9.1 <code>plugins_list</code><a class="headerlink" href="#91-plugins_list" title="Permanent link">&para;</a></h3>
 <p>List installed plugins with status. No arguments.</p>
@@ -3583,6 +3684,29 @@ so authors/QA can verify path behavior.</p>
 </code></pre></div>
 <p>Errors: <code>http_transport</code>, <code>http_timeout</code>, <code>http_ssid</code>, <code>http_status</code>,
 <code>invalid_argument</code>, <code>plugin_denied</code>.</p>
+<h3 id="98-plugins_install">9.8 <code>plugins_install</code><a class="headerlink" href="#98-plugins_install" title="Permanent link">&para;</a></h3>
+<p>Installs a plugin from a WASM file path. The source may be a canonical
+<code>plugin.wasm</code> (embedded <code>stratum:manifest</code>) or a bare <code>.wasm</code> with a sibling
+<code>.wasm.manifest.json</code> sidecar. The host copies the source into
+<code>&lt;vault&gt;/.pkm/plugins/&lt;id&gt;/plugin.wasm</code> (canonical layout), registers it in the
+registry, and persists it to <code>pkm_core::Config</code> <code>[[plugins]]</code>.</p>
+<p>A freshly installed plugin is <strong>disabled</strong> by default (consistent with §7.3:
+plugins absent from the config enable list are loaded disabled). Re-installing
+an id that is already enabled in the config keeps it enabled (upgrade path).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>invoke("plugins_install", { path: string }) -&gt; PluginInfo
+</code></pre></div>
+<p>Errors: <code>plugin_not_found</code> (source missing), <code>plugin_load_error</code> (invalid
+manifest or module that does not compile), <code>invalid_argument</code> / runtime
+(no vault open).</p>
+<h3 id="99-plugins_uninstall">9.9 <code>plugins_uninstall</code><a class="headerlink" href="#99-plugins_uninstall" title="Permanent link">&para;</a></h3>
+<p>Uninstalls a plugin by id: unloads it from the registry, removes its
+<code>&lt;vault&gt;/.pkm/plugins/&lt;id&gt;/</code> directory, and removes its entry from
+<code>pkm_core::Config</code> <code>[[plugins]]</code>. Returns the updated plugin list so the UI
+can refresh deterministically.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>invoke("plugins_uninstall", { id: string }) -&gt; PluginListResult
+</code></pre></div>
+<p>Errors: <code>plugin_uninstall_error</code> (filesystem failure). Uninstalling an unknown
+id is not an error (no-op).</p>
 <h2 id="10-ssrf-guard-details">10. SSRF guard details<a class="headerlink" href="#10-ssrf-guard-details" title="Permanent link">&para;</a></h2>
 <p>The allowlist is read from <code>pkm_core::Config</code> field
 <code>network.allowlist</code> (list of host strings or CIDR strings). Evaluation order:</p>
@@ -3604,68 +3728,68 @@ scope for this contract (documented limitation).</p>
 </ul>
 <h2 id="12-rust-typetrait-definitions-reference">12. Rust type/trait definitions (reference)<a class="headerlink" href="#12-rust-typetrait-definitions-reference" title="Permanent link">&para;</a></h2>
 <p>The following drive the host implementations; they are normative.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="c1">// crates/pkm-plugin/src/abi.rs</span>
-<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="k">use</span><span class="w"> </span><span class="n">serde</span><span class="p">::{</span><span class="n">Deserialize</span><span class="p">,</span><span class="w"> </span><span class="n">Serialize</span><span class="p">};</span>
-<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>
-<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="k">pub</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">HOST_PAYLOAD_MAX</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">20</span><span class="p">;</span><span class="w"> </span><span class="c1">// 1 MiB</span>
-<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="k">pub</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">HTTP_TIMEOUT_MS_DEFAULT</span><span class="p">:</span><span class="w"> </span><span class="kt">u64</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10_000</span><span class="p">;</span>
-<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>
-<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="cp">#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]</span>
-<a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">HostFunction</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Log</span><span class="p">,</span><span class="w"> </span><span class="n">NoteRead</span><span class="p">,</span><span class="w"> </span><span class="n">NoteWrite</span><span class="p">,</span><span class="w"> </span><span class="n">HttpRequest</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a>
-<a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a><span class="cp">#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]</span>
-<a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a><span class="cp">#[serde(rename_all = </span><span class="s">"snake_case"</span><span class="cp">)]</span>
-<a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">PluginErrorCode</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-25-13" name="__codelineno-25-13" href="#__codelineno-25-13"></a><span class="w">    </span><span class="n">PluginDenied</span><span class="p">,</span><span class="w"> </span><span class="n">PluginNotFound</span><span class="p">,</span><span class="w"> </span><span class="n">PluginLoadError</span><span class="p">,</span><span class="w"> </span><span class="n">PluginRuntimeError</span><span class="p">,</span>
-<a id="__codelineno-25-14" name="__codelineno-25-14" href="#__codelineno-25-14"></a><span class="w">    </span><span class="n">NoteNotFound</span><span class="p">,</span><span class="w"> </span><span class="n">NoteWriteFailed</span><span class="p">,</span><span class="w"> </span><span class="n">HttpTransport</span><span class="p">,</span><span class="w"> </span><span class="n">HttpTimeout</span><span class="p">,</span><span class="w"> </span><span class="n">HttpSsid</span><span class="p">,</span>
-<a id="__codelineno-25-15" name="__codelineno-25-15" href="#__codelineno-25-15"></a><span class="w">    </span><span class="n">HttpStatus</span><span class="p">,</span><span class="w"> </span><span class="n">InvalidArgument</span><span class="p">,</span><span class="w"> </span><span class="n">ConfigError</span><span class="p">,</span><span class="w"> </span><span class="n">Internal</span><span class="p">,</span>
-<a id="__codelineno-25-16" name="__codelineno-25-16" href="#__codelineno-25-16"></a><span class="p">}</span>
-<a id="__codelineno-25-17" name="__codelineno-25-17" href="#__codelineno-25-17"></a>
-<a id="__codelineno-25-18" name="__codelineno-25-18" href="#__codelineno-25-18"></a><span class="cp">#[derive(Debug, Clone, Serialize, Deserialize)]</span>
-<a id="__codelineno-25-19" name="__codelineno-25-19" href="#__codelineno-25-19"></a><span class="cp">#[serde(rename_all = </span><span class="s">"snake_case"</span><span class="cp">, tag = </span><span class="s">"kind"</span><span class="cp">)]</span>
-<a id="__codelineno-25-20" name="__codelineno-25-20" href="#__codelineno-25-20"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">HostResponse</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-25-21" name="__codelineno-25-21" href="#__codelineno-25-21"></a><span class="w">    </span><span class="nb">Ok</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">data</span><span class="p">:</span><span class="w"> </span><span class="nc">serde_json</span><span class="p">::</span><span class="n">Value</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-25-22" name="__codelineno-25-22" href="#__codelineno-25-22"></a><span class="w">    </span><span class="nb">Err</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">code</span><span class="p">:</span><span class="w"> </span><span class="nc">PluginErrorCode</span><span class="p">,</span><span class="w"> </span><span class="n">message</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-25-23" name="__codelineno-25-23" href="#__codelineno-25-23"></a><span class="p">}</span>
-<a id="__codelineno-25-24" name="__codelineno-25-24" href="#__codelineno-25-24"></a>
-<a id="__codelineno-25-25" name="__codelineno-25-25" href="#__codelineno-25-25"></a><span class="cp">#[derive(Debug, Clone, Serialize, Deserialize)]</span>
-<a id="__codelineno-25-26" name="__codelineno-25-26" href="#__codelineno-25-26"></a><span class="cp">#[serde(rename_all = </span><span class="s">"snake_case"</span><span class="cp">, tag = </span><span class="s">"kind"</span><span class="cp">)]</span>
-<a id="__codelineno-25-27" name="__codelineno-25-27" href="#__codelineno-25-27"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">HttpResponseEnvelope</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-25-28" name="__codelineno-25-28" href="#__codelineno-25-28"></a><span class="w">    </span><span class="nb">Ok</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">status</span><span class="p">:</span><span class="w"> </span><span class="kt">u16</span><span class="p">,</span><span class="w"> </span><span class="n">headers</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="p">(</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">body</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-25-29" name="__codelineno-25-29" href="#__codelineno-25-29"></a><span class="w">    </span><span class="nb">Err</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">code</span><span class="p">:</span><span class="w"> </span><span class="nc">PluginErrorCode</span><span class="p">,</span><span class="w"> </span><span class="n">message</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-25-30" name="__codelineno-25-30" href="#__codelineno-25-30"></a><span class="p">}</span>
-<a id="__codelineno-25-31" name="__codelineno-25-31" href="#__codelineno-25-31"></a>
-<a id="__codelineno-25-32" name="__codelineno-25-32" href="#__codelineno-25-32"></a><span class="sd">/// The notes/filesystem backend the plugin runtime talks to.</span>
-<a id="__codelineno-25-33" name="__codelineno-25-33" href="#__codelineno-25-33"></a><span class="sd">/// Implemented by the host (src-tauri) and injected into the runtime.</span>
-<a id="__codelineno-25-34" name="__codelineno-25-34" href="#__codelineno-25-34"></a><span class="cp">#[async_trait::async_trait]</span>
-<a id="__codelineno-25-35" name="__codelineno-25-35" href="#__codelineno-25-35"></a><span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">HostApi</span><span class="p">:</span><span class="w"> </span><span class="nb">Send</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Sync</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-25-36" name="__codelineno-25-36" href="#__codelineno-25-36"></a><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">read_note</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">rel_path</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">HostNote</span><span class="p">,</span><span class="w"> </span><span class="n">PluginErrorCode</span><span class="o">&gt;</span><span class="p">;</span>
-<a id="__codelineno-25-37" name="__codelineno-25-37" href="#__codelineno-25-37"></a><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">write_note</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">rel_path</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">,</span><span class="w"> </span><span class="n">content</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">PluginErrorCode</span><span class="o">&gt;</span><span class="p">;</span>
-<a id="__codelineno-25-38" name="__codelineno-25-38" href="#__codelineno-25-38"></a><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">http_request</span><span class="p">(</span>
-<a id="__codelineno-25-39" name="__codelineno-25-39" href="#__codelineno-25-39"></a><span class="w">        </span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-25-40" name="__codelineno-25-40" href="#__codelineno-25-40"></a><span class="w">        </span><span class="n">req</span><span class="p">:</span><span class="w"> </span><span class="nc">HostHttpRequest</span><span class="p">,</span>
-<a id="__codelineno-25-41" name="__codelineno-25-41" href="#__codelineno-25-41"></a><span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">HostHttpResponse</span><span class="p">,</span><span class="w"> </span><span class="n">PluginErrorCode</span><span class="o">&gt;</span><span class="p">;</span>
-<a id="__codelineno-25-42" name="__codelineno-25-42" href="#__codelineno-25-42"></a><span class="p">}</span>
-<a id="__codelineno-25-43" name="__codelineno-25-43" href="#__codelineno-25-43"></a>
-<a id="__codelineno-25-44" name="__codelineno-25-44" href="#__codelineno-25-44"></a><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">HostNote</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-25-45" name="__codelineno-25-45" href="#__codelineno-25-45"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">path</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
-<a id="__codelineno-25-46" name="__codelineno-25-46" href="#__codelineno-25-46"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">content</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
-<a id="__codelineno-25-47" name="__codelineno-25-47" href="#__codelineno-25-47"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">mtime</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
-<a id="__codelineno-25-48" name="__codelineno-25-48" href="#__codelineno-25-48"></a><span class="p">}</span>
-<a id="__codelineno-25-49" name="__codelineno-25-49" href="#__codelineno-25-49"></a>
-<a id="__codelineno-25-50" name="__codelineno-25-50" href="#__codelineno-25-50"></a><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">HostHttpRequest</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-25-51" name="__codelineno-25-51" href="#__codelineno-25-51"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">method</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
-<a id="__codelineno-25-52" name="__codelineno-25-52" href="#__codelineno-25-52"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">url</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
-<a id="__codelineno-25-53" name="__codelineno-25-53" href="#__codelineno-25-53"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">headers</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="p">(</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span>
-<a id="__codelineno-25-54" name="__codelineno-25-54" href="#__codelineno-25-54"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">body</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
-<a id="__codelineno-25-55" name="__codelineno-25-55" href="#__codelineno-25-55"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">timeout_ms</span><span class="p">:</span><span class="w"> </span><span class="kt">u64</span><span class="p">,</span>
-<a id="__codelineno-25-56" name="__codelineno-25-56" href="#__codelineno-25-56"></a><span class="p">}</span>
-<a id="__codelineno-25-57" name="__codelineno-25-57" href="#__codelineno-25-57"></a>
-<a id="__codelineno-25-58" name="__codelineno-25-58" href="#__codelineno-25-58"></a><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">HostHttpResponse</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-25-59" name="__codelineno-25-59" href="#__codelineno-25-59"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">status</span><span class="p">:</span><span class="w"> </span><span class="kt">u16</span><span class="p">,</span>
-<a id="__codelineno-25-60" name="__codelineno-25-60" href="#__codelineno-25-60"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">headers</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="p">(</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span>
-<a id="__codelineno-25-61" name="__codelineno-25-61" href="#__codelineno-25-61"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">body</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
-<a id="__codelineno-25-62" name="__codelineno-25-62" href="#__codelineno-25-62"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="c1">// crates/pkm-plugin/src/abi.rs</span>
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="k">use</span><span class="w"> </span><span class="n">serde</span><span class="p">::{</span><span class="n">Deserialize</span><span class="p">,</span><span class="w"> </span><span class="n">Serialize</span><span class="p">};</span>
+<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>
+<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="k">pub</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">HOST_PAYLOAD_MAX</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">20</span><span class="p">;</span><span class="w"> </span><span class="c1">// 1 MiB</span>
+<a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a><span class="k">pub</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">HTTP_TIMEOUT_MS_DEFAULT</span><span class="p">:</span><span class="w"> </span><span class="kt">u64</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10_000</span><span class="p">;</span>
+<a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>
+<a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a><span class="cp">#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]</span>
+<a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">HostFunction</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Log</span><span class="p">,</span><span class="w"> </span><span class="n">NoteRead</span><span class="p">,</span><span class="w"> </span><span class="n">NoteWrite</span><span class="p">,</span><span class="w"> </span><span class="n">HttpRequest</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a>
+<a id="__codelineno-27-10" name="__codelineno-27-10" href="#__codelineno-27-10"></a><span class="cp">#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]</span>
+<a id="__codelineno-27-11" name="__codelineno-27-11" href="#__codelineno-27-11"></a><span class="cp">#[serde(rename_all = </span><span class="s">"snake_case"</span><span class="cp">)]</span>
+<a id="__codelineno-27-12" name="__codelineno-27-12" href="#__codelineno-27-12"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">PluginErrorCode</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-27-13" name="__codelineno-27-13" href="#__codelineno-27-13"></a><span class="w">    </span><span class="n">PluginDenied</span><span class="p">,</span><span class="w"> </span><span class="n">PluginNotFound</span><span class="p">,</span><span class="w"> </span><span class="n">PluginLoadError</span><span class="p">,</span><span class="w"> </span><span class="n">PluginRuntimeError</span><span class="p">,</span>
+<a id="__codelineno-27-14" name="__codelineno-27-14" href="#__codelineno-27-14"></a><span class="w">    </span><span class="n">NoteNotFound</span><span class="p">,</span><span class="w"> </span><span class="n">NoteWriteFailed</span><span class="p">,</span><span class="w"> </span><span class="n">HttpTransport</span><span class="p">,</span><span class="w"> </span><span class="n">HttpTimeout</span><span class="p">,</span><span class="w"> </span><span class="n">HttpSsid</span><span class="p">,</span>
+<a id="__codelineno-27-15" name="__codelineno-27-15" href="#__codelineno-27-15"></a><span class="w">    </span><span class="n">HttpStatus</span><span class="p">,</span><span class="w"> </span><span class="n">InvalidArgument</span><span class="p">,</span><span class="w"> </span><span class="n">ConfigError</span><span class="p">,</span><span class="w"> </span><span class="n">Internal</span><span class="p">,</span>
+<a id="__codelineno-27-16" name="__codelineno-27-16" href="#__codelineno-27-16"></a><span class="p">}</span>
+<a id="__codelineno-27-17" name="__codelineno-27-17" href="#__codelineno-27-17"></a>
+<a id="__codelineno-27-18" name="__codelineno-27-18" href="#__codelineno-27-18"></a><span class="cp">#[derive(Debug, Clone, Serialize, Deserialize)]</span>
+<a id="__codelineno-27-19" name="__codelineno-27-19" href="#__codelineno-27-19"></a><span class="cp">#[serde(rename_all = </span><span class="s">"snake_case"</span><span class="cp">, tag = </span><span class="s">"kind"</span><span class="cp">)]</span>
+<a id="__codelineno-27-20" name="__codelineno-27-20" href="#__codelineno-27-20"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">HostResponse</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-27-21" name="__codelineno-27-21" href="#__codelineno-27-21"></a><span class="w">    </span><span class="nb">Ok</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">data</span><span class="p">:</span><span class="w"> </span><span class="nc">serde_json</span><span class="p">::</span><span class="n">Value</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-27-22" name="__codelineno-27-22" href="#__codelineno-27-22"></a><span class="w">    </span><span class="nb">Err</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">code</span><span class="p">:</span><span class="w"> </span><span class="nc">PluginErrorCode</span><span class="p">,</span><span class="w"> </span><span class="n">message</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-27-23" name="__codelineno-27-23" href="#__codelineno-27-23"></a><span class="p">}</span>
+<a id="__codelineno-27-24" name="__codelineno-27-24" href="#__codelineno-27-24"></a>
+<a id="__codelineno-27-25" name="__codelineno-27-25" href="#__codelineno-27-25"></a><span class="cp">#[derive(Debug, Clone, Serialize, Deserialize)]</span>
+<a id="__codelineno-27-26" name="__codelineno-27-26" href="#__codelineno-27-26"></a><span class="cp">#[serde(rename_all = </span><span class="s">"snake_case"</span><span class="cp">, tag = </span><span class="s">"kind"</span><span class="cp">)]</span>
+<a id="__codelineno-27-27" name="__codelineno-27-27" href="#__codelineno-27-27"></a><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">HttpResponseEnvelope</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-27-28" name="__codelineno-27-28" href="#__codelineno-27-28"></a><span class="w">    </span><span class="nb">Ok</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">status</span><span class="p">:</span><span class="w"> </span><span class="kt">u16</span><span class="p">,</span><span class="w"> </span><span class="n">headers</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="p">(</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">body</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-27-29" name="__codelineno-27-29" href="#__codelineno-27-29"></a><span class="w">    </span><span class="nb">Err</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">code</span><span class="p">:</span><span class="w"> </span><span class="nc">PluginErrorCode</span><span class="p">,</span><span class="w"> </span><span class="n">message</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-27-30" name="__codelineno-27-30" href="#__codelineno-27-30"></a><span class="p">}</span>
+<a id="__codelineno-27-31" name="__codelineno-27-31" href="#__codelineno-27-31"></a>
+<a id="__codelineno-27-32" name="__codelineno-27-32" href="#__codelineno-27-32"></a><span class="sd">/// The notes/filesystem backend the plugin runtime talks to.</span>
+<a id="__codelineno-27-33" name="__codelineno-27-33" href="#__codelineno-27-33"></a><span class="sd">/// Implemented by the host (src-tauri) and injected into the runtime.</span>
+<a id="__codelineno-27-34" name="__codelineno-27-34" href="#__codelineno-27-34"></a><span class="cp">#[async_trait::async_trait]</span>
+<a id="__codelineno-27-35" name="__codelineno-27-35" href="#__codelineno-27-35"></a><span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">HostApi</span><span class="p">:</span><span class="w"> </span><span class="nb">Send</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Sync</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-27-36" name="__codelineno-27-36" href="#__codelineno-27-36"></a><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">read_note</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">rel_path</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">HostNote</span><span class="p">,</span><span class="w"> </span><span class="n">PluginErrorCode</span><span class="o">&gt;</span><span class="p">;</span>
+<a id="__codelineno-27-37" name="__codelineno-27-37" href="#__codelineno-27-37"></a><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">write_note</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">rel_path</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">,</span><span class="w"> </span><span class="n">content</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">PluginErrorCode</span><span class="o">&gt;</span><span class="p">;</span>
+<a id="__codelineno-27-38" name="__codelineno-27-38" href="#__codelineno-27-38"></a><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">http_request</span><span class="p">(</span>
+<a id="__codelineno-27-39" name="__codelineno-27-39" href="#__codelineno-27-39"></a><span class="w">        </span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-27-40" name="__codelineno-27-40" href="#__codelineno-27-40"></a><span class="w">        </span><span class="n">req</span><span class="p">:</span><span class="w"> </span><span class="nc">HostHttpRequest</span><span class="p">,</span>
+<a id="__codelineno-27-41" name="__codelineno-27-41" href="#__codelineno-27-41"></a><span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">HostHttpResponse</span><span class="p">,</span><span class="w"> </span><span class="n">PluginErrorCode</span><span class="o">&gt;</span><span class="p">;</span>
+<a id="__codelineno-27-42" name="__codelineno-27-42" href="#__codelineno-27-42"></a><span class="p">}</span>
+<a id="__codelineno-27-43" name="__codelineno-27-43" href="#__codelineno-27-43"></a>
+<a id="__codelineno-27-44" name="__codelineno-27-44" href="#__codelineno-27-44"></a><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">HostNote</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-27-45" name="__codelineno-27-45" href="#__codelineno-27-45"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">path</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-27-46" name="__codelineno-27-46" href="#__codelineno-27-46"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">content</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-27-47" name="__codelineno-27-47" href="#__codelineno-27-47"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">mtime</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-27-48" name="__codelineno-27-48" href="#__codelineno-27-48"></a><span class="p">}</span>
+<a id="__codelineno-27-49" name="__codelineno-27-49" href="#__codelineno-27-49"></a>
+<a id="__codelineno-27-50" name="__codelineno-27-50" href="#__codelineno-27-50"></a><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">HostHttpRequest</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-27-51" name="__codelineno-27-51" href="#__codelineno-27-51"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">method</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-27-52" name="__codelineno-27-52" href="#__codelineno-27-52"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">url</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-27-53" name="__codelineno-27-53" href="#__codelineno-27-53"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">headers</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="p">(</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-27-54" name="__codelineno-27-54" href="#__codelineno-27-54"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">body</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-27-55" name="__codelineno-27-55" href="#__codelineno-27-55"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">timeout_ms</span><span class="p">:</span><span class="w"> </span><span class="kt">u64</span><span class="p">,</span>
+<a id="__codelineno-27-56" name="__codelineno-27-56" href="#__codelineno-27-56"></a><span class="p">}</span>
+<a id="__codelineno-27-57" name="__codelineno-27-57" href="#__codelineno-27-57"></a>
+<a id="__codelineno-27-58" name="__codelineno-27-58" href="#__codelineno-27-58"></a><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">HostHttpResponse</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-27-59" name="__codelineno-27-59" href="#__codelineno-27-59"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">status</span><span class="p">:</span><span class="w"> </span><span class="kt">u16</span><span class="p">,</span>
+<a id="__codelineno-27-60" name="__codelineno-27-60" href="#__codelineno-27-60"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">headers</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="p">(</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-27-61" name="__codelineno-27-61" href="#__codelineno-27-61"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">body</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-27-62" name="__codelineno-27-62" href="#__codelineno-27-62"></a><span class="p">}</span>
 </code></pre></div>
 <h2 id="13-glossary">13. Glossary<a class="headerlink" href="#13-glossary" title="Permanent link">&para;</a></h2>
 <ul>

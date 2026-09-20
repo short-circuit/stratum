@@ -644,6 +644,8 @@
       
         
       
+        
+      
     
     
     
@@ -1210,6 +1212,34 @@
     
   
     Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
   
 
     
@@ -2924,9 +2954,11 @@
 <a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>pkm-ai         -&gt; pkm-core, pkm-index
 <a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>pkm-plugin     -&gt; pkm-core
 <a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>pkm-cli        -&gt; pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>src-tauri      -&gt; pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm-sync, pkm-watcher, pkm-ai
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>src-tauri      -&gt; pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
 </code></pre></div>
-<p>Note: <code>src-tauri</code> does NOT depend on <code>pkm-plugin</code>. The CLI does NOT depend on <code>pkm-block</code> or <code>pkm-query</code>.</p>
+<p>Note: the deskbound app (<code>src-tauri</code>) and the CLI both depend on <code>pkm-plugin</code>
+(the WASM plugin runtime is wired into the desktop app's vault state and
+surfaced through the Tauri plugin commands; the CLI links the same crate).</p>
 <hr />
 <h2 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h2>
 <h3 id="single-error-type-pkmerror">Single Error Type: <code>PkmError</code><a class="headerlink" href="#single-error-type-pkmerror" title="Permanent link">&para;</a></h3>

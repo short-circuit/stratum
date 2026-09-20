@@ -642,6 +642,8 @@
       
         
       
+        
+      
     
     
     
@@ -1221,6 +1223,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guide/plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1783,6 +1813,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#status-of-this-adr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status of this ADR
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#references" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1877,6 +1918,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#status-of-this-adr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status of this ADR
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#references" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1928,14 +1980,18 @@ task (<code>t_e132158a</code>) must expose it through the documented Tauri comma
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
 <ol>
 <li>
-<p><strong>Runtime + ABI.</strong> Plugins run as WebAssembly in wasmtime (<code>wasm32-unknown-unknown</code>
-   core module, WASI-free). Host functions are imported from the <code>"pkm"</code> module in
-   WASM linear-memory via the ABI in <a href="../advanced/plugins.md"><code>../advanced/plugins.md</code></a>
-   ("Host Function ABI" section). Every host call reads its request from WASM memory
-   at the guest-supplied offset and writes its response back at <strong>offset 0</strong> of the
-   plugin's linear memory, returning the byte length of the response. This convention
-   is what the current runtime (<code>crates/pkm-plugin/src/runtime.rs</code>) already implements
-   for its imports; it is preserved.</p>
+<p><strong>Runtime + ABI.</strong> Plugins run as WebAssembly in wasmtime. <code>wasm32-unknown-unknown</code>
+   core modules (WASI-free) and genuine <code>wasm32-wasip1</code> modules both instantiate:
+   the linker registers a real WASI preview1 context (so <code>std</code> wasm32-wasip1
+   builds link), in addition to the <code>"pkm"</code> host module. Host functions are
+   imported from the <code>"pkm"</code> module in WASM linear-memory via the ABI in
+   <a href="../advanced/plugins.md"><code>../advanced/plugins.md</code></a> ("Host Function ABI"
+   section). Every host call reads its request from WASM memory at the
+   guest-supplied offset and writes its response back at <strong>offset 0</strong> of the
+   plugin's linear memory, returning the byte length of the response. This
+   convention is what the current runtime (<code>crates/pkm-plugin/src/runtime.rs</code>)
+   already implements for its imports; it is preserved. No filesystem is
+   preopened for WASI — vault I/O is scoped to the <code>pkm.*</code> host API.</p>
 </li>
 <li>
 <p><strong>Host functions.</strong> Exactly four host imports exist: <code>pkm.log</code>, <code>pkm.note_read</code>,
@@ -1997,10 +2053,9 @@ task (<code>t_e132158a</code>) must expose it through the documented Tauri comma
    (Enable/Disable)</code>, always externally visible through the documented Tauri
    command surface; a failed load records <code>PluginLoadError</code> and never returns a
    partial plugin. Hooks are dispatched per the hook table (<code>onSave</code>, <code>onOpen</code>,
-   <code>onLink</code>, <code>onSearch</code>) plus arbitrary <code>on*</code> names. The runtime instantiates the
-   module with <strong>no</strong> WASI context; the linker provides only the <code>pkm</code> module
-   imports (plus the reserved <code>imports.wasi_snapshot_preview1</code> no-op for
-   toolchain compatibility — see spec §7.1).</p>
+   <code>onLink</code>, <code>onSearch</code>) plus arbitrary <code>on*</code> names. The runtime instantiates
+   the module with the <code>"pkm"</code> host imports plus the real WASI preview1
+   context (see spec §7.1); no filesystem is preopened.</p>
 </li>
 <li>
 <p><strong>Tauri command surface.</strong> The five lifecycle commands and two host-test
@@ -2023,6 +2078,13 @@ task (<code>t_e132158a</code>) must expose it through the documented Tauri comma
 <li>Contract stability is a release-blocking criterion: the <code>HostFunction</code> enum and
   the four import names are ABI-frozen for the v0.7.x series.</li>
 </ul>
+<h2 id="status-of-this-adr">Status of this ADR<a class="headerlink" href="#status-of-this-adr" title="Permanent link">&para;</a></h2>
+<p>Implemented and verified as of commit <code>e1af45f</code> (epic E3): the host functions
+are real (see <code>crates/pkm-plugin/src/host.rs</code>), the crate is linked into and
+wired through <code>src-tauri</code> (<code>PluginManager</code>, Tauri plugin commands, vault
+startup scan), the management UI exists, and the contract is exercised
+end-to-end by <code>crates/pkm-tests/tests/plugin_e2e.rs</code>. The <code>Context</code> section
+above describes the state at decision time and is retained for the record.</p>
 <h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
 <ul>
 <li>API specification: <code>docs/advanced/plugins.md</code> (normative).</li>
