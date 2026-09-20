@@ -10,23 +10,23 @@ pub struct ExportResult {
     pub assets_copied: usize,
 }
 
-#[tauri::command]
-pub async fn export_html(
-    output_dir: String,
-    state: tauri::State<'_, AppState>,
+/// Core HTML export — plain function so it is testable without a Tauri
+/// runtime. Writes one `<slug>.html` per vault page (mirroring directory
+/// structure), a linking `index.html`, and copies the vault `assets/` dir.
+///
+/// The `pages` iterator of relative page paths is provided by the caller so
+/// this stays a pure `(vault, output)` function; the command layer fetches it
+/// from the live block store.
+pub fn export_html_core(
+    vault: &std::path::Path,
+    output: &std::path::Path,
+    pages: &[String],
 ) -> Result<ExportResult, String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
-    let vault = &state.vault_path;
-    let output = std::path::PathBuf::from(&output_dir);
-
-    std::fs::create_dir_all(&output).map_err(|e| e.to_string())?;
-
-    let store = state.get_store().map_err(|e| e.to_string())?;
-    let pages = store.list_pages().map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(output).map_err(|e| e.to_string())?;
 
     let mut exported = 0usize;
 
-    for page_path in &pages {
+    for page_path in pages {
         let full_path = vault.join(page_path);
         if !full_path.exists() {
             continue;
@@ -60,7 +60,7 @@ pub async fn export_html(
     index.push_str("<style>body{font-family:system-ui;max-width:800px;margin:0 auto;padding:2em;background:#fff;color:#111} a{color:#36c;text-decoration:none} a:hover{text-decoration:underline} ul{list-style:none;padding:0} li{margin:.5em 0} .meta{font-size:.85em;color:#666}</style>");
     index.push_str("</head><body><h1>Stratum Vault</h1><ul>");
 
-    for page_path in &pages {
+    for page_path in pages {
         let slug = std::path::Path::new(page_path)
             .file_stem()
             .and_then(|s| s.to_str())
@@ -96,27 +96,24 @@ pub async fn export_html(
     }
 
     Ok(ExportResult {
-        output_dir,
+        output_dir: output.to_string_lossy().to_string(),
         pages_exported: exported,
         assets_copied,
     })
 }
 
-#[tauri::command]
-pub async fn export_json(
-    output_dir: String,
-    state: tauri::State<'_, AppState>,
+/// Core JSON export — plain function so it is testable without a Tauri
+/// runtime. Writes one `<page>.json` per vault page containing path, title,
+/// tags, body markdown, and structured blocks.
+pub fn export_json_core(
+    vault: &std::path::Path,
+    output: &std::path::Path,
+    pages: &[String],
 ) -> Result<ExportResult, String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
-    let vault = &state.vault_path;
-    let output = std::path::PathBuf::from(&output_dir);
-    std::fs::create_dir_all(&output).map_err(|e| e.to_string())?;
-
-    let store = state.get_store().map_err(|e| e.to_string())?;
-    let pages = store.list_pages().map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(output).map_err(|e| e.to_string())?;
 
     let mut exported = 0usize;
-    for page_path in &pages {
+    for page_path in pages {
         let full_path = vault.join(page_path);
         if !full_path.exists() {
             continue;
@@ -150,10 +147,40 @@ pub async fn export_json(
     }
 
     Ok(ExportResult {
-        output_dir,
+        output_dir: output.to_string_lossy().to_string(),
         pages_exported: exported,
         assets_copied: 0,
     })
+}
+
+#[tauri::command]
+pub async fn export_html(
+    output_dir: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<ExportResult, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let vault = &state.vault_path;
+    let output = std::path::PathBuf::from(&output_dir);
+
+    let store = state.get_store().map_err(|e| e.to_string())?;
+    let pages = store.list_pages().map_err(|e| e.to_string())?;
+
+    export_html_core(vault, &output, &pages)
+}
+
+#[tauri::command]
+pub async fn export_json(
+    output_dir: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<ExportResult, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let vault = &state.vault_path;
+    let output = std::path::PathBuf::from(&output_dir);
+
+    let store = state.get_store().map_err(|e| e.to_string())?;
+    let pages = store.list_pages().map_err(|e| e.to_string())?;
+
+    export_json_core(vault, &output, &pages)
 }
 
 fn markdown_to_html(md: &str) -> String {
