@@ -108,6 +108,7 @@ nav:
   - Advanced:
     - advanced/file-format.md
     - advanced/plugins.md
+    - advanced/mcp-deployment.md
   - Contributing: contributing.md
   - Development:
     - development/frontend-guide.md

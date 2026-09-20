@@ -34,15 +34,22 @@ struct Cli {
     /// Path to the Stratum vault (overrides PKM_MCP_VAULT).
     #[arg(long, value_name = "DIR")]
     vault: Option<PathBuf>,
-    /// Transport: stdio | http | both.
-    #[arg(long, value_name = "TRANS", default_value = "stdio")]
-    transport: String,
+    /// Transport: stdio | http | both. When omitted, PKM_MCP_TRANSPORT (or the
+    /// config default) is honored.
+    #[arg(long, value_name = "TRANS")]
+    transport: Option<String>,
     /// Bind address for the HTTP transport (overrides PKM_MCP_BIND).
     #[arg(long, value_name = "ADDR")]
     bind: Option<std::net::SocketAddr>,
     /// Require PAT authentication on the HTTP transport (overrides auth mode).
     #[arg(long)]
     require_auth: bool,
+    /// One-shot local health probe (contract §12): resolves the vault from
+    /// PKM_MCP_VAULT / --vault, opens the block store and checks index
+    /// freshness, then exits 0 on healthy / non-zero on degraded. Used by the
+    /// container HEALTHCHECK (the distroless runtime has no shell or curl).
+    #[arg(long)]
+    health_probe: bool,
 }
 
 #[tokio::main]
@@ -69,14 +76,46 @@ async fn main() -> anyhow::Result<()> {
         McpConfig::from_env().with_context(|| "set PKM_MCP_VAULT or pass --vault")?
     };
 
-    if let Ok(t) = cli.transport.parse::<Transport>() {
-        cfg.transport = t;
+    // CLI flags are explicit overrides. The clap defaults (transport=stdio,
+    // no bind) must NOT silently clobber env-provided values (PKM_MCP_*), so
+    // only apply them when the flag was actually passed by the operator. This
+    // is what makes `PKM_MCP_TRANSPORT=http` (used by the Docker image and
+    // env.template) actually take effect.
+    if let Some(transport) = cli.transport {
+        cfg.transport = transport
+            .parse()
+            .map_err(|e: String| anyhow::anyhow!("invalid transport: {e}"))?;
     }
     if let Some(bind) = cli.bind {
         cfg.bind = bind;
     }
     if cli.require_auth {
         cfg.auth_mode = AuthMode::Pat;
+    }
+
+    // One-shot health probe (contract §12): a real store/index liveness check,
+    // not a shell alias. Used by the container HEALTHCHECK.
+    if cli.health_probe {
+        let db_path = cfg.vault_path.join(".pkm").join("blocks.db");
+        return match pkm_mcp::kbserver::probe_health(
+            std::path::Path::new(&cfg.vault_path),
+            &db_path,
+        ) {
+            Ok(probe) if probe.index_fresh => Ok(()),
+            Ok(probe) => {
+                tracing::warn!(
+                    vault = %cfg.vault_path.display(),
+                    indexed_pages = probe.indexed_pages,
+                    page_count = probe.page_count,
+                    "health probe: index not fresh"
+                );
+                anyhow::bail!("health probe: unhealthy (index not fresh)")
+            }
+            Err(e) => {
+                tracing::warn!(vault = %cfg.vault_path.display(), "health probe failed");
+                anyhow::bail!("health probe: {e}")
+            }
+        };
     }
 
     let vault = Arc::new(SharedVault::new(&cfg)?);

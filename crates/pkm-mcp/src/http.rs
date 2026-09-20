@@ -286,7 +286,10 @@ pub async fn serve_http(
     let validator = Arc::new(crate::auth::build_validator(
         cfg.auth_mode,
         std::env::var("PKM_MCP_TOKEN").ok(),
-        None,
+        std::env::var("PKM_MCP_TOKEN_FILE")
+            .ok()
+            .map(std::path::PathBuf::from)
+            .as_deref(),
     ));
     let bucket = cfg.rate_limit_rps.gt(&0.0).then(|| {
         Arc::new(token_bucket::TokenBucket::new(
@@ -346,5 +349,37 @@ mod tests {
         use crate::auth::build_validator;
         let token = "0123456789012345678901234567890123456789012"; // 43 chars
         let _ = build_validator(AuthMode::Pat, Some(token.to_string()), None);
+    }
+
+    #[test]
+    fn test_serve_uses_token_file_from_env() {
+        // Regression: an HTTP deployment that configures only
+        // PKM_MCP_TOKEN_FILE must be enforced (auth on), not silently run
+        // open. This mirrors exactly how `serve_http` builds the validator.
+        use crate::config::{default_personal_scopes, load_tokens_from_file};
+        use std::io::Write;
+
+        let token = "sk-stratum-0123456789abcdef0123456789abcdef";
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        writeln!(f.as_file_mut(), "{token}").unwrap();
+
+        let validator = build_validator(AuthMode::Pat, None, Some(f.path()));
+        assert!(validator.required(), "token file must enable auth");
+        assert!(
+            validator
+                .authenticate("sk-stratum-0123456789abcdef0123456789abcdef")
+                .is_some(),
+            "token from file must authenticate"
+        );
+
+        // A bare token in the file carries the default personal scope set
+        // (contract §7.2) — never an empty/missing scope list.
+        let (tokens, scopes) = load_tokens_from_file(f.path())
+            .unwrap()
+            .into_iter()
+            .next()
+            .unwrap();
+        assert_eq!(tokens, "sk-stratum-0123456789abcdef0123456789abcdef");
+        assert_eq!(scopes, default_personal_scopes());
     }
 }

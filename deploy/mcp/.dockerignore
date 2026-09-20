@@ -1,0 +1,39 @@
+# Stratum MCP server — deployment
+#
+# This file is consumed by `docker build -f deploy/mcp/Dockerfile .` and by the
+# `mcp` GitHub Actions workflow. Keep the build context minimal: the Dockerfile
+# only needs the Rust workspace sources + Cargo.lock to build `pkm-mcp`.
+
+# VCS / build caches
+.git
+.gitignore
+**/.gitkeep
+
+# Rust target dirs (rebuilt inside the image)
+target
+**/target
+**/*.rs.bk
+
+# Frontend (not needed to build the MCP server binary)
+node_modules
+dist
+src
+src-tauri/gen
+e2e
+*.tsbuildinfo
+
+# Local/editor noise
+.DS_Store
+*.swp
+*.tmp
+.env
+.env.*
+!.env.template
+
+# Docs (not needed for the binary)
+docs
+site
+
+# Deploy dirs other than what the image needs (keep files above this dir)
+deploy
+!deploy/mcp/Dockerfile
