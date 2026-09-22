@@ -100,7 +100,6 @@ async function mockJournalApp(page: Page): Promise<void> {
       const now = new Date().toISOString();
       const listPages = () => ({ pages });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const win = window as any;
       win.__TAURI_INTERNALS__ = {
         metadata: {
