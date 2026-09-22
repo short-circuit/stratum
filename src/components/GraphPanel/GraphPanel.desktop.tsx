@@ -20,7 +20,7 @@ export default function GraphPanelDesktop() {
     setViewMode, setSelectedComponent, setSearch, loadData,
     handleNodeClick, handleNodeRightClick, updateSetting,
     filteredNodes, filteredEdges, graphDataProp,
-    nodeCapActive, preCapNodeCount,
+    nodeCapActive, defaultCapActive, effectiveCap, preCapNodeCount,
     progressiveLoading, progress,
   } = useGraphPanel();
 
@@ -73,7 +73,9 @@ export default function GraphPanelDesktop() {
       {nodeCapActive && (
         <Alert severity="info" icon={false} sx={{ mx: 1, mt: 0.5, py: 0, '& .MuiAlert-message': { py: 0.5 } }}>
           <Typography variant="caption">
-            Showing {filteredNodes.length} of {preCapNodeCount} nodes (cap: {graphSettings.node_cap})
+            Showing {filteredNodes.length} of {preCapNodeCount} nodes{defaultCapActive
+              ? ` (large vault — capped to ${effectiveCap} by default; increase the cap in Graph settings to reveal more)`
+              : ` (cap: ${effectiveCap})`}
           </Typography>
         </Alert>
       )}
