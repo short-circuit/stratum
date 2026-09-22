@@ -77,7 +77,9 @@ export default function JournalPanelDesktop() {
       ) : journalLoading || !todayExists ? (
         <CircularProgress size={20} sx={{ display: 'block', mx: 'auto', my: 4 }} />
       ) : (
-        <OutlinerEditor pagePath={todayPagePath} minHeight="0" />
+        <Box>
+          <OutlinerEditor pagePath={todayPagePath} minHeight="0" />
+        </Box>
       )}
 
       {pastDates.slice(0, visibleCount).map((date) => {
