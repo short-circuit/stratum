@@ -1,0 +1,84 @@
+{
+  "base": "http://localhost:4173",
+  "seed": 1,
+  "ts": "2026-09-22T22:45:13.832Z",
+  "results": [
+    {
+      "case": {
+        "nodes": 2000,
+        "seed": 1
+      },
+      "status": "OK",
+      "wallMs": {
+        "navStart_abs": 589,
+        "firstRender_abs": 19297,
+        "quiet_abs": 19297
+      },
+      "perfNowMs": {
+        "firstRender": 861,
+        "quiet": 17489
+      },
+      "renderer": "ANGLE (NVIDIA Corporation, NVIDIA GeForce RTX 4090/PCIe/SSE2, OpenGL 4.5.0)",
+      "canvasCount": 1,
+      "idle": {
+        "fps": 32.3,
+        "p1Fps": 29.8,
+        "p50Fps": 32.7,
+        "longTaskCount": 59,
+        "longTaskTotalMs": 15813
+      },
+      "longTaskWindowMs": 15374,
+      "memory": {
+        "usedJSHeapMB": 742,
+        "totalJSHeapMB": 797,
+        "documents": 249,
+        "nodes": 1
+      },
+      "interactions": {
+        "fed": 4,
+        "handled": 0,
+        "maxGapMs": 271.19999998807907,
+        "totalLongTaskMs": 892,
+        "longTaskCount": 5,
+        "dragged": true
+      },
+      "errors": [
+        "TypeError: Cannot read properties of undefined (reading 'x')"
+      ]
+    },
+    {
+      "case": {
+        "nodes": 500,
+        "seed": 1
+      },
+      "status": "OK",
+      "wallMs": {
+        "navStart_abs": 459,
+        "firstRender_abs": 18864,
+        "quiet_abs": 18864
+      },
+      "perfNowMs": {
+        "firstRender": 735,
+        "quiet": 17337
+      },
+      "renderer": "ANGLE (NVIDIA Corporation, NVIDIA GeForce RTX 4090/PCIe/SSE2, OpenGL 4.5.0)",
+      "canvasCount": 1,
+      "idle": {
+        "fps": 16.7,
+        "p1Fps": 8.4,
+        "p50Fps": 16.7,
+        "longTaskCount": 245,
+        "longTaskTotalMs": 15092
+      },
+      "longTaskWindowMs": 14646,
+      "memory": {
+        "usedJSHeapMB": 189,
+        "totalJSHeapMB": 287,
+        "documents": 249,
+        "nodes": 1
+      },
+      "interactions": null,
+      "errors": []
+    }
+  ]
+}

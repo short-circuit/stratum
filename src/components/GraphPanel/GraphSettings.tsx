@@ -57,7 +57,7 @@ const GraphSettingsPanel = memo(function GraphSettingsPanel({ settingsOpen, grap
             <MenuItem value={2000}>2000</MenuItem>
             <MenuItem value={5000}>5000</MenuItem>
             <MenuItem value={10000}>10000</MenuItem>
-            <MenuItem value={0}>Unlimited</MenuItem>
+            <MenuItem value={0}>Unlimited (auto-cap for large vaults)</MenuItem>
           </Select>
         </Box>
       </Box>
