@@ -136,6 +136,65 @@ pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto
     Ok(PageListDto { pages })
 }
 
+/// Read-path disk fallback for the DB-drift class where the `pages` table lists a
+/// page but its `blocks` rows are missing/stale (e.g. an external editor changed the
+/// `.md`, a prior interrupted write deleted rows, or a git pull imported files the DB
+/// never indexed). Reads hit SQLite only, so without this the editor would render
+/// empty until an app restart triggers `sync_filesystem_to_db`.
+///
+/// When the page has zero blocks in SQLite but a non-empty body on disk, the page is
+/// re-synced from disk (same primitive as startup/repair) so the returned rows reflect
+/// current file. Returns the on-disk block rows.
+pub fn get_blocks_heal_from_disk(
+    store: &pkm_block::BlockStore,
+    vault_path: &Path,
+    page_path: &str,
+) -> Result<Vec<pkm_block::Block>, String> {
+    let blocks = store
+        .get_blocks_by_page(page_path)
+        .map_err(|e| e.to_string())?;
+    if !blocks.is_empty() {
+        return Ok(blocks);
+    }
+
+    // No blocks in SQLite — check whether the file on disk actually has content.
+    let full = vault_path.join(page_path);
+    if !full.exists() {
+        return Ok(blocks);
+    }
+    let content = match std::fs::read_to_string(&full) {
+        Ok(c) => c,
+        Err(_) => return Ok(blocks),
+    };
+    let (_, _, disk_blocks) = pkm_markdown::block_parser::parse_document(&content);
+    if disk_blocks.is_empty() {
+        return Ok(blocks);
+    }
+
+    // Heal: re-sync the page + blocks from disk so the DB converges with the file.
+    // best-effort — if the write fails, still serve the parsed rows from disk.
+    if let Ok(_) = sync_page_from_disk(store, page_path, vault_path, None) {
+        // Index the healed blocks so full-text search reflects the on-disk content.
+        let _ = std::fs::create_dir_all(vault_path.join(".pkm").join("search"));
+        let mut bi =
+            pkm_index::block_search::BlockIndex::create(&vault_path.join(".pkm").join("search"));
+        if let Ok(ref mut bi) = bi {
+            for block in &disk_blocks {
+                let _ = bi.index_block(block, page_path);
+            }
+            let _ = bi.flush();
+        }
+        // Return the freshly-parsed rows (authoritative — the persisted rows are
+        // identical to disk_blocks after sync_page_from_disk).
+        return Ok(disk_blocks);
+    }
+
+    // Persistence failed: fall back to serving the parsed rows read-only so the
+    // editor still renders the file's actual content, and let the next startup
+    // sync converge the DB.
+    Ok(disk_blocks)
+}
+
 /// Read a single .md file from disk, parse it, and sync its page metadata + blocks
 /// into SQLite. Returns true if the page was synced, false if the file couldn't be read.
 pub(crate) fn sync_page_from_disk(
@@ -478,8 +537,8 @@ pub async fn open_page(path: String, state: tauri::State<'_, AppState>) -> Resul
         let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
         let (fm, _, _) = pkm_markdown::block_parser::parse_document(&content);
         let store = state.get_store().map_err(|e| e.to_string())?;
-        let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
-        (fm, blocks.len())
+        let blocks = get_blocks_heal_from_disk(&store, &state.vault_path, &path)?.len();
+        (fm, blocks)
     } else {
         (pkm_core::Frontmatter::default(), 0)
     };
