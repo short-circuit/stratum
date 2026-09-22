@@ -26,6 +26,7 @@ import { useMathInline, setupMathDblClick } from '../../../lib/useMathInline';
 import { dtoToBlockNote, blockNoteToDto } from '../dtoConverters';
 import { detectAndApplyMarkers } from '../markerDetection';
 import { useStore } from '../../../stores/appStore';
+import { useRecentsStore } from '../../../stores/recentsStore';
 import { schema } from '../editorSchema';
 import type {
   MathEditState,
@@ -235,6 +236,13 @@ export function useEditorData(
       await api.saveBlocks(ctxPath, dtos);
       setLastSavedAt(Date.now());
       (window as any).__saveDebug = { saved: true, at: Date.now() };
+      // The document just saved — the page's modified_at changed, so the
+      // sidebar "Recent" list is stale. Schedule a (debounced, idempotent)
+      // reload of the recents store: refresh() coalesces bursts of saves into
+      // a single reload, so calling it here never causes a refresh storm.
+      // Fires on every successful write — whether via the debounced autosave
+      // timer or the flush-on-unmount path.
+      useRecentsStore.getState().refresh();
       // The document just saved — refresh the baseline so an identical
       // round-trip that fires again (e.g. StrictMode remount) is still a no-op.
       loadedSnapshotRef.current = prospectiveKey;
