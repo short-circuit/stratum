@@ -104,6 +104,10 @@ function AppContent() {
   useEffect(() => {
     if (vault) {
       loadPages();
+      // Seed the recents store from the canonical page list on initial vault
+      // load so the sidebar "Recent" list renders immediately (the store
+      // normally populates through the debounced refresh on events).
+      useRecentsStore.getState().refresh();
     }
   }, [vault, loadPages]);
 
