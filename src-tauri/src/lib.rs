@@ -3,7 +3,7 @@ pub mod commands;
 use commands::vault::{AppState, VaultState};
 use std::path::PathBuf;
 use std::sync::Mutex;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 fn resolve_default_vault_path(_app: &tauri::AppHandle) -> PathBuf {
     #[cfg(target_os = "android")]
@@ -237,6 +237,12 @@ pub fn run() {
                                 }
                             }
                         }
+
+                        // The block store (and thus the recents list) changed.
+                        // Emit so the frontend can refresh; the recents store
+                        // debounces bursts, so a git pull / external edit storm
+                        // collapses into a single reload.
+                        let _ = app_handle.emit("pages-changed", ());
                     });
 
                     let mut watcher = pkm_watcher::FileWatcher::new(
