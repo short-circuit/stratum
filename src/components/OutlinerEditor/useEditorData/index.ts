@@ -26,7 +26,6 @@ import { useMathInline, setupMathDblClick } from '../../../lib/useMathInline';
 import { dtoToBlockNote, blockNoteToDto } from '../dtoConverters';
 import { detectAndApplyMarkers } from '../markerDetection';
 import { useStore } from '../../../stores/appStore';
-import { useRecentsStore } from '../../../stores/recentsStore';
 import { schema } from '../editorSchema';
 import type {
   MathEditState,
@@ -34,7 +33,7 @@ import type {
   DeadLinkPopupState,
   EditorData,
 } from './types';
-import { computeSerializedKey } from './serialization';
+import { computeSerializedKey, refreshRecentsAfterSave } from './serialization';
 
 // Re-export the split-out types so existing consumers of the useEditorData
 // module (OutlinerEditor.shared barrel, MobileEditorOverlays) keep resolving
@@ -238,11 +237,12 @@ export function useEditorData(
       (window as any).__saveDebug = { saved: true, at: Date.now() };
       // The document just saved — the page's modified_at changed, so the
       // sidebar "Recent" list is stale. Schedule a (debounced, idempotent)
-      // reload of the recents store: refresh() coalesces bursts of saves into
-      // a single reload, so calling it here never causes a refresh storm.
+      // reload of the recents store: refreshRecentsAfterSave routes the save
+      // into the store's refresh, which coalesces bursts of saves into a
+      // single reload, so calling it here never causes a refresh storm.
       // Fires on every successful write — whether via the debounced autosave
       // timer or the flush-on-unmount path.
-      useRecentsStore.getState().refresh();
+      refreshRecentsAfterSave();
       // The document just saved — refresh the baseline so an identical
       // round-trip that fires again (e.g. StrictMode remount) is still a no-op.
       loadedSnapshotRef.current = prospectiveKey;
