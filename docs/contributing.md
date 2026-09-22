@@ -44,6 +44,13 @@ npm run tauri:dev
 3. Run tests
 4. Open a pull request
 
+Branch names generally follow `fix/<slug>-t_<task-id>` or task-scoped
+`stratum/t_<task-id>-<slug>` conventions. See
+[`development/branch-policy.md`](development/branch-policy.md) for the full
+branch naming, protection, and cleanup policy — including the list of
+protected branches (`master`, `gh-pages`, `release/*`, live integration
+branches, `backup/*`) and the recorded cleanup history.
+
 ## Testing
 
 ```bash
