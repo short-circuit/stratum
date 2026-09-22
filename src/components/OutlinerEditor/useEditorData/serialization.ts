@@ -9,8 +9,22 @@
  */
 
 import { blockNoteToDto, type BlockMeta } from '../dtoConverters';
+import { useRecentsStore } from '../../../stores/recentsStore';
 
 export type BlockMetaRef = { current: Map<string, BlockMeta> };
+
+/**
+ * Notify the recents store that a page's content was just saved, so its
+ * `modified_at` / ordering in the sidebar "Recent" list may have changed.
+ * Routes into the store's debounced, idempotent refresh — calling this on
+ * every successful write is cheap because the store coalesces bursts of saves
+ * into a single reload. Kept as a standalone function so the save path does
+ * not reach into the store directly and so the wiring can be tested without
+ * a full editor.
+ */
+export function refreshRecentsAfterSave(): void {
+  useRecentsStore.getState().refresh();
+}
 
 /**
  * Deterministic key of what would be written to disk for a given document.
