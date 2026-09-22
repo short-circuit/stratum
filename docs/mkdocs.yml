@@ -113,5 +113,6 @@ nav:
     - development/frontend-guide.md
     - development/rust-guide.md
     - development/mobile-guide.md
+    - development/branch-policy.md
     - ADR-0004 WASM Plugin ABI:
       - development/adr/0004-wasm-plugin-abi.md

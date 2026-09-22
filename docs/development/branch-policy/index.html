@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://short-circuit.github.io/stratum/docs/guide/search/">
+        <link rel="canonical" href="https://short-circuit.github.io/stratum/docs/development/branch-policy/">
       
       
-        <link rel="prev" href="../graph-view/">
+        <link rel="prev" href="../mobile-guide/">
       
       
-        <link rel="next" href="../datalog-queries/">
+        <link rel="next" href="../adr/0004-wasm-plugin-abi/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Search - Stratum</title>
+        <title>Branch Policy and Hygiene - Stratum</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#search" class="md-skip">
+        <a href="#branch-policy-and-hygiene" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Search
+              Branch Policy and Hygiene
             
           </span>
         </div>
@@ -268,13 +268,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../vault-management/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../guide/vault-management/" class="md-tabs__link">
           
   
   
@@ -355,11 +353,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../development/frontend-guide/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../frontend-guide/" class="md-tabs__link">
           
   
   
@@ -601,10 +601,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -652,22 +650,21 @@
     
     
       
-        
-        
-      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   
@@ -685,7 +682,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -703,7 +700,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../vault-management/" class="md-nav__link">
+      <a href="../../guide/vault-management/" class="md-nav__link">
         
   
   
@@ -731,7 +728,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../block-editor/" class="md-nav__link">
+      <a href="../../guide/block-editor/" class="md-nav__link">
         
   
   
@@ -759,7 +756,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../linking-and-backlinks/" class="md-nav__link">
+      <a href="../../guide/linking-and-backlinks/" class="md-nav__link">
         
   
   
@@ -787,7 +784,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tags/" class="md-nav__link">
+      <a href="../../guide/tags/" class="md-nav__link">
         
   
   
@@ -815,7 +812,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tasks/" class="md-nav__link">
+      <a href="../../guide/tasks/" class="md-nav__link">
         
   
   
@@ -843,7 +840,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../graph-view/" class="md-nav__link">
+      <a href="../../guide/graph-view/" class="md-nav__link">
         
   
   
@@ -868,37 +865,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Search
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../guide/search/" class="md-nav__link">
         
   
   
@@ -914,103 +884,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#opening-search" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Opening Search
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#basic-search" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Basic Search
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tag-search" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tag Search
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#search-results" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Search Results
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#rebuilding-the-index" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Rebuilding the Index
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#index-storage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Index Storage
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1023,7 +896,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../datalog-queries/" class="md-nav__link">
+      <a href="../../guide/datalog-queries/" class="md-nav__link">
         
   
   
@@ -1051,7 +924,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../journal/" class="md-nav__link">
+      <a href="../../guide/journal/" class="md-nav__link">
         
   
   
@@ -1079,7 +952,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../templates/" class="md-nav__link">
+      <a href="../../guide/templates/" class="md-nav__link">
         
   
   
@@ -1107,7 +980,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../flashcards/" class="md-nav__link">
+      <a href="../../guide/flashcards/" class="md-nav__link">
         
   
   
@@ -1135,7 +1008,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../whiteboards/" class="md-nav__link">
+      <a href="../../guide/whiteboards/" class="md-nav__link">
         
   
   
@@ -1163,7 +1036,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../math-equations/" class="md-nav__link">
+      <a href="../../guide/math-equations/" class="md-nav__link">
         
   
   
@@ -1191,7 +1064,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../diagrams/" class="md-nav__link">
+      <a href="../../guide/diagrams/" class="md-nav__link">
         
   
   
@@ -1219,7 +1092,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ai-features/" class="md-nav__link">
+      <a href="../../guide/ai-features/" class="md-nav__link">
         
   
   
@@ -1247,7 +1120,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../voice-dictation/" class="md-nav__link">
+      <a href="../../guide/voice-dictation/" class="md-nav__link">
         
   
   
@@ -1275,7 +1148,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../web-research/" class="md-nav__link">
+      <a href="../../guide/web-research/" class="md-nav__link">
         
   
   
@@ -1303,7 +1176,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../git-sync/" class="md-nav__link">
+      <a href="../../guide/git-sync/" class="md-nav__link">
         
   
   
@@ -1331,7 +1204,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../export/" class="md-nav__link">
+      <a href="../../guide/export/" class="md-nav__link">
         
   
   
@@ -1359,7 +1232,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/" class="md-nav__link">
+      <a href="../../guide/plugins/" class="md-nav__link">
         
   
   
@@ -1634,8 +1507,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -1653,21 +1528,22 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
-        
-          
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
             
   
   
@@ -1685,7 +1561,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1703,7 +1579,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/frontend-guide/" class="md-nav__link">
+      <a href="../frontend-guide/" class="md-nav__link">
         
   
   
@@ -1731,7 +1607,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/rust-guide/" class="md-nav__link">
+      <a href="../rust-guide/" class="md-nav__link">
         
   
   
@@ -1759,7 +1635,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/mobile-guide/" class="md-nav__link">
+      <a href="../mobile-guide/" class="md-nav__link">
         
   
   
@@ -1784,10 +1660,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../development/branch-policy/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Branch Policy and Hygiene
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1803,6 +1706,98 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#protected-branches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Protected Branches
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worktrees-and-workspace-branches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worktrees and Workspace Branches
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#identifying-merged-or-stale-branches" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Identifying Merged or Stale Branches
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cleanup-command-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cleanup Command Sequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cleanup-log" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cleanup Log
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cleanup Log">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2026-09-22-merged-stale-branch-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-22 — merged / stale branch cleanup
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1825,10 +1820,13 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
@@ -1837,7 +1835,7 @@
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="">
             
   
   
@@ -1873,7 +1871,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/adr/0004-wasm-plugin-abi/" class="md-nav__link">
+      <a href="../adr/0004-wasm-plugin-abi/" class="md-nav__link">
         
   
   
@@ -1936,10 +1934,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#opening-search" class="md-nav__link">
+  <a href="#protected-branches" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Opening Search
+        Protected Branches
       
     </span>
   </a>
@@ -1947,10 +1945,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#basic-search" class="md-nav__link">
+  <a href="#worktrees-and-workspace-branches" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Basic Search
+        Worktrees and Workspace Branches
       
     </span>
   </a>
@@ -1958,10 +1956,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tag-search" class="md-nav__link">
+  <a href="#identifying-merged-or-stale-branches" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tag Search
+        Identifying Merged or Stale Branches
       
     </span>
   </a>
@@ -1969,10 +1967,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#search-results" class="md-nav__link">
+  <a href="#cleanup-command-sequence" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Search Results
+        Cleanup Command Sequence
       
     </span>
   </a>
@@ -1980,35 +1978,30 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#rebuilding-the-index" class="md-nav__link">
+  <a href="#cleanup-log" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Rebuilding the Index
+        Cleanup Log
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cleanup Log">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2026-09-22-merged-stale-branch-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-09-22 — merged / stale branch cleanup
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#index-storage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Index Storage
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips
-      
-    </span>
-  </a>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2032,53 +2025,117 @@
   
 
 
-<h1 id="search">Search<a class="headerlink" href="#search" title="Permanent link">&para;</a></h1>
-<p>Stratum uses Tantivy, a Rust full-text search engine, for fast local search. Queries return results in under 100ms even with 10,000+ notes.</p>
-<h2 id="opening-search">Opening Search<a class="headerlink" href="#opening-search" title="Permanent link">&para;</a></h2>
-<p>Click <strong>Search</strong> in the sidebar or navigate to <code>/search</code>.</p>
-<!-- SCREENSHOT: [search-panel] Search panel with query and results -->
-
-<h2 id="basic-search">Basic Search<a class="headerlink" href="#basic-search" title="Permanent link">&para;</a></h2>
-<p>Type your query and press Enter or click <strong>Search</strong>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>machine learning transformer
-</code></pre></div>
-<p>Results show:
-- <strong>Content</strong> — the matched text with highlights
-- <strong>Page</strong> — the page containing the match
-- <strong>Score</strong> — relevance ranking</p>
-<p>Click any result to navigate to that page.</p>
-<h2 id="tag-search">Tag Search<a class="headerlink" href="#tag-search" title="Permanent link">&para;</a></h2>
-<p>Prefix your query with <code>#</code> to search by tag:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>#project
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>#rust
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>#meeting
-</code></pre></div>
-<p>This finds all blocks tagged with the given tag.</p>
-<h2 id="search-results">Search Results<a class="headerlink" href="#search-results" title="Permanent link">&para;</a></h2>
-<p>Each result shows:</p>
+<h1 id="branch-policy-and-hygiene">Branch Policy and Hygiene<a class="headerlink" href="#branch-policy-and-hygiene" title="Permanent link">&para;</a></h1>
+<p>This document defines how branches are named, protected, and kept clean in the
+<code>stratum</code> repository. It also records completed branch-cleanup passes.</p>
+<h2 id="protected-branches">Protected Branches<a class="headerlink" href="#protected-branches" title="Permanent link">&para;</a></h2>
+<p>The following branches are protected and <strong>must not</strong> be deleted. Review them
+before any cleanup pass, and treat any pattern listed here as a protected
+category:</p>
 <ul>
-<li><strong>Snippet</strong> — the matched content with keyword highlighting</li>
-<li><strong>Page path</strong> — which page contains the match</li>
-<li><strong>Score</strong> — search relevance score (higher = more relevant)</li>
+<li><code>master</code> — the integration trunk. All feature work merges here; CI defines it
+  as the deployment branch.</li>
+<li><code>gh-pages</code> — the published documentation site (built by the <code>docs</code>
+  workflow and deployed via <code>peaceiris/actions-gh-pages</code>).</li>
+<li><code>release/*</code> — release-preparation branches (for example
+  <code>release/v0.7.1-version-t_5eb0059b</code>). CDN/CI and the release process depend on
+  them; keep the current and any in-flight release branches.</li>
+<li>Live integration branches — user-facing feature branches that are still
+  actively developed and ahead of <code>master</code> (for example the MCP server
+  integration branch). Anything with open, unmerged work toward a planned
+  feature is protected. A branch is only clean-up-eligible once its work has
+  been merged to <code>master</code> (for example via PR) or is confirmed abandoned.</li>
+<li><code>backup/*</code> — emergency safety copies of unmerged work that exists nowhere
+  else (for example <code>backup/e8-sizing-gate-splits</code>, the only copy of an
+  unfinished E8 refactor). Treat these as protected until the work is landed or
+  permanently superseded.</li>
 </ul>
-<h2 id="rebuilding-the-index">Rebuilding the Index<a class="headerlink" href="#rebuilding-the-index" title="Permanent link">&para;</a></h2>
-<p>If you've made manual changes to your <code>.md</code> files outside Stratum, you can rebuild the search index:</p>
+<h2 id="worktrees-and-workspace-branches">Worktrees and Workspace Branches<a class="headerlink" href="#worktrees-and-workspace-branches" title="Permanent link">&para;</a></h2>
+<p>Contributors often work through Hermes-style task worktrees under
+<code>.worktrees/&lt;task-id&gt;</code> on branches named <code>wt/&lt;task-id&gt;</code> (or
+<code>stratum/&lt;task-id&gt;-&lt;slug&gt;</code> for project-linked task worktrees). These branches
+are transient by design:</p>
+<ul>
+<li>They are <strong>not</strong> protected. Their commits are expected to land on <code>master</code>
+  via PR; the branch itself is deleted afterwards.</li>
+<li>Before deleting a branch that is (or was) checked out in a worktree, remove
+  the worktree first, otherwise local deletion will be refused:
+  <code>git worktree remove --force .worktrees/&lt;task-id&gt;</code>.</li>
+<li>After a cleanup pass, run <code>git worktree prune</code> and <code>git fetch --prune origin</code>
+  to drop stale worktree bookkeeping and remote-tracking refs.</li>
+</ul>
+<h2 id="identifying-merged-or-stale-branches">Identifying Merged or Stale Branches<a class="headerlink" href="#identifying-merged-or-stale-branches" title="Permanent link">&para;</a></h2>
+<p>Before proposing any branch for deletion, verify it is safe with Git itself —
+never delete on naming convention alone:</p>
 <ol>
-<li>Open <strong>Search</strong></li>
-<li>Click <strong>Rebuild Index</strong></li>
-<li>The index is rebuilt from all blocks in the vault</li>
+<li><strong>Fully merged into <code>master</code></strong> (safe to delete):</li>
 </ol>
-<!-- SCREENSHOT: [search-rebuild] Rebuild index button with completion message -->
-
-<p>You can also rebuild from <strong>Settings → Developer → Reindex All</strong>.</p>
-<h2 id="index-storage">Index Storage<a class="headerlink" href="#index-storage" title="Permanent link">&para;</a></h2>
-<p>The search index is stored in <code>.pkm/search.idx</code>. It's fully rebuildable from your blocks — no data loss if deleted.</p>
-<h2 id="tips">Tips<a class="headerlink" href="#tips" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Search is block-level</strong>, not just page-level — you'll find specific paragraphs</li>
-<li><strong>Prefix <code>#</code></strong> for tag search (much faster than general search)</li>
-<li><strong>Rebuild the index</strong> if you've made large file imports or moved your vault</li>
-</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>branch<span class="w"> </span>-r<span class="w"> </span>--merged<span class="w"> </span>master
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>git<span class="w"> </span>branch<span class="w"> </span>-d<span class="w"> </span>&lt;branch&gt;<span class="w">             </span><span class="c1"># refuses if not fully merged</span>
+</code></pre></div>
+<ol>
+<li><strong>Ancestor of a live/protected branch</strong> (safe to delete — its work is
+   reachable through the protected branch):</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>merge-base<span class="w"> </span>--is-ancestor<span class="w"> </span>&lt;branch&gt;<span class="w"> </span>&lt;protected-branch&gt;<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"ancestor — safe"</span>
+</code></pre></div>
+<ol>
+<li><strong>Stale/unused</strong> — no commits ahead of <code>master</code> and no open PR or worktree
+   referencing it. Check with <code>git log origin/&lt;branch&gt; ^master --oneline</code> and
+   review whether any open PR or issue still depends on it.</li>
+</ol>
+<h2 id="cleanup-command-sequence">Cleanup Command Sequence<a class="headerlink" href="#cleanup-command-sequence" title="Permanent link">&para;</a></h2>
+<p>The standard cleanup procedure for merged/stale branches:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># 1. Ensure the work you want to keep is reachable from a protected branch.</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1">#    If the branch carries unique commits not on master, merge them first</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1">#    (fe.g. by opening a PR and landing it), otherwise the work is lost.</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>git<span class="w"> </span>checkout<span class="w"> </span>master<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>git<span class="w"> </span>pull
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1"># 2. If the branch is checked out in a worktree, remove that worktree first.</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>git<span class="w"> </span>worktree<span class="w"> </span>remove<span class="w"> </span>--force<span class="w"> </span>.worktrees/&lt;task-id&gt;
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="c1"># 3. Delete on the remote (origin) and locally, in that order.</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>--delete<span class="w"> </span>&lt;branch&gt;
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>git<span class="w"> </span>branch<span class="w"> </span>-d<span class="w"> </span>&lt;branch&gt;<span class="w">               </span><span class="c1"># use -D only if the branch is not merged</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="c1"># 4. Prune stale tracking refs and worktree bookkeeping.</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>git<span class="w"> </span>fetch<span class="w"> </span>--prune<span class="w"> </span>origin
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>git<span class="w"> </span>worktree<span class="w"> </span>prune
+</code></pre></div>
+<p>Deleting the remote ref first guarantees the local delete can never re-push a
+dead branch by accident. Verify afterwards that the protected branch set is
+intact and local <code>master</code> is in sync with <code>origin/master</code>.</p>
+<h2 id="cleanup-log">Cleanup Log<a class="headerlink" href="#cleanup-log" title="Permanent link">&para;</a></h2>
+<h3 id="2026-09-22-merged-stale-branch-cleanup">2026-09-22 — merged / stale branch cleanup<a class="headerlink" href="#2026-09-22-merged-stale-branch-cleanup" title="Permanent link">&para;</a></h3>
+<p>Completed as part of the "remove unused/merged remote branches" housekeeping
+request. All deletions were verified safe before execution and the protected
+branches above were left untouched.</p>
+<p><strong>Branches deleted</strong> (from <code>origin</code>, and locally where they were tracked):</p>
+<ol>
+<li><code>e7-land-verified</code> — merged into <code>master</code></li>
+<li><code>fix/backend-acceptance-defects-t_d65ce325</code> — merged into <code>master</code></li>
+<li><code>fix/mobile-ondevice-defects-t_3a936d34</code> — merged into <code>master</code></li>
+<li><code>fix/mobile-settings-vault-stale-t_126309a2</code> — merged into <code>master</code></li>
+<li><code>fix/release-land-e7-missing-acceptance-t_5eb0059b</code> — merged into <code>master</code></li>
+<li><code>stratum/t_2253206d-mobile-smoke</code> — its worktree
+   <code>.worktrees/t_2253206d</code> was removed first; its unique E7.F9 fix was
+   preserved via PR #192 (merged to <code>master</code> as <code>6f5072a</code>) before deletion</li>
+<li><code>wt/t_2335c56d</code> — remote-only; ancestor of the live MCP integration branch</li>
+<li><code>wt/t_4acd5437</code> — remote-only; ancestor of the live MCP integration branch</li>
+<li><code>wt/t_547e25f1</code> — remote-only; ancestor of the live MCP integration branch</li>
+<li><code>wt/t_af0ce286</code> — remote-only; ancestor of the live MCP integration branch</li>
+<li><code>scratch/merge-e7f9</code> — PR scratch branch, deleted after PR #192 merged</li>
+</ol>
+<p><strong>Verification performed:</strong> all ten pre-existing branches were confirmed to be
+ancestors of <code>origin/master</code> or of the live MCP integration branch; local
+<code>master</code> matched <code>origin/master</code> at <code>6f5072a</code>; <code>git fetch --prune origin</code>
+completed cleanly and the remote afterwards contained exactly the five
+protected branches (<code>master</code>, <code>gh-pages</code>,
+<code>release/v0.7.1-version-t_5eb0059b</code>, <code>stratum/t_7a548710-mcp-server</code>,
+<code>backup/e8-sizing-gate-splits</code>).</p>
+<p>Full deletion record and audit: this document plus the board task
+<code>t_8098a7d2</code> (deletion record) and its audit artifact
+<code>stratum-remote-branch-audit.md</code>.</p>
 
 
 
