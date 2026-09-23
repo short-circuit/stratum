@@ -357,7 +357,10 @@ mod tests {
         let guard = state.lock();
         assert!(guard.is_ok(), "vault lock must not be poisoned");
         let guard = guard.unwrap();
-        assert!(guard.plugin_manager.is_some(), "plugin manager must be present");
+        assert!(
+            guard.plugin_manager.is_some(),
+            "plugin manager must be present"
+        );
     }
 }
 
