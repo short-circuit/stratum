@@ -54,6 +54,29 @@ models = [
 rag_enabled = true
 # Number of chunks to include in RAG context
 rag_chunk_count = 5
+# Reuse the main LLM gateway endpoint and auth for RAG
+# (no-op today — embeddings always use the AI configuration)
+use_llm_gateway_and_auth = false
+
+[stt]
+# Base URL of the transcription endpoint. Empty = disabled.
+endpoint = ""
+# Optional bearer token for protected endpoints.
+api_key = ""
+# Transcription model name (e.g. "whisper-1")
+model = "whisper-1"
+# Diarization model name (e.g. "pyannote-diarization")
+diarize_model = "pyannote-diarization"
+# Language hint (e.g. "en"). Empty = auto-detect.
+# language = "en"
+# Run speaker diarization after transcription
+diarize = true
+# Generate an LLM summary of the transcript
+auto_summarize = true
+# Match speakers against the enrolled voice registry
+auto_identify = true
+# Reuse the main LLM gateway endpoint and auth for transcription
+use_llm_gateway_and_auth = false
 
 [tts]
 # Override endpoint for text-to-speech. Empty = use the AI endpoint above.
@@ -66,6 +89,10 @@ voice = "alloy"
 format = "mp3"
 # Playback speed multiplier (0.25–4.0)
 speed = 1.0
+# Reuse the main LLM gateway endpoint and auth for synthesis.
+# When true, the AI endpoint/key are used exclusively and any TTS
+# endpoint/api_key above is ignored.
+use_llm_gateway_and_auth = false
 
 [research]
 # SearXNG endpoint for web research
@@ -127,11 +154,17 @@ velocity_decay = 0.4
 | Model Capabilities | Assign capabilities to each model: `chat`, `embedding`, `tts` |
 | Enable RAG | Toggle retrieval-augmented generation |
 | RAG Chunk Count | Number of context chunks (1–20) |
+| Use gateway and auth from LLM (RAG) | Reuse the main LLM endpoint + key for RAG. No effect on endpoint selection today — embeddings always use the AI configuration. Disabled by default. |
+| Use gateway and auth from LLM (STT) | Reuse the main LLM endpoint + key for voice dictation instead of a separate STT endpoint/key. Disabled by default. |
 | TTS Endpoint | Override endpoint for text-to-speech (empty = uses AI endpoint) |
 | TTS Voice | Voice name used for synthesis (e.g. `alloy`, `onyx`) |
 | TTS Format | Output audio format (`mp3`, `opus`, `aac`, `flac`, `wav`) |
 | TTS Speed | Playback speed multiplier (0.25–4.0) |
+| Use gateway and auth from LLM (TTS) | Reuse the main LLM endpoint + key for synthesis exclusively; any TTS endpoint/key is ignored. Disabled by default. |
 | Test / Play voice | Synthesizes a sample sentence through the configured endpoint and plays it |
+
+See [AI Features → Reusing the LLM gateway and auth](../guide/ai-features.md#reusing-the-llm-gateway-and-auth-stt-rag-tts)
+for the full behavior of the `use_llm_gateway_and_auth` settings.
 
 ### Research Tab
 
