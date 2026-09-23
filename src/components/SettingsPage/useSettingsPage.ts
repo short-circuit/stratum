@@ -137,6 +137,7 @@ export function useSettingsPage() {
     voice: 'alloy',
     format: 'mp3',
     speed: 1.0,
+    use_llm_gateway_and_auth: false,
   };
 
   const updateAi = (patch: any) => setSettings({ ...settings, ai: { ...ai, ...patch } });
