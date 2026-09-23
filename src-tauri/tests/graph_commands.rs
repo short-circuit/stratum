@@ -87,7 +87,10 @@ fn webview(app: &tauri::App<tauri::test::MockRuntime>) -> WebviewWindow<tauri::t
 }
 
 /// Seed a page (with optional frontmatter tags) plus a body block in SQLite —
-/// the shape the reindex/sync code path produces.
+/// the shape the reindex/sync code path produces. Body-block wiki-links are
+/// reconciled into the `links` table (as the production write paths do) so graph
+/// tests exercise the real read path — edges come from `links`, and the graph
+/// command no longer heals `links` at read time.
 fn seed_page(tv: &common::TestVault, rel_path: &str, title: &str, tags: &[&str], content: &str) {
     let full = tv.vault_path.join(rel_path);
     std::fs::write(&full, content).unwrap();
@@ -99,6 +102,9 @@ fn seed_page(tv: &common::TestVault, rel_path: &str, title: &str, tags: &[&str],
     for b in &blocks {
         tv.store.insert_block(b, rel_path).unwrap();
     }
+    // Reproduce the production write path: reconcile this page's wiki-links into
+    // the `links` table (source of the graph's authoritative edge reads).
+    app_lib::commands::page::reconcile_page_links(&tv.store, rel_path, &blocks).unwrap();
 }
 
 /// Build the canonical small fixture:
@@ -376,6 +382,59 @@ fn graph_load_under_2s_at_600_nodes() {
     // The whole payload is present and well-formed for the renderer.
     let orphans = resp["orphans"].as_array().unwrap();
     assert_eq!(orphans.len(), 1, "exactly the isolated page is an orphan");
+}
+
+#[test]
+fn graph_edges_are_read_from_links_table_not_block_content() {
+    let tv = common::create_test_vault();
+    seed_small_graph(&tv);
+    graph::invalidate_graph_cache();
+
+    let app = build_app(&tv);
+    let wv = webview(&app);
+
+    // Baseline: the seeded graph has the [[beta]]/[[alpha]] cross-link pair.
+    let resp = invoke(&wv, "get_graph_panel_data", json!({})).expect("baseline fetch");
+    let edges = resp["graph"]["edges"].as_array().unwrap();
+    assert_eq!(edges.len(), 2, "baseline cross-links present");
+
+    // alpha's block content says [[beta]], but we rewrite the `links` table to
+    // point alpha at orphan — contradicting the block content. If the graph read
+    // block content it would show alpha→beta; if it reads the authoritative
+    // `links` table it must show alpha→orphan instead.
+    let alpha_blocks = tv.store.get_blocks_by_page("pages/alpha.md").unwrap();
+    assert!(!alpha_blocks.is_empty());
+    tv.store.delete_links_for_page("pages/alpha.md").unwrap();
+    tv.store
+        .insert_link(
+            alpha_blocks[0].id,
+            "page_ref",
+            Some("pages/orphan.md"),
+            None,
+        )
+        .unwrap();
+    graph::invalidate_graph_cache();
+
+    let resp2 = invoke(&wv, "get_graph_panel_data", json!({})).expect("after links rewrite");
+    let edges2 = resp2["graph"]["edges"].as_array().unwrap();
+    // alpha now points at orphan per the links table; beta's [[alpha]] is unchanged.
+    let alpha_out: Vec<_> = edges2
+        .iter()
+        .filter(|e| e["source"] == "alpha")
+        .collect();
+    assert_eq!(
+        alpha_out.len(),
+        1,
+        "alpha still has exactly one outgoing edge"
+    );
+    assert_eq!(
+        alpha_out[0]["target"], "orphan",
+        "edge follows the links table (alpha→orphan), not block content ([[beta]])"
+    );
+    assert!(
+        !edges2.iter().any(|e| e["source"] == "alpha" && e["target"] == "beta"),
+        "block-content link [[beta]] is not surfaced when the links table contradicts it"
+    );
 }
 
 #[test]
