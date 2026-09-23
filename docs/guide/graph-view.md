@@ -62,6 +62,13 @@ Type in the search field within the graph panel to filter nodes by name. Only ma
 
 These settings can be adjusted in **Settings → Graph** or by editing `.pkm/config.toml`.
 
+## Performance
+
+Graph loading is optimized for large vaults:
+
+- **Authoritative links table.** Graph edges are read directly from the `links` table (the same index that powers backlinks), not re-parsed from block content on every load. Every save/edit reconciles this table in the same transaction, so the graph always reflects the latest edits. On first launch after upgrading, the app self-heals any vault whose links table predates this wiring.
+- **Cached responses.** The computed graph is cached per vault and served cheaply on subsequent opens, invalidated automatically after any page or block edit.
+
 ## Tips
 
 - **Start with orphans** — opening the orphan view first helps find pages that need linking

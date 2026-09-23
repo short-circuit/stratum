@@ -204,7 +204,7 @@ pub(crate) fn sync_page_from_disk(
 /// The table drives block-level backlink queries and was previously populated only by
 /// tests, leaving production backlinks permanently empty. Wiring this into the shared
 /// write/sync paths lets repair, reindex, and startup sync heal the table.
-pub(crate) fn reconcile_page_links(
+pub fn reconcile_page_links(
     store: &pkm_block::BlockStore,
     page_path: &str,
     blocks: &[pkm_block::Block],
@@ -227,6 +227,26 @@ pub(crate) fn reconcile_page_links(
         }
     }
     Ok(())
+}
+
+/// Self-heal the `links` table for any page that owns blocks but has no `page_ref`
+/// link rows — e.g. vaults imported before `reconcile_page_links` wiring, or stores
+/// written by a divergent path. Called once at boot/reindex (never on the graph-read
+/// hot path — the graph path is a pure read of an already-convergent `links` table,
+/// and a per-read heal would not converge for pages that legitimately have zero links,
+/// e.g. orphan/isolated notes). Rewrites only pages actually missing links.
+pub fn heal_missing_page_links(store: &pkm_block::BlockStore) -> Result<usize, String> {
+    let mut healed = 0usize;
+    for rel in store.pages_missing_page_links().map_err(|e| e.to_string())? {
+        let blocks = store.get_blocks_by_page(&rel).unwrap_or_default();
+        if blocks.is_empty() {
+            continue;
+        }
+        if reconcile_page_links(store, &rel, &blocks).is_ok() {
+            healed += 1;
+        }
+    }
+    Ok(healed)
 }
 
 /// Scan the vault filesystem for .md files and upsert any missing or empty ones into SQLite.
@@ -269,6 +289,13 @@ pub fn sync_filesystem_to_db(vault_path: &Path, db_path: &Path) -> Result<usize,
     if let Some(ref mut bi) = block_index {
         let _ = bi.flush();
     }
+
+    // Self-healing backfill: pre-existing vaults (or earlier versions) may have
+    // pages whose blocks predate `reconcile_page_links` wiring, leaving their
+    // `links` rows empty. The graph view now reads the `links` table as its
+    // authoritative edge source, so heal any page that owns blocks but has no
+    // `page_ref` links. Does not touch pages that already have links.
+    count += heal_missing_page_links(&store)?;
 
     for rel in &db_paths {
         if rel.starts_with(".git/") || rel.contains("/.git/") {
@@ -543,6 +570,10 @@ pub async fn save_page(
                 .insert_block(block, &path)
                 .map_err(|e| e.to_string())?;
         }
+        // Rebuild the `links` table for this page. The `links` table drives the
+        // graph view and backlinks, so it must stay convergent with the blocks
+        // actually written here (same invariant as save_blocks / sync_page_from_disk).
+        reconcile_page_links(&store, &path, &blocks)?;
         store.upsert_page(&page).map_err(|e| e.to_string())?;
         Ok(())
     })();

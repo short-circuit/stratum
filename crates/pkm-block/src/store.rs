@@ -807,6 +807,66 @@ impl BlockStore {
         }
         Ok(results)
     }
+
+    /// Return every `page_ref` wiki-link edge as a `(source_page, target_ref)` pair,
+    /// where `source_page` is the canonical vault-relative path of the owning page
+    /// and `target_ref` is the raw stored target (`canonical_page_path` when the link
+    /// resolved at write time, or the raw `[[Target]]` text otherwise).
+    ///
+    /// The caller re-resolves the target against the CURRENT page set (the historical
+    /// graph semantic): a link whose target page did not exist at write time is
+    /// written as raw text and resolved on read once that page exists — it is never
+    /// permanently dropped. This is the authoritative graph-edge source: one real page
+    /// only on the source side (dead/stale source blocks contribute nothing), and the
+    /// source owning page must exist (blocks left by a divergent write path are skipped).
+    pub fn get_page_ref_edges(&self) -> StoreResult<Vec<(String, String)>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT src.page_path, COALESCE(l.target_page, '') \
+                 FROM links l \
+                 JOIN blocks src ON l.source_block = src.id \
+                 JOIN pages src_page ON src.page_path = src_page.path \
+                 WHERE l.link_type = 'page_ref' \
+                 ORDER BY src.rowid, l.rowid",
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+        let mut results = Vec::new();
+        for row in rows {
+            results.push(row.map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?);
+        }
+        Ok(results)
+    }
+
+    /// Return the set of page paths whose `links` table is empty but which own at
+    /// least one block. Used by the boot/reindex backfill to heal pre-existing vaults
+    /// where the `links` rows were never populated.
+    pub fn pages_missing_page_links(&self) -> StoreResult<Vec<String>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT DISTINCT b.page_path \
+                 FROM blocks b \
+                 WHERE EXISTS (SELECT 1 FROM blocks b2 WHERE b2.page_path = b.page_path) \
+                   AND NOT EXISTS (\
+                     SELECT 1 FROM links l JOIN blocks src ON l.source_block = src.id \
+                     WHERE src.page_path = b.page_path AND l.link_type = 'page_ref')",
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+        let rows = stmt
+            .query_map([], |row| row.get::<_, String>(0))
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+        let mut results = Vec::new();
+        for row in rows {
+            results.push(row.map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?);
+        }
+        Ok(results)
+    }
 }
 
 #[cfg(test)]
@@ -1054,5 +1114,72 @@ mod tests {
         let deleted = store.delete_blocks_by_page("pages/to_delete.md").unwrap();
         assert_eq!(deleted, 1);
         assert_eq!(store.block_count().unwrap(), 1);
+    }
+
+    #[test]
+    fn test_get_page_ref_edges_join_to_pages_and_drop_dead_links() {
+        let store = BlockStore::open_in_memory().unwrap();
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let c = Uuid::new_v4();
+
+        // Two real pages; `c`'s block sits on a page that is never upserted into `pages`.
+        store
+            .insert_block(&Block::new(a, "see [[beta]]".into()), "pages/alpha.md")
+            .unwrap();
+        store
+            .insert_block(&Block::new(b, "see [[gamma]]".into()), "pages/beta.md")
+            .unwrap();
+        store
+            .insert_block(&Block::new(c, "see [[delta]]".into()), "pages/stale.md")
+            .unwrap();
+
+        let vault = std::path::PathBuf::from("/tmp/test-vault");
+        for (rel, title) in [
+            ("pages/alpha.md", "Alpha"),
+            ("pages/beta.md", "Beta"),
+            ("pages/gamma.md", "Gamma"),
+            ("pages/delta.md", "Delta"),
+        ] {
+            let mut page = Page::new(vault.join(rel), &vault);
+            page.frontmatter.title = Some(title.to_string());
+            store.upsert_page(&page).unwrap();
+        }
+
+        // alpha→beta ([[beta]]) and beta→gamma ([[gamma]]). delta is never linked;
+        // stale.md is not a page so its [[delta]] link row must be dropped (a stale
+        // source block contributes no edge).
+        store.insert_link(a, "page_ref", Some("pages/beta.md"), None).unwrap();
+        store.insert_link(b, "page_ref", Some("pages/gamma.md"), None).unwrap();
+        store.insert_link(c, "page_ref", Some("pages/delta.md"), None).unwrap();
+
+        // The store read returns the raw stored target for every live source page;
+        // dead-target filtering is the caller's job (against the live page index).
+        let edges = store.get_page_ref_edges().unwrap();
+        assert_eq!(edges.len(), 2, "stale source pages are excluded, resolved kept");
+        assert!(edges.contains(&("pages/alpha.md".into(), "pages/beta.md".into())));
+        assert!(edges.contains(&("pages/beta.md".into(), "pages/gamma.md".into())));
+    }
+
+    #[test]
+    fn test_pages_missing_page_links_only_lists_pages_with_blocks_and_no_links() {
+        let store = BlockStore::open_in_memory().unwrap();
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+
+        // `a` has a block (so it owns a page) but no links row → must be listed.
+        store
+            .insert_block(&Block::new(a, "no links here".into()), "pages/needs_heal.md")
+            .unwrap();
+        // `b` has a block AND a links row → must not be listed.
+        store
+            .insert_block(&Block::new(b, "see [[needs_heal]]".into()), "pages/okay.md")
+            .unwrap();
+        store
+            .insert_link(b, "page_ref", Some("pages/needs_heal.md"), None)
+            .unwrap();
+
+        let missing = store.pages_missing_page_links().unwrap();
+        assert_eq!(missing, vec!["pages/needs_heal.md".to_string()]);
     }
 }
