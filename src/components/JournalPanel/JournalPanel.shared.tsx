@@ -28,6 +28,18 @@ export function formatDisplayDate(dateStr: string): string {
   });
 }
 
+/** Shift a YYYY-MM-DD string by a signed number of days (for Prev/Next day arrows). */
+export function addDays(dateStr: string, delta: number): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + delta);
+  return formatDate(d);
+}
+
+/** True if a string is a valid journal date key (YYYY-MM-DD). */
+export function isJournalDateKey(value: string | null): value is string {
+  return !!value && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
 /** Shared hook for journal panel state and logic used by both desktop and mobile variants. */
 export function useJournalPanel() {
   const navigate = useNavigate();
@@ -49,6 +61,12 @@ export function useJournalPanel() {
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  // The panel's actual scrolling element. The app shell is overflow:hidden on
+  // both platforms, so this is the journal panel's own scroll root — NOT
+  // window. The desktop variant attaches it to the inner scroll Box, and the
+  // mobile variant to its root Box. Used so "jump to today" scrolls the
+  // correct container (window.scrollTo is a no-op when window doesn't scroll).
+  const scrollRootRef = useRef<HTMLElement | null>(null);
   const processedTargetRef = useRef<string | null>(null);
   const targetDateRef = useRef(targetDate);
   useEffect(() => {
@@ -207,7 +225,7 @@ export function useJournalPanel() {
     if (processedTargetRef.current === targetDate) return;
 
     if (targetDate === today) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollRootRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
       processedTargetRef.current = targetDate;
       return;
     }
@@ -230,7 +248,15 @@ export function useJournalPanel() {
     requestAnimationFrame(() => {
       const el = document.querySelector(`[data-date="${targetDate}"]`);
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Prefer scrolling the panel container (works on both variants) and
+        // fall back to element.scrollIntoView for any residual case.
+        const root = scrollRootRef.current;
+        if (root) {
+          const top = (el as HTMLElement).offsetTop - root.offsetTop;
+          root.scrollTo({ top, behavior: 'smooth' });
+        } else {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
         processedTargetRef.current = targetDate;
       }
     });
@@ -255,6 +281,17 @@ export function useJournalPanel() {
     [allJournalDates, loadPages, navigate],
   );
 
+  /** Navigate to the previous (-1) or next (+1) day relative to the current target (or today).
+   *  Reuses handleDateSelect so the target journal is created on demand if it
+   *  doesn't exist yet — identical to selecting the date in the calendar. */
+  const createNewDay = useCallback(
+    (delta: -1 | 1) => {
+      const base = isJournalDateKey(targetDate) ? targetDate : today;
+      handleDateSelect(addDays(base, delta));
+    },
+    [handleDateSelect, targetDate, today],
+  );
+
   return {
     today,
     todayPagePath,
@@ -270,10 +307,12 @@ export function useJournalPanel() {
     visibleSections,
     sectionRef,
     sentinelRef,
+    scrollRootRef,
     calendarOpen,
     setCalendarOpen,
     calendarAnchorEl,
     setCalendarAnchorEl,
     handleDateSelect,
+    createNewDay,
   };
 }
