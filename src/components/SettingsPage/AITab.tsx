@@ -7,6 +7,7 @@ import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Switch from '@mui/material/Switch';
+import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import ToggleButton from '@mui/material/ToggleButton';
@@ -37,6 +38,7 @@ interface AITabProps {
     rag_enabled: boolean;
     rag_chunk_count: number;
     embedding_dimensions: number;
+    use_llm_gateway_and_auth: boolean;
   };
   onAiChange: (patch: Partial<AITabProps['ai']>) => void;
   availableModels: string[];
@@ -52,6 +54,7 @@ interface AITabProps {
     diarize: boolean;
     auto_summarize: boolean;
     auto_identify: boolean;
+    use_llm_gateway_and_auth: boolean;
   };
   onSttChange?: (patch: Partial<NonNullable<AITabProps['stt']>>) => void;
   tts?: {
@@ -60,6 +63,7 @@ interface AITabProps {
     voice: string;
     format: string;
     speed: number;
+    use_llm_gateway_and_auth: boolean;
   };
   onTtsChange?: (patch: Partial<NonNullable<AITabProps['tts']>>) => void;
 }
@@ -247,6 +251,16 @@ export default function AITab({
             />
           )}
         </Box>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={ai.use_llm_gateway_and_auth ?? false}
+              onChange={e => onAiChange({ use_llm_gateway_and_auth: e.target.checked })}
+            />
+          }
+          label="Use gateway and auth from LLM"
+          sx={{ '& .MuiFormControlLabel-label': { fontSize: '0.875rem' } }}
+        />
 
         <TextField
           label="Embedding Dimensions (0 = auto)"
@@ -320,6 +334,16 @@ export default function AITab({
                 label="Auto-identify voices"
               />
             </Box>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={stt.use_llm_gateway_and_auth ?? false}
+                  onChange={e => onSttChange({ use_llm_gateway_and_auth: e.target.checked })}
+                />
+              }
+              label="Use gateway and auth from LLM"
+              sx={{ '& .MuiFormControlLabel-label': { fontSize: '0.875rem' } }}
+            />
             <SttTestButton />
           </Box>
         </Box>
@@ -373,6 +397,16 @@ export default function AITab({
               onChange={e => onTtsChange({ speed: parseFloat(e.target.value) || 1.0 })}
               size="small"
               helperText="Playback speed multiplier (0.25–4.0)"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={tts.use_llm_gateway_and_auth ?? false}
+                  onChange={e => onTtsChange({ use_llm_gateway_and_auth: e.target.checked })}
+                />
+              }
+              label="Use gateway and auth from LLM"
+              sx={{ '& .MuiFormControlLabel-label': { fontSize: '0.875rem' } }}
             />
             <TtsTestButton />
           </Box>
