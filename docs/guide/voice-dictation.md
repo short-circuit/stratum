@@ -89,7 +89,16 @@ language = "en"            # optional
 diarize = true
 auto_summarize = true
 auto_identify = true
+use_llm_gateway_and_auth = false   # optional; reuse the AI endpoint+key for STT
 ```
+
+!!! tip "Reuse the LLM gateway"
+    If your transcription server is the same OpenAI-compatible gateway you
+    configured in Settings → AI, tick **Use gateway and auth from LLM** in
+    Settings → AI → Voice Dictation instead of setting a separate
+    transcription endpoint and key. Transcripts, diarization, speaker
+    recognition and Test Connection then use the AI endpoint and API key.
+    See [AI Features → Reusing the LLM gateway and auth](ai-features.md#reusing-the-llm-gateway-and-auth-stt-rag-tts).
 
 ## Setting up a diarization model (LocalAI example)
 
