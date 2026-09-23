@@ -5,6 +5,7 @@ import Divider from '@mui/material/Divider';
 import Alert from '@mui/material/Alert';
 import TextField from '@mui/material/TextField';
 import Switch from '@mui/material/Switch';
+import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
@@ -54,6 +55,7 @@ export interface MobileAiAccordionProps {
     model: string;
     rag_enabled: boolean;
     embedding_dimensions: number;
+    use_llm_gateway_and_auth: boolean;
   };
   updateAi: (patch: any) => void;
 }
@@ -140,6 +142,15 @@ export default function MobileAiAccordion({ ai, updateAi }: MobileAiAccordionPro
                 />
               }
               label="Enable RAG"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={ai?.use_llm_gateway_and_auth ?? false}
+                  onChange={e => updateAi({ use_llm_gateway_and_auth: e.target.checked })}
+                />
+              }
+              label="Use gateway and auth from LLM"
             />
             <TextField
               label="Embedding Dimensions (0 = auto)"

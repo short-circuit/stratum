@@ -81,11 +81,21 @@ pub struct TtsConfigResolved {
 impl TtsConfigResolved {
     /// Build the TTS configuration from the app's settings.
     ///
-    /// The endpoint comes from [`TtsConfig`] when set, otherwise the AI
-    /// endpoint is used. Returns an error when the resolved endpoint is
-    /// missing or fails SSRF/URL validation (see [`validate_endpoint_safe`]).
+    /// Decision (E7.10-5): TTS is wired to honor `TtsConfig::use_llm_gateway_and_auth`
+    /// rather than being gated. TTS has live consumers (read-aloud, test button,
+    /// `tts_synthesize`/`tts_speak` commands), so the checkbox is active, not
+    /// hidden. When the flag is set, the main LLM gateway endpoint/auth from
+    /// [`AiConfig`] is used for synthesis exclusively — any TTS-specific
+    /// endpoint/api_key override is ignored. When the flag is unset (the default,
+    /// or absent from an older config file), the existing behavior is preserved
+    /// exactly: the TTS endpoint is used when set, otherwise the AI endpoint,
+    /// and the TTS api_key is used when set, otherwise the AI key.
+    ///
+    /// Returns an error when the resolved endpoint is missing or fails
+    /// SSRF/URL validation (see [`validate_endpoint_safe`]).
     pub fn from_config(ai: &AiConfig, tts: &TtsConfig) -> PkmResult<Self> {
-        let endpoint = if tts.endpoint.trim().is_empty() {
+        let use_gateway = tts.use_llm_gateway_and_auth;
+        let endpoint = if use_gateway || tts.endpoint.trim().is_empty() {
             resolve_endpoint(ai)
         } else {
             tts.endpoint.trim_end_matches('/').to_string()
@@ -121,7 +131,9 @@ impl TtsConfigResolved {
             tts.speed
         };
 
-        let api_key = if tts.api_key.as_deref().is_some_and(|k| !k.trim().is_empty()) {
+        let api_key = if use_gateway {
+            ai.effective_api_key()
+        } else if tts.api_key.as_deref().is_some_and(|k| !k.trim().is_empty()) {
             tts.api_key.clone()
         } else {
             ai.effective_api_key()
@@ -363,6 +375,7 @@ mod tests {
             voice: "onyx".to_string(),
             format: "flac".to_string(),
             speed: 0.8,
+            ..TtsConfig::default()
         };
         let cfg = TtsConfigResolved::from_config(&ai_config("http://localhost:18080/v1"), &tts)
             .expect("should resolve");
@@ -393,6 +406,77 @@ mod tests {
         let err = TtsConfigResolved::from_config(&ai, &tts_config())
             .expect_err("should fail without endpoint");
         assert!(matches!(err, PkmError::Ai(_)));
+    }
+
+    #[test]
+    fn test_resolved_config_reuses_llm_gateway_and_auth_when_flag_true() {
+        // Flag set → the AI gateway endpoint and AI api_key are used even when
+        // a TTS-specific endpoint/api_key would otherwise override them.
+        let tts = TtsConfig {
+            endpoint: "https://tts.example.com/v1".to_string(),
+            api_key: Some("tts-key".to_string()),
+            use_llm_gateway_and_auth: true,
+            ..TtsConfig::default()
+        };
+        let ai = AiConfig {
+            provider: AiProvider::CustomOpenAI,
+            endpoint: Some("https://gateway.example.com/v1".to_string()),
+            api_key: Some("llm-secret".to_string()),
+            model: "tts-1".to_string(),
+            models: vec![pkm_core::AiModelConfig {
+                name: "tts-1".to_string(),
+                capabilities: vec!["tts".to_string()],
+            }],
+            ..Default::default()
+        };
+        let cfg = TtsConfigResolved::from_config(&ai, &tts).expect("should resolve");
+        assert_eq!(cfg.endpoint, "https://gateway.example.com/v1");
+        assert_eq!(cfg.api_key.as_deref(), Some("llm-secret"));
+    }
+
+    #[test]
+    fn test_resolved_config_flag_true_without_ai_endpoint_is_an_error() {
+        // Flag set + no AI endpoint configured → hard error, even though a TTS
+        // endpoint is set (the gateway is the only allowed source when enabled).
+        let tts = TtsConfig {
+            endpoint: "https://tts.example.com/v1".to_string(),
+            use_llm_gateway_and_auth: true,
+            ..TtsConfig::default()
+        };
+        let mut ai = ai_config("http://localhost:18080/v1");
+        ai.endpoint = None;
+        let err = TtsConfigResolved::from_config(&ai, &tts)
+            .expect_err("gateway mode with no AI endpoint must fail");
+        assert!(matches!(err, PkmError::Ai(_)));
+    }
+
+    #[test]
+    fn test_resolved_config_flag_false_preserves_tts_override() {
+        // Default (flag false) → TTS-specific endpoint/api_key win as before.
+        let tts = TtsConfig {
+            endpoint: "https://tts.example.com/v1".to_string(),
+            api_key: Some("tts-key".to_string()),
+            use_llm_gateway_and_auth: false,
+            ..TtsConfig::default()
+        };
+        let cfg = TtsConfigResolved::from_config(&ai_config("http://localhost:18080/v1"), &tts)
+            .expect("should resolve");
+        assert_eq!(cfg.endpoint, "https://tts.example.com/v1");
+        assert_eq!(cfg.api_key.as_deref(), Some("tts-key"));
+    }
+
+    #[test]
+    fn test_resolved_config_flag_false_without_tts_uses_ai_gateway() {
+        // Default (flag false), no TTS override → falls back to AI endpoint/key
+        // (unchanged pre-flag behavior).
+        let tts = TtsConfig {
+            use_llm_gateway_and_auth: false,
+            ..TtsConfig::default()
+        };
+        let cfg = TtsConfigResolved::from_config(&ai_config("http://localhost:18080/v1"), &tts)
+            .expect("should resolve");
+        assert_eq!(cfg.endpoint, "http://localhost:18080/v1");
+        assert_eq!(cfg.api_key.as_deref(), Some("sk-test"));
     }
 
     #[tokio::test]
