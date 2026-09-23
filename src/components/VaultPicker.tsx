@@ -4,14 +4,18 @@ import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
+import IconButton from '@mui/material/IconButton';
+import CloseIcon from '@mui/icons-material/Close';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '../stores/appStore';
 
 export default function VaultPicker() {
-  const { pickVaultDirectory, error } = useStore(useShallow(
-    s => ({ pickVaultDirectory: s.pickVaultDirectory, error: s.error }),
+  const { pickVaultDirectory, error, persistentError } = useStore(useShallow(
+    s => ({ pickVaultDirectory: s.pickVaultDirectory, error: s.error, persistentError: s.persistentError }),
   ));
+
+  const visibleError = persistentError ?? error;
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100vw', bgcolor: 'background.default' }}>
@@ -27,9 +31,21 @@ export default function VaultPicker() {
             </Typography>
           </Box>
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
+          {visibleError && (
+            <Alert
+              severity="error"
+              sx={{ mb: 2 }}
+              action={
+                <IconButton
+                  size="small"
+                  aria-label="Dismiss error"
+                  onClick={() => useStore.getState().dismissError(visibleError.id)}
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              }
+            >
+              {visibleError.message}
             </Alert>
           )}
 
