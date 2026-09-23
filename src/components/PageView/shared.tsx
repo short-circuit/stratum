@@ -60,14 +60,13 @@ export function usePageView(): PageViewState {
       setEditorKey(k => k + 1);
       await loadPages();
       if (result.succeeded > 0) {
-        useStore.setState({ error: `Reindexed page — ${result.succeeded} block(s)` });
-        setTimeout(() => useStore.setState({ error: null }), 2000);
+        useStore.getState().showError(`Reindexed page — ${result.succeeded} block(s)`, { autoDismissMs: 2000 });
       } else if (result.failed > 0) {
-        useStore.setState({ error: `Reindex failed: ${result.errors.join(', ')}` });
+        useStore.getState().showError(`Reindex failed: ${result.errors.join(', ')}`);
       }
     } catch (e) {
       console.error('Reindex failed:', e);
-      useStore.setState({ error: String(e) });
+      useStore.getState().showError(String(e));
     } finally {
       setReindexing(false);
     }

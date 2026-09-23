@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useResponsive } from './lib/hooks/useResponsive';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
+import ErrorAlert from './components/ui/ErrorAlert';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
-import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import { useStore } from './stores/appStore';
@@ -55,6 +55,7 @@ function AppContent() {
   const vault = useStore(s => s.vault);
   const loading = useStore(s => s.loading);
   const error = useStore(s => s.error);
+  const persistentError = useStore(s => s.persistentError);
   const loadVault = useStore(s => s.loadVault);
   const loadPages = useStore(s => s.loadPages);
   const { isMobile } = useResponsive();
@@ -120,7 +121,7 @@ function AppContent() {
 
   if (isMobile) {
     return (
-      <MobileLayout error={error}>
+      <MobileLayout error={error} persistentError={persistentError}>
         <Routes>
           <Route path="/" element={<Navigate to="/journal" replace />} />
           <Route path="/journal" element={<ErrorBoundary><JournalPanel /></ErrorBoundary>} />
@@ -159,8 +160,15 @@ function AppContent() {
     <Box sx={{ display: 'flex', height: '100vh', width: '100vw', bgcolor: 'background.default', color: 'text.primary' }} className="safe-area-container">
       <Sidebar />
       <Box component="main" sx={{ flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }} className="safe-area-main">
-        {error && (
-          <Alert severity="error" sx={{ borderRadius: 0, flexShrink: 0 }}>{error}</Alert>
+        {(persistentError || error) && (
+          <ErrorAlert
+            message={(persistentError ?? error)!.message}
+            onClose={() => {
+              const target = persistentError ?? error;
+              if (target) useStore.getState().dismissError(target.id);
+            }}
+            sx={{ flexShrink: 0 }}
+          />
         )}
         <Box sx={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
           <Routes>
