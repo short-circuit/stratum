@@ -7,6 +7,17 @@ import TextField from '@mui/material/TextField';
 import { useSettingsPage } from './SettingsPage.shared';
 import MobileThemeSection from './MobileThemeSection';
 import MobileAiAccordion from './MobileAiAccordion';
+import MobileSttTtsSection from './MobileSttTtsSection';
+import MobileDeveloperSection from './MobileDeveloperSection';
+import MobileSyncSection from './MobileSyncSection';
+
+// ---------------------------------------------------------------------------
+// Mobile settings page.
+// Rendered when the app is in the mobile flow (see SettingsPage/index.tsx).
+// Reuses the shared `useSettingsPage` hook (same state/actions as desktop) and
+// mirrors the desktop tab surface as a vertical scroll of sections so every
+// desktop setting is reachable on a touch device.
+// ---------------------------------------------------------------------------
 
 export default function SettingsPageMobile() {
   const {
@@ -28,8 +39,26 @@ export default function SettingsPageMobile() {
     handleSave,
     handleReindex,
     handleRepair,
+    handleNormalizeAll,
+    reindexProgress,
     handleSyncNow,
     handlePickVaultDirectory,
+    // AI model fetch + capability editor
+    availableModels,
+    handleFetchModels,
+    toggleModelCapability,
+    // STT / TTS
+    stt,
+    tts,
+    updateStt,
+    updateTts,
+    // Sync
+    syncSettings,
+    updateSync,
+    commits,
+    commitsOpen,
+    handleToggleCommits,
+    handleStartScheduler,
   } = useSettingsPage();
 
   if (!settings) {
@@ -43,9 +72,9 @@ export default function SettingsPageMobile() {
   }
 
   return (
-    <Box sx={{ height: '100%', overflow: 'auto' }}>
-      {/* Save button + message */}
-      <Box sx={{ p: 2, pb: 0 }}>
+    <Box sx={{ height: '100%', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+      {/* Sticky save bar + message */}
+      <Box sx={{ position: 'sticky', top: 0, zIndex: 10, bgcolor: 'background.default', px: 2, pt: 2, pb: 1 }}>
         <Button
           variant="contained"
           onClick={handleSave}
@@ -62,144 +91,105 @@ export default function SettingsPageMobile() {
         )}
       </Box>
 
-      {/* ─── Vault Section ─── */}
-      <Box sx={{ px: 2, pt: 2 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-          Vault
-        </Typography>
-        <Divider sx={{ mb: 1.5 }} />
-        <TextField
-          label="Vault Path"
-          value={settings.vault_path || ''}
-          onChange={e => updateVault({ vault_path: e.target.value })}
-          fullWidth
-          size="small"
-          sx={{ mb: 1, '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.8rem' } }}
-        />
-        <Button variant="outlined" size="small" onClick={handlePickVaultDirectory}>
-          Browse
-        </Button>
-      </Box>
-
-      {/* ─── Theme Section ─── */}
-      <MobileThemeSection theme={theme} updateTheme={updateTheme} />
-
-      {/* ─── AI Section (collapsible) ─── */}
-      <MobileAiAccordion ai={ai} updateAi={updateAi} />
-
-      {/* ─── Research Section ─── */}
-      <Box sx={{ px: 2, pt: 2 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-          Research
-        </Typography>
-        <Divider sx={{ mb: 1.5 }} />
-        <TextField
-          label="SearXNG Endpoint"
-          placeholder="http://localhost:8888"
-          value={research.searxng_endpoint}
-          onChange={e => updateResearch({ searxng_endpoint: e.target.value })}
-          fullWidth
-          size="small"
-          helperText="URL of your SearXNG instance"
-        />
-      </Box>
-
-      {/* ─── Developer Section ─── */}
-      <Box sx={{ px: 2, pt: 3 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-          Developer
-        </Typography>
-        <Divider sx={{ mb: 1.5 }} />
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-          Re-sync all pages from disk into the database. Idempotent.
-        </Typography>
-        <Button
-          variant="contained"
-          color="error"
-          onClick={handleReindex}
-          disabled={fetching}
-          size="small"
-          sx={{ textTransform: 'none' }}
-        >
-          {fetching ? 'Reindexing...' : 'Rebuild Index'}
-        </Button>
-        <Button
-          variant="outlined"
-          color="error"
-          onClick={handleRepair}
-          disabled={fetching}
-          size="small"
-          sx={{ textTransform: 'none', ml: 1 }}
-        >
-          {fetching ? 'Repairing...' : 'Repair DB'}
-        </Button>
-      </Box>
-
-      {/* ─── Sync Section ─── */}
-      <Box sx={{ px: 2, pt: 3, pb: 3 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-          Sync
-        </Typography>
-        <Divider sx={{ mb: 1.5 }} />
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-          <Button
-            variant="contained"
-            onClick={handleSyncNow}
-            disabled={syncing}
+      {/* Scrollable content */}
+      <Box sx={{ flex: 1 }}>
+        {/* ─── Vault Section ─── */}
+        <Box sx={{ px: 2, pt: 2 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+            Vault
+          </Typography>
+          <Divider sx={{ mb: 1.5 }} />
+          <TextField
+            label="Vault Path"
+            value={settings.vault_path || ''}
+            onChange={e => updateVault({ vault_path: e.target.value })}
+            fullWidth
             size="small"
-            sx={{ textTransform: 'none' }}
-          >
-            {syncing ? 'Syncing...' : 'Sync Now'}
+            sx={{ mb: 1, '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.8rem' } }}
+          />
+          <Button variant="outlined" size="small" onClick={handlePickVaultDirectory}>
+            Browse
           </Button>
-          {syncStatus && (
-            <Box
-              sx={{
-                px: 1.5,
-                py: 0.25,
-                borderRadius: 1,
-                fontSize: '0.65rem',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: '#fff',
-                bgcolor:
-                  syncStatus.status === 'ok'
-                    ? '#10b981'
-                    : syncStatus.status === 'conflicts'
-                      ? '#ef4444'
-                      : syncStatus.status === 'no_repo'
-                        ? '#eab308'
-                        : '#6b7280',
-              }}
-            >
-              {syncStatus.status === 'ok' && 'OK'}
-              {syncStatus.status === 'conflicts' &&
-                `Conflicts (${syncStatus.conflicts.length})`}
-              {syncStatus.status === 'no_repo' && 'No Repo'}
-              {syncStatus.status !== 'ok' &&
-                syncStatus.status !== 'conflicts' &&
-                syncStatus.status !== 'no_repo' &&
-                syncStatus.status}
-              {(syncStatus.ahead > 0 || syncStatus.behind > 0) && (
-                <Box component="span" sx={{ ml: 0.5, fontWeight: 400 }}>
-                  +{syncStatus.ahead}/-{syncStatus.behind}
-                </Box>
-              )}
-            </Box>
-          )}
         </Box>
-        {syncStatus?.branch && (
-          <Typography variant="caption" color="text.disabled" sx={{ fontFamily: 'monospace', display: 'block' }}>
-            {syncStatus.branch}
-          </Typography>
-        )}
-        {syncStatus?.last_sync_time && (
-          <Typography variant="caption" color="text.disabled" sx={{ display: 'block' }}>
-            Last sync: {new Date(syncStatus.last_sync_time).toLocaleString()}
-          </Typography>
-        )}
-      </Box>
 
+        {/* ─── Theme Section ─── */}
+        <MobileThemeSection theme={theme} updateTheme={updateTheme} />
+
+        {/* ─── AI Section (collapsible) ─── */}
+        <MobileAiAccordion
+          ai={ai}
+          updateAi={updateAi}
+          availableModels={availableModels}
+          fetching={fetching}
+          onFetchModels={handleFetchModels}
+          onToggleModelCapability={toggleModelCapability}
+        />
+
+        {/* ─── STT / TTS Section ─── */}
+        <MobileSttTtsSection
+          stt={stt}
+          updateStt={updateStt}
+          tts={tts}
+          updateTts={updateTts}
+        />
+
+        {/* ─── Research Section ─── */}
+        <Box sx={{ px: 2, pt: 3 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+            Research
+          </Typography>
+          <Divider sx={{ mb: 1.5 }} />
+          <TextField
+            label="SearXNG Endpoint"
+            placeholder="http://localhost:8888"
+            value={research.searxng_endpoint}
+            onChange={e => updateResearch({ searxng_endpoint: e.target.value })}
+            fullWidth
+            size="small"
+            helperText="URL of your SearXNG instance"
+          />
+          <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+            <TextField
+              label="Max Results"
+              type="number"
+              value={research.max_results}
+              onChange={e => updateResearch({ max_results: parseInt(e.target.value) || 3 })}
+              size="small"
+              slotProps={{ htmlInput: { min: 1, max: 10 } }}
+            />
+            <TextField
+              label="Research Depth"
+              type="number"
+              value={research.max_depth}
+              onChange={e => updateResearch({ max_depth: parseInt(e.target.value) || 2 })}
+              size="small"
+              slotProps={{ htmlInput: { min: 1, max: 5 } }}
+            />
+          </Box>
+        </Box>
+
+        {/* ─── Developer Section ─── */}
+        <MobileDeveloperSection
+          fetching={fetching}
+          onReindex={handleReindex}
+          onRepair={handleRepair}
+          onNormalizeAll={handleNormalizeAll}
+          reindexProgress={reindexProgress}
+        />
+
+        {/* ─── Sync Section ─── */}
+        <MobileSyncSection
+          syncSettings={syncSettings}
+          updateSync={updateSync}
+          syncStatus={syncStatus}
+          syncing={syncing}
+          onSyncNow={handleSyncNow}
+          onStartScheduler={handleStartScheduler}
+          commits={commits}
+          commitsOpen={commitsOpen}
+          onToggleCommits={handleToggleCommits}
+        />
+      </Box>
     </Box>
   );
 }

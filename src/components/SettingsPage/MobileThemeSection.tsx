@@ -4,6 +4,7 @@ import Divider from '@mui/material/Divider';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Slider from '@mui/material/Slider';
+import TextField from '@mui/material/TextField';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import ToggleButton from '@mui/material/ToggleButton';
 
@@ -11,6 +12,10 @@ import ToggleButton from '@mui/material/ToggleButton';
 // Mobile theme settings section.
 // Extracted from SettingsPage.mobile.tsx during the E6 sizing-gate refactor so
 // the mobile settings screen stays under the 400-line component gate.
+//
+// Parity: mirrors desktop ThemeTab — presets AND a custom color picker + hex
+// field for both primary and secondary, and the font-size scale labels.
+// Stacked vertically for touch usability.
 // ---------------------------------------------------------------------------
 
 const PRIMARY_SWATCHES = [
@@ -33,6 +38,39 @@ export interface MobileThemeSectionProps {
   updateTheme: (patch: any) => void;
 }
 
+function CustomColorRow({
+  color,
+  onChange,
+}: {
+  color: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+      <TextField
+        type="color"
+        value={color}
+        onChange={e => onChange(e.target.value)}
+        sx={{
+          width: 44,
+          '& .MuiInputBase-root': { p: 0.25 },
+          '& input': { cursor: 'pointer', height: 32, p: 0 },
+        }}
+      />
+      <TextField
+        size="small"
+        value={color}
+        onChange={e => onChange(e.target.value)}
+        placeholder="#f97316"
+        sx={{
+          flex: 1,
+          '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.75rem' },
+        }}
+      />
+    </Box>
+  );
+}
+
 export default function MobileThemeSection({ theme, updateTheme }: MobileThemeSectionProps) {
   return (
     <Box sx={{ px: 2, pt: 3 }}>
@@ -51,13 +89,13 @@ export default function MobileThemeSection({ theme, updateTheme }: MobileThemeSe
         sx={{ mb: 1.5 }}
       />
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-        Primary color
+        Primary (buttons, accents)
       </Typography>
       <ToggleButtonGroup
         value={theme.primary_color}
         exclusive
         onChange={(_, v) => v && updateTheme({ primary_color: v })}
-        sx={{ flexWrap: 'wrap', gap: 0.5, mb: 1.5 }}
+        sx={{ flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}
       >
         {PRIMARY_SWATCHES.map(color => (
           <ToggleButton
@@ -73,14 +111,18 @@ export default function MobileThemeSection({ theme, updateTheme }: MobileThemeSe
           />
         ))}
       </ToggleButtonGroup>
+      <CustomColorRow
+        color={theme.primary_color}
+        onChange={v => updateTheme({ primary_color: v })}
+      />
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-        Secondary color
+        Secondary (backgrounds, borders)
       </Typography>
       <ToggleButtonGroup
         value={theme.secondary_color}
         exclusive
         onChange={(_, v) => v && updateTheme({ secondary_color: v })}
-        sx={{ flexWrap: 'wrap', gap: 0.5, mb: 1.5 }}
+        sx={{ flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}
       >
         {SECONDARY_SWATCHES.map(color => (
           <ToggleButton
@@ -96,6 +138,10 @@ export default function MobileThemeSection({ theme, updateTheme }: MobileThemeSe
           />
         ))}
       </ToggleButtonGroup>
+      <CustomColorRow
+        color={theme.secondary_color}
+        onChange={v => updateTheme({ secondary_color: v })}
+      />
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
         Font Size: {theme.font_size || 16}px
       </Typography>
@@ -106,8 +152,13 @@ export default function MobileThemeSection({ theme, updateTheme }: MobileThemeSe
         step={1}
         onChange={(_, v) => updateTheme({ font_size: v as number })}
         valueLabelDisplay="auto"
-        sx={{ mb: 1, maxWidth: 300 }}
+        sx={{ mb: 0.5, maxWidth: 300 }}
       />
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 300 }}>
+        <Typography variant="caption" color="text.disabled">12px</Typography>
+        <Typography variant="caption" color="text.disabled">20px</Typography>
+        <Typography variant="caption" color="text.disabled">28px</Typography>
+      </Box>
     </Box>
   );
 }
