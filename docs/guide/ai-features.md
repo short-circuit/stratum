@@ -31,6 +31,63 @@ You need a running LLM provider. Options:
 
 <!-- SCREENSHOT: [settings-ai-tab] AI configuration tab in Settings -->
 
+### Reusing the LLM gateway and auth (STT, RAG, TTS)
+
+By default Stratum lets you point voice dictation (STT) and text-to-speech
+(TTS) at their **own** endpoints and API keys, independent of the main LLM
+provider. If you run everything through a single OpenAI-compatible gateway,
+you can instead tell each capability to **use the gateway and auth from the
+LLM** — the endpoint and API key configured in **Settings → AI** (the `[ai]`
+section of `.pkm/config.toml`).
+
+Each capability has its own **Use gateway and auth from LLM** checkbox in
+**Settings → AI**, **disabled by default**:
+
+| Capability | Effect when enabled |
+|------------|---------------------|
+| RAG        | No-op today. Embeddings already always use the AI configuration — there is no separate embedding endpoint. The checkbox is a forward-looking affordance and does not change endpoint selection. |
+| STT (Voice dictation) | Transcription, diarization, speaker recognition and the connection test use the AI endpoint and effective API key instead of the STT-specific `endpoint`/`api_key`. |
+| TTS        | Synthesis uses the AI endpoint and effective API key **exclusively**; any TTS-specific `endpoint`/`api_key` override is ignored. |
+
+Behavior details:
+
+- **Default is disabled** for all three capabilities. When a flag is left off
+  (or absent from an existing config file), the previous behavior is preserved
+  exactly — each capability uses its own endpoint/api_key, with the AI endpoint
+  as fallback where this guide already documents that behavior.
+- **STT**: when the flag is on, the AI endpoint is used verbatim minus a
+  trailing `/v1` segment (the STT client re-appends its own `/v1/...` route,
+  avoiding a doubled `/v1/v1`). The AI API key — from the config file, or the
+  provider's `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GOOGLE_API_KEY`
+  environment variable — is used as the bearer token. If **no AI endpoint is
+  configured**, dictation fails with an error pointing you to Settings → AI →
+  API Endpoint.
+- **RAG**: enabling the checkbox has no effect on endpoint selection today.
+  It exists so the setting is uniform across capabilities and future-proof in
+  case a separate embedding endpoint is ever added.
+- **TTS**: when the flag is on, `tts.endpoint` and `tts.api_key` are ignored
+  in favor of the AI gateway, and a hard error is raised if no AI endpoint is
+  configured. The checkbox is fully **active** — TTS has live consumers
+  (read-aloud, the Settings test button, the `tts_synthesize`/`tts_speak`
+  commands), so it is not disabled or hidden.
+
+Config example (`.pkm/config.toml`):
+
+```toml
+[ai]
+use_llm_gateway_and_auth = true   # RAG
+
+[stt]
+use_llm_gateway_and_auth = true   # Voice dictation / STT
+
+[tts]
+use_llm_gateway_and_auth = true   # Text-to-speech
+```
+
+All three flags are additive and backward compatible (`serde(default) =
+false`): existing `.pkm/config.toml` files without the keys keep working
+unchanged.
+
 ## Embeddings & RAG
 
 Embedding generation (used by RAG to retrieve and re-rank your notes by
@@ -81,7 +138,10 @@ AI settings is required.
   voice**. Stratum sends a sample sentence to the endpoint and plays the
   returned audio in place.
 - **Endpoint**: Empty TTS endpoint = use the AI endpoint. To use a different
-  server, set an explicit TTS endpoint and optional API key.
+  server, set an explicit TTS endpoint and optional API key — unless **Use
+  gateway and auth from LLM** is enabled, in which case the AI endpoint and
+  key are used exclusively (see
+  [Reusing the LLM gateway and auth](#reusing-the-llm-gateway-and-auth-stt-rag-tts)).
 - **Model**: selected from the model list you assign the `tts` capability to.
   If no model has that capability, the default chat model is used.
 - **Voice / format / speed**: the OpenAI speech API shape
