@@ -98,6 +98,18 @@ describe('appStore error state machine (dismissible / auto-dismiss / persistent)
     expect(useStore.getState().error?.message).toBe('new');
   });
 
+  it('explicit dismiss leaves unrelated store state intact', () => {
+    useStore.setState({ pages: [PAGE], currentPage: PAGE, vault: VAULT });
+    useStore.getState().showError('transient');
+
+    useStore.getState().dismissError(useStore.getState().error!.id);
+
+    expect(useStore.getState().error).toBeNull();
+    expect(useStore.getState().pages).toEqual([PAGE]);
+    expect(useStore.getState().currentPage?.path).toBe('note.md');
+    expect(useStore.getState().vault?.path).toBe('/vault');
+  });
+
   it('dismissError without an id dismisses whichever error is showing', () => {
     useStore.getState().showError('current');
     useStore.getState().dismissError();
