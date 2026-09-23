@@ -218,6 +218,11 @@ pub struct AiConfig {
     /// first response" (recommended; some providers expose variable or
     /// version-pinned dimensions).
     pub embedding_dimensions: usize,
+    /// Reuse the main LLM gateway endpoint and auth for RAG embedding/chat
+    /// instead of a separate endpoint/api_key. Off by default; additive so
+    /// existing configs remain valid.
+    #[serde(default)]
+    pub use_llm_gateway_and_auth: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -237,6 +242,7 @@ impl Default for AiConfig {
             rag_enabled: true,
             rag_chunk_count: 5,
             embedding_dimensions: 0,
+            use_llm_gateway_and_auth: false,
         }
     }
 }
@@ -298,6 +304,11 @@ pub struct SttConfig {
     pub auto_summarize: bool,
     /// Attempt to auto-identify speakers against the enrolled voice registry.
     pub auto_identify: bool,
+    /// Reuse the main LLM gateway endpoint and auth for transcription instead
+    /// of a separate endpoint/api_key. Off by default; additive so existing
+    /// configs remain valid.
+    #[serde(default)]
+    pub use_llm_gateway_and_auth: bool,
 }
 
 impl Default for SttConfig {
@@ -311,6 +322,7 @@ impl Default for SttConfig {
             diarize: true,
             auto_summarize: true,
             auto_identify: true,
+            use_llm_gateway_and_auth: false,
         }
     }
 }
@@ -335,6 +347,11 @@ pub struct TtsConfig {
     pub format: String,
     /// Playback speed multiplier (0.25–4.0).
     pub speed: f32,
+    /// Reuse the main LLM gateway endpoint and auth for synthesis instead of
+    /// a separate endpoint/api_key. Off by default; additive so existing
+    /// configs remain valid.
+    #[serde(default)]
+    pub use_llm_gateway_and_auth: bool,
 }
 
 impl Default for TtsConfig {
@@ -345,6 +362,7 @@ impl Default for TtsConfig {
             voice: "alloy".to_string(),
             format: "mp3".to_string(),
             speed: 1.0,
+            use_llm_gateway_and_auth: false,
         }
     }
 }
@@ -596,6 +614,80 @@ mod tests {
         assert_eq!(ai.provider, AiProvider::Ollama);
         assert_eq!(ai.model, "llama3.2");
         assert!(ai.rag_enabled);
+        assert!(!ai.use_llm_gateway_and_auth, "default must be disabled");
+    }
+
+    #[test]
+    fn test_use_llm_gateway_and_auth_defaults_false() {
+        let dir = TempDir::new().unwrap();
+        let config_path = dir.path().join("config.toml");
+        // A config that predates the reuse-llm-gateway flags must still parse
+        // and default all of them to false.
+        std::fs::write(
+            &config_path,
+            "[theme]\ndark_mode = false\n\n[ai]\nmodel = \"llama3.2\"\n\n[stt]\nendpoint = \"http://127.0.0.1:8081\"\n\n[tts]\nvoice = \"onyx\"\n",
+        )
+        .unwrap();
+        let loaded = Config::load(&config_path).unwrap();
+        assert!(!loaded.ai.use_llm_gateway_and_auth);
+        assert!(!loaded.stt.use_llm_gateway_and_auth);
+        assert!(!loaded.tts.use_llm_gateway_and_auth);
+    }
+
+    #[test]
+    fn test_use_llm_gateway_and_auth_roundtrip() {
+        let dir = TempDir::new().unwrap();
+        let config_path = dir.path().join("config.toml");
+
+        let cfg = Config {
+            ai: AiConfig {
+                use_llm_gateway_and_auth: true,
+                ..Default::default()
+            },
+            stt: SttConfig {
+                use_llm_gateway_and_auth: true,
+                ..Default::default()
+            },
+            tts: TtsConfig {
+                use_llm_gateway_and_auth: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        cfg.save(&config_path).unwrap();
+
+        let loaded = Config::load(&config_path).unwrap();
+        assert!(loaded.ai.use_llm_gateway_and_auth);
+        assert!(loaded.stt.use_llm_gateway_and_auth);
+        assert!(loaded.tts.use_llm_gateway_and_auth);
+
+        // Round-trip the individual structs through TOML too.
+        let ai_json = toml::to_string(&AiConfig {
+            use_llm_gateway_and_auth: true,
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(ai_json.contains("use_llm_gateway_and_auth = true"));
+        let ai_loaded: AiConfig = toml::from_str(&ai_json).unwrap();
+        assert!(ai_loaded.use_llm_gateway_and_auth);
+
+        let stt_json = toml::to_string(&SttConfig {
+            use_llm_gateway_and_auth: true,
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(stt_json.contains("use_llm_gateway_and_auth = true"));
+        let stt_loaded: SttConfig = toml::from_str(&stt_json).unwrap();
+        assert!(stt_loaded.use_llm_gateway_and_auth);
+
+        let tts_json = toml::to_string(&TtsConfig {
+            use_llm_gateway_and_auth: true,
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(tts_json.contains("use_llm_gateway_and_auth = true"));
+        let tts_loaded: TtsConfig = toml::from_str(&tts_json).unwrap();
+        assert!(tts_loaded.use_llm_gateway_and_auth);
     }
 
     #[test]
