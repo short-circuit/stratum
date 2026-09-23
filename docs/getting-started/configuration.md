@@ -145,7 +145,8 @@ velocity_decay = 0.4
 
 | Setting | Description |
 |---------|-------------|
-| Reindex All | Re-sync all pages from disk into the database. Idempotent. Useful after importing notes or recovering from corruption. |
+| Reindex All | Re-sync all pages from disk into the SQLite database. Idempotent. Useful after importing notes or recovering from corruption. Refreshes the running page list automatically. |
+| Repair DB from disk | First-class stale-database repair: re-syncs every `.md` whose on-disk modification time is newer than its database record (true drift), plus missing or empty pages, and prunes database entries with no file on disk. Use this when a page or the journal shows stale/empty content. Refreshes the running page list automatically. |
 
 ## File Structure
 
