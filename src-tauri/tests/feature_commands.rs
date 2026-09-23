@@ -512,6 +512,107 @@ fn command_review_card_persists_schedule_to_disk() {
     );
 }
 
+/// Quetzal/F4 lifecycle regression: SM-2 state must survive an app restart.
+///
+/// Simulates the exact production restart path:
+///   1. A flashcard page exists on disk.
+///   2. The user reviews the card (quality 3) — the schedule is written to the
+///      `.md` file by `review_card` (commit 1eb778d / E7.F4 fix).
+///   3. The app is "restarted": a fresh `VaultState` is built over the SAME
+///      vault directory and the boot-time `sync_filesystem_to_db` behavior is
+///      reproduced (SQLite is rebuilt from the on-disk `.md` files).
+///   4. The review queue (`generate_flashcards`) must still show the card WITH
+///      its persisted schedule — the wipe-on-restart defect (FC-01 / t_61cbf15b)
+///      would make `interval`/`reps` reset to 0 and drop it from due-review.
+///
+/// This is the regression that proves the schedule is durable, not merely that
+/// `review_card` writes to disk at all.
+#[test]
+fn command_flashcard_schedule_survives_restart_rebuild() {
+    let tv = common::create_test_vault();
+    let body =
+        "---\ntitle: fc-dup\n---\n\n- Persistent state?\n  .question: true\n  .answer: Yes.\n";
+    seed_disk_page(&tv, "pages/fc-dup.md", body);
+
+    let block = &tv.store.get_blocks_by_page("pages/fc-dup.md").unwrap()[0];
+    let id = block.id.to_string();
+
+    // ── Session 1: review the card (progression). ─────────────────────────
+    let app = build_app(&tv);
+    let wv = webview(&app);
+    invoke(
+        &wv,
+        "review_card",
+        json!({ "cardId": id, "quality": 3, "pagePath": "pages/fc-dup.md" }),
+    )
+    .expect("review must resolve");
+
+    // The .md on disk must carry the schedule.
+    let on_disk = std::fs::read_to_string(tv.vault_path.join("pages/fc-dup.md")).unwrap();
+    assert!(
+        on_disk.contains(".interval: 1")
+            && on_disk.contains(".reps: 1")
+            && on_disk.contains(".next_review: "),
+        "schedule must be on disk: {on_disk}"
+    );
+
+    // ── Session 2: simulate an app restart. ───────────────────────────────
+    //  Exactly what `sync_filesystem_to_db` does at boot: rebuild SQLite from
+    //  the on-disk files (fresh store over the SAME blocks.db), then build a
+    //  fresh VaultState on top of it.
+    let db_path = tv.vault_path.join(".pkm/blocks.db");
+    let store2 = pkm_block::BlockStore::open(&db_path).unwrap();
+    let (_, _, disk_blocks) = pkm_markdown::block_parser::parse_document(&on_disk);
+    let mut page2 = Page::new(tv.vault_path.join("pages/fc-dup.md"), &tv.vault_path);
+    page2.set_blocks(&disk_blocks);
+    store2.upsert_page(&page2).unwrap();
+    for b in &disk_blocks {
+        store2.insert_block(b, "pages/fc-dup.md").unwrap();
+    }
+    drop(store2);
+
+    let app2 = build_app(&tv);
+    let wv2 = webview(&app2);
+
+    // ── The review queue after restart must still include the card. ───────
+    let cards = invoke(&wv2, "generate_flashcards", json!({})).expect("generate");
+    let cards = cards.as_array().unwrap();
+    let revived = cards.iter().find(|c| c["id"].as_str() == Some(&id));
+    let revived = revived.expect("card must still be in the review queue after restart");
+    assert_eq!(
+        revived["interval_days"].as_u64(),
+        Some(1),
+        "SM-2 interval must survive restart (was wiped on restart before the fix)"
+    );
+    assert_eq!(
+        revived["repetitions"].as_u64(),
+        Some(1),
+        "SM-2 reps must survive restart"
+    );
+    assert!(
+        revived["next_review"].as_str().unwrap_or("") >= "2026-01-01",
+        "next_review must survive restart"
+    );
+
+    // ── Progression continues in the restarted session. ───────────────────
+    let again = invoke(
+        &wv2,
+        "review_card",
+        json!({ "cardId": id, "quality": 2, "pagePath": "pages/fc-dup.md" }),
+    )
+    .expect("second review must resolve");
+    assert_eq!(
+        again["interval_days"].as_u64(),
+        Some(1),
+        "q=2 (again) keeps a short interval"
+    );
+    assert_eq!(again["repetitions"].as_u64(), Some(0), "again resets reps");
+    assert!(
+        again["ease_factor"].as_f64().unwrap() < 2.5,
+        "again lowers ease factor"
+    );
+}
+
 // ---------------------------------------------------------------------------
 // WB — whiteboard save / load / list
 // ---------------------------------------------------------------------------
