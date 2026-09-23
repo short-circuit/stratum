@@ -10,6 +10,16 @@ Click **:material-calendar-month: Journal** in the sidebar or navigate to `/jour
 
 At the top of the panel you'll find the date header with Previous/Next day arrows for quick navigation between entries. Click the date text to open a calendar popup for jumping to any specific date.
 
+### Mobile
+
+Journal is fully available on mobile (Android/iOS and small browser viewports). All desktop controls are present:
+
+- **Previous/Next day arrows** at the top of the panel work exactly as on desktop.
+- The **date header** opens the calendar. On mobile the calendar renders as a **full-screen dialog** (rather than the desktop popup) to provide larger touch targets and focused navigation — this is an intentional, documented deviation; the calendar logic is shared.
+- The entry stack scrolls inside the panel; older entries load as you scroll, matching desktop behavior.
+
+Parity screenshots: [after (mobile)](../assets/images/journal-after-mobile.png), [before (mobile)](../assets/images/journal-before-mobile.png), [after (desktop)](../assets/images/journal-after-desktop.png), [before (desktop)](../assets/images/journal-before-desktop.png).
+
 ## How it Works
 
 - Each day gets its own page at `journals/YYYY-MM-DD.md`

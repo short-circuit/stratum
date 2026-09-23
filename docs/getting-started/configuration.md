@@ -133,6 +133,11 @@ velocity_decay = 0.4
 | TTS Speed | Playback speed multiplier (0.25–4.0) |
 | Test / Play voice | Synthesizes a sample sentence through the configured endpoint and plays it |
 
+!!! note "AI settings availability"
+    The AI, Speech & Audio (STT/TTS), and model-capability settings are available on
+    **both** the desktop and mobile settings screens. On mobile these appear as a
+    collapsible accordion under the **AI** and **Speech & Audio** sections.
+
 ### Research Tab
 
 | Setting | Description |
@@ -141,11 +146,41 @@ velocity_decay = 0.4
 | Max Results | Max search results per query (1–10) |
 | Research Depth | Search-read cycles per research session (1–5) |
 
+### Sync Tab
+
+| Setting | Description |
+|---------|-------------|
+| Sync Mode | `Manual`, `Auto-Commit`, `Auto-Sync`, or `Background` |
+| Remote URL | Git remote (e.g. `git@github.com:user/vault.git`) |
+| Branch | Git branch to work on (default `main`) |
+| SSH Key Path | Path to an SSH private key; leave empty to use the SSH agent |
+| Commit Interval | How often (seconds) auto-commit mode stages and commits changes |
+| Commit Message Template | Template for generated commit messages (supports `{datetime}`, `{editedfiles}`, `{newfiles}`, `{deletedfiles}`, `{count}` placeholders) |
+| Pull/Push Interval | How often (seconds) auto-sync mode performs a pull/push cycle |
+| Sync Now | Manually trigger a pull, merge, and push |
+| Start Scheduler | Start the background auto-commit/auto-sync timer |
+| Recent Commits | Expandable history of recent git commits |
+| Sync Status | Shows current status, branch, ahead/behind counts, and conflict count |
+
+!!! note "Sync availability on mobile"
+    Sync configuration is available on mobile under the **Sync** section of the
+    settings screen — including mode selector, remote/branch, SSH key, commit
+    template with placeholder insertion, sync-now/scheduler controls, and the
+    commit log.
+
 ### Developer Tab
 
 | Setting | Description |
 |---------|-------------|
 | Reindex All | Re-sync all pages from disk into the database. Idempotent. Useful after importing notes or recovering from corruption. |
+| Repair DB from disk | Rebuild the database from the `.md` files on disk |
+| Normalize All Files | Parse every `.md` file through the block parser and re-serialize to normalize indentation, block syntax, and frontmatter |
+| Reindex Progress | Live progress bar shown during reindex operations |
+
+!!! note "Mobile accessibility"
+    On mobile, reindex **progress** is displayed live under the Developer section.
+    The mobile settings screen mirrors the desktop settings surface; each desktop
+    tab has a corresponding section on the mobile screen.
 
 ## File Structure
 

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -6,26 +5,23 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import CloseIcon from '@mui/icons-material/Close';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
 import OutlinerEditor from '../OutlinerEditor';
+import JournalCalendar from '../JournalCalendar';
 import { useJournalPanel, formatDisplayDate } from './JournalPanel.shared';
 
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-const DAY_HEADERS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-
-function pad(n: number): string {
-  return String(n).padStart(2, '0');
-}
-
+/**
+ * Mobile journal panel.
+ *
+ * Intentional platform deviations (documented):
+ *  - The calendar renders as a full-screen Dialog (better touch targets and
+ *    focus for the 7-column date grid) rather than the desktop anchored
+ *    Popover. Both variants use the SAME shared JournalCalendar component whose
+ *    chrome adapts to the breakpoint — no calendar logic is forked here
+ *    (audit 2.1/2.4).
+ *  - Prev/Next day arrows are rendered large enough for touch (audit 2.3).
+ */
 export default function JournalPanelMobile() {
   const {
     today,
@@ -42,58 +38,42 @@ export default function JournalPanelMobile() {
     visibleSections,
     sectionRef,
     sentinelRef,
+    scrollRootRef,
     calendarOpen,
     setCalendarOpen,
     handleDateSelect,
+    createNewDay,
   } = useJournalPanel();
 
-  const now = new Date();
-  const [viewMonth, setViewMonth] = useState(now.getMonth());
-  const [viewYear, setViewYear] = useState(now.getFullYear());
-
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
-
-  const goPrev = () => {
-    if (viewMonth === 0) {
-      setViewMonth(11);
-      setViewYear((y) => y - 1);
-    } else {
-      setViewMonth((m) => m - 1);
-    }
-  };
-
-  const goNext = () => {
-    if (viewMonth === 11) {
-      setViewMonth(0);
-      setViewYear((y) => y + 1);
-    } else {
-      setViewMonth((m) => m + 1);
-    }
-  };
-
-  const handleCalendarDateSelect = (date: string) => {
-    handleDateSelect(date);
-    setCalendarOpen(false);
-  };
-
+  // Mobile scroll root: the mobile shell (MobileLayout) wraps the panel in an
+  // overflow:hidden container, so this panel must be the scroll container
+  // itself — every other mobile panel sets height:100% + overflow:auto on its
+  // root for the same reason (audit 2.2). paddingBottom leaves room for the
+  // fixed BottomNavigation + safe area.
   return (
-    <Box sx={{ p: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-          {formatDisplayDate(today)}
-        </Typography>
+    <Box ref={scrollRootRef as React.Ref<HTMLDivElement>} sx={{ height: '100%', overflow: 'auto', pb: 'var(--safe-area-bottom)' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, pt: 0.5, pb: 1 }}>
+        <IconButton size="small" onClick={() => createNewDay(-1)} aria-label="Previous day">
+          <ChevronLeftIcon />
+        </IconButton>
         <IconButton
           size="small"
+          sx={{ borderRadius: 1 }}
           onClick={() => setCalendarOpen(true)}
-          aria-label="Calendar"
+          aria-label="Open calendar"
         >
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', mr: 0.5 }}>
+            {formatDisplayDate(targetDate && targetDate !== today ? targetDate : today)}
+          </Typography>
           <CalendarMonthIcon fontSize="small" />
+        </IconButton>
+        <IconButton size="small" onClick={() => createNewDay(1)} aria-label="Next day">
+          <ChevronRightIcon />
         </IconButton>
       </Box>
 
       {journalError ? (
-        <Box sx={{ px: 1, my: 2 }}>
+        <Box sx={{ px: 2, my: 2 }}>
           <Alert severity="error" sx={{ mb: 1 }}>
             {journalError}
           </Alert>
@@ -107,7 +87,12 @@ export default function JournalPanelMobile() {
       ) : journalLoading || !todayExists ? (
         <CircularProgress size={20} sx={{ display: 'block', mx: 'auto', my: 4 }} />
       ) : (
-        <OutlinerEditor pagePath={todayPagePath} minHeight="0" />
+        // Wrapped in an auto-height Box so today's editor sizes to its content
+        // rather than stretching to the viewport height of the scroll
+        // container (matches the past-entry sizing).
+        <Box>
+          <OutlinerEditor pagePath={todayPagePath} minHeight="0" />
+        </Box>
       )}
 
       {pastDates.slice(0, visibleCount).map((date) => {
@@ -118,7 +103,7 @@ export default function JournalPanelMobile() {
           <Box key={date} ref={sectionRef(date)}>
             <Typography
               variant="subtitle2"
-              sx={{ pt: 1.5, pb: 0.5, fontWeight: 600, color: 'text.secondary' }}
+              sx={{ pt: 1.5, pb: 0.5, px: 1, fontWeight: 600, color: 'text.secondary' }}
             >
               {formatDisplayDate(date)}
             </Typography>
@@ -133,101 +118,13 @@ export default function JournalPanelMobile() {
 
       {visibleCount < pastDates.length && <div ref={sentinelRef} />}
 
-      <Dialog
-        fullScreen
+      <JournalCalendar
         open={calendarOpen}
         onClose={() => setCalendarOpen(false)}
-      >
-        <DialogTitle
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            px: 1,
-          }}
-        >
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            Calendar
-          </Typography>
-          <IconButton size="small" onClick={() => setCalendarOpen(false)}>
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ pb: 2 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              mb: 1.5,
-            }}
-          >
-            <IconButton size="small" onClick={goPrev}>
-              <ChevronLeftIcon />
-            </IconButton>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-              {MONTHS[viewMonth]} {viewYear}
-            </Typography>
-            <IconButton size="small" onClick={goNext}>
-              <ChevronRightIcon />
-            </IconButton>
-          </Box>
-
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(7, 1fr)',
-              gap: 0.25,
-              textAlign: 'center',
-              mb: 0.5,
-            }}
-          >
-            {DAY_HEADERS.map((d) => (
-              <Typography key={d} variant="caption" color="text.disabled" sx={{ py: 0.5 }}>
-                {d}
-              </Typography>
-            ))}
-          </Box>
-
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.25 }}>
-            {Array.from({ length: firstDay }).map((_, i) => (
-              <Box key={`e-${i}`} />
-            ))}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const day = i + 1;
-              const date = `${viewYear}-${pad(viewMonth + 1)}-${pad(day)}`;
-              const isTodayDate = date === today;
-              const hasJournal = allJournalDates.has(date);
-              return (
-                <IconButton
-                  key={day}
-                  size="small"
-                  onClick={() => handleCalendarDateSelect(date)}
-                  sx={{
-                    minWidth: 0,
-                    p: 0.5,
-                    fontSize: '0.75rem',
-                    borderRadius: 1,
-                    fontWeight: isTodayDate ? 700 : hasJournal ? 600 : 400,
-                    opacity: hasJournal || isTodayDate ? 1 : 0.4,
-                    bgcolor: isTodayDate
-                      ? 'primary.light'
-                      : hasJournal
-                        ? 'action.selected'
-                        : 'transparent',
-                    color: isTodayDate ? 'primary.contrastText' : undefined,
-                    '&:hover': {
-                      bgcolor: isTodayDate ? 'primary.light' : 'action.hover',
-                    },
-                  }}
-                >
-                  {day}
-                </IconButton>
-              );
-            })}
-          </Box>
-        </DialogContent>
-      </Dialog>
+        onDateSelect={handleDateSelect}
+        journalDates={allJournalDates}
+        anchorEl={null}
+      />
     </Box>
   );
 }
