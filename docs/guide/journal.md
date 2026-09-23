@@ -18,6 +18,8 @@ At the top of the panel you'll find the date header with Previous/Next day arrow
 - Use the Previous/Next day arrows at the top of the panel to jump between dates
 - Click the date header to open the calendar popup for direct date navigation
 - Journal pages are normal `.md` files — they appear in search, graph, and backlinks
+- Journal content is always loaded from your current `.md` files — switching between the journal and other pages always shows the latest content, with no app restart required
+- If a journal page ever fails to load its content, use the **Repair database** action shown in the journal error state (or **Settings → Developer → Repair DB from disk**)
 
 ## Calendar Navigation
 
