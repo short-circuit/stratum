@@ -162,4 +162,46 @@ describe('appStore error state machine (dismissible / auto-dismiss / persistent)
     await useStore.getState().openPage('note.md');
     expect(useStore.getState().error?.message).toContain('Open failed');
   });
+
+  it('a successful retry through loadPages clears a transient error and populates pages', async () => {
+    // Regression for the pages-list failing-then-retrying flow: the stale
+    // banner must clear on the successful retry, not survive until restart.
+    (api.listPages as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('list failed'));
+    await useStore.getState().loadPages();
+    expect(useStore.getState().error).not.toBeNull();
+
+    // Retry now succeeds: stale transient error clears, pages fill in.
+    await useStore.getState().loadPages();
+    expect(useStore.getState().error).toBeNull();
+    expect(useStore.getState().pages).toEqual([PAGE]);
+  });
+
+  it('a successful loadPages retry never disturbs a persistent error', async () => {
+    // A persistent error (e.g. sync conflict) must survive unrelated transient
+    // traffic. Here the transient error comes from a real failing retry that
+    // then succeeds via the action path — not from calling the internal helper.
+    useStore.getState().showError('sync conflict', { persistent: true });
+    (api.listPages as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('list failed'));
+    await useStore.getState().loadPages();
+    expect(useStore.getState().error).not.toBeNull();
+
+    await useStore.getState().loadPages();
+    expect(useStore.getState().error).toBeNull();
+    expect(useStore.getState().persistentError?.message).toBe('sync conflict');
+  });
+
+  it('explicit dismiss of a transient error cancels its pending auto-dismiss timer', () => {
+    // Once the user dismisses, the in-flight timer must not resurrect the
+    // banner later (the "stays until restart" bug is the inverse: a timer that
+    // never fires; this guards the timer being wrongly left armed).
+    useStore.getState().showError('dismiss me');
+    const id = useStore.getState().error!.id;
+
+    useStore.getState().dismissError(id);
+    expect(useStore.getState().error).toBeNull();
+
+    // The original auto-dismiss window elapses with no resurrection.
+    vi.advanceTimersByTime(TRANSIENT_ERROR_MS * 2);
+    expect(useStore.getState().error).toBeNull();
+  });
 });
