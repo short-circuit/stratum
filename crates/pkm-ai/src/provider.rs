@@ -271,6 +271,25 @@ impl LlmProvider for OllamaProvider {
             .await
             .map_err(|e| PkmError::Ai(format!("Ollama request failed: {e}")))?;
 
+        // Surface non-2xx (model not found, OOM, server down) with Ollama's
+        // error body instead of failing at JSON parse (FM-8/S3).
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            #[derive(Deserialize)]
+            struct OllamaError {
+                error: Option<String>,
+            }
+            let msg = serde_json::from_str::<OllamaError>(&text)
+                .ok()
+                .and_then(|e| e.error)
+                .filter(|m| !m.trim().is_empty())
+                .unwrap_or_else(|| text.trim().chars().take(300).collect());
+            return Err(PkmError::Ai(format!(
+                "Ollama endpoint error: HTTP {status}: {msg}"
+            )));
+        }
+
         #[derive(Deserialize)]
         struct OllamaResponse {
             message: OllamaResponseMessage,
@@ -418,6 +437,20 @@ pub struct OpenAIProvider {
     client: reqwest::Client,
 }
 
+/// OpenAI-compatible error envelope returned by the endpoint on non-2xx.
+#[derive(Debug, Deserialize)]
+struct ApiErrorBody {
+    error: ApiErrorDetail,
+}
+
+#[derive(Debug, Deserialize)]
+struct ApiErrorDetail {
+    message: String,
+    #[allow(dead_code)]
+    #[serde(rename = "type")]
+    kind: Option<String>,
+}
+
 impl OpenAIProvider {
     pub fn new(endpoint: impl Into<String>, api_key: impl Into<String>) -> PkmResult<Self> {
         Ok(Self {
@@ -428,6 +461,22 @@ impl OpenAIProvider {
                 .build()
                 .map_err(|e| PkmError::Ai(format!("Failed to create HTTP client: {e}")))?,
         })
+    }
+
+    /// Extract a readable message from a non-2xx response, preferring the
+    /// OpenAI `{ "error": { "message": ... } }` envelope and falling back to
+    /// the raw text body. Mirrors `embedding::OpenAIEmbeddingClient`.
+    async fn error_message(resp: reqwest::Response) -> String {
+        let status = resp.status();
+        let text = match resp.text().await {
+            Ok(t) if !t.is_empty() => t,
+            _ => return format!("HTTP {status}"),
+        };
+        if let Ok(body) = serde_json::from_str::<ApiErrorBody>(&text) {
+            return format!("HTTP {status}: {}", body.error.message);
+        }
+        let snippet: String = text.chars().take(300).collect();
+        format!("HTTP {status}: {snippet}")
     }
 }
 
@@ -490,6 +539,13 @@ impl LlmProvider for OpenAIProvider {
             .send()
             .await
             .map_err(|e| PkmError::Ai(format!("OpenAI request failed: {e}")))?;
+
+        // Surface the endpoint's error body (401 invalid key, 5xx model-load
+        // failure, rate limits) instead of masking it behind a parse error.
+        if !resp.status().is_success() {
+            let msg = Self::error_message(resp).await;
+            return Err(PkmError::Ai(format!("OpenAI endpoint error: {msg}")));
+        }
 
         #[derive(Deserialize)]
         struct OpenAIResponse {
@@ -597,6 +653,13 @@ impl LlmProvider for OpenAIProvider {
             .await
             .map_err(|e| PkmError::Ai(format!("OpenAI stream request failed: {e}")))?;
 
+        // Surface non-2xx stream errors (invalid key, model not found) up
+        // front instead of yielding an empty stream (FM-8/S3).
+        if !response.status().is_success() {
+            let msg = Self::error_message(response).await;
+            return Err(PkmError::Ai(format!("OpenAI stream error: {msg}")));
+        }
+
         let mut buffer = StreamBuffer::new();
         let stream = response.bytes_stream().flat_map(move |chunk_result| {
             let items: Vec<PkmResult<ChatDelta>> = match chunk_result {
@@ -615,6 +678,27 @@ impl LlmProvider for OpenAIProvider {
                                     done: true,
                                 }));
                             }
+                            // Some providers emit an error envelope mid-stream
+                            // (S2): data: {"error": {"message": "...", ...}} —
+                            // surface the provider's message instead of
+                            // swallowing it as an empty chunk.
+                            #[derive(Deserialize)]
+                            struct OpenAIErrorEvent {
+                                error: Option<OpenAIErrorDetail>,
+                            }
+                            #[derive(Deserialize)]
+                            struct OpenAIErrorDetail {
+                                message: Option<String>,
+                            }
+                            if let Ok(err_event) = serde_json::from_str::<OpenAIErrorEvent>(data) {
+                                if let Some(err) = err_event.error {
+                                    if let Some(msg) = err.message {
+                                        return Some(Err(PkmError::Ai(format!(
+                                            "OpenAI stream error: {msg}"
+                                        ))));
+                                    }
+                                }
+                            }
                             #[derive(Deserialize)]
                             struct OpenAIStreamChunk {
                                 choices: Vec<OpenAIStreamChoice>,
@@ -628,23 +712,35 @@ impl LlmProvider for OpenAIProvider {
                             #[derive(Deserialize)]
                             struct OpenAIStreamDelta {
                                 content: Option<String>,
+                                /// Reasoning models (DeepSeek-R1, o1, etc.)
+                                /// stream their chain-of-thought here while
+                                /// `content` is null (S1).
+                                reasoning_content: Option<String>,
                             }
 
-                            if let Ok(chunk) = serde_json::from_str::<OpenAIStreamChunk>(data) {
-                                let content = chunk
-                                    .choices
-                                    .first()
-                                    .and_then(|c| c.delta.content.clone())
-                                    .unwrap_or_default();
-                                Some(Ok(ChatDelta {
-                                    content,
-                                    done: false,
-                                }))
-                            } else {
-                                Some(Ok(ChatDelta {
-                                    content: String::new(),
-                                    done: false,
-                                }))
+                            match serde_json::from_str::<OpenAIStreamChunk>(data) {
+                                Ok(chunk) => {
+                                    let delta = chunk.choices.first().map(|c| &c.delta);
+                                    // Prefer visible content; fall back to the
+                                    // reasoning field so it is surfaced rather
+                                    // than silently dropped (S1).
+                                    let content = delta
+                                        .and_then(|d| d.content.clone())
+                                        .or_else(|| delta.and_then(|d| d.reasoning_content.clone()))
+                                        .unwrap_or_default();
+                                    Some(Ok(ChatDelta {
+                                        content,
+                                        done: false,
+                                    }))
+                                }
+                                Err(e) => {
+                                    // A chunk that is neither [DONE], an error
+                                    // event, nor a valid chat chunk is a
+                                    // protocol violation — surface it (FM-9).
+                                    Some(Err(PkmError::Ai(format!(
+                                        "OpenAI stream parse error: {e}"
+                                    ))))
+                                }
                             }
                         })
                         .collect()
@@ -737,6 +833,28 @@ impl LlmProvider for AnthropicProvider {
             .send()
             .await
             .map_err(|e| PkmError::Ai(format!("Anthropic request failed: {e}")))?;
+
+        // Surface non-2xx errors (invalid key, rate limit, overloaded) with the
+        // provider's message instead of failing at JSON parse (FM-8/S3).
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            let msg = if let Ok(body) = serde_json::from_str::<ApiErrorBody>(&text) {
+                body.error.message
+            } else if !text.trim().is_empty() {
+                text.chars().take(300).collect()
+            } else {
+                String::new()
+            };
+            let suffix = if msg.is_empty() {
+                String::new()
+            } else {
+                format!(": {msg}")
+            };
+            return Err(PkmError::Ai(format!(
+                "Anthropic endpoint error: HTTP {status}{suffix}"
+            )));
+        }
 
         #[derive(Deserialize)]
         struct AnthropicResponse {
@@ -841,6 +959,17 @@ impl LlmProvider for AnthropicProvider {
             .await
             .map_err(|e| PkmError::Ai(format!("Anthropic stream request failed: {e}")))?;
 
+        // Surface non-2xx stream errors (invalid key, overloaded) up front
+        // instead of yielding an empty stream (FM-8/S3).
+        if !response.status().is_success() {
+            let status = response.status();
+            let text = response.text().await.unwrap_or_default();
+            let snippet: String = text.chars().take(300).collect();
+            return Err(PkmError::Ai(format!(
+                "Anthropic stream error: HTTP {status}: {snippet}"
+            )));
+        }
+
         let mut buffer = StreamBuffer::new();
         let stream = response.bytes_stream().flat_map(move |chunk_result| {
             let items: Vec<PkmResult<ChatDelta>> = match chunk_result {
@@ -858,24 +987,43 @@ impl LlmProvider for AnthropicProvider {
                                 #[serde(rename = "type")]
                                 chunk_type: String,
                                 delta: Option<AnthropicStreamDelta>,
+                                /// Anthropic emits `event: error` with a body
+                                /// shaped `{"type":"error","error":{...}}`.
+                                error: Option<AnthropicErrorDetail>,
                             }
                             #[derive(Deserialize)]
                             struct AnthropicStreamDelta {
                                 text: Option<String>,
                             }
+                            #[derive(Deserialize)]
+                            struct AnthropicErrorDetail {
+                                message: Option<String>,
+                            }
 
-                            if let Ok(chunk) = serde_json::from_str::<AnthropicStreamChunk>(data) {
-                                let is_done = chunk.chunk_type == "message_stop";
-                                let content = chunk.delta.and_then(|d| d.text).unwrap_or_default();
-                                Some(Ok(ChatDelta {
-                                    content,
-                                    done: is_done,
-                                }))
-                            } else {
-                                Some(Ok(ChatDelta {
-                                    content: String::new(),
-                                    done: false,
-                                }))
+                            match serde_json::from_str::<AnthropicStreamChunk>(data) {
+                                Ok(chunk) => {
+                                    // Surface mid-stream error envelopes (S2).
+                                    if let Some(err) = chunk.error {
+                                        if let Some(msg) = err.message {
+                                            return Some(Err(PkmError::Ai(format!(
+                                                "Anthropic stream error: {msg}"
+                                            ))));
+                                        }
+                                    }
+                                    let is_done = chunk.chunk_type == "message_stop";
+                                    let content =
+                                        chunk.delta.and_then(|d| d.text).unwrap_or_default();
+                                    Some(Ok(ChatDelta {
+                                        content,
+                                        done: is_done,
+                                    }))
+                                }
+                                Err(e) => {
+                                    // Protocol violation — surface it (FM-9).
+                                    Some(Err(PkmError::Ai(format!(
+                                        "Anthropic stream parse error: {e}"
+                                    ))))
+                                }
                             }
                         })
                         .collect()
@@ -1009,6 +1157,9 @@ impl LlmProvider for CustomProvider {
             output: Option<String>,
             text: Option<String>,
             results: Option<Vec<GenericResultItem>>,
+            #[serde(rename = "type")]
+            #[allow(dead_code)]
+            kind: Option<String>,
         }
 
         #[derive(Deserialize)]
@@ -1026,11 +1177,12 @@ impl LlmProvider for CustomProvider {
             text: Option<String>,
         }
 
-        let body: GenericResponse = resp
-            .json()
-            .await
-            .map_err(|e| PkmError::Ai(format!("Custom provider parse error: {e}")))?;
+        // Capture the raw body before consuming it, so we can surface the
+        // original payload in a mismatch error.
+        let raw_text = resp.text().await.unwrap_or_default();
 
+        let body: GenericResponse = serde_json::from_str(&raw_text)
+            .map_err(|e| PkmError::Ai(format!("Custom provider parse error: {e}")))?;
         let content = body
             .content
             .or_else(|| body.message.and_then(|m| m.content))
@@ -1047,8 +1199,23 @@ impl LlmProvider for CustomProvider {
                     .and_then(|r| r.into_iter().next())
                     .and_then(|r| r.text)
             })
-            .or(body.text)
-            .unwrap_or_default();
+            .or(body.text);
+
+        // FM-10: a 2xx response we cannot interpret (none of the supported
+        // fields present) must not silently become an empty answer. If the
+        // body was a non-trivial JSON object that matched no known field,
+        // surface the raw body so the mismatch is actionable.
+        if content.is_none() {
+            let raw_trim = raw_text.trim();
+            if raw_trim.starts_with('{') && raw_trim.ends_with('}') && raw_text.len() > 2 {
+                let snippet: String = raw_text.chars().take(200).collect();
+                return Err(PkmError::Ai(format!(
+                    "Custom provider returned a response that did not match any known format: {snippet}"
+                )));
+            }
+        }
+
+        let content = content.unwrap_or_default();
 
         Ok(ChatResponse {
             content,
@@ -1077,21 +1244,21 @@ pub struct ProviderFactory;
 
 impl ProviderFactory {
     pub fn create(config: &AiConfig) -> PkmResult<Box<dyn LlmProvider>> {
-        let endpoint = config
-            .endpoint
-            .clone()
-            .unwrap_or_else(|| match config.provider {
-                AiProvider::Ollama => "http://localhost:11434".to_string(),
-                AiProvider::OpenAI => "https://api.openai.com/v1".to_string(),
-                AiProvider::Anthropic => "https://api.anthropic.com".to_string(),
-                AiProvider::Custom => "http://localhost:8080/v1/chat/completions".to_string(),
-                AiProvider::CustomOpenAI => "http://localhost:8080/v1".to_string(),
-                AiProvider::CustomAnthropic => "https://api.anthropic.com".to_string(),
-                AiProvider::Google => {
-                    "https://generativelanguage.googleapis.com/v1beta".to_string()
+        let endpoint = config.effective_endpoint().ok_or_else(|| {
+            PkmError::Config(format!(
+                "No endpoint configured for {} provider — set one in Settings → AI",
+                match config.provider {
+                    AiProvider::Ollama => "Ollama",
+                    AiProvider::OpenAI => "OpenAI",
+                    AiProvider::Anthropic => "Anthropic",
+                    AiProvider::Zai => "Z-AI",
+                    AiProvider::Custom => "Custom",
+                    AiProvider::CustomOpenAI => "Custom OpenAI",
+                    AiProvider::CustomAnthropic => "Custom Anthropic",
+                    AiProvider::Google => "Google",
                 }
-                AiProvider::Zai => "https://api.z.ai".to_string(),
-            });
+            ))
+        })?;
 
         match config.provider {
             AiProvider::Ollama => Ok(Box::new(OllamaProvider::new(endpoint)?)),
@@ -1504,15 +1671,48 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn openai_stream_chat_surface_transport_error() {
-        use futures::StreamExt;
-
-        // A transport-level failure after headers must surface as a stream item
-        // error rather than hanging (timeout / failure-surfacing criterion).
+    async fn openai_stream_chat_surface_http_error() {
+        // A non-2xx response is surfaced up front as an error from
+        // `stream_chat` (FM-8/S3) rather than yielding an empty stream.
         let server = wiremock::MockServer::start().await;
         wiremock::Mock::given(wiremock::matchers::method("POST"))
             .and(wiremock::matchers::path("/chat/completions"))
-            .respond_with(wiremock::ResponseTemplate::new(500))
+            .respond_with(wiremock::ResponseTemplate::new(500).set_body_string("boom"))
+            .mount(&server)
+            .await;
+
+        let provider = openai_provider(&server.uri());
+        let config = ChatConfig::new("test-model");
+
+        let err = match provider
+            .stream_chat(&[ChatMessage::user("hi")], &config)
+            .await
+        {
+            Ok(_) => panic!("non-2xx stream response must surface as an error"),
+            Err(e) => e,
+        };
+        assert!(err.to_string().contains("boom"), "got: {err}");
+    }
+
+    #[tokio::test]
+    async fn openai_stream_chat_surfaces_midstream_error_envelope() {
+        // S2: a mid-stream `data: {"error": {...}}` envelope must be surfaced
+        // as a stream error, not silently rendered as an empty chunk.
+        use futures::StreamExt;
+
+        let body = concat!(
+            "data: {\"choices\":[{\"delta\":{\"content\":\"partial \"},\"finish_reason\":null}]}\n\n",
+            "data: {\"error\":{\"message\":\"rate limit exceeded\",\"type\":\"server_error\"}}\n\n",
+            "data: [DONE]\n\n"
+        );
+        let server = wiremock::MockServer::start().await;
+        wiremock::Mock::given(wiremock::matchers::method("POST"))
+            .and(wiremock::matchers::path("/chat/completions"))
+            .respond_with(
+                wiremock::ResponseTemplate::new(200)
+                    .set_body_string(body)
+                    .insert_header("content-type", "text/event-stream"),
+            )
             .mount(&server)
             .await;
 
@@ -1524,8 +1724,54 @@ mod tests {
             .await
             .unwrap();
 
-        // With no body, the stream may end immediately; the invariant is that
-        // calling next() resolves (no hang) and does not panic.
-        let _ = stream.next().await;
+        let mut saw_error = false;
+        while let Some(item) = stream.next().await {
+            if item.is_err() {
+                saw_error = true;
+                break;
+            }
+        }
+        assert!(saw_error, "mid-stream error envelope must surface as Err");
+    }
+
+    #[tokio::test]
+    async fn openai_stream_chat_falls_back_to_reasoning_content() {
+        // S1: reasoning-model deltas carry text in `reasoning_content` while
+        // `content` is null — that text must be surfaced, not dropped.
+        use futures::StreamExt;
+
+        let body = concat!(
+            "data: {\"choices\":[{\"delta\":{\"content\":null,\"reasoning_content\":\"think\\n\"},\"finish_reason\":null}]}\n\n",
+            "data: {\"choices\":[{\"delta\":{\"content\":\"answer\",\"reasoning_content\":null},\"finish_reason\":null}]}\n\n",
+            "data: [DONE]\n\n"
+        );
+        let server = wiremock::MockServer::start().await;
+        wiremock::Mock::given(wiremock::matchers::method("POST"))
+            .and(wiremock::matchers::path("/chat/completions"))
+            .respond_with(
+                wiremock::ResponseTemplate::new(200)
+                    .set_body_string(body)
+                    .insert_header("content-type", "text/event-stream"),
+            )
+            .mount(&server)
+            .await;
+
+        let provider = openai_provider(&server.uri());
+        let config = ChatConfig::new("test-model");
+
+        let mut stream = provider
+            .stream_chat(&[ChatMessage::user("hi")], &config)
+            .await
+            .unwrap();
+
+        let mut full = String::new();
+        while let Some(item) = stream.next().await {
+            let delta = item.expect("no stream error");
+            if delta.done {
+                break;
+            }
+            full.push_str(&delta.content);
+        }
+        assert_eq!(full, "think\nanswer", "reasoning content must be surfaced");
     }
 }
