@@ -5,6 +5,7 @@ import type {
   BacklinkSnippetDto,
   ConnectionSuggestion,
   QueryResultDto,
+  SavedQuery,
   GraphDataDto,
   ComponentDto,
   OrphanDto,
@@ -40,6 +41,30 @@ export async function autocomplete(
 
 export async function runQuery(datalog: string): Promise<QueryResultDto> {
   return invoke('run_query', { datalog });
+}
+
+// --- Saved queries ---
+
+export async function listSavedQueries(): Promise<SavedQuery[]> {
+  return invoke('list_saved_queries');
+}
+
+export async function saveSavedQuery(
+  name: string,
+  query: string,
+): Promise<SavedQuery> {
+  return invoke('save_saved_query', { name, query });
+}
+
+export async function renameSavedQuery(
+  oldName: string,
+  newName: string,
+): Promise<SavedQuery> {
+  return invoke('rename_saved_query', { oldName, newName });
+}
+
+export async function deleteSavedQuery(name: string): Promise<void> {
+  return invoke('delete_saved_query', { name });
 }
 
 // --- Connections ---

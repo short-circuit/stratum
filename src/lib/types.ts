@@ -51,6 +51,14 @@ export interface QueryResultDto {
   rows: string[][];
 }
 
+/** A named Datalog query persisted in the vault (`.pkm/saved_queries.json`). */
+export interface SavedQuery {
+  name: string;
+  query: string;
+  /** RFC 3339 UTC timestamp of the last create/update. */
+  updated_at: string;
+}
+
 export interface BacklinkItem {
   source_id: string;
   source_page: string;
