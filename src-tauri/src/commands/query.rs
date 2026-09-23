@@ -2,6 +2,7 @@
 
 use crate::commands::vault::AppState;
 use pkm_query::engine::QueryEngine;
+use pkm_query::saved_queries::{self, SavedQuery};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -48,4 +49,56 @@ pub async fn run_query(
         .collect();
 
     Ok(QueryResultDto { columns, rows })
+}
+
+/// List all saved Datalog queries.
+///
+/// A missing or corrupt `.pkm/saved_queries.json` is treated as an empty list.
+#[tauri::command]
+pub async fn list_saved_queries(
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<SavedQuery>, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    saved_queries::load_saved_queries(&state.vault_path).map_err(|e| e.to_string())
+}
+
+/// Save (create or overwrite) a named Datalog query. The change is staged via
+/// the auto-commit engine so it syncs with the vault.
+#[tauri::command]
+pub async fn save_saved_query(
+    name: String,
+    query: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<SavedQuery, String> {
+    let mut state = state.lock().map_err(|e| e.to_string())?;
+    let saved = saved_queries::save_saved_query(&state.vault_path, &name, &query)
+        .map_err(|e| e.to_string())?;
+    state.record_change(saved_queries::SAVED_QUERIES_REL_PATH);
+    Ok(saved)
+}
+
+/// Rename an existing saved query.
+#[tauri::command]
+pub async fn rename_saved_query(
+    old_name: String,
+    new_name: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<SavedQuery, String> {
+    let mut state = state.lock().map_err(|e| e.to_string())?;
+    let saved = saved_queries::rename_saved_query(&state.vault_path, &old_name, &new_name)
+        .map_err(|e| e.to_string())?;
+    state.record_change(saved_queries::SAVED_QUERIES_REL_PATH);
+    Ok(saved)
+}
+
+/// Delete a saved query by name.
+#[tauri::command]
+pub async fn delete_saved_query(
+    name: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    let mut state = state.lock().map_err(|e| e.to_string())?;
+    saved_queries::delete_saved_query(&state.vault_path, &name).map_err(|e| e.to_string())?;
+    state.record_change(saved_queries::SAVED_QUERIES_REL_PATH);
+    Ok(())
 }
