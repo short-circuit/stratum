@@ -173,7 +173,7 @@ pub fn get_blocks_heal_from_disk(
 
     // Heal: re-sync the page + blocks from disk so the DB converges with the file.
     // best-effort — if the write fails, still serve the parsed rows from disk.
-    if let Ok(_) = sync_page_from_disk(store, page_path, vault_path, None) {
+    if sync_page_from_disk(store, page_path, vault_path, None).is_ok() {
         // Index the healed blocks so full-text search reflects the on-disk content.
         let _ = std::fs::create_dir_all(vault_path.join(".pkm").join("search"));
         let mut bi =
