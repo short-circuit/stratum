@@ -324,6 +324,10 @@ pub fn run() {
             commands::graph::resolve_link_target,
             // Query
             commands::query::run_query,
+            commands::query::list_saved_queries,
+            commands::query::save_saved_query,
+            commands::query::rename_saved_query,
+            commands::query::delete_saved_query,
             // Sync
             commands::sync::get_sync_status,
             commands::sync::sync_vault,
