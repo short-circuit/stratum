@@ -22,6 +22,7 @@ pub struct TtsSettingsDto {
     pub voice: String,
     pub format: String,
     pub speed: f32,
+    pub use_llm_gateway_and_auth: bool,
 }
 
 impl Default for TtsSettingsDto {
@@ -32,6 +33,7 @@ impl Default for TtsSettingsDto {
             voice: "alloy".to_string(),
             format: "mp3".to_string(),
             speed: 1.0,
+            use_llm_gateway_and_auth: false,
         }
     }
 }
@@ -46,6 +48,7 @@ pub struct SttSettingsDto {
     pub diarize: bool,
     pub auto_summarize: bool,
     pub auto_identify: bool,
+    pub use_llm_gateway_and_auth: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -88,6 +91,7 @@ pub struct AiSettingsDto {
     pub rag_chunk_count: usize,
     /// Expected embedding vector dimensionality; `0` = infer from response.
     pub embedding_dimensions: usize,
+    pub use_llm_gateway_and_auth: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -179,6 +183,7 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             rag_enabled: config.ai.rag_enabled,
             rag_chunk_count: config.ai.rag_chunk_count,
             embedding_dimensions: config.ai.embedding_dimensions,
+            use_llm_gateway_and_auth: config.ai.use_llm_gateway_and_auth,
         },
         research: ResearchSettingsDto {
             searxng_endpoint: config.research.searxng_endpoint.clone(),
@@ -218,6 +223,7 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             diarize: config.stt.diarize,
             auto_summarize: config.stt.auto_summarize,
             auto_identify: config.stt.auto_identify,
+            use_llm_gateway_and_auth: config.stt.use_llm_gateway_and_auth,
         },
         tts: TtsSettingsDto {
             endpoint: config.tts.endpoint.clone(),
@@ -225,6 +231,7 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             voice: config.tts.voice.clone(),
             format: config.tts.format.clone(),
             speed: config.tts.speed,
+            use_llm_gateway_and_auth: config.tts.use_llm_gateway_and_auth,
         },
     })
 }
@@ -301,6 +308,7 @@ pub async fn save_settings(
             rag_enabled: settings.ai.rag_enabled,
             rag_chunk_count: settings.ai.rag_chunk_count,
             embedding_dimensions: settings.ai.embedding_dimensions,
+            use_llm_gateway_and_auth: settings.ai.use_llm_gateway_and_auth,
         },
         research: pkm_core::ResearchConfig {
             searxng_endpoint: settings.research.searxng_endpoint,
@@ -354,6 +362,7 @@ pub async fn save_settings(
             diarize: settings.stt.diarize,
             auto_summarize: settings.stt.auto_summarize,
             auto_identify: settings.stt.auto_identify,
+            use_llm_gateway_and_auth: settings.stt.use_llm_gateway_and_auth,
         },
         tts: pkm_core::TtsConfig {
             endpoint: settings.tts.endpoint,
@@ -379,6 +388,7 @@ pub async fn save_settings(
             voice: settings.tts.voice,
             format: settings.tts.format,
             speed: settings.tts.speed,
+            use_llm_gateway_and_auth: settings.tts.use_llm_gateway_and_auth,
         },
         ..pkm_core::Config::default()
     };

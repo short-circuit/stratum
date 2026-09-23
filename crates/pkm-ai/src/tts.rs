@@ -363,6 +363,7 @@ mod tests {
             voice: "onyx".to_string(),
             format: "flac".to_string(),
             speed: 0.8,
+            ..TtsConfig::default()
         };
         let cfg = TtsConfigResolved::from_config(&ai_config("http://localhost:18080/v1"), &tts)
             .expect("should resolve");

@@ -13,6 +13,7 @@ export interface AiConfig {
   rag_enabled: boolean;
   rag_chunk_count: number;
   embedding_dimensions: number;
+  use_llm_gateway_and_auth: boolean;
 }
 
 export interface ThemeSettings {
@@ -37,6 +38,7 @@ export interface SttSettings {
   diarize: boolean;
   auto_summarize: boolean;
   auto_identify: boolean;
+  use_llm_gateway_and_auth: boolean;
 }
 
 export interface TtsSettings {
@@ -45,6 +47,7 @@ export interface TtsSettings {
   voice: string;
   format: string;
   speed: number;
+  use_llm_gateway_and_auth: boolean;
 }
 
 export interface AppSettings {
@@ -121,6 +124,7 @@ const DEFAULT_AI: AiConfig = {
   rag_enabled: false,
   rag_chunk_count: 3,
   embedding_dimensions: 0,
+  use_llm_gateway_and_auth: false,
 };
 
 const DEFAULT_STT: SttSettings = {
@@ -132,6 +136,7 @@ const DEFAULT_STT: SttSettings = {
   diarize: true,
   auto_summarize: true,
   auto_identify: true,
+  use_llm_gateway_and_auth: false,
 };
 
 const DEFAULT_TTS: TtsSettings = {
@@ -140,6 +145,7 @@ const DEFAULT_TTS: TtsSettings = {
   voice: 'alloy',
   format: 'mp3',
   speed: 1.0,
+  use_llm_gateway_and_auth: false,
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
