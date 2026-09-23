@@ -710,6 +710,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#sync-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sync Tab
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#developer-tab" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2042,6 +2053,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#sync-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sync Tab
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#developer-tab" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2287,6 +2309,12 @@ The configuration file is also directly editable — Stratum auto-reloads on cha
 </tr>
 </tbody>
 </table>
+<div class="admonition note">
+<p class="admonition-title">AI settings availability</p>
+<p>The AI, Speech &amp; Audio (STT/TTS), and model-capability settings are available on
+<strong>both</strong> the desktop and mobile settings screens. On mobile these appear as a
+collapsible accordion under the <strong>AI</strong> and <strong>Speech &amp; Audio</strong> sections.</p>
+</div>
 <h3 id="research-tab">Research Tab<a class="headerlink" href="#research-tab" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -2310,6 +2338,68 @@ The configuration file is also directly editable — Stratum auto-reloads on cha
 </tr>
 </tbody>
 </table>
+<h3 id="sync-tab">Sync Tab<a class="headerlink" href="#sync-tab" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sync Mode</td>
+<td><code>Manual</code>, <code>Auto-Commit</code>, <code>Auto-Sync</code>, or <code>Background</code></td>
+</tr>
+<tr>
+<td>Remote URL</td>
+<td>Git remote (e.g. <code>git@github.com:user/vault.git</code>)</td>
+</tr>
+<tr>
+<td>Branch</td>
+<td>Git branch to work on (default <code>main</code>)</td>
+</tr>
+<tr>
+<td>SSH Key Path</td>
+<td>Path to an SSH private key; leave empty to use the SSH agent</td>
+</tr>
+<tr>
+<td>Commit Interval</td>
+<td>How often (seconds) auto-commit mode stages and commits changes</td>
+</tr>
+<tr>
+<td>Commit Message Template</td>
+<td>Template for generated commit messages (supports <code>{datetime}</code>, <code>{editedfiles}</code>, <code>{newfiles}</code>, <code>{deletedfiles}</code>, <code>{count}</code> placeholders)</td>
+</tr>
+<tr>
+<td>Pull/Push Interval</td>
+<td>How often (seconds) auto-sync mode performs a pull/push cycle</td>
+</tr>
+<tr>
+<td>Sync Now</td>
+<td>Manually trigger a pull, merge, and push</td>
+</tr>
+<tr>
+<td>Start Scheduler</td>
+<td>Start the background auto-commit/auto-sync timer</td>
+</tr>
+<tr>
+<td>Recent Commits</td>
+<td>Expandable history of recent git commits</td>
+</tr>
+<tr>
+<td>Sync Status</td>
+<td>Shows current status, branch, ahead/behind counts, and conflict count</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Sync availability on mobile</p>
+<p>Sync configuration is available on mobile under the <strong>Sync</strong> section of the
+settings screen — including mode selector, remote/branch, SSH key, commit
+template with placeholder insertion, sync-now/scheduler controls, and the
+commit log.</p>
+</div>
 <h3 id="developer-tab">Developer Tab<a class="headerlink" href="#developer-tab" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -2323,8 +2413,26 @@ The configuration file is also directly editable — Stratum auto-reloads on cha
 <td>Reindex All</td>
 <td>Re-sync all pages from disk into the database. Idempotent. Useful after importing notes or recovering from corruption.</td>
 </tr>
+<tr>
+<td>Repair DB from disk</td>
+<td>Rebuild the database from the <code>.md</code> files on disk</td>
+</tr>
+<tr>
+<td>Normalize All Files</td>
+<td>Parse every <code>.md</code> file through the block parser and re-serialize to normalize indentation, block syntax, and frontmatter</td>
+</tr>
+<tr>
+<td>Reindex Progress</td>
+<td>Live progress bar shown during reindex operations</td>
+</tr>
 </tbody>
 </table>
+<div class="admonition note">
+<p class="admonition-title">Mobile accessibility</p>
+<p>On mobile, reindex <strong>progress</strong> is displayed live under the Developer section.
+The mobile settings screen mirrors the desktop settings surface; each desktop
+tab has a corresponding section on the mobile screen.</p>
+</div>
 <h2 id="file-structure">File Structure<a class="headerlink" href="#file-structure" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>your-vault/
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>├── note-a.md

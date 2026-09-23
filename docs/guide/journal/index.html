@@ -995,6 +995,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Opening the Journal">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mobile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mobile
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1983,6 +2000,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Opening the Journal">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mobile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mobile
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2117,6 +2151,14 @@
 <h2 id="opening-the-journal">Opening the Journal<a class="headerlink" href="#opening-the-journal" title="Permanent link">&para;</a></h2>
 <p>Click <strong><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 10v2H7v-2zm4 0v2h-2v-2zm4 0v2h-2v-2zm2-7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h1V1h2v2h8V1h2v2zm0 16V8H5v11zM9 14v2H7v-2zm4 0v2h-2v-2zm4 0v2h-2v-2z"/></svg></span> Journal</strong> in the sidebar or navigate to <code>/journal</code>.</p>
 <p>At the top of the panel you'll find the date header with Previous/Next day arrows for quick navigation between entries. Click the date text to open a calendar popup for jumping to any specific date.</p>
+<h3 id="mobile">Mobile<a class="headerlink" href="#mobile" title="Permanent link">&para;</a></h3>
+<p>Journal is fully available on mobile (Android/iOS and small browser viewports). All desktop controls are present:</p>
+<ul>
+<li><strong>Previous/Next day arrows</strong> at the top of the panel work exactly as on desktop.</li>
+<li>The <strong>date header</strong> opens the calendar. On mobile the calendar renders as a <strong>full-screen dialog</strong> (rather than the desktop popup) to provide larger touch targets and focused navigation — this is an intentional, documented deviation; the calendar logic is shared.</li>
+<li>The entry stack scrolls inside the panel; older entries load as you scroll, matching desktop behavior.</li>
+</ul>
+<p>Parity screenshots: <a href="../../assets/images/journal-after-mobile.png">after (mobile)</a>, <a href="../../assets/images/journal-before-mobile.png">before (mobile)</a>, <a href="../../assets/images/journal-after-desktop.png">after (desktop)</a>, <a href="../../assets/images/journal-before-desktop.png">before (desktop)</a>.</p>
 <h2 id="how-it-works">How it Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Each day gets its own page at <code>journals/YYYY-MM-DD.md</code></li>
