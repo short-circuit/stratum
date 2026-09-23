@@ -139,4 +139,53 @@ describe('QueryPanelDesktop — saved queries', () => {
     expect(saveButton).toBeDisabled();
     expect(api.saveSavedQuery).not.toHaveBeenCalled();
   });
+
+  it('shows the load error alert when the saved-query list fails to load', async () => {
+    (api.listSavedQueries as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('disk error'));
+    render(<QueryPanelDesktop />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Could not load saved queries: Error: disk error/)).toBeInTheDocument();
+    });
+  });
+
+  it('shows the action error alert when a mutation fails, keeps the dialog open, and dismisses the alert', async () => {
+    render(<QueryPanelDesktop />);
+
+    await waitFor(() => {
+      expect(screen.getByText('All TODO')).toBeInTheDocument();
+    });
+
+    (api.deleteSavedQuery as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('duplicate name'));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete saved query All TODO' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Delete “All TODO”/)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    // The failure is surfaced in a dismissible warning alert…
+    await waitFor(() => {
+      expect(screen.getByText(/Error: duplicate name/)).toBeInTheDocument();
+    });
+
+    // …and the confirm dialog stays open (state cleanup only runs after a
+    // successful mutation), so the user can retry. Document this behavior.
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+
+    // Dismiss the still-open confirm dialog, then the error alert.
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    // The MUI Alert close affordance is an icon button (data-testid CloseIcon).
+    const closeBtn = screen.getByTestId('CloseIcon').closest('button');
+    expect(closeBtn).not.toBeNull();
+    fireEvent.click(closeBtn as HTMLButtonElement);
+    await waitFor(() => {
+      expect(screen.queryByText(/Error: duplicate name/)).not.toBeInTheDocument();
+    });
+  });
 });
