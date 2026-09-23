@@ -5,10 +5,19 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import OutlinerEditor from '../OutlinerEditor';
 import JournalCalendar from '../JournalCalendar';
 import { useJournalPanel, formatDisplayDate } from './JournalPanel.shared';
 
+/**
+ * Desktop journal panel.
+ *
+ * Provides the documented Prev/Next day arrows and a clickable date header
+ * that opens the shared JournalCalendar (audit 2.3 — previously neither
+ * variant offered these, contradicting docs/guide/journal.md).
+ */
 export default function JournalPanelDesktop() {
   const {
     today,
@@ -25,20 +34,45 @@ export default function JournalPanelDesktop() {
     visibleSections,
     sectionRef,
     sentinelRef,
+    scrollRootRef,
     calendarOpen,
     setCalendarOpen,
     calendarAnchorEl,
     setCalendarAnchorEl,
     handleDateSelect,
+    createNewDay,
   } = useJournalPanel();
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
+      <Box ref={scrollRootRef as React.Ref<HTMLDivElement>} sx={{ flex: 1, overflow: 'auto', p: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, mb: 0.5 }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-          {formatDisplayDate(today)}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <IconButton
+            size="small"
+            onClick={() => createNewDay(-1)}
+            aria-label="Previous day"
+          >
+            <ChevronLeftIcon />
+          </IconButton>
+          <Typography
+            variant="subtitle2"
+            sx={{ fontWeight: 600, color: 'text.secondary', cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+            onClick={(e) => {
+              setCalendarAnchorEl(e.currentTarget);
+              setCalendarOpen((o) => !o);
+            }}
+          >
+            {formatDisplayDate(targetDate && targetDate !== today ? targetDate : today)}
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={() => createNewDay(1)}
+            aria-label="Next day"
+          >
+            <ChevronRightIcon />
+          </IconButton>
+        </Box>
         <IconButton
           size="small"
           onClick={(e) => {
@@ -77,7 +111,12 @@ export default function JournalPanelDesktop() {
       ) : journalLoading || !todayExists ? (
         <CircularProgress size={20} sx={{ display: 'block', mx: 'auto', my: 4 }} />
       ) : (
-        <OutlinerEditor pagePath={todayPagePath} minHeight="0" />
+        // Wrapped in an auto-height Box so today's editor sizes to its
+        // content rather than stretching to the viewport height of the
+        // scroll container (see fill-viewport fix).
+        <Box>
+          <OutlinerEditor pagePath={todayPagePath} minHeight="0" />
+        </Box>
       )}
 
       {pastDates.slice(0, visibleCount).map((date) => {

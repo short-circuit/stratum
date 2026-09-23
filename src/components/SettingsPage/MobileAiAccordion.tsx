@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
@@ -8,6 +8,9 @@ import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import Button from '@mui/material/Button';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import ToggleButton from '@mui/material/ToggleButton';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -17,6 +20,11 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 // Mobile AI provider configuration (collapsible accordion).
 // Extracted from SettingsPage.mobile.tsx during the E6 sizing-gate refactor so
 // the mobile settings screen stays under the 400-line component gate.
+//
+// Parity: mirrors the desktop AITab surfaces — provider/endpoint/key/model,
+// Fetch Available Models + per-model capability editor, RAG toggle + chunk
+// count, embedding dimensions, and masking of saved API keys. STT/TTS config
+// lives in MobileSttTtsSection (separate module) to stay under the file gate.
 // ---------------------------------------------------------------------------
 
 const PROVIDERS = [
@@ -29,6 +37,8 @@ const PROVIDERS = [
   { value: 'custom-openai', label: 'Custom OpenAI API' },
   { value: 'custom-anthropic', label: 'Custom Anthropic API' },
 ];
+
+const CAPABILITIES = ['chat', 'embedding', 'tts'] as const;
 
 function envVarForProvider(provider: string): string {
   switch (provider) {
@@ -52,14 +62,35 @@ export interface MobileAiAccordionProps {
     api_key: string | null;
     api_key_from_env: boolean;
     model: string;
+    models: { name: string; capabilities: string[] }[];
     rag_enabled: boolean;
+    rag_chunk_count: number;
     embedding_dimensions: number;
   };
   updateAi: (patch: any) => void;
+  availableModels?: string[];
+  fetching?: boolean;
+  onFetchModels?: () => void;
+  onToggleModelCapability?: (modelName: string, cap: string) => void;
 }
 
-export default function MobileAiAccordion({ ai, updateAi }: MobileAiAccordionProps) {
+export default function MobileAiAccordion({
+  ai,
+  updateAi,
+  availableModels = [],
+  fetching = false,
+  onFetchModels,
+  onToggleModelCapability,
+}: MobileAiAccordionProps) {
   const [aiExpanded, setAiExpanded] = useState(false);
+  const [isKeyMasked, setIsKeyMasked] = useState(false);
+
+  useEffect(() => {
+    setIsKeyMasked(!!(ai?.api_key && ai.api_key.includes('****')));
+  }, [ai?.api_key]);
+
+  const modelCaps = (name: string) =>
+    (ai?.models || []).find(m => m.name === name)?.capabilities || [];
 
   return (
     <Box sx={{ px: 2, pt: 3 }}>
@@ -111,8 +142,8 @@ export default function MobileAiAccordion({ ai, updateAi }: MobileAiAccordionPro
             <TextField
               label="API Key"
               type="password"
-              placeholder="sk-..."
-              value={ai?.api_key || ''}
+              placeholder={isKeyMasked ? 'Key saved - enter new value to change' : 'sk-...'}
+              value={isKeyMasked ? '' : (ai?.api_key || '')}
               onChange={e => updateAi({ api_key: e.target.value || null })}
               size="small"
               sx={{ '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.8rem' } }}
@@ -132,6 +163,70 @@ export default function MobileAiAccordion({ ai, updateAi }: MobileAiAccordionPro
               onChange={e => updateAi({ model: e.target.value })}
               size="small"
             />
+
+            {/* Fetch models + capability editor (desktop AITab parity) */}
+            <Box>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={onFetchModels}
+                disabled={fetching}
+                sx={{ textTransform: 'none' }}
+              >
+                {fetching ? 'Fetching...' : 'Fetch Available Models'}
+              </Button>
+            </Box>
+            {availableModels.length > 0 && (
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                  Models (tap to enable capabilities)
+                </Typography>
+                <Box
+                  sx={{
+                    maxHeight: 200,
+                    overflow: 'auto',
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                  }}
+                >
+                  {availableModels.map(m => {
+                    const caps = modelCaps(m);
+                    return (
+                      <Box
+                        key={m}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          px: 1.5,
+                          py: 0.75,
+                          '&:hover': { bgcolor: 'action.hover' },
+                        }}
+                      >
+                        <Typography variant="caption" sx={{ flex: 1, fontFamily: 'monospace' }}>
+                          {m}
+                        </Typography>
+                        <ToggleButtonGroup size="small" value={caps}>
+                          {CAPABILITIES.map(cap => (
+                            <ToggleButton
+                              key={cap}
+                              value={cap}
+                              selected={caps.includes(cap)}
+                              onChange={() => onToggleModelCapability?.(m, cap)}
+                              sx={{ textTransform: 'none', fontSize: '0.7rem', px: 1, py: 0.25 }}
+                            >
+                              {cap}
+                            </ToggleButton>
+                          ))}
+                        </ToggleButtonGroup>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
+            )}
+
             <FormControlLabel
               control={
                 <Switch
@@ -141,6 +236,17 @@ export default function MobileAiAccordion({ ai, updateAi }: MobileAiAccordionPro
               }
               label="Enable RAG"
             />
+            {ai?.rag_enabled && (
+              <TextField
+                label="Chunks"
+                type="number"
+                value={ai.rag_chunk_count || 5}
+                onChange={e => updateAi({ rag_chunk_count: parseInt(e.target.value) || 5 })}
+                size="small"
+                slotProps={{ htmlInput: { min: 1, max: 20 } }}
+                helperText="Number of context chunks (1–20)"
+              />
+            )}
             <TextField
               label="Embedding Dimensions (0 = auto)"
               type="number"
