@@ -282,6 +282,30 @@ export default function FeaturePanel() {
 
 The `.shared.tsx` file holds code that both variants use: types, hooks, utility functions, and pure rendering helpers that don't depend on layout.
 
+The `GraphPanel` is a worked example of this pattern: `GraphPanel/index.tsx` gates on `useResponsive().isMobile`, the mobile UI lives in `GraphPanel.mobile.tsx`, and the shared data-loading, filtering, and capability logic lives in `GraphPanel.shared.tsx` / `useGraphPanel.ts`.
+
+#### Mobile 3D Graph View
+
+On mobile the graph defaults to a 2D force layout (`GraphCanvas2D`) for performance. The mobile variant exposes an opt-in **3D view** toggle ("3D view" checkbox) in the graph settings bottom sheet, which switches the renderer to the 3D `GraphCanvas`. The toggle is gated on device capability, and the feature is disabled (and the 2D layout used) on devices that cannot render 3D.
+
+The capability check lives in `src/lib/graph3d.ts`:
+
+- `detectGraph3dSupport()` returns a `Graph3dSupport` verdict (`ok` / `no-webgl` / `low-end` / `device-unknown`) by probing for a WebGL context (webgl2 / webgl / experimental-webgl) and checking hardware constraints (≤2 GB of RAM or ≤2 CPU cores).
+- It is computed once when the graph panel mounts and is shared with both the desktop and mobile variants through `useGraphPanel` (which re-exports a `graph3dSupport` value from `useGraphPanel.ts`).
+- Desktop always renders 3D and never consults this module; the mobile variant is the only consumer.
+
+Behavior on mobile:
+
+- **Supported device** — the "3D view" toggle is enabled. Turning it on renders the 3D graph; the preference (`use_3d`) is persisted in graph settings (`.pkm/config.toml`) for the next session.
+- **Unsupported device** — the "3D view" toggle is disabled. If the user had previously enabled 3D, the app keeps the saved preference but renders the 2D force layout and shows a dismissible notice explaining that 3D isn't supported on the device (WebGL unavailable or hardware too constrained). If they later open the same vault on a capable device, 3D is used.
+- This is the **graceful fallback**: a constrained device never crashes or blanks out — it renders 2D with an explanation.
+
+Guidelines for platforms/features that are GPU- or memory-heavy:
+
+- Follow the `FeaturePanel.mobile.tsx` / `FeaturePanel.shared.tsx` convention so the capability check and fallback decision live in shared logic, not duplicated per variant.
+- Gate hardware-sensitive features on an explicit capability module (like `graph3d.ts`) rather than assuming all mobile devices can render them.
+- Never remove the fallback path: opt-in GPU-heavy rendering must always have a usable 2D/reduced path for constrained devices.
+
 ### CSS for Mobile
 
 The `src/global.css` file includes mobile-specific touch handling:
@@ -489,7 +513,7 @@ The safe area injection sets CSS custom properties on the webview document so th
 | **Content URI parsing** | SAF content URI format varies by manufacturer (Samsung, Xiaomi, etc. may differ from stock Android) | The `resolve_picked_path` function handles standard formats. File bugs for manufacturer-specific URI patterns. |
 | **File watcher disabled** | `pkm-watcher` (inotify-based) does not work on Android's filesystem due to permission restrictions | Rely on manual reindex (`reindex_vault` command) or periodic polling. |
 | **Git sync limitations** | SSH key storage on Android is not fully supported. HTTPS sync with credential helpers works but is untested. | Use manual sync mode. Auto-sync may not be reliable. |
-| **Large vaults on low-RAM devices** | Vaults with 10k+ blocks may cause memory pressure on devices with less than 4GB RAM | The Tantivy index is memory-mapped. SQLite works well under constraints. Most issues come from the frontend rendering large graphs. |
+| **Large vaults on low-RAM devices** | Vaults with 10k+ blocks may cause memory pressure on devices with less than 4GB RAM | The Tantivy index is memory-mapped. SQLite works well under constraints. Most issues come from the frontend rendering large graphs. On constrained devices the graph defaults to the lighter 2D layout; the mobile 3D view is opt-in and falls back to 2D when the device cannot render WebGL (see [Mobile 3D Graph View](#mobile-3d-graph-view)). |
 | **Soft keyboard overlap** | The editor may not always adjust correctly when the soft keyboard appears | `android:windowSoftInputMode="adjustResize"` is set in the manifest. Use `touch-action: pan-y` to allow scroll while editing. |
 
 ### iOS
@@ -602,6 +626,7 @@ Before shipping a mobile change, verify:
 - [ ] Wiki-link autocomplete works
 - [ ] Search returns results
 - [ ] Graph view renders (may be slow on low-end devices)
+- [ ] Mobile graph 3D toggle: enabling 3D on a supported device renders `GraphCanvas`; on an unsupported device the toggle is disabled and the app falls back to 2D with the dismissible notice
 - [ ] Back button / gesture navigation works correctly
 - [ ] Keyboard does not obscure the editor
 - [ ] App recovers from backgrounding (save + restore)

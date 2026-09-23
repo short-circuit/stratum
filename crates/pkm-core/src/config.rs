@@ -361,6 +361,11 @@ pub struct GraphConfig {
     pub alpha_decay: f64,
     pub velocity_decay: f64,
     pub link_curvature: f64,
+    /// Render the graph in 3D. Desktop always renders 3D regardless of this
+    /// flag; on mobile this is the opt-in that switches the graph from the 2D
+    /// force layout to the 3D one. The frontend additionally falls back to 2D
+    /// automatically when the device cannot render WebGL (see src/lib/graph3d.ts).
+    pub use_3d: bool,
 }
 
 impl Default for GraphConfig {
@@ -378,6 +383,8 @@ impl Default for GraphConfig {
             alpha_decay: 0.02,
             velocity_decay: 0.4,
             link_curvature: 0.15,
+            // Mobile ships 2D by default; desktop ignores this flag (always 3D).
+            use_3d: false,
         }
     }
 }
@@ -723,17 +730,21 @@ mod tests {
     fn test_graph_config_link_curvature_default() {
         let cfg = GraphConfig::default();
         assert_eq!(cfg.link_curvature, 0.15);
+        // 3D is opt-in (mobile defaults to 2D).
+        assert!(!cfg.use_3d);
     }
 
     #[test]
     fn test_graph_config_serde_round_trip() {
         let cfg = GraphConfig {
             link_curvature: 0.3,
+            use_3d: true,
             ..Default::default()
         };
         let json = serde_json::to_string(&cfg).unwrap();
         let deserialized: GraphConfig = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.link_curvature, 0.3);
+        assert!(deserialized.use_3d);
     }
 
     #[test]
