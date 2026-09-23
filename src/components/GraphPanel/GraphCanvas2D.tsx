@@ -52,6 +52,7 @@ export const DEFAULT_SETTINGS: GraphSettings = {
   velocity_decay: 0.4,
   link_curvature: 0.15,
   node_cap: 0,
+  use_3d: false,
 };
 
 interface GraphCanvas2DProps {

@@ -24,6 +24,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import { useTheme } from '@mui/material/styles';
 import { useGraphPanel } from './GraphPanel.shared';
 import GraphCanvas2D from './GraphCanvas2D';
+import GraphCanvas from './GraphCanvas';
 
 function SliderSetting({ label, value, min, max, step, display, onChange }: {
   label: string;
@@ -51,9 +52,10 @@ export default function GraphPanelMobile() {
 
   const {
     state: { graphData, components, loading, error, viewMode,
-            selectedComponent, search, graphSettings, saveStatus, graphRef },
+            selectedComponent, search, graphSettings, saveStatus, graphRef,
+            graph3dSupport },
     setViewMode, setSelectedComponent, setSearch, loadData,
-    handleNodeClick, updateSetting,
+    handleNodeClick, handleNodeRightClick, updateSetting,
     filteredNodes,
     graphDataProp,
     nodeCapActive, preCapNodeCount,
@@ -64,6 +66,25 @@ export default function GraphPanelMobile() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [width, setWidth] = useState(window.innerWidth);
   const [height, setHeight] = useState(window.innerHeight - 56);
+
+  // Mobile 3D is opt-in via graphSettings.use_3d, gated on device capability.
+  // When the user asked for 3D but the device can't render it, we fall back to
+  // 2D and surface a dismissible notice explaining why.
+  const [
+    fallbackNoticeDismissed,
+    setFallbackNoticeDismissed,
+  ] = useState(false);
+  const mobile3dEnabled = graphSettings.use_3d && graph3dSupport.supported;
+  const mobile3dRequestedButUnsupported =
+    graphSettings.use_3d && !graph3dSupport.supported;
+  const showFallbackNotice = mobile3dRequestedButUnsupported && !fallbackNoticeDismissed;
+
+  const toggle3d = useCallback(() => {
+    // Enabling 3D on a constrained device: keep the flag (so the user's intent
+    // persists) but the renderer falls back to 2D and shows the notice.
+    updateSetting('use_3d', !graphSettings.use_3d);
+    setFallbackNoticeDismissed(false);
+  }, [graphSettings.use_3d, updateSetting]);
 
   // Resize handler — full viewport minus app bar (56 px)
   useEffect(() => {
@@ -206,19 +227,37 @@ export default function GraphPanelMobile() {
         )}
 
         {filteredNodes.length > 0 ? (
-          <GraphCanvas2D
-            graphDataProp={graphDataProp}
-            width={width}
-            height={height}
-            textColor={muiTheme.palette.text.primary}
-            handleNodeClick={handleNodeClick}
-            loading={loading}
-            error={error}
-            nodes={filteredNodes}
-            graphData={graphData}
-            graphSettings={graphSettings}
-            graphRef={graphRef}
-          />
+          mobile3dEnabled ? (
+            <GraphCanvas
+              graphDataProp={graphDataProp}
+              width={width}
+              height={height}
+              bgColor={muiTheme.palette.background.default}
+              textColor={muiTheme.palette.text.primary}
+              handleNodeClick={handleNodeClick}
+              handleNodeRightClick={handleNodeRightClick}
+              loading={loading}
+              error={error}
+              nodes={filteredNodes}
+              graphData={graphData}
+              graphSettings={graphSettings}
+              graphRef={graphRef}
+            />
+          ) : (
+            <GraphCanvas2D
+              graphDataProp={graphDataProp}
+              width={width}
+              height={height}
+              textColor={muiTheme.palette.text.primary}
+              handleNodeClick={handleNodeClick}
+              loading={loading}
+              error={error}
+              nodes={filteredNodes}
+              graphData={graphData}
+              graphSettings={graphSettings}
+              graphRef={graphRef}
+            />
+          )
         ) : (
           !loading && !error && (
             <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
@@ -230,6 +269,19 @@ export default function GraphPanelMobile() {
               </Box>
             </Box>
           )
+        )}
+
+        {showFallbackNotice && (
+          <Alert
+            severity="info"
+            sx={{ position: 'absolute', top: 8, left: 8, right: 8, zIndex: 10, boxShadow: 3 }}
+            onClose={() => setFallbackNoticeDismissed(true)}
+          >
+            <Typography variant="caption">
+              3D view isn't supported on this device (WebGL unavailable or too
+              constrained). Showing the 2D graph instead.
+            </Typography>
+          </Alert>
         )}
 
         {!loading && !error && graphData && graphData.node_count > 0 && graphData.edge_count === 0 && (
@@ -269,6 +321,23 @@ export default function GraphPanelMobile() {
             <FormControlLabel
               control={<Checkbox size="small" checked={graphSettings.show_tags} onChange={(e) => updateSetting('show_tags', e.target.checked)} />}
               label={<Typography variant="caption">Tags</Typography>}
+            />
+          </Box>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, px: 0.5 }}>
+            <Box>
+              <Typography variant="caption" sx={{ display: 'block', fontWeight: 600 }}>3D view</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {graph3dSupport.supported
+                  ? 'Render the graph in 3D (experimental on mobile)'
+                  : '3D not supported on this device — falls back to 2D'}
+              </Typography>
+            </Box>
+            <Checkbox
+              checked={graphSettings.use_3d}
+              onChange={toggle3d}
+              disabled={!graph3dSupport.supported}
+              slotProps={{ input: { 'aria-label': 'Enable 3D view' } }}
             />
           </Box>
 

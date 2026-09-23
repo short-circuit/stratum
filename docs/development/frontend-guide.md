@@ -206,7 +206,11 @@ Manages user preferences including theme colors, AI provider settings, research 
 
 #### `graphStore` — Graph Data and View Settings
 
-Holds the node/edge data for the force-directed graph, connected components, orphans, and interactive settings (repulsion, link distance, visibility toggles).
+Holds the node/edge data for the force-directed graph, connected components, orphans, and interactive settings (repulsion, link distance, visibility toggles, mobile 3D opt-in).
+
+##### 3D capability detection
+
+`src/lib/graph3d.ts` provides `detectGraph3dSupport()`, which reports whether the current device can render the 3D graph (WebGL availability and RAM/core constraints). It is used by the mobile graph variant to fall back to the 2D force layout on constrained devices. See `docs/guide/graph-view.md`.
 
 #### `syncStore` — Git Sync Status
 

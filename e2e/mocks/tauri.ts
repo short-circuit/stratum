@@ -187,6 +187,7 @@ export const MOCK_SETTINGS = {
     velocity_decay: 0.4,
     link_curvature: 0.15,
     node_cap: 0,
+    use_3d: false,
   },
   sync: {
     mode: 'manual',
@@ -287,6 +288,12 @@ export interface MockConfig {
   commandErrors: Record<string, string>;
   /** When true, `plugins_list` returns an empty list (for the empty state) */
   emptyPlugins?: boolean;
+  /**
+   * Graph settings overrides (merged over `MOCK_SETTINGS.graph`) applied when
+   * the mock settings store is seeded. Lets tests set `{ use_3d: true }` etc.
+   * without fighting the localStorage init-script ordering.
+   */
+  graphSettings?: Record<string, unknown>;
 }
 
 /** Default: vault configured, no errors */
@@ -315,6 +322,14 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
       // test's browser context (mirrors real backend disk persistence).
       const persisted = window.localStorage.getItem('mock_settings');
       let mockSettings = persisted ? JSON.parse(persisted) : ${JSON.stringify(MOCK_SETTINGS)};
+      // Apply graph settings overrides from the test config (e.g. use_3d:true)
+      // so tests can deterministically seed the graph preference.
+      if (config.graphSettings) {
+        mockSettings = Object.assign({}, mockSettings, {
+          graph: Object.assign({}, mockSettings.graph, config.graphSettings),
+        });
+        window.localStorage.setItem('mock_settings', JSON.stringify(mockSettings));
+      }
 
       // In-page plugin store so plugins_list -> enable/disable/install/uninstall
       // round-trip within the test (mirrors the real registry + config persistence).
@@ -447,7 +462,17 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
             window.localStorage.setItem('mock_settings', JSON.stringify(args.settings));
           }
         },
-        save_graph_settings: () => {},
+        save_graph_settings: (args) => {
+          // Mirror the real Rust command: persist the graph settings so a
+          // subsequent get_settings reflects them (the app reads graph
+          // settings back on remount via useGraphPanel → api.getSettings).
+          if (args && args.graph) {
+            mockSettings = Object.assign({}, mockSettings, {
+              graph: Object.assign({}, mockSettings.graph, args.graph),
+            });
+            window.localStorage.setItem('mock_settings', JSON.stringify(mockSettings));
+          }
+        },
         fetch_models: () => [],
         run_query: () => ({ columns: ['col1', 'col2'], rows: [['a', 'b']] }),
         get_sync_status: () => (${JSON.stringify(MOCK_SYNC_STATUS)}),
