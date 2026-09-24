@@ -119,6 +119,20 @@ fn mask_api_key(key: &Option<String>) -> Option<String> {
     }
 }
 
+/// Human-readable provider name for error messages.
+fn provider_display(provider: &pkm_core::AiProvider) -> &'static str {
+    match provider {
+        pkm_core::AiProvider::Ollama => "Ollama",
+        pkm_core::AiProvider::OpenAI => "OpenAI",
+        pkm_core::AiProvider::Anthropic => "Anthropic",
+        pkm_core::AiProvider::Google => "Google",
+        pkm_core::AiProvider::Zai => "Z-AI",
+        pkm_core::AiProvider::Custom => "Custom",
+        pkm_core::AiProvider::CustomOpenAI => "Custom OpenAI",
+        pkm_core::AiProvider::CustomAnthropic => "Custom Anthropic",
+    }
+}
+
 #[tauri::command]
 pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
@@ -133,14 +147,20 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
         }
     };
 
+    // FM-14: an env var that is present but empty is the same as unset.
+    let env_non_empty = |name: &str| {
+        std::env::var(name)
+            .map(|v| !v.trim().is_empty())
+            .unwrap_or(false)
+    };
     let api_key_from_env = match config.ai.provider {
         pkm_core::AiProvider::OpenAI | pkm_core::AiProvider::CustomOpenAI => {
-            std::env::var("OPENAI_API_KEY").is_ok()
+            env_non_empty("OPENAI_API_KEY")
         }
         pkm_core::AiProvider::Anthropic | pkm_core::AiProvider::CustomAnthropic => {
-            std::env::var("ANTHROPIC_API_KEY").is_ok()
+            env_non_empty("ANTHROPIC_API_KEY")
         }
-        pkm_core::AiProvider::Google => std::env::var("GOOGLE_API_KEY").is_ok(),
+        pkm_core::AiProvider::Google => env_non_empty("GOOGLE_API_KEY"),
         _ => false,
     };
 
@@ -433,14 +453,13 @@ pub async fn fetch_models(state: tauri::State<'_, AppState>) -> Result<Vec<Strin
             return Err("No config found. Save settings first.".into());
         };
 
-        (
-            config
-                .ai
-                .endpoint
-                .clone()
-                .unwrap_or_else(|| "http://localhost:11434".into()),
-            config.ai.effective_api_key(),
-        )
+        let endpoint = config.ai.effective_endpoint().ok_or_else(|| {
+            format!(
+                "No endpoint configured for {} provider — set one in Settings → AI",
+                provider_display(&config.ai.provider)
+            )
+        })?;
+        (endpoint, config.ai.effective_api_key())
     };
 
     // Validate endpoint URL to prevent SSRF
@@ -463,7 +482,13 @@ pub async fn fetch_models(state: tauri::State<'_, AppState>) -> Result<Vec<Strin
     let response = request.send().await.map_err(|e| e.to_string())?;
 
     if !response.status().is_success() {
-        return Err(format!("API returned status {}", response.status()));
+        let status = response.status();
+        let text = response.text().await.unwrap_or_default();
+        if text.trim().is_empty() {
+            return Err(format!("API returned status {status}"));
+        }
+        let snippet: String = text.chars().take(300).collect();
+        return Err(format!("API returned status {status}: {snippet}"));
     }
 
     let body: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
