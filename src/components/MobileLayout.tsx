@@ -6,6 +6,17 @@ interface MobileLayoutProps {
   children: React.ReactNode;
 }
 
+// System-bar top inset, injected as a CSS custom property by the Android
+// MainActivity (and by the index.html touch-device fallback). Resolves to 0
+// on desktop and on devices without a status bar, so this is a no-op outside
+// Android/iOS. Must be used via inline styles because its children are
+// absolutely positioned — a padding-based container class would not offset
+// them.
+const SAFE_AREA_TOP = 'var(--safe-area-top, 0px)';
+
+const TOP_BAR_HEIGHT = 48;
+const BOTTOM_NAV_HEIGHT = 56;
+
 export default function MobileLayout({ error, children }: MobileLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -27,9 +38,13 @@ export default function MobileLayout({ error, children }: MobileLayoutProps) {
   else if (location.pathname.startsWith('/plugins')) title = 'Plugins';
   else if (location.pathname.startsWith('/settings')) title = 'Settings';
 
+  // Content area begins below the top bar (offset by the safe-area inset)
+  // plus the error banner when one is shown.
+  const contentTop = TOP_BAR_HEIGHT + (error ? 40 : 0);
+
   return (
     <div style={{ position: 'relative', height: '100vh', width: '100%', maxWidth: '100vw', backgroundColor: 'inherit', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 48, display: 'flex', alignItems: 'center', paddingLeft: 8, paddingRight: 8, borderBottom: '1px solid', borderColor: 'divider', backgroundColor: 'inherit', zIndex: 1100 }}>
+      <div style={{ position: 'absolute', top: SAFE_AREA_TOP, left: 0, right: 0, height: TOP_BAR_HEIGHT, display: 'flex', alignItems: 'center', paddingLeft: 8, paddingRight: 8, borderBottom: '1px solid', borderColor: 'divider', backgroundColor: 'inherit', zIndex: 1100 }}>
         {showBack && (
           <button onClick={() => navigate(-1)} style={{ marginRight: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
             ←
@@ -41,12 +56,12 @@ export default function MobileLayout({ error, children }: MobileLayoutProps) {
       </div>
 
       {error && (
-        <div style={{ position: 'absolute', top: 48, left: 0, right: 0, zIndex: 1090 }}>
+        <div style={{ position: 'absolute', top: `calc(${SAFE_AREA_TOP} + ${TOP_BAR_HEIGHT}px)`, left: 0, right: 0, zIndex: 1090 }}>
           <div style={{ padding: '8px 16px', backgroundColor: '#fdeded', color: '#5f2120', borderRadius: 0, fontSize: 14 }}>{error}</div>
         </div>
       )}
 
-      <div style={{ position: 'absolute', top: error ? 88 : 48, bottom: 56, left: 0, right: 0, overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: `calc(${SAFE_AREA_TOP} + ${contentTop}px)`, bottom: BOTTOM_NAV_HEIGHT, left: 0, right: 0, overflow: 'hidden' }}>
         {children}
       </div>
 
