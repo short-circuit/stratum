@@ -524,6 +524,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Pin node 22 (matches every other job in this workflow). The safe-area
+      # probe prefers the WHATWG WebSocket global (node >= 22) and only falls
+      # back to the `ws` package when one exists (it does NOT here: this job
+      # never runs npm install, so node_modules is absent in the checkout).
+      # Pinning node 22 is therefore what makes the android-smoke gate runnable
+      # in CI, not a convenience.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Download debug APK
         uses: actions/download-artifact@v4
         with:

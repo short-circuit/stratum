@@ -1,0 +1,14 @@
+=== SAFE-AREA PROBE RESULT ===
+{
+  "mode": "device",
+  "safeAreaTop": 48.761906,
+  "safeAreaBottom": 24,
+  "topBarFound": true,
+  "topBarTop": 48.761905670166016,
+  "topBarHeight": 48,
+  "viewport": {
+    "h": 915,
+    "w": 412
+  }
+}
+SAFE_AREA_PROBE PASS (device mode): no chrome under the status bar.
