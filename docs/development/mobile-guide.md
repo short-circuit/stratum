@@ -743,7 +743,7 @@ The patched `MainActivity.kt` at `src-tauri/android-patches/`:
 ### 3. React layout classes
 
 - **Desktop layout** (`App.tsx`): Uses `className="safe-area-container"` on the root Box
-- **Mobile layout** (`MobileLayout.tsx`): Also uses `className="safe-area-container"` on the root Box
+- **Mobile layout** (`MobileLayout.tsx`): Offsets its absolutely-positioned top bar, error banner, and content area by `var(--safe-area-top, 0px)` via inline styles. A padding-based container class would not offset these absolutely-positioned children, so the values are applied per-element. On desktop `--safe-area-top` resolves to `0`, so this is a no-op outside devices with system bars.
 
 ### 4. `viewport-fit=cover` meta tag
 
