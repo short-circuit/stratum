@@ -28,7 +28,33 @@ if (!url || !url.startsWith('ws://')) {
   process.exit(2);
 }
 
-const ws = new WebSocket(url);
+// WebSocket client. Node >= 22 exposes a WHATWG WebSocket global, but the CI
+// android-smoke runner (and this repo's developer shell) may carry an older
+// node where the global is absent — the GH-hosted image does not pin node via
+// setup-node, and only node >= 22 ships the global. We resolve the `ws`
+// package from the repo (already a dependency through the frontend) when the
+// global is missing, so the probe behaves identically on every supported
+// runtime instead of crashing with `WebSocket is not defined`.
+let WebSocketImpl = globalThis.WebSocket;
+if (typeof WebSocketImpl !== 'function') {
+  try {
+    // resolve from the repo root / this script's repo tree, not from the CWD
+    const { createRequire } = await import('module');
+    const requireFromProbe = createRequire(import.meta.url);
+    WebSocketImpl = requireFromProbe('ws').WebSocket;
+  } catch (e) {
+    console.error(
+      'FATAL: no global WebSocket available and the `ws` package could not be ' +
+        `resolved from the repo: ${e.message}`,
+    );
+    process.exit(3);
+  }
+  if (typeof WebSocketImpl !== 'function') {
+    console.error('FATAL: resolved `ws` package does not expose a WebSocket class');
+    process.exit(3);
+  }
+}
+const ws = new WebSocketImpl(url);
 let id = 0;
 const pending = new Map();
 const failures = [];
