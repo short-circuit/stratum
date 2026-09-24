@@ -151,7 +151,7 @@ fn dictation_start_stop_cancel_lifecycle_when_audio_available() {
     let started = invoke(
         &wv,
         "dictation_start",
-        json!({"page_path": "pages/Welcome.md"}),
+        json!({"pagePath": "pages/Welcome.md"}),
     )
     .expect("start ok");
     let rec_path = started["recording_path"]
@@ -167,7 +167,7 @@ fn dictation_start_stop_cancel_lifecycle_when_audio_available() {
     let second = invoke(
         &wv,
         "dictation_start",
-        json!({"page_path": "pages/Welcome.md"}),
+        json!({"pagePath": "pages/Welcome.md"}),
     );
     assert!(second.is_err(), "double start rejected");
 
@@ -209,7 +209,7 @@ fn dictation_cancel_discards_clip_and_tmp_when_audio_available() {
     let started = invoke(
         &wv,
         "dictation_start",
-        json!({"page_path": "pages/Welcome.md"}),
+        json!({"pagePath": "pages/Welcome.md"}),
     )
     .expect("start ok");
     let rec_path = started["recording_path"]

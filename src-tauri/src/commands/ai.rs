@@ -3,8 +3,26 @@ use pkm_ai::embedding::OpenAIEmbeddingClient;
 use pkm_ai::provider::{ChatConfig, ChatMessage, ProviderFactory};
 use pkm_ai::rag::RagEngine;
 use pkm_ai::research::ResearchEngine;
+use pkm_core::{Config, PkmError};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info, warn};
+
+/// Load the app config, distinguishing a genuinely missing config file from a
+/// corrupted one so the error tells the user what to actually fix (FM-2).
+fn load_ai_config(state: &tauri::State<'_, AppState>) -> Result<Config, String> {
+    let config_path = {
+        let s = state.lock().map_err(|e| e.to_string())?;
+        s.vault_path.join(".pkm").join("config.toml")
+    };
+    Config::load(&config_path).map_err(|e| match e {
+        PkmError::Config(_msg) if !config_path.exists() => format!(
+            "AI is not configured yet — no config file found at {}. \
+             Open Settings → AI and pick a provider to get started.",
+            config_path.display()
+        ),
+        other => format!("Failed to load AI configuration: {other}"),
+    })
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AiTransformResult {
@@ -83,16 +101,7 @@ pub async fn ai_transform_block(
         &page_path
     );
 
-    let config_path = {
-        let s = state.lock().map_err(|e| e.to_string())?;
-        s.vault_path.join(".pkm").join("config.toml")
-    };
-
-    let config = if config_path.exists() {
-        pkm_core::Config::load(&config_path).map_err(|e| e.to_string())?
-    } else {
-        return Err("AI not configured. Please configure AI provider in Settings.".into());
-    };
+    let config = load_ai_config(&state)?;
 
     let provider = ProviderFactory::create(&config.ai).map_err(|e| e.to_string())?;
 
@@ -155,16 +164,14 @@ pub async fn ai_research(
 ) -> Result<ResearchResultDto, String> {
     info!("research query={}", query);
 
-    let config_path = {
-        let s = state.lock().map_err(|e| e.to_string())?;
-        s.vault_path.join(".pkm").join("config.toml")
-    };
+    let config = load_ai_config(&state)?;
 
-    let config = if config_path.exists() {
-        pkm_core::Config::load(&config_path).map_err(|e| e.to_string())?
-    } else {
-        return Err("AI not configured. Please configure AI provider in Settings.".into());
-    };
+    if config.research.searxng_endpoint.trim().is_empty() {
+        return Err(
+            "Web research is not configured — no SearXNG endpoint set in Settings → AI → Research."
+                .into(),
+        );
+    }
 
     debug!(
         "research searxng={} max_results={} max_depth={}",
@@ -211,16 +218,7 @@ pub async fn generate_mermaid(
 ) -> Result<AiTransformResult, String> {
     info!("generate_mermaid prompt_len={}", prompt.len());
 
-    let config_path = {
-        let s = state.lock().map_err(|e| e.to_string())?;
-        s.vault_path.join(".pkm").join("config.toml")
-    };
-
-    let config = if config_path.exists() {
-        pkm_core::Config::load(&config_path).map_err(|e| e.to_string())?
-    } else {
-        return Err("AI not configured. Please configure AI provider in Settings.".into());
-    };
+    let config = load_ai_config(&state)?;
 
     let provider = ProviderFactory::create(&config.ai).map_err(|e| e.to_string())?;
 
@@ -252,21 +250,18 @@ pub async fn ai_interlink_notes(
 ) -> Result<AiTransformResult, String> {
     info!("interlink text_len={} page={:?}", text.len(), page_path);
 
-    let config_path;
     let index_path;
     let store;
     {
         let s = state.lock().map_err(|e| e.to_string())?;
-        config_path = s.vault_path.join(".pkm").join("config.toml");
         index_path = s.vault_path.join(".pkm").join("search");
         store = s.get_store().map_err(|e| e.to_string())?;
     }
 
-    let config = if config_path.exists() {
-        pkm_core::Config::load(&config_path).map_err(|e| e.to_string())?
-    } else {
-        return Err("AI not configured.".into());
-    };
+    let config = load_ai_config(&state)?;
+
+    // The interlink feature needs the search index, not the LLM, as its first
+    // step; the LLM provider is created below after related notes are found.
 
     let current_slug = page_path.as_ref().and_then(|p| {
         std::path::Path::new(p)
@@ -282,8 +277,9 @@ pub async fn ai_interlink_notes(
     let related_titles: Vec<String> = pkm_index::related::RelatedFinder::new()
         .split_predicate(split_pred)
         .find_related(&store, &index_path, &text, current_slug.as_deref())
-        .ok()
-        .unwrap_or_default()
+        // FM-12: surface a broken/missing search index instead of silently
+        // degrading to "no related pages".
+        .map_err(|e| format!("Failed to find related notes (search index unavailable): {e}"))?
         .into_iter()
         .map(|r| r.title)
         .collect();
@@ -399,16 +395,7 @@ pub async fn ai_rag_query(
 ) -> Result<RagQueryResultDto, String> {
     info!("rag_query question_len={}", question.len());
 
-    let config_path = {
-        let s = state.lock().map_err(|e| e.to_string())?;
-        s.vault_path.join(".pkm").join("config.toml")
-    };
-
-    let config = if config_path.exists() {
-        pkm_core::Config::load(&config_path).map_err(|e| e.to_string())?
-    } else {
-        return Err("AI not configured. Configure the AI provider in Settings → AI.".into());
-    };
+    let config = load_ai_config(&state)?;
 
     if !config.ai.rag_enabled {
         warn!("RAG query issued while rag_enabled=false in config");
