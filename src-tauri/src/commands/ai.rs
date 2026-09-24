@@ -3,25 +3,30 @@ use pkm_ai::embedding::OpenAIEmbeddingClient;
 use pkm_ai::provider::{ChatConfig, ChatMessage, ProviderFactory};
 use pkm_ai::rag::RagEngine;
 use pkm_ai::research::ResearchEngine;
-use pkm_core::{Config, PkmError};
+use pkm_core::Config;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info, warn};
 
 /// Load the app config, distinguishing a genuinely missing config file from a
 /// corrupted one so the error tells the user what to actually fix (FM-2).
+///
+/// `Config::load` maps a missing file to `PkmError::Io`, so the missing-file
+/// branch is tested by path existence (matching the dictation loader) rather
+/// than by error variant — otherwise the actionable message would be
+/// unreachable dead code.
 fn load_ai_config(state: &tauri::State<'_, AppState>) -> Result<Config, String> {
     let config_path = {
         let s = state.lock().map_err(|e| e.to_string())?;
         s.vault_path.join(".pkm").join("config.toml")
     };
-    Config::load(&config_path).map_err(|e| match e {
-        PkmError::Config(_msg) if !config_path.exists() => format!(
+    if !config_path.exists() {
+        return Err(format!(
             "AI is not configured yet — no config file found at {}. \
              Open Settings → AI and pick a provider to get started.",
             config_path.display()
-        ),
-        other => format!("Failed to load AI configuration: {other}"),
-    })
+        ));
+    }
+    Config::load(&config_path).map_err(|e| format!("Failed to load AI configuration: {e}"))
 }
 
 #[derive(Debug, Serialize, Deserialize)]
