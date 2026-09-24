@@ -614,6 +614,260 @@ fn command_flashcard_schedule_survives_restart_rebuild() {
 }
 
 // ---------------------------------------------------------------------------
+// FC — SM-2 progression coverage (due / again / known) — t_a3df0742
+// ---------------------------------------------------------------------------
+// The two tests above fix the persistence contract; these pin the SM-2
+// algorithm's exact progression so a regression in the scheduler math (a
+// wrong ladder step, a reset that doesn't reset, an ease factor that jumps
+// outside its contract) is caught on the next run. Values were derived from
+// the algorithm in flashcards.rs (`review_card`), not guessed:
+//   * interval ladder (known path):   1 → 6 → 13 → (27 on q=5 jump)
+//   * ease floor:                     1.3, never below
+//   * q=0/q=2 (lapse) resets reps to 0 and shrinks interval to 1
+//   * q=5 grows ease above the 2.5 baseline; q=3 lowers it toward the floor
+// Ratings use the frontend's real set (FlashcardsPanel RATINGS): 0 Blackout,
+// 2 Hard, 3 Good, 5 Easy.
+
+/// Assert a reviewed card returned by `review_card` matches the expected
+/// SM-2 state. `expected_ease` is compared with a tight f64 tolerance.
+fn assert_card_state(
+    card: &serde_json::Value,
+    label: &str,
+    expected_reps: u64,
+    expected_interval: u64,
+    expected_ease: f64,
+) {
+    assert_eq!(
+        card["repetitions"].as_u64(),
+        Some(expected_reps),
+        "{label}: reps"
+    );
+    assert_eq!(
+        card["interval_days"].as_u64(),
+        Some(expected_interval),
+        "{label}: interval"
+    );
+    let ease = card["ease_factor"].as_f64().expect("{label}: ease is a number");
+    assert!(
+        (ease - expected_ease).abs() < 1e-9,
+        "{label}: ease {ease} != expected {expected_ease}"
+    );
+    assert_eq!(
+        card["next_review"].as_str().unwrap(),
+        (chrono::Utc::now() + chrono::Duration::days(expected_interval as i64))
+            .format("%Y-%m-%d")
+            .to_string(),
+        "{label}: next_review = today + interval"
+    );
+}
+
+#[test]
+fn command_flashcard_sm2_known_ladder_scales_interval() {
+    // "Known" progression: three Good (q=3) ratings then one Easy (q=5).
+    // Pins the exact documented ladder 1 → 6 → 13 → 27 and the ease decrease
+    // on Good ratings (2.36 → 2.22 → 2.08) followed by the q=5 bump (2.18).
+    let tv = common::create_test_vault();
+    let body = "---\ntitle: fc-ladder\n---\n\n- Ladder step?\n  .question: true\n  .answer: Answer.\n";
+    seed_disk_page(&tv, "pages/fc-ladder.md", body);
+    let block = &tv.store.get_blocks_by_page("pages/fc-ladder.md").unwrap()[0];
+    let id = block.id.to_string();
+
+    let app = build_app(&tv);
+    let wv = webview(&app);
+
+    let steps: [(u8, u64, u64, f64); 4] = [
+        (3, 1, 1, 2.36),
+        (3, 2, 6, 2.22),
+        (3, 3, 13, 2.08),
+        (5, 4, 27, 2.18),
+    ];
+    for (i, (q, reps, iv, ease)) in steps.iter().enumerate() {
+        let reviewed = invoke(
+            &wv,
+            "review_card",
+            json!({ "cardId": id, "quality": q, "pagePath": "pages/fc-ladder.md" }),
+        )
+        .expect("review must resolve");
+        assert_card_state(&reviewed, &format!("known step {i}"), *reps, *iv, *ease);
+    }
+}
+
+#[test]
+fn command_flashcard_sm2_again_resets_schedule_and_ease_floor_holds() {
+    // Lapse path: two Good reviews (interval 6), then Hard (q=2, "again")
+    // must reset reps to 0 and shrink interval back to 1; subsequent Blackout
+    // (q=0) ratings must drive ease onto the 1.3 floor and hold it there —
+    // a regression where a lapse fails to reset, or where ease drops below
+    // 1.3, is caught here.
+    let tv = common::create_test_vault();
+    let body = "---\ntitle: fc-again\n---\n\n- Lapse behaviour?\n  .question: true\n  .answer: Resets.\n";
+    seed_disk_page(&tv, "pages/fc-again.md", body);
+    let block = &tv.store.get_blocks_by_page("pages/fc-again.md").unwrap()[0];
+    let id = block.id.to_string();
+
+    let app = build_app(&tv);
+    let wv = webview(&app);
+
+    // Build up to interval 6, reps 2.
+    invoke(
+        &wv,
+        "review_card",
+        json!({ "cardId": id, "quality": 3, "pagePath": "pages/fc-again.md" }),
+    )
+    .expect("q=3 #1");
+    invoke(
+        &wv,
+        "review_card",
+        json!({ "cardId": id, "quality": 3, "pagePath": "pages/fc-again.md" }),
+    )
+    .expect("q=3 #2");
+
+    // Hard (q=2): the lapse. Must reset reps → 0 and interval → 1.
+    let again = invoke(
+        &wv,
+        "review_card",
+        json!({ "cardId": id, "quality": 2, "pagePath": "pages/fc-again.md" }),
+    )
+    .expect("q=2 review");
+    assert_card_state(&again, "again after two known", 0, 1, 1.9);
+
+    // Two Blackout (q=0) ratings: ease hits the 1.3 floor and holds.
+    let fl1 = invoke(
+        &wv,
+        "review_card",
+        json!({ "cardId": id, "quality": 0, "pagePath": "pages/fc-again.md" }),
+    )
+    .expect("q=0 #1");
+    assert_card_state(&fl1, "blackout onto floor", 0, 1, 1.3);
+
+    let fl2 = invoke(
+        &wv,
+        "review_card",
+        json!({ "cardId": id, "quality": 0, "pagePath": "pages/fc-again.md" }),
+    )
+    .expect("q=0 #2");
+    assert_card_state(&fl2, "blackout floor holds", 0, 1, 1.3);
+}
+
+#[test]
+fn command_flashcard_sm2_easy_rating_grows_ease_above_baseline() {
+    // "Easy" progression: three q=5 ratings. Pins that the interval ladder
+    // (1 → 6 → 16) grows beyond the standard note-1/6 steps and that ease
+    // climbs above the 2.5 baseline (2.6 → 2.7 → 2.8). A regression that
+    // clamps ease at 2.5 (or fails to grow intervals for easy recalls) breaks.
+    let tv = common::create_test_vault();
+    let body = "---\ntitle: fc-easy\n---\n\n- Easy recall?\n  .question: true\n  .answer: Grows.\n";
+    seed_disk_page(&tv, "pages/fc-easy.md", body);
+    let block = &tv.store.get_blocks_by_page("pages/fc-easy.md").unwrap()[0];
+    let id = block.id.to_string();
+
+    let app = build_app(&tv);
+    let wv = webview(&app);
+
+    let steps: [(u8, u64, u64, f64); 3] = [(5, 1, 1, 2.6), (5, 2, 6, 2.7), (5, 3, 16, 2.8)];
+    for (i, (q, reps, iv, ease)) in steps.iter().enumerate() {
+        let reviewed = invoke(
+            &wv,
+            "review_card",
+            json!({ "cardId": id, "quality": q, "pagePath": "pages/fc-easy.md" }),
+        )
+        .expect("review must resolve");
+        assert_card_state(&reviewed, &format!("easy step {i}"), *reps, *iv, *ease);
+    }
+}
+
+#[test]
+fn command_flashcard_grown_ladder_schedule_survives_restart() {
+    // Extends the parent restart regression (which stopped at interval 1): a
+    // card whose schedule has GROWN to 13 days / 3 reps must retain that
+    // exact schedule across a restart — proving `write_page_to_disk` persists
+    // the full schedule, not just the first-step values, and that the
+    // boot-time rebuild re-reads it faithfully.
+    let tv = common::create_test_vault();
+    let body = "---\ntitle: fc-grown\n---\n\n- Grown schedule?\n  .question: true\n  .answer: Durable.\n";
+    seed_disk_page(&tv, "pages/fc-grown.md", body);
+    let block = &tv.store.get_blocks_by_page("pages/fc-grown.md").unwrap()[0];
+    let id = block.id.to_string();
+
+    // Session 1: build a grown schedule (three q=3 → interval 13, reps 3).
+    let app = build_app(&tv);
+    let wv = webview(&app);
+    for _ in 0..3 {
+        invoke(
+            &wv,
+            "review_card",
+            json!({ "cardId": id, "quality": 3, "pagePath": "pages/fc-grown.md" }),
+        )
+        .expect("review must resolve");
+    }
+    let on_disk = std::fs::read_to_string(tv.vault_path.join("pages/fc-grown.md")).unwrap();
+    assert!(
+        on_disk.contains(".interval: 13") && on_disk.contains(".reps: 3"),
+        "grown schedule must be on disk: {on_disk}"
+    );
+
+    // Session 2: rebuild SQLite from disk + fresh VaultState (boot path).
+    let db_path = tv.vault_path.join(".pkm/blocks.db");
+    let store2 = pkm_block::BlockStore::open(&db_path).unwrap();
+    let (_, _, disk_blocks) = pkm_markdown::block_parser::parse_document(&on_disk);
+    let mut page2 = Page::new(tv.vault_path.join("pages/fc-grown.md"), &tv.vault_path);
+    page2.set_blocks(&disk_blocks);
+    store2.upsert_page(&page2).unwrap();
+    for b in &disk_blocks {
+        store2.insert_block(b, "pages/fc-grown.md").unwrap();
+    }
+    drop(store2);
+
+    let app2 = build_app(&tv);
+    let wv2 = webview(&app2);
+    let cards = invoke(&wv2, "generate_flashcards", json!({})).expect("generate");
+    let cards = cards.as_array().unwrap();
+    let revived = cards.iter().find(|c| c["id"].as_str() == Some(&id));
+    let revived = revived.expect("grown card must still be in the review queue after restart");
+    assert_eq!(
+        revived["interval_days"].as_u64(),
+        Some(13),
+        "grown interval must survive restart verbatim"
+    );
+    assert_eq!(
+        revived["repetitions"].as_u64(),
+        Some(3),
+        "grown reps must survive restart verbatim"
+    );
+}
+
+#[test]
+fn command_flashcard_due_queue_orders_due_cards_first() {
+    // Review-queue contract: `generate_flashcards` returns ALL cards sorted
+    // due-first (a card with next_review <= today, or none, is due). A card
+    // scheduled far in the future must sort AFTER a due card so the frontend
+    // presents actionable cards first and never hides an overdue card behind
+    // a not-yet-due one. (Regression guard: a sort that inverted the due
+    // comparison, or dropped non-due cards, breaks here.)
+    let tv = common::create_test_vault();
+    let body = "---\ntitle: fc-queue\n---\n\n- Due now?\n  .question: true\n  .answer: Yes.\n- Not due yet?\n  .question: true\n  .answer: Later.\n  .next_review: 2099-01-01\n";
+    seed_disk_page(&tv, "pages/fc-queue.md", body);
+
+    let app = build_app(&tv);
+    let wv = webview(&app);
+
+    let cards = invoke(&wv, "generate_flashcards", json!({})).expect("generate");
+    let cards = cards.as_array().expect("array");
+    assert_eq!(cards.len(), 2);
+    assert_eq!(
+        cards[0]["front"].as_str().unwrap(),
+        "Due now?",
+        "the due card must come first in the queue"
+    );
+    assert_eq!(
+        cards[1]["front"].as_str().unwrap(),
+        "Not due yet?",
+        "the future-scheduled card must follow the due card"
+    );
+    assert_eq!(cards[0]["next_review"].as_str().unwrap_or(""), "");
+}
+
+// ---------------------------------------------------------------------------
 // WB — whiteboard save / load / list
 // ---------------------------------------------------------------------------
 
