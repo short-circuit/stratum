@@ -5,9 +5,26 @@
 //! `.pkm/config.toml` (AI settings + optional TTS override).
 
 use crate::commands::vault::AppState;
-use pkm_core::Config;
+use pkm_core::{Config, PkmError};
 use serde::Serialize;
 use tracing::info;
+
+/// Load the app config, distinguishing a genuinely missing config file from a
+/// corrupted one so the error tells the user what to actually fix.
+fn load_config(state: &tauri::State<'_, AppState>) -> Result<Config, String> {
+    let config_path = {
+        let s = state.lock().map_err(|e| e.to_string())?;
+        s.vault_path.join(".pkm").join("config.toml")
+    };
+    Config::load(&config_path).map_err(|e| match e {
+        PkmError::Config(_) if !config_path.exists() => format!(
+            "AI/TTS is not configured yet — no config file found at {}. \
+             Open Settings → AI and pick a provider to get started.",
+            config_path.display()
+        ),
+        other => format!("Failed to load configuration: {other}"),
+    })
+}
 
 /// Result of a TTS synthesis call.
 #[derive(Debug, Serialize)]
@@ -47,14 +64,7 @@ pub async fn tts_synthesize(
     text: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<TtsResultDto, String> {
-    let config = {
-        let s = state.lock().map_err(|e| e.to_string())?;
-        let config_path = s.vault_path.join(".pkm").join("config.toml");
-        if !config_path.exists() {
-            return Err("AI not configured. Configure the AI provider in Settings → AI.".into());
-        }
-        Config::load(&config_path).map_err(|e| e.to_string())?
-    };
+    let config = load_config(&state)?;
 
     let client =
         pkm_ai::tts::TtsClient::from_config(&config.ai, &config.tts).map_err(|e| e.to_string())?;
@@ -90,14 +100,7 @@ pub async fn tts_speak(
     text: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<TtsResultDto, String> {
-    let config = {
-        let s = state.lock().map_err(|e| e.to_string())?;
-        let config_path = s.vault_path.join(".pkm").join("config.toml");
-        if !config_path.exists() {
-            return Err("AI not configured. Configure the AI provider in Settings → AI.".into());
-        }
-        Config::load(&config_path).map_err(|e| e.to_string())?
-    };
+    let config = load_config(&state)?;
 
     let client =
         pkm_ai::tts::TtsClient::from_config(&config.ai, &config.tts).map_err(|e| e.to_string())?;
