@@ -259,20 +259,19 @@ fn store_phase_breakdown(store: &BlockStore, n: usize) {
 
     // SQLite query plans for the exact queries the command layer runs.
     let placeholders: Vec<String> = vec!["?".to_string(); paths.len()];
-    let slug_plan = format!("SELECT path FROM pages ORDER BY modified_at DESC");
+    let slug_plan = "SELECT path FROM pages ORDER BY modified_at DESC".to_string();
     let pages_plan = format!(
         "SELECT path, frontmatter FROM pages WHERE path IN ({})",
         placeholders.join(", ")
     );
-    let edges_plan = format!(
-        "SELECT src_page.path, dst.path \
+    let edges_plan = "SELECT src_page.path, dst.path \
          FROM links l \
          JOIN blocks src ON l.source_block = src.id \
          JOIN pages src_page ON src.page_path = src_page.path \
          JOIN pages dst ON l.target_page = dst.path \
          WHERE l.link_type = 'page_ref' \
          ORDER BY src.rowid, l.rowid"
-    );
+        .to_string();
     explain_query_plan(store, "list_pages", &slug_plan, &[]);
     explain_query_plan(store, "get_pages", &pages_plan, &paths);
     explain_query_plan(store, "get_page_ref_edges", &edges_plan, &[]);
