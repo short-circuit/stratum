@@ -15,8 +15,7 @@ use pkm_stt::{assign_speakers, parse_diarization_json, parse_transcription_json}
 /// `model=whisperx-tiny`, `response_format=verbose_json` (3 s tone clip).
 /// NOTE: `end` is the known LocalAI whisperx broken nanosecond-scale value
 /// `1E-9` (== 1s after normalize_ts).
-const STT_WHISPERX_TINY_REAL: &str =
-    r#"{"segments":[{"id":0,"start":0,"end":1E-9,"text":" Thanks for watching!","tokens":[]}],"text":" Thanks for watching!"}"#;
+const STT_WHISPERX_TINY_REAL: &str = r#"{"segments":[{"id":0,"start":0,"end":1E-9,"text":" Thanks for watching!","tokens":[]}],"text":" Thanks for watching!"}"#;
 
 /// Verbatim body of `POST /v1/audio/transcriptions` with `model=whisper-1`
 /// (same clip). Timestamps come back as plain small seconds.
@@ -57,7 +56,7 @@ fn real_pyannote_diarization_parses_and_ignores_speakers_meta() {
     assert_eq!(d.num_speakers, 1);
     assert_eq!(d.segments.len(), 1);
     assert_eq!(d.segments[0].speaker, "SPEAKER_00"); // `label`/speaker fallback resolved in parse
-    // plain seconds stay seconds
+                                                     // plain seconds stay seconds
     assert!((d.segments[0].end - 3.051593780517578).abs() < 1e-9);
     assert!((d.duration.unwrap() - 3.0).abs() < 1e-9);
 }
@@ -67,8 +66,7 @@ fn real_pyannote_diarization_merges_with_transcript() {
     // End-to-end speaker assignment against the real 1-speaker clip: the
     // whisperx-tiny transcript (normalized end=1s) overlaps the diarization
     // segment (0.03–3.05s) and is assigned to SPEAKER_00.
-    let transcript =
-        parse_transcription_json(STT_WHISPERX_TINY_REAL).expect("transcript parses");
+    let transcript = parse_transcription_json(STT_WHISPERX_TINY_REAL).expect("transcript parses");
     let diar = parse_diarization_json(DIAR_PYANNOTE_REAL).expect("diarization parses");
 
     let turns = assign_speakers(&transcript, &diar);
