@@ -230,7 +230,7 @@ impl Default for AiConfig {
     fn default() -> Self {
         Self {
             provider: AiProvider::Ollama,
-            endpoint: Some("http://localhost:11434".to_string()),
+            endpoint: None,
             api_key: None,
             model: "llama3.2".to_string(),
             models: Vec::new(),
@@ -255,7 +255,39 @@ impl AiConfig {
             AiProvider::Google => "GOOGLE_API_KEY",
             _ => return self.api_key.clone(),
         };
-        std::env::var(env_var).ok().or_else(|| self.api_key.clone())
+        std::env::var(env_var)
+            .ok()
+            .map(|k| k.trim().to_string())
+            .filter(|k| !k.is_empty())
+            .or_else(|| self.api_key.clone())
+    }
+
+    /// Resolve the effective API endpoint for this provider.
+    ///
+    /// Mirrors the per-provider defaults in `pkm_ai::provider::ProviderFactory`
+    /// so every consumer (chat, embedding, TTS, model fetch) resolves the same
+    /// endpoint from a single code path. Returns `None` only when no endpoint
+    /// is configured and the provider has no documented default.
+    pub fn effective_endpoint(&self) -> Option<String> {
+        let configured = self
+            .endpoint
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty());
+        configured
+            .map(str::to_string)
+            .or_else(|| match self.provider {
+                AiProvider::Ollama => Some("http://localhost:11434".to_string()),
+                AiProvider::OpenAI => Some("https://api.openai.com/v1".to_string()),
+                AiProvider::Anthropic => Some("https://api.anthropic.com".to_string()),
+                AiProvider::Custom => Some("http://localhost:8080/v1/chat/completions".to_string()),
+                AiProvider::CustomOpenAI => Some("http://localhost:8080/v1".to_string()),
+                AiProvider::CustomAnthropic => Some("https://api.anthropic.com".to_string()),
+                AiProvider::Google => {
+                    Some("https://generativelanguage.googleapis.com/v1beta".to_string())
+                }
+                AiProvider::Zai => Some("https://api.z.ai".to_string()),
+            })
     }
 }
 
@@ -312,6 +344,21 @@ impl Default for SttConfig {
             auto_summarize: true,
             auto_identify: true,
         }
+    }
+}
+
+impl SttConfig {
+    /// Returns the STT API key, preferring the `STRATUM_STT_API_KEY`
+    /// environment variable over the config file value.
+    ///
+    /// Mirrors `AiConfig::effective_api_key` for the dictation pipeline so a
+    /// shared secret never has to live in the vault's `config.toml`.
+    pub fn effective_api_key(&self) -> Option<String> {
+        std::env::var("STRATUM_STT_API_KEY")
+            .ok()
+            .map(|k| k.trim().to_string())
+            .filter(|k| !k.is_empty())
+            .or_else(|| self.api_key.clone())
     }
 }
 
@@ -746,6 +793,97 @@ mod tests {
         assert_eq!(cfg.link_distance, 100.0);
         assert_eq!(cfg.alpha_decay, 0.02);
         assert_eq!(cfg.velocity_decay, 0.4);
+    }
+
+    #[test]
+    fn test_ai_config_effective_endpoint_configured_wins() {
+        // A configured endpoint always wins over the provider default.
+        let ai = AiConfig {
+            provider: AiProvider::OpenAI,
+            endpoint: Some("https://my-proxy.example/v1".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(
+            ai.effective_endpoint().as_deref(),
+            Some("https://my-proxy.example/v1")
+        );
+    }
+
+    #[test]
+    fn test_ai_config_effective_endpoint_per_provider_default() {
+        // With no endpoint set, each provider resolves its documented default
+        // (FM-1): an unset CustomOpenAI endpoint must NOT inherit the baked
+        // Ollama default.
+        let cases = [
+            (AiProvider::Ollama, "http://localhost:11434"),
+            (AiProvider::OpenAI, "https://api.openai.com/v1"),
+            (AiProvider::Anthropic, "https://api.anthropic.com"),
+            (AiProvider::CustomOpenAI, "http://localhost:8080/v1"),
+        ];
+        for (provider, expected) in cases {
+            let ai = AiConfig {
+                provider,
+                endpoint: None,
+                ..Default::default()
+            };
+            assert_eq!(
+                ai.effective_endpoint().as_deref(),
+                Some(expected),
+                "provider {provider:?}"
+            );
+        }
+        // The baked default must not leak a real Ollama URL either.
+        let custom_openai = AiConfig {
+            provider: AiProvider::CustomOpenAI,
+            ..Default::default()
+        };
+        assert_ne!(
+            custom_openai.effective_endpoint().as_deref(),
+            Some("http://localhost:11434")
+        );
+    }
+
+    #[test]
+    fn test_ai_config_effective_endpoint_ignores_whitespace() {
+        let ai = AiConfig {
+            provider: AiProvider::OpenAI,
+            endpoint: Some("   ".to_string()),
+            ..Default::default()
+        };
+        // A blank endpoint is treated as unset and falls back to the default.
+        assert_eq!(
+            ai.effective_endpoint().as_deref(),
+            Some("https://api.openai.com/v1")
+        );
+    }
+
+    #[test]
+    fn test_stt_config_effective_api_key_falls_back_to_config() {
+        // Unset env var → config file value is used.
+        unsafe { std::env::remove_var("STRATUM_STT_API_KEY") };
+        let stt = SttConfig {
+            api_key: Some("from-config".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(stt.effective_api_key().as_deref(), Some("from-config"));
+    }
+
+    #[test]
+    fn test_stt_config_effective_api_key_env_wins_and_empty_ignored() {
+        // Set a real value → env wins. Empty → treated as unset.
+        unsafe { std::env::set_var("STRATUM_STT_API_KEY", "from-env") };
+        let stt = SttConfig {
+            api_key: Some("from-config".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(stt.effective_api_key().as_deref(), Some("from-env"));
+
+        unsafe { std::env::set_var("STRATUM_STT_API_KEY", "   ") };
+        assert_eq!(
+            stt.effective_api_key().as_deref(),
+            Some("from-config"),
+            "whitespace-only env vars must not override the configured key"
+        );
     }
 
     #[test]
