@@ -1,0 +1,17 @@
+{
+  "test": "Live DOM probe on Android emulator (app.stratum.debug, tauri WebView)",
+  "result": "PASS",
+  "evidence": {
+    "safeAreaTop": "48.761906px",
+    "safeAreaBottom": "24.0px",
+    "insetTop": "48.761906px",
+    "insetBottom": "24.0px",
+    "topBarTopPx": 48.761905670166016,
+    "topBarHeightPx": 48,
+    "bottomNavTopPx": 835.047607421875,
+    "bottomNavBottomPx": 915.047607421875,
+    "viewportInnerHeightPx": 915,
+    "devicePixelRatio": 2.625
+  },
+  "conclusion": "MobileLayout top bar getBoundingClientRect().top (48.76px) equals --safe-area-inset-top (48.76px): top bar is offset below the Android status bar, no content overlaps it."
+}
