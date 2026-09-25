@@ -2057,6 +2057,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#verifying-safe-area-handling-android" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verifying Safe Area Handling (Android)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#on-the-simulator-ios" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2196,10 +2207,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-mainactivitykt-system-insets-injection" class="md-nav__link">
+  <a href="#1-required-configuration-src-tauritauriconfjson" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. MainActivity.kt — System insets injection
+        1. Required configuration (src-tauri/tauri.conf.json)
       
     </span>
   </a>
@@ -2207,10 +2218,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-css-variables-srcglobalcss" class="md-nav__link">
+  <a href="#2-mainactivitykt-system-inset-injection" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. CSS variables (src/global.css)
+        2. MainActivity.kt — system-inset injection
       
     </span>
   </a>
@@ -2218,10 +2229,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#3-react-layout-classes" class="md-nav__link">
+  <a href="#3-indexhtml-viewport-meta-touch-device-fallback" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. React layout classes
+        3. index.html — viewport meta + touch-device fallback
       
     </span>
   </a>
@@ -2229,10 +2240,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#4-viewport-fitcover-meta-tag" class="md-nav__link">
+  <a href="#4-css-variables-srcglobalcss" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. viewport-fit=cover meta tag
+        4. CSS variables (src/global.css)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-component-offsets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Component offsets
       
     </span>
   </a>
@@ -2785,6 +2807,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#verifying-safe-area-handling-android" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verifying Safe Area Handling (Android)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#on-the-simulator-ios" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2924,10 +2957,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-mainactivitykt-system-insets-injection" class="md-nav__link">
+  <a href="#1-required-configuration-src-tauritauriconfjson" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. MainActivity.kt — System insets injection
+        1. Required configuration (src-tauri/tauri.conf.json)
       
     </span>
   </a>
@@ -2935,10 +2968,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-css-variables-srcglobalcss" class="md-nav__link">
+  <a href="#2-mainactivitykt-system-inset-injection" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. CSS variables (src/global.css)
+        2. MainActivity.kt — system-inset injection
       
     </span>
   </a>
@@ -2946,10 +2979,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#3-react-layout-classes" class="md-nav__link">
+  <a href="#3-indexhtml-viewport-meta-touch-device-fallback" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. React layout classes
+        3. index.html — viewport meta + touch-device fallback
       
     </span>
   </a>
@@ -2957,10 +2990,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#4-viewport-fitcover-meta-tag" class="md-nav__link">
+  <a href="#4-css-variables-srcglobalcss" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. viewport-fit=cover meta tag
+        4. CSS variables (src/global.css)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-component-offsets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Component offsets
       
     </span>
   </a>
@@ -3144,7 +3188,7 @@
 </code></pre></div>
 <p>These patches provide:</p>
 <ul>
-<li>Custom <code>MainActivity.kt</code> with edge-to-edge display and safe area injection</li>
+<li>Custom <code>MainActivity.kt</code> that enables edge-to-edge and injects system-bar insets as CSS custom properties (see <a href="#safe-area-handling">Safe Area Handling</a>)</li>
 <li>Themed launcher icons</li>
 <li>Custom <code>AndroidManifest.xml</code> with storage permissions</li>
 <li>No-action-bar theme</li>
@@ -3252,24 +3296,34 @@
 </code></pre></div>
 <p>The <code>.shared.tsx</code> file holds code that both variants use: types, hooks, utility functions, and pure rendering helpers that don't depend on layout.</p>
 <h3 id="css-for-mobile">CSS for Mobile<a class="headerlink" href="#css-for-mobile" title="Permanent link">&para;</a></h3>
-<p>The <code>src/global.css</code> file includes mobile-specific touch handling:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c">/* Safe area integration (injected by Android MainActivity / iOS WebKit) */</span>
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="p">:</span><span class="nd">root</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="w">  </span><span class="nv">--safe-area-top</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-top</span><span class="p">,</span><span class="w"> </span><span class="nf">env</span><span class="p">(</span><span class="n">safe</span><span class="nv">-area-inset-top</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">));</span>
-<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="w">  </span><span class="nv">--safe-area-bottom</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-bottom</span><span class="p">,</span><span class="w"> </span><span class="nf">env</span><span class="p">(</span><span class="n">safe</span><span class="nv">-area-inset-bottom</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">));</span>
-<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="p">}</span>
-<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>
-<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="c">/* Coarse pointer = touch device — prevent scroll conflicts with editor */</span>
-<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="p">@</span><span class="k">media</span><span class="w"> </span><span class="o">(</span><span class="nt">pointer</span><span class="o">:</span><span class="w"> </span><span class="nt">coarse</span><span class="o">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a><span class="w">  </span><span class="p">.</span><span class="nc">blocknote-editor-container</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="w">    </span><span class="n">touch-action</span><span class="p">:</span><span class="w"> </span><span class="kc">pan-y</span><span class="p">;</span>
-<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="w">  </span><span class="p">.</span><span class="nc">bn-editor</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a><span class="w">    </span><span class="n">touch-action</span><span class="p">:</span><span class="w"> </span><span class="kc">pan-y</span><span class="p">;</span>
-<a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a><span class="p">}</span>
+<p>The <code>src/global.css</code> file includes mobile-specific touch and safe-area handling. The safe-area values are injected by the Android <code>MainActivity.kt</code> and the <code>index.html</code> touch-device fallback, then mapped to the <code>--safe-area-*</code> custom properties used by components (see <a href="#safe-area-handling">Safe Area Handling</a>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="p">:</span><span class="nd">root</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="w">  </span><span class="nv">--safe-area-top</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-top</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">);</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="w">  </span><span class="nv">--safe-area-bottom</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-bottom</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">);</span>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="w">  </span><span class="nv">--safe-area-left</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-left</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">);</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="w">  </span><span class="nv">--safe-area-right</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-right</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">);</span>
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="p">}</span>
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="c">/* Touch devices: fall back to CSS env() for system bar insets */</span>
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a><span class="p">@</span><span class="k">media</span><span class="w"> </span><span class="o">(</span><span class="nt">pointer</span><span class="o">:</span><span class="w"> </span><span class="nt">coarse</span><span class="o">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="w">  </span><span class="p">:</span><span class="nd">root</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="w">    </span><span class="nv">--safe-area-top</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-top</span><span class="p">,</span><span class="w"> </span><span class="nf">env</span><span class="p">(</span><span class="n">safe</span><span class="nv">-area-inset-top</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">));</span>
+<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="w">    </span><span class="nv">--safe-area-bottom</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-bottom</span><span class="p">,</span><span class="w"> </span><span class="nf">env</span><span class="p">(</span><span class="n">safe</span><span class="nv">-area-inset-bottom</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">));</span>
+<a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a><span class="w">    </span><span class="nv">--safe-area-left</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-left</span><span class="p">,</span><span class="w"> </span><span class="nf">env</span><span class="p">(</span><span class="n">safe</span><span class="nv">-area-inset-left</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">));</span>
+<a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a><span class="w">    </span><span class="nv">--safe-area-right</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-right</span><span class="p">,</span><span class="w"> </span><span class="nf">env</span><span class="p">(</span><span class="n">safe</span><span class="nv">-area-inset-right</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">));</span>
+<a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a><span class="w">  </span><span class="p">.</span><span class="nc">safe-area-container</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-17-17" name="__codelineno-17-17" href="#__codelineno-17-17"></a><span class="w">    </span><span class="k">padding-top</span><span class="p">:</span><span class="w"> </span><span class="nf">max</span><span class="p">(</span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-top</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">),</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-fallback-top</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">));</span>
+<a id="__codelineno-17-18" name="__codelineno-17-18" href="#__codelineno-17-18"></a><span class="w">    </span><span class="k">padding-bottom</span><span class="p">:</span><span class="w"> </span><span class="nf">max</span><span class="p">(</span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-bottom</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">),</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-fallback-bottom</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">));</span>
+<a id="__codelineno-17-19" name="__codelineno-17-19" href="#__codelineno-17-19"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-17-20" name="__codelineno-17-20" href="#__codelineno-17-20"></a><span class="w">  </span><span class="p">.</span><span class="nc">safe-area-main</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-17-21" name="__codelineno-17-21" href="#__codelineno-17-21"></a><span class="w">    </span><span class="k">padding-top</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-top</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">);</span>
+<a id="__codelineno-17-22" name="__codelineno-17-22" href="#__codelineno-17-22"></a><span class="w">    </span><span class="kp">-webkit-</span><span class="n">overflow-scrolling</span><span class="p">:</span><span class="w"> </span><span class="n">touch</span><span class="p">;</span>
+<a id="__codelineno-17-23" name="__codelineno-17-23" href="#__codelineno-17-23"></a><span class="w">    </span><span class="n">touch-action</span><span class="p">:</span><span class="w"> </span><span class="kc">pan-y</span><span class="p">;</span>
+<a id="__codelineno-17-24" name="__codelineno-17-24" href="#__codelineno-17-24"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-17-25" name="__codelineno-17-25" href="#__codelineno-17-25"></a><span class="p">}</span>
 </code></pre></div>
-<p>Use the <code>.safe-area-container</code> class on your panel's root element to avoid notches and system bars:</p>
+<p>Use the <code>.safe-area-container</code> class on a <strong>desktop</strong> panel's root element to avoid notches and system bars. The mobile shell (<code>MobileLayout.tsx</code>) does not use this class — it offsets its absolutely-positioned elements inline (see <a href="#safe-area-handling">Safe Area Handling</a> for why):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kd">function</span><span class="w"> </span><span class="nx">MyPanel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="p">(</span>
 <a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">    </span><span class="o">&lt;</span><span class="nx">div</span><span class="w"> </span><span class="nx">className</span><span class="o">=</span><span class="s2">"safe-area-container"</span><span class="o">&gt;</span>
@@ -3383,27 +3437,20 @@
 <li>Sync state is rechecked</li>
 </ul>
 <h3 id="android-specific-lifecycle">Android-Specific Lifecycle<a class="headerlink" href="#android-specific-lifecycle" title="Permanent link">&para;</a></h3>
-<p>The <code>MainActivity.kt</code> in <code>src-tauri/android-patches/</code> handles Android-specific lifecycle needs:</p>
+<p>The <code>MainActivity.kt</code> in <code>src-tauri/android-patches/</code> handles Android-specific lifecycle needs. On startup it enables edge-to-edge, registers that runtime edge-to-edge listeners report the system-bar insets, and schedules safe-area injection retries (100/500/1500/5000 ms) to cover the Activity-start / WebView-init race:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kd">class</span><span class="w"> </span><span class="nc">MainActivity</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">TauriActivity</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">onCreate</span><span class="p">(</span><span class="n">savedInstanceState</span><span class="p">:</span><span class="w"> </span><span class="n">Bundle?</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="w">        </span><span class="n">enableEdgeToEdge</span><span class="p">()</span>
-<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="w">        </span><span class="n">WindowCompat</span><span class="p">.</span><span class="na">setDecorFitsSystemWindows</span><span class="p">(</span><span class="n">window</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="p">)</span>
-<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="w">        </span><span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">(</span><span class="n">savedInstanceState</span><span class="p">)</span>
-<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a><span class="w">        </span><span class="n">scheduleSafeAreaInjection</span><span class="p">()</span>
-<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a>
-<a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">scheduleSafeAreaInjection</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a><span class="w">        </span><span class="c1">// Injects safe area insets as CSS custom properties</span>
-<a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a><span class="w">        </span><span class="c1">// Retries at 100ms, 500ms, and 1500ms to handle race conditions</span>
-<a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-25-13" name="__codelineno-25-13" href="#__codelineno-25-13"></a>
-<a id="__codelineno-25-14" name="__codelineno-25-14" href="#__codelineno-25-14"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">injectSafeArea</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-25-15" name="__codelineno-25-15" href="#__codelineno-25-15"></a><span class="w">        </span><span class="c1">// Reads system bar insets and sets CSS variables:</span>
-<a id="__codelineno-25-16" name="__codelineno-25-16" href="#__codelineno-25-16"></a><span class="w">        </span><span class="c1">// --safe-area-inset-top, --safe-area-inset-bottom</span>
-<a id="__codelineno-25-17" name="__codelineno-25-17" href="#__codelineno-25-17"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-25-18" name="__codelineno-25-18" href="#__codelineno-25-18"></a><span class="p">}</span>
+<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="w">        </span><span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">(</span><span class="n">savedInstanceState</span><span class="p">)</span>
+<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="w">        </span><span class="n">ViewCompat</span><span class="p">.</span><span class="na">setOnApplyWindowInsetsListener</span><span class="p">(</span><span class="n">window</span><span class="p">.</span><span class="na">decorView</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">_</span><span class="p">,</span><span class="w"> </span><span class="n">insets</span><span class="w"> </span><span class="o">-&gt;</span>
+<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a><span class="w">            </span><span class="n">injectSafeArea</span><span class="p">(</span><span class="n">insets</span><span class="p">)</span>
+<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="w">            </span><span class="n">insets</span>
+<a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a><span class="w">        </span><span class="n">scheduleSafeAreaInjection</span><span class="p">()</span>
+<a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a><span class="p">}</span>
 </code></pre></div>
-<p>The safe area injection sets CSS custom properties on the webview document so the frontend can account for status bars, notches, and navigation bars.</p>
+<p>The safe area injection reads the system-bar + display-cutout insets and sets <code>--safe-area-inset-top</code> / <code>--safe-area-inset-bottom</code> (in CSS pixels) on the webview document so the frontend can account for status bars, notches, and navigation bars. See <a href="#safe-area-handling">Safe Area Handling</a> for the full implementation and consumption.</p>
 <h2 id="known-issues">Known Issues<a class="headerlink" href="#known-issues" title="Permanent link">&para;</a></h2>
 <h3 id="android_2">Android<a class="headerlink" href="#android_2" title="Permanent link">&para;</a></h3>
 <table>
@@ -3522,12 +3569,38 @@
 <a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>cargo<span class="w"> </span>tauri<span class="w"> </span>android<span class="w"> </span>dev<span class="w"> </span>--target<span class="w"> </span>x86_64
 </code></pre></div>
 <p>Emulators with x86_64 targets are significantly faster for Rust compilation because they avoid ARM cross-compilation. Use this for rapid iteration on the Rust backend.</p>
+<h3 id="verifying-safe-area-handling-android">Verifying Safe Area Handling (Android)<a class="headerlink" href="#verifying-safe-area-handling-android" title="Permanent link">&para;</a></h3>
+<p>The status-bar offset is not exercised by <code>npm run test</code> (which runs in a plain browser layout). To verify a safe-area change against the real Android WebView:</p>
+<ol>
+<li>Build and deploy a debug APK to an emulator booted with a status bar / gesture-nav (e.g. <code>Pixel_6_API_34</code>):</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>cargo<span class="w"> </span>tauri<span class="w"> </span>android<span class="w"> </span>dev<span class="w"> </span>--target<span class="w"> </span>x86_64
+</code></pre></div>
+<ol>
+<li>
+<p>Confirm the app draws edge-to-edge and the mobile top bar is <em>not</em> under the status bar. The easiest live check is a CDP probe over the adb-forwarded WebView debugging socket (a working example lives in <code>verification/cdp_probe.mjs</code> from the status-bar fix). It asserts that <code>getBoundingClientRect().top</code> of the top bar equals the injected <code>--safe-area-inset-top</code> and that the bottom nav fits within the viewport.</p>
+</li>
+<li>
+<p>The expected values on the reference emulator are:</p>
+</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="p">{</span>
+<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="w">  </span><span class="nt">"safeAreaTop"</span><span class="p">:</span><span class="w"> </span><span class="s2">"48.761906px"</span><span class="p">,</span>
+<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="w">  </span><span class="nt">"safeAreaBottom"</span><span class="p">:</span><span class="w"> </span><span class="s2">"24.0px"</span><span class="p">,</span>
+<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="w">  </span><span class="nt">"topBarTopPx"</span><span class="p">:</span><span class="w"> </span><span class="mf">48.761905670166016</span><span class="p">,</span>
+<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="w">  </span><span class="nt">"bottomNavFitsViewport"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>The exact pixel values vary by device/emulator; the invariant is that <code>topBarTop == safeAreaTop</code> (top bar offset by the status-bar inset, nothing drawn behind it) and <code>bottom == safeAreaBottom</code> (bottom nav sits above the gesture/navigation bar).</p>
+<ol>
+<li>Record a <code>screencap</code> and the probe result as review evidence, matching the pattern in <code>verification/</code> (see the <code>c5f3d7c</code> commit for the recorded evidence).</li>
+</ol>
 <h3 id="on-the-simulator-ios">On the Simulator (iOS)<a class="headerlink" href="#on-the-simulator-ios" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="c1"># Apple Silicon Macs (default)</span>
-<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>cargo<span class="w"> </span>tauri<span class="w"> </span>ios<span class="w"> </span>dev
-<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>
-<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="c1"># Intel Macs (specify x86_64 simulator)</span>
-<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>cargo<span class="w"> </span>tauri<span class="w"> </span>ios<span class="w"> </span>dev<span class="w"> </span>--target<span class="w"> </span>x86_64-apple-ios
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="c1"># Apple Silicon Macs (default)</span>
+<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>cargo<span class="w"> </span>tauri<span class="w"> </span>ios<span class="w"> </span>dev
+<a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>
+<a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="c1"># Intel Macs (specify x86_64 simulator)</span>
+<a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a>cargo<span class="w"> </span>tauri<span class="w"> </span>ios<span class="w"> </span>dev<span class="w"> </span>--target<span class="w"> </span>x86_64-apple-ios
 </code></pre></div>
 <h3 id="automated-testing">Automated Testing<a class="headerlink" href="#automated-testing" title="Permanent link">&para;</a></h3>
 <p>The CI pipeline builds Android on every pull request and push to <code>master</code> (a debug APK, uploaded as the <code>android-debug-apk</code> artifact for the smoke-test gate) and on every tagged release (<code>v*</code>, see <code>.github/workflows/ci.yml</code>). The <code>android</code> job:</p>
@@ -3585,16 +3658,16 @@ them.</p>
 <li>Android's scoped storage (API 30+) blocks raw filesystem writes to <code>/storage/emulated/0/</code></li>
 </ul>
 <p>The vault directory contains:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>/data/user/0/app.stratum/StratumVault/
-<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>├── .pkm/
-<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>│   ├── blocks.db           # SQLite block store
-<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>│   ├── config.toml         # App configuration
-<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>│   └── search.idx          # Tantivy search index
-<a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a>├── journals/
-<a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a>│   └── 2025-01-01.md       # Daily notes
-<a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a>├── pages/
-<a id="__codelineno-31-9" name="__codelineno-31-9" href="#__codelineno-31-9"></a>│   └── My Note.md          # User pages
-<a id="__codelineno-31-10" name="__codelineno-31-10" href="#__codelineno-31-10"></a>└── .git/                   # Git repository (via gix)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>/data/user/0/app.stratum/StratumVault/
+<a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>├── .pkm/
+<a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>│   ├── blocks.db           # SQLite block store
+<a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>│   ├── config.toml         # App configuration
+<a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>│   └── search.idx          # Tantivy search index
+<a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>├── journals/
+<a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a>│   └── 2025-01-01.md       # Daily notes
+<a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>├── pages/
+<a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a>│   └── My Note.md          # User pages
+<a id="__codelineno-33-10" name="__codelineno-33-10" href="#__codelineno-33-10"></a>└── .git/                   # Git repository (via gix)
 </code></pre></div>
 <h3 id="why-not-externalsd-storage">Why not external/SD storage?<a class="headerlink" href="#why-not-externalsd-storage" title="Permanent link">&para;</a></h3>
 <p>Android's scoped storage (API 30+, ~95% of active devices) prevents apps from writing to arbitrary external storage paths using <code>std::fs</code>. The Storage Access Framework (SAF) provides <code>content://</code> URIs, but:
@@ -3610,41 +3683,41 @@ them.</p>
 <hr />
 <h2 id="building-apks">Building APKs<a class="headerlink" href="#building-apks" title="Permanent link">&para;</a></h2>
 <h3 id="debug-apk-signed-for-testing">Debug APK (signed, for testing)<a class="headerlink" href="#debug-apk-signed-for-testing" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANDROID_HOME</span><span class="o">=</span><span class="s2">"</span><span class="nv">$HOME</span><span class="s2">/Android/Sdk"</span>
-<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANDROID_NDK_HOME</span><span class="o">=</span><span class="s2">"</span><span class="nv">$ANDROID_HOME</span><span class="s2">/ndk/27.1.12297006"</span>
-<a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="nb">export</span><span class="w"> </span><span class="nv">NDK</span><span class="o">=</span><span class="s2">"</span><span class="nv">$ANDROID_NDK_HOME</span><span class="s2">"</span>
-<a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin:</span><span class="nv">$PATH</span><span class="s2">"</span>
-<a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a>
-<a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="c1"># Set cross-compilation environment variables for all targets</span>
-<a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CC_aarch64_linux_android</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang"</span>
-<a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a><span class="nb">export</span><span class="w"> </span><span class="nv">AR_aarch64_linux_android</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"</span>
-<a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CC_x86_64_linux_android</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android21-clang"</span>
-<a id="__codelineno-32-10" name="__codelineno-32-10" href="#__codelineno-32-10"></a><span class="nb">export</span><span class="w"> </span><span class="nv">AR_x86_64_linux_android</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"</span>
-<a id="__codelineno-32-11" name="__codelineno-32-11" href="#__codelineno-32-11"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CC_armv7_linux_androideabi</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang"</span>
-<a id="__codelineno-32-12" name="__codelineno-32-12" href="#__codelineno-32-12"></a><span class="nb">export</span><span class="w"> </span><span class="nv">AR_armv7_linux_androideabi</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"</span>
-<a id="__codelineno-32-13" name="__codelineno-32-13" href="#__codelineno-32-13"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CC_i686_linux_android</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android21-clang"</span>
-<a id="__codelineno-32-14" name="__codelineno-32-14" href="#__codelineno-32-14"></a><span class="nb">export</span><span class="w"> </span><span class="nv">AR_i686_linux_android</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"</span>
-<a id="__codelineno-32-15" name="__codelineno-32-15" href="#__codelineno-32-15"></a><span class="nb">export</span><span class="w"> </span><span class="nv">JAVA_HOME</span><span class="o">=</span><span class="s2">"/usr/lib/jvm/java-21-openjdk"</span>
-<a id="__codelineno-32-16" name="__codelineno-32-16" href="#__codelineno-32-16"></a>
-<a id="__codelineno-32-17" name="__codelineno-32-17" href="#__codelineno-32-17"></a><span class="c1"># Copy frontend assets and Android patches</span>
-<a id="__codelineno-32-18" name="__codelineno-32-18" href="#__codelineno-32-18"></a>cp<span class="w"> </span>-r<span class="w"> </span>dist/.<span class="w"> </span>src-tauri/gen/android/app/src/main/assets/
-<a id="__codelineno-32-19" name="__codelineno-32-19" href="#__codelineno-32-19"></a>cp<span class="w"> </span>-r<span class="w"> </span>src-tauri/android-patches/app/src/main/*<span class="w"> </span>src-tauri/gen/android/app/src/main/
-<a id="__codelineno-32-20" name="__codelineno-32-20" href="#__codelineno-32-20"></a>
-<a id="__codelineno-32-21" name="__codelineno-32-21" href="#__codelineno-32-21"></a><span class="c1"># Build signed debug APK</span>
-<a id="__codelineno-32-22" name="__codelineno-32-22" href="#__codelineno-32-22"></a>npx<span class="w"> </span>tauri<span class="w"> </span>android<span class="w"> </span>build<span class="w"> </span>--debug<span class="w"> </span>--target<span class="w"> </span>aarch64<span class="w"> </span>--apk
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANDROID_HOME</span><span class="o">=</span><span class="s2">"</span><span class="nv">$HOME</span><span class="s2">/Android/Sdk"</span>
+<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANDROID_NDK_HOME</span><span class="o">=</span><span class="s2">"</span><span class="nv">$ANDROID_HOME</span><span class="s2">/ndk/27.1.12297006"</span>
+<a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="nb">export</span><span class="w"> </span><span class="nv">NDK</span><span class="o">=</span><span class="s2">"</span><span class="nv">$ANDROID_NDK_HOME</span><span class="s2">"</span>
+<a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin:</span><span class="nv">$PATH</span><span class="s2">"</span>
+<a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>
+<a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a><span class="c1"># Set cross-compilation environment variables for all targets</span>
+<a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CC_aarch64_linux_android</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang"</span>
+<a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a><span class="nb">export</span><span class="w"> </span><span class="nv">AR_aarch64_linux_android</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"</span>
+<a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CC_x86_64_linux_android</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android21-clang"</span>
+<a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a><span class="nb">export</span><span class="w"> </span><span class="nv">AR_x86_64_linux_android</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"</span>
+<a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CC_armv7_linux_androideabi</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang"</span>
+<a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a><span class="nb">export</span><span class="w"> </span><span class="nv">AR_armv7_linux_androideabi</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"</span>
+<a id="__codelineno-34-13" name="__codelineno-34-13" href="#__codelineno-34-13"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CC_i686_linux_android</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android21-clang"</span>
+<a id="__codelineno-34-14" name="__codelineno-34-14" href="#__codelineno-34-14"></a><span class="nb">export</span><span class="w"> </span><span class="nv">AR_i686_linux_android</span><span class="o">=</span><span class="s2">"</span><span class="nv">$NDK</span><span class="s2">/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"</span>
+<a id="__codelineno-34-15" name="__codelineno-34-15" href="#__codelineno-34-15"></a><span class="nb">export</span><span class="w"> </span><span class="nv">JAVA_HOME</span><span class="o">=</span><span class="s2">"/usr/lib/jvm/java-21-openjdk"</span>
+<a id="__codelineno-34-16" name="__codelineno-34-16" href="#__codelineno-34-16"></a>
+<a id="__codelineno-34-17" name="__codelineno-34-17" href="#__codelineno-34-17"></a><span class="c1"># Copy frontend assets and Android patches</span>
+<a id="__codelineno-34-18" name="__codelineno-34-18" href="#__codelineno-34-18"></a>cp<span class="w"> </span>-r<span class="w"> </span>dist/.<span class="w"> </span>src-tauri/gen/android/app/src/main/assets/
+<a id="__codelineno-34-19" name="__codelineno-34-19" href="#__codelineno-34-19"></a>cp<span class="w"> </span>-r<span class="w"> </span>src-tauri/android-patches/app/src/main/*<span class="w"> </span>src-tauri/gen/android/app/src/main/
+<a id="__codelineno-34-20" name="__codelineno-34-20" href="#__codelineno-34-20"></a>
+<a id="__codelineno-34-21" name="__codelineno-34-21" href="#__codelineno-34-21"></a><span class="c1"># Build signed debug APK</span>
+<a id="__codelineno-34-22" name="__codelineno-34-22" href="#__codelineno-34-22"></a>npx<span class="w"> </span>tauri<span class="w"> </span>android<span class="w"> </span>build<span class="w"> </span>--debug<span class="w"> </span>--target<span class="w"> </span>aarch64<span class="w"> </span>--apk
 </code></pre></div>
 <p>The debug APK is output at:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk
 </code></pre></div></p>
 <p><strong>Important</strong>: The debug APK uses <code>applicationIdSuffix = ".debug"</code> so it installs as <code>app.stratum.debug</code> alongside any release build. It is auto-signed with the debug keystore at <code>~/.android/debug.keystore</code>.</p>
 <h3 id="release-apk-signed-for-distribution">Release APK (signed, for distribution)<a class="headerlink" href="#release-apk-signed-for-distribution" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>npx<span class="w"> </span>tauri<span class="w"> </span>android<span class="w"> </span>build<span class="w"> </span>--target<span class="w"> </span>aarch64<span class="w"> </span>--apk
+<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>npx<span class="w"> </span>tauri<span class="w"> </span>android<span class="w"> </span>build<span class="w"> </span>--target<span class="w"> </span>aarch64<span class="w"> </span>--apk
 </code></pre></div>
 <p>Release APKs and AABs are signed at build time by Gradle using the release signing config in <code>src-tauri/android-patches/app/build.gradle.kts</code>, which reads the keystore credentials from the environment (set by CI from GitHub secrets). For local release builds, set these before building:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANDROID_KEYSTORE</span><span class="o">=</span>/path/to/release.keystore
-<a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANDROID_KEYSTORE_PASSWORD</span><span class="o">=</span>...
-<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANDROID_KEY_ALIAS</span><span class="o">=</span>...
-<a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANDROID_KEY_PASSWORD</span><span class="o">=</span>...
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANDROID_KEYSTORE</span><span class="o">=</span>/path/to/release.keystore
+<a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANDROID_KEYSTORE_PASSWORD</span><span class="o">=</span>...
+<a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANDROID_KEY_ALIAS</span><span class="o">=</span>...
+<a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ANDROID_KEY_PASSWORD</span><span class="o">=</span>...
 </code></pre></div>
 <p>If these are not set, the signing config falls back to the checked-in debug keystore (<code>src-tauri/android-patches/debug.keystore</code>) so local/CI builds still succeed.</p>
 <h3 id="apk-signing">APK Signing<a class="headerlink" href="#apk-signing" title="Permanent link">&para;</a></h3>
@@ -3656,34 +3729,89 @@ them.</p>
 </ul>
 <hr />
 <h2 id="safe-area-handling">Safe Area Handling<a class="headerlink" href="#safe-area-handling" title="Permanent link">&para;</a></h2>
-<p>Android's edge-to-edge display mode renders the WebView behind system bars (status bar, navigation bar). Stratum handles this with:</p>
-<h3 id="1-mainactivitykt-system-insets-injection">1. <code>MainActivity.kt</code> — System insets injection<a class="headerlink" href="#1-mainactivitykt-system-insets-injection" title="Permanent link">&para;</a></h3>
-<p>The patched <code>MainActivity.kt</code> at <code>src-tauri/android-patches/</code>:</p>
-<ul>
-<li>Calls <code>enableEdgeToEdge()</code> to draw behind system bars</li>
-<li>Registers an <code>OnApplyWindowInsetsListener</code> that captures system bar and display cutout insets</li>
-<li>Injects the inset values as CSS custom properties on the <code>&lt;html&gt;</code> element:</li>
-<li><code>--safe-area-inset-top</code></li>
-<li><code>--safe-area-inset-bottom</code></li>
-</ul>
-<h3 id="2-css-variables-srcglobalcss">2. CSS variables (<code>src/global.css</code>)<a class="headerlink" href="#2-css-variables-srcglobalcss" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="p">:</span><span class="nd">root</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="w">  </span><span class="nv">--safe-area-top</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-top</span><span class="p">,</span><span class="w"> </span><span class="nf">env</span><span class="p">(</span><span class="n">safe</span><span class="nv">-area-inset-top</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">));</span>
-<a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="w">  </span><span class="nv">--safe-area-bottom</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-bottom</span><span class="p">,</span><span class="w"> </span><span class="nf">env</span><span class="p">(</span><span class="n">safe</span><span class="nv">-area-inset-bottom</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">));</span>
-<a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a><span class="p">}</span>
-<a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>
-<a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a><span class="p">.</span><span class="nc">safe-area-container</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a><span class="w">  </span><span class="k">padding-top</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-top</span><span class="p">);</span>
-<a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a><span class="w">  </span><span class="k">padding-bottom</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-bottom</span><span class="p">);</span>
-<a id="__codelineno-36-9" name="__codelineno-36-9" href="#__codelineno-36-9"></a><span class="p">}</span>
+<p>Android's edge-to-edge display mode renders the WebView behind the system bars (status bar and gesture/navigation bar). Stratum handles the resulting screen insets entirely in the Android patch layer and the frontend. There is <strong>no</strong> edge-to-edge or safe-area switch in <code>tauri.conf.json</code>; edge-to-edge is enabled programmatically in the patched <code>MainActivity.kt</code>.</p>
+<h3 id="1-required-configuration-src-tauritauriconfjson">1. Required configuration (<code>src-tauri/tauri.conf.json</code>)<a class="headerlink" href="#1-required-configuration-src-tauritauriconfjson" title="Permanent link">&para;</a></h3>
+<p>The <code>bundle.android</code> section only pins the SDK floor and the debug applicationId suffix:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="nt">"android"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="w">  </span><span class="nt">"minSdkVersion"</span><span class="p">:</span><span class="w"> </span><span class="mi">26</span><span class="p">,</span>
+<a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a><span class="w">  </span><span class="nt">"debugApplicationIdSuffix"</span><span class="p">:</span><span class="w"> </span><span class="s2">".debug"</span>
+<a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="p">}</span>
 </code></pre></div>
-<h3 id="3-react-layout-classes">3. React layout classes<a class="headerlink" href="#3-react-layout-classes" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Desktop layout</strong> (<code>App.tsx</code>): Uses <code>className="safe-area-container"</code> on the root Box</li>
-<li><strong>Mobile layout</strong> (<code>MobileLayout.tsx</code>): Also uses <code>className="safe-area-container"</code> on the root Box</li>
+<li><code>minSdkVersion: 26</code> is required because the audio backend uses AAudio (API 26+). Do not lower it.</li>
+<li><code>debugApplicationIdSuffix: ".debug"</code> makes debug builds install as <code>app.stratum.debug</code>, alongside any release build.</li>
+<li>The release <code>applicationId</code> is derived from the <code>identifier</code> (<code>app.stratum</code>).</li>
+<li><strong>Edge-to-edge is not a config key.</strong> It is enabled in the patched <code>MainActivity.kt</code> (below). The Android patches under <code>src-tauri/android-patches/</code> are copied over the generated <code>src-tauri/gen/android</code> project before building — both locally and by CI.</li>
 </ul>
-<h3 id="4-viewport-fitcover-meta-tag">4. <code>viewport-fit=cover</code> meta tag<a class="headerlink" href="#4-viewport-fitcover-meta-tag" title="Permanent link">&para;</a></h3>
-<p>The <code>index.html</code> includes <code>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" /&gt;</code> which tells the WebView to extend into the safe areas.</p>
+<h3 id="2-mainactivitykt-system-inset-injection">2. <code>MainActivity.kt</code> — system-inset injection<a class="headerlink" href="#2-mainactivitykt-system-inset-injection" title="Permanent link">&para;</a></h3>
+<p>The patched activity at <code>src-tauri/android-patches/app/src/main/java/app/stratum/MainActivity.kt</code>:</p>
+<ul>
+<li>Calls <code>enableEdgeToEdge()</code> so the WebView draws behind the system bars.</li>
+<li>Registers an <code>OnApplyWindowInsetsListener</code> on the decor view that captures <code>systemBars() + displayCutout()</code> insets and injects them.</li>
+<li>Re-injects on a timer via <code>scheduleSafeAreaInjection()</code> (delays of 100, 500, 1500, and 5000 ms) to survive the race between Activity start and WebView initialization.</li>
+<li><code>injectSafeArea()</code> walks the view tree to find the <code>WebView</code>, converts the raw pixel insets to CSS pixels using the display density, and sets the CSS custom properties <code>--safe-area-inset-top</code> and <code>--safe-area-inset-bottom</code> on <code>document.documentElement</code> via <code>evaluateJavascript()</code>.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">onCreate</span><span class="p">(</span><span class="n">savedInstanceState</span><span class="p">:</span><span class="w"> </span><span class="n">Bundle?</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a><span class="w">    </span><span class="n">enableEdgeToEdge</span><span class="p">()</span>
+<a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a><span class="w">    </span><span class="k">super</span><span class="p">.</span><span class="na">onCreate</span><span class="p">(</span><span class="n">savedInstanceState</span><span class="p">)</span>
+<a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a><span class="w">    </span><span class="n">ViewCompat</span><span class="p">.</span><span class="na">setOnApplyWindowInsetsListener</span><span class="p">(</span><span class="n">window</span><span class="p">.</span><span class="na">decorView</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">_</span><span class="p">,</span><span class="w"> </span><span class="n">insets</span><span class="w"> </span><span class="o">-&gt;</span>
+<a id="__codelineno-39-5" name="__codelineno-39-5" href="#__codelineno-39-5"></a><span class="w">        </span><span class="n">injectSafeArea</span><span class="p">(</span><span class="n">insets</span><span class="p">)</span>
+<a id="__codelineno-39-6" name="__codelineno-39-6" href="#__codelineno-39-6"></a><span class="w">        </span><span class="n">insets</span>
+<a id="__codelineno-39-7" name="__codelineno-39-7" href="#__codelineno-39-7"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-39-8" name="__codelineno-39-8" href="#__codelineno-39-8"></a><span class="w">    </span><span class="n">scheduleSafeAreaInjection</span><span class="p">()</span>
+<a id="__codelineno-39-9" name="__codelineno-39-9" href="#__codelineno-39-9"></a><span class="p">}</span>
+<a id="__codelineno-39-10" name="__codelineno-39-10" href="#__codelineno-39-10"></a>
+<a id="__codelineno-39-11" name="__codelineno-39-11" href="#__codelineno-39-11"></a><span class="kd">private</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">injectSafeArea</span><span class="p">(</span><span class="n">insets</span><span class="p">:</span><span class="w"> </span><span class="n">WindowInsetsCompat</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-39-12" name="__codelineno-39-12" href="#__codelineno-39-12"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">wv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">findWebView</span><span class="p">()</span><span class="w"> </span><span class="o">?:</span><span class="w"> </span><span class="k">return</span>
+<a id="__codelineno-39-13" name="__codelineno-39-13" href="#__codelineno-39-13"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">sb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">insets</span><span class="p">.</span><span class="na">getInsets</span><span class="p">(</span>
+<a id="__codelineno-39-14" name="__codelineno-39-14" href="#__codelineno-39-14"></a><span class="w">        </span><span class="n">WindowInsetsCompat</span><span class="p">.</span><span class="na">Type</span><span class="p">.</span><span class="na">systemBars</span><span class="p">()</span><span class="w"> </span><span class="n">or</span>
+<a id="__codelineno-39-15" name="__codelineno-39-15" href="#__codelineno-39-15"></a><span class="w">        </span><span class="n">WindowInsetsCompat</span><span class="p">.</span><span class="na">Type</span><span class="p">.</span><span class="na">displayCutout</span><span class="p">()</span>
+<a id="__codelineno-39-16" name="__codelineno-39-16" href="#__codelineno-39-16"></a><span class="w">    </span><span class="p">)</span>
+<a id="__codelineno-39-17" name="__codelineno-39-17" href="#__codelineno-39-17"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">topDp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sb</span><span class="p">.</span><span class="na">top</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">resources</span><span class="p">.</span><span class="na">displayMetrics</span><span class="p">.</span><span class="na">density</span>
+<a id="__codelineno-39-18" name="__codelineno-39-18" href="#__codelineno-39-18"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">bottomDp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sb</span><span class="p">.</span><span class="na">bottom</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">resources</span><span class="p">.</span><span class="na">displayMetrics</span><span class="p">.</span><span class="na">density</span>
+<a id="__codelineno-39-19" name="__codelineno-39-19" href="#__codelineno-39-19"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">js</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"(function(){"</span><span class="w"> </span><span class="o">+</span>
+<a id="__codelineno-39-20" name="__codelineno-39-20" href="#__codelineno-39-20"></a><span class="w">        </span><span class="s">"var s=document.documentElement.style;"</span><span class="w"> </span><span class="o">+</span>
+<a id="__codelineno-39-21" name="__codelineno-39-21" href="#__codelineno-39-21"></a><span class="w">        </span><span class="s">"s.setProperty('--safe-area-inset-top','</span><span class="si">${</span><span class="n">topDp</span><span class="si">}</span><span class="s">px');"</span><span class="w"> </span><span class="o">+</span>
+<a id="__codelineno-39-22" name="__codelineno-39-22" href="#__codelineno-39-22"></a><span class="w">        </span><span class="s">"s.setProperty('--safe-area-inset-bottom','</span><span class="si">${</span><span class="n">bottomDp</span><span class="si">}</span><span class="s">px');"</span><span class="w"> </span><span class="o">+</span>
+<a id="__codelineno-39-23" name="__codelineno-39-23" href="#__codelineno-39-23"></a><span class="w">        </span><span class="s">"})()"</span>
+<a id="__codelineno-39-24" name="__codelineno-39-24" href="#__codelineno-39-24"></a><span class="w">    </span><span class="n">wv</span><span class="p">.</span><span class="na">evaluateJavascript</span><span class="p">(</span><span class="n">js</span><span class="p">,</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span>
+<a id="__codelineno-39-25" name="__codelineno-39-25" href="#__codelineno-39-25"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="3-indexhtml-viewport-meta-touch-device-fallback">3. <code>index.html</code> — viewport meta + touch-device fallback<a class="headerlink" href="#3-indexhtml-viewport-meta-touch-device-fallback" title="Permanent link">&para;</a></h3>
+<p>The viewport meta is set to <code>viewport-fit=cover</code> so the WebView extends into the safe areas:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="p">&lt;</span><span class="nt">meta</span> <span class="na">name</span><span class="o">=</span><span class="s">"viewport"</span> <span class="na">content</span><span class="o">=</span><span class="s">"width=device-width, initial-scale=1.0, viewport-fit=cover"</span> <span class="p">/&gt;</span>
+</code></pre></div>
+<p>An inline script in <code>index.html</code> provides a <strong>fallback</strong> for when the Kotlin injection has not run. It only acts on touch-capable clients (<code>ontouchstart</code> in window or <code>navigator.maxTouchPoints</code>), does nothing if <code>--safe-area-inset-*</code> is already set (so it never clobbers the Kotlin values), and otherwise derives the insets from <code>visualViewport</code> (capped to 60 CSS px, ignoring browser-chrome offsets on desktop).</p>
+<h3 id="4-css-variables-srcglobalcss">4. CSS variables (<code>src/global.css</code>)<a class="headerlink" href="#4-css-variables-srcglobalcss" title="Permanent link">&para;</a></h3>
+<p><code>src/global.css</code> maps the injected/derived insets to the <code>--safe-area-*</code> custom properties the components consume:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="p">:</span><span class="nd">root</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a><span class="w">  </span><span class="nv">--safe-area-top</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-top</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">);</span>
+<a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a><span class="w">  </span><span class="nv">--safe-area-bottom</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-bottom</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">);</span>
+<a id="__codelineno-41-4" name="__codelineno-41-4" href="#__codelineno-41-4"></a><span class="w">  </span><span class="nv">--safe-area-left</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-left</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">);</span>
+<a id="__codelineno-41-5" name="__codelineno-41-5" href="#__codelineno-41-5"></a><span class="w">  </span><span class="nv">--safe-area-right</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-right</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">);</span>
+<a id="__codelineno-41-6" name="__codelineno-41-6" href="#__codelineno-41-6"></a><span class="p">}</span>
+<a id="__codelineno-41-7" name="__codelineno-41-7" href="#__codelineno-41-7"></a>
+<a id="__codelineno-41-8" name="__codelineno-41-8" href="#__codelineno-41-8"></a><span class="c">/* Touch devices: fall back to env() when the injected variable is absent */</span>
+<a id="__codelineno-41-9" name="__codelineno-41-9" href="#__codelineno-41-9"></a><span class="p">@</span><span class="k">media</span><span class="w"> </span><span class="o">(</span><span class="nt">pointer</span><span class="o">:</span><span class="w"> </span><span class="nt">coarse</span><span class="o">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-41-10" name="__codelineno-41-10" href="#__codelineno-41-10"></a><span class="w">  </span><span class="p">:</span><span class="nd">root</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-41-11" name="__codelineno-41-11" href="#__codelineno-41-11"></a><span class="w">    </span><span class="nv">--safe-area-top</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-top</span><span class="p">,</span><span class="w"> </span><span class="nf">env</span><span class="p">(</span><span class="n">safe</span><span class="nv">-area-inset-top</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">));</span>
+<a id="__codelineno-41-12" name="__codelineno-41-12" href="#__codelineno-41-12"></a><span class="w">    </span><span class="nv">--safe-area-bottom</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-bottom</span><span class="p">,</span><span class="w"> </span><span class="nf">env</span><span class="p">(</span><span class="n">safe</span><span class="nv">-area-inset-bottom</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">));</span>
+<a id="__codelineno-41-13" name="__codelineno-41-13" href="#__codelineno-41-13"></a><span class="w">    </span><span class="nv">--safe-area-left</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-left</span><span class="p">,</span><span class="w"> </span><span class="nf">env</span><span class="p">(</span><span class="n">safe</span><span class="nv">-area-inset-left</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">));</span>
+<a id="__codelineno-41-14" name="__codelineno-41-14" href="#__codelineno-41-14"></a><span class="w">    </span><span class="nv">--safe-area-right</span><span class="p">:</span><span class="w"> </span><span class="nf">var</span><span class="p">(</span><span class="nv">--safe-area-inset-right</span><span class="p">,</span><span class="w"> </span><span class="nf">env</span><span class="p">(</span><span class="n">safe</span><span class="nv">-area-inset-right</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="kt">px</span><span class="p">));</span>
+<a id="__codelineno-41-15" name="__codelineno-41-15" href="#__codelineno-41-15"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-41-16" name="__codelineno-41-16" href="#__codelineno-41-16"></a><span class="p">}</span>
+</code></pre></div>
+<ul>
+<li>On touch devices, <code>.safe-area-container</code> uses <code>padding-top/bottom: max(var(--safe-area-top), var(--safe-area-fallback-top))</code> and <code>.safe-area-main</code> uses <code>padding-top: var(--safe-area-top, 0px)</code>. The <code>--safe-area-fallback-*</code> and <code>env()</code> fallback only apply inside the <code>pointer: coarse</code> media query — desktop components never see them.</li>
+<li><strong>Desktop (pointer: fine) deliberately avoids <code>env()</code></strong> because WebKitGTK / some compositors report non-zero safe-area values on desktop, which would break layouts.</li>
+</ul>
+<h3 id="5-component-offsets">5. Component offsets<a class="headerlink" href="#5-component-offsets" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Desktop</strong> (<code>App.tsx</code>): the root Box uses <code>className="safe-area-container"</code> and the <code>&lt;main&gt;</code> element uses <code>className="safe-area-main"</code>.</li>
+<li><strong>Mobile shell</strong> (<code>MobileLayout.tsx</code>): does <strong>not</strong> use the padding class. Its absolutely-positioned top bar, error banner, and content area are offset with inline styles using <code>var(--safe-area-top, 0px)</code> (via the <code>SAFE_AREA_TOP</code> constant), because a padding-based container class cannot offset absolutely-positioned children. On desktop this variable resolves to <code>0</code>, so it is a no-op outside devices with system bars.</li>
+<li><strong>Landing / empty state</strong> (<code>VaultPicker.tsx</code>): reserves the insets with <code>paddingTop: 'var(--safe-area-top, 0px)'</code> and <code>paddingBottom: 'var(--safe-area-bottom, 0px)'</code>.</li>
+<li><strong>Bottom navigation</strong> (<code>MobileNav.tsx</code>): the fixed bottom <code>Paper</code> sets <code>paddingBottom: 'var(--safe-area-bottom)'</code> so the gesture/navigation bar is not overlapped.</li>
+</ul>
 <hr />
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
 <table>
@@ -3712,13 +3840,13 @@ them.</p>
 </tr>
 <tr>
 <td>App content behind system bars</td>
-<td>Missing safe area padding</td>
-<td>Ensure <code>MobileLayout.tsx</code> has <code>className="safe-area-container"</code></td>
+<td>A component draws over the status bar / gesture bar on Android</td>
+<td>Components must consume the safe-area insets. The mobile shell, landing view, and bottom nav already offset via inline styles using <code>--safe-area-top</code> / <code>--safe-area-bottom</code> (see <a href="#safe-area-handling">Safe Area Handling</a>). New full-screen mobile components must do the same.</td>
 </tr>
 <tr>
 <td>WebView safe area values are 0px</td>
-<td>Chromium &lt; 140 has a bug with <code>env(safe-area-inset-*)</code></td>
-<td>Rely on Kotlin injection (works on all versions)</td>
+<td>The activity's inset injection or the <code>index.html</code> fallback did not run before the frame captured</td>
+<td>Rely on the Kotlin <code>MainActivity</code> injection (retries at 100/500/1500/5000 ms) plus the <code>index.html</code> touch-device <code>visualViewport</code> fallback. Desktop should report <code>0px</code> by design — the <code>env()</code> fallback is gated to <code>pointer: coarse</code> so compositor-reported inset values do not break desktop layouts.</td>
 </tr>
 </tbody>
 </table>
