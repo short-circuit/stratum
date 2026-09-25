@@ -43,6 +43,9 @@ ACTIVITY_PATH="${PKG}/${ACTIVITY}"
 : "${APK_DIR:=.}"
 : "${CI_HARVEST_DIR:=android-smoke-evidence}"
 
+# Directory of this script — used to locate the safe-area regression gate.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Where the test stands so far; used as the exit code.
 SMOKE_RESULT=0
 
@@ -226,6 +229,37 @@ while [ "${SECONDS}" -lt "${LOOP_DEADLINE}" ] \
 done
 
 harvest_logcat
+
+# ── 4.5 Safe-area regression probe (E5.E1) ────────────────────────────────
+# When the app reached a first rendered frame, additionally drive the CDP
+# safe-area probe: assert that the mobile top bar is NOT rendered under the
+# Android notification/status bar. This is a separate gate so the base
+# smoke result (boot/crash/install) is never masked, and it returns non-zero
+# on the pre-fix overlap so the CI job is red on regression.
+if [ "${SMOKE_RESULT}" -eq 0 ]; then
+    log "running safe-area overlap regression probe (E5.E1)"
+    EXPECT_VERDICT=pass \
+        CI_HARVEST_DIR="${CI_HARVEST_DIR}" \
+        PKG="${PKG}" ACTIVITY="${ACTIVITY}" \
+        bash "${SCRIPT_DIR}/safe-area-regression.sh"
+    SAFE_RC=$?
+    if [ "${SAFE_RC}" -eq 2 ]; then
+        # Debugger unreachable (no pid / forward failed / no /json target):
+        # not evidence of overlap. Log + keep the base smoke result so a
+        # devtools hiccup can never turn a healthy build red. In the real CI
+        # emulator a debug APK always exposes WebView devtools, so this is
+        # only a defensive path (e.g. the local no-device smoke harness).
+        log "WARN: safe-area probe skipped (WebView debugger unreachable, exit 2)"
+    elif [ "${SAFE_RC}" -ne 0 ]; then
+        log "ERROR: safe-area overlap regression probe FAILED (exit ${SAFE_RC})"
+        # Keep the base smoke pass evidence; mark the overall result failed.
+        SMOKE_RESULT="${SAFE_RC}"
+    else
+        log "safe-area overlap regression probe PASSED"
+    fi
+else
+    log "skipping safe-area regression probe (base smoke did not pass)"
+fi
 
 # ── 5. Failure forensics when we fell through ────────────────────────────
 if [ "${SMOKE_RESULT}" -ne 0 ]; then

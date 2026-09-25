@@ -1,0 +1,15 @@
+=== SAFE-AREA PROBE RESULT ===
+{
+  "mode": "device",
+  "safeAreaTop": 48.761906,
+  "safeAreaBottom": 24,
+  "topBarFound": true,
+  "topBarTop": 0,
+  "topBarHeight": 48,
+  "viewport": {
+    "h": 915,
+    "w": 412
+  }
+}
+SAFE_AREA_PROBE FAIL (device mode):
+  - top bar not under the status bar (topBarTop == safeAreaTop) (expected 48.76, got 0.00)

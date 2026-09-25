@@ -131,7 +131,7 @@ cp -r src-tauri/android-patches/app/src/main/* src-tauri/gen/android/app/src/mai
 
 These patches provide:
 
-- Custom `MainActivity.kt` with edge-to-edge display and safe area injection
+- Custom `MainActivity.kt` that enables edge-to-edge and injects system-bar insets as CSS custom properties (see [Safe Area Handling](#safe-area-handling))
 - Themed launcher icons
 - Custom `AndroidManifest.xml` with storage permissions
 - No-action-bar theme
@@ -284,27 +284,37 @@ The `.shared.tsx` file holds code that both variants use: types, hooks, utility 
 
 ### CSS for Mobile
 
-The `src/global.css` file includes mobile-specific touch handling:
+The `src/global.css` file includes mobile-specific touch and safe-area handling. The safe-area values are injected by the Android `MainActivity.kt` and the `index.html` touch-device fallback, then mapped to the `--safe-area-*` custom properties used by components (see [Safe Area Handling](#safe-area-handling)):
 
 ```css
-/* Safe area integration (injected by Android MainActivity / iOS WebKit) */
 :root {
-  --safe-area-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
-  --safe-area-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --safe-area-top: var(--safe-area-inset-top, 0px);
+  --safe-area-bottom: var(--safe-area-inset-bottom, 0px);
+  --safe-area-left: var(--safe-area-inset-left, 0px);
+  --safe-area-right: var(--safe-area-inset-right, 0px);
 }
 
-/* Coarse pointer = touch device — prevent scroll conflicts with editor */
+/* Touch devices: fall back to CSS env() for system bar insets */
 @media (pointer: coarse) {
-  .blocknote-editor-container {
-    touch-action: pan-y;
+  :root {
+    --safe-area-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+    --safe-area-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+    --safe-area-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+    --safe-area-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
   }
-  .bn-editor {
+  .safe-area-container {
+    padding-top: max(var(--safe-area-top, 0px), var(--safe-area-fallback-top, 0px));
+    padding-bottom: max(var(--safe-area-bottom, 0px), var(--safe-area-fallback-bottom, 0px));
+  }
+  .safe-area-main {
+    padding-top: var(--safe-area-top, 0px);
+    -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
   }
 }
 ```
 
-Use the `.safe-area-container` class on your panel's root element to avoid notches and system bars:
+Use the `.safe-area-container` class on a **desktop** panel's root element to avoid notches and system bars. The mobile shell (`MobileLayout.tsx`) does not use this class — it offsets its absolutely-positioned elements inline (see [Safe Area Handling](#safe-area-handling) for why):
 
 ```typescript
 function MyPanel() {
@@ -455,30 +465,23 @@ When the app returns to the foreground:
 
 ### Android-Specific Lifecycle
 
-The `MainActivity.kt` in `src-tauri/android-patches/` handles Android-specific lifecycle needs:
+The `MainActivity.kt` in `src-tauri/android-patches/` handles Android-specific lifecycle needs. On startup it enables edge-to-edge, registers that runtime edge-to-edge listeners report the system-bar insets, and schedules safe-area injection retries (100/500/1500/5000 ms) to cover the Activity-start / WebView-init race:
 
 ```kotlin
 class MainActivity : TauriActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
-        WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
+        ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { _, insets ->
+            injectSafeArea(insets)
+            insets
+        }
         scheduleSafeAreaInjection()
-    }
-
-    private fun scheduleSafeAreaInjection() {
-        // Injects safe area insets as CSS custom properties
-        // Retries at 100ms, 500ms, and 1500ms to handle race conditions
-    }
-
-    private fun injectSafeArea() {
-        // Reads system bar insets and sets CSS variables:
-        // --safe-area-inset-top, --safe-area-inset-bottom
     }
 }
 ```
 
-The safe area injection sets CSS custom properties on the webview document so the frontend can account for status bars, notches, and navigation bars.
+The safe area injection reads the system-bar + display-cutout insets and sets `--safe-area-inset-top` / `--safe-area-inset-bottom` (in CSS pixels) on the webview document so the frontend can account for status bars, notches, and navigation bars. See [Safe Area Handling](#safe-area-handling) for the full implementation and consumption.
 
 ## Known Issues
 
@@ -545,6 +548,33 @@ cargo tauri android dev --target x86_64
 ```
 
 Emulators with x86_64 targets are significantly faster for Rust compilation because they avoid ARM cross-compilation. Use this for rapid iteration on the Rust backend.
+
+### Verifying Safe Area Handling (Android)
+
+The status-bar offset is not exercised by `npm run test` (which runs in a plain browser layout). To verify a safe-area change against the real Android WebView:
+
+1. Build and deploy a debug APK to an emulator booted with a status bar / gesture-nav (e.g. `Pixel_6_API_34`):
+
+   ```bash
+   cargo tauri android dev --target x86_64
+   ```
+
+2. Confirm the app draws edge-to-edge and the mobile top bar is *not* under the status bar. The easiest live check is a CDP probe over the adb-forwarded WebView debugging socket (a working example lives in `verification/cdp_probe.mjs` from the status-bar fix). It asserts that `getBoundingClientRect().top` of the top bar equals the injected `--safe-area-inset-top` and that the bottom nav fits within the viewport.
+
+3. The expected values on the reference emulator are:
+
+   ```json
+   {
+     "safeAreaTop": "48.761906px",
+     "safeAreaBottom": "24.0px",
+     "topBarTopPx": 48.761905670166016,
+     "bottomNavFitsViewport": true
+   }
+   ```
+
+   The exact pixel values vary by device/emulator; the invariant is that `topBarTop == safeAreaTop` (top bar offset by the status-bar inset, nothing drawn behind it) and `bottom == safeAreaBottom` (bottom nav sits above the gesture/navigation bar).
+
+4. Record a `screencap` and the probe result as review evidence, matching the pattern in `verification/` (see the `c5f3d7c` commit for the recorded evidence).
 
 ### On the Simulator (iOS)
 
@@ -714,40 +744,103 @@ Release signing happens inside the Gradle build (see `signingConfigs.release` in
 
 ## Safe Area Handling
 
-Android's edge-to-edge display mode renders the WebView behind system bars (status bar, navigation bar). Stratum handles this with:
+Android's edge-to-edge display mode renders the WebView behind the system bars (status bar and gesture/navigation bar). Stratum handles the resulting screen insets entirely in the Android patch layer and the frontend. There is **no** edge-to-edge or safe-area switch in `tauri.conf.json`; edge-to-edge is enabled programmatically in the patched `MainActivity.kt`.
 
-### 1. `MainActivity.kt` — System insets injection
+### 1. Required configuration (`src-tauri/tauri.conf.json`)
 
-The patched `MainActivity.kt` at `src-tauri/android-patches/`:
+The `bundle.android` section only pins the SDK floor and the debug applicationId suffix:
 
-- Calls `enableEdgeToEdge()` to draw behind system bars
-- Registers an `OnApplyWindowInsetsListener` that captures system bar and display cutout insets
-- Injects the inset values as CSS custom properties on the `<html>` element:
-  - `--safe-area-inset-top`
-  - `--safe-area-inset-bottom`
-
-### 2. CSS variables (`src/global.css`)
-
-```css
-:root {
-  --safe-area-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
-  --safe-area-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
-}
-
-.safe-area-container {
-  padding-top: var(--safe-area-top);
-  padding-bottom: var(--safe-area-bottom);
+```json
+"android": {
+  "minSdkVersion": 26,
+  "debugApplicationIdSuffix": ".debug"
 }
 ```
 
-### 3. React layout classes
+- `minSdkVersion: 26` is required because the audio backend uses AAudio (API 26+). Do not lower it.
+- `debugApplicationIdSuffix: ".debug"` makes debug builds install as `app.stratum.debug`, alongside any release build.
+- The release `applicationId` is derived from the `identifier` (`app.stratum`).
+- **Edge-to-edge is not a config key.** It is enabled in the patched `MainActivity.kt` (below). The Android patches under `src-tauri/android-patches/` are copied over the generated `src-tauri/gen/android` project before building — both locally and by CI.
 
-- **Desktop layout** (`App.tsx`): Uses `className="safe-area-container"` on the root Box
-- **Mobile layout** (`MobileLayout.tsx`): Also uses `className="safe-area-container"` on the root Box
+### 2. `MainActivity.kt` — system-inset injection
 
-### 4. `viewport-fit=cover` meta tag
+The patched activity at `src-tauri/android-patches/app/src/main/java/app/stratum/MainActivity.kt`:
 
-The `index.html` includes `<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />` which tells the WebView to extend into the safe areas.
+- Calls `enableEdgeToEdge()` so the WebView draws behind the system bars.
+- Registers an `OnApplyWindowInsetsListener` on the decor view that captures `systemBars() + displayCutout()` insets and injects them.
+- Re-injects on a timer via `scheduleSafeAreaInjection()` (delays of 100, 500, 1500, and 5000 ms) to survive the race between Activity start and WebView initialization.
+- `injectSafeArea()` walks the view tree to find the `WebView`, converts the raw pixel insets to CSS pixels using the display density, and sets the CSS custom properties `--safe-area-inset-top` and `--safe-area-inset-bottom` on `document.documentElement` via `evaluateJavascript()`.
+
+```kotlin
+override fun onCreate(savedInstanceState: Bundle?) {
+    enableEdgeToEdge()
+    super.onCreate(savedInstanceState)
+    ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { _, insets ->
+        injectSafeArea(insets)
+        insets
+    }
+    scheduleSafeAreaInjection()
+}
+
+private fun injectSafeArea(insets: WindowInsetsCompat) {
+    val wv = findWebView() ?: return
+    val sb = insets.getInsets(
+        WindowInsetsCompat.Type.systemBars() or
+        WindowInsetsCompat.Type.displayCutout()
+    )
+    val topDp = sb.top / resources.displayMetrics.density
+    val bottomDp = sb.bottom / resources.displayMetrics.density
+    val js = "(function(){" +
+        "var s=document.documentElement.style;" +
+        "s.setProperty('--safe-area-inset-top','${topDp}px');" +
+        "s.setProperty('--safe-area-inset-bottom','${bottomDp}px');" +
+        "})()"
+    wv.evaluateJavascript(js, null)
+}
+```
+
+### 3. `index.html` — viewport meta + touch-device fallback
+
+The viewport meta is set to `viewport-fit=cover` so the WebView extends into the safe areas:
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+```
+
+An inline script in `index.html` provides a **fallback** for when the Kotlin injection has not run. It only acts on touch-capable clients (`ontouchstart` in window or `navigator.maxTouchPoints`), does nothing if `--safe-area-inset-*` is already set (so it never clobbers the Kotlin values), and otherwise derives the insets from `visualViewport` (capped to 60 CSS px, ignoring browser-chrome offsets on desktop).
+
+### 4. CSS variables (`src/global.css`)
+
+`src/global.css` maps the injected/derived insets to the `--safe-area-*` custom properties the components consume:
+
+```css
+:root {
+  --safe-area-top: var(--safe-area-inset-top, 0px);
+  --safe-area-bottom: var(--safe-area-inset-bottom, 0px);
+  --safe-area-left: var(--safe-area-inset-left, 0px);
+  --safe-area-right: var(--safe-area-inset-right, 0px);
+}
+
+/* Touch devices: fall back to env() when the injected variable is absent */
+@media (pointer: coarse) {
+  :root {
+    --safe-area-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+    --safe-area-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+    --safe-area-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+    --safe-area-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
+  }
+}
+```
+
+- On touch devices, `.safe-area-container` uses `padding-top/bottom: max(var(--safe-area-top), var(--safe-area-fallback-top))` and `.safe-area-main` uses `padding-top: var(--safe-area-top, 0px)`. The `--safe-area-fallback-*` and `env()` fallback only apply inside the `pointer: coarse` media query — desktop components never see them.
+- **Desktop (pointer: fine) deliberately avoids `env()`** because WebKitGTK / some compositors report non-zero safe-area values on desktop, which would break layouts.
+
+### 5. Component offsets
+
+- **Desktop** (`App.tsx`): the root Box uses `className="safe-area-container"` and the `<main>` element uses `className="safe-area-main"`.
+- **Mobile shell** (`MobileLayout.tsx`): does **not** use the padding class. Its absolutely-positioned top bar, error banner, and content area are offset with inline styles using `var(--safe-area-top, 0px)` (via the `SAFE_AREA_TOP` constant), because a padding-based container class cannot offset absolutely-positioned children. On desktop this variable resolves to `0`, so it is a no-op outside devices with system bars.
+- **Landing / empty state** (`VaultPicker.tsx`): reserves the insets with `paddingTop: 'var(--safe-area-top, 0px)'` and `paddingBottom: 'var(--safe-area-bottom, 0px)'`.
+- **Bottom navigation** (`MobileNav.tsx`): the fixed bottom `Paper` sets `paddingBottom: 'var(--safe-area-bottom)'` so the gesture/navigation bar is not overlapped.
 
 ---
 
@@ -758,5 +851,5 @@ The `index.html` includes `<meta name="viewport" content="width=device-width, in
 | `Operation not permitted` writing to vault | Android scoped storage — vault must be in private data dir | Vault auto-creates in `/data/user/0/app.stratum/`. Do NOT use folder picker for vault location. |
 | `package invalid` on APK install | APK is unsigned or uses wrong signature scheme | Build with `--debug` flag, or sign with `apksigner --v2-signing-enabled true` |
 | `INSTALL_FAILED_INVALID_APK` | Architecture mismatch | Build with correct `--target` for your device (`aarch64` for most phones) |
-| App content behind system bars | Missing safe area padding | Ensure `MobileLayout.tsx` has `className="safe-area-container"` |
-| WebView safe area values are 0px | Chromium < 140 has a bug with `env(safe-area-inset-*)` | Rely on Kotlin injection (works on all versions) |
+| App content behind system bars | A component draws over the status bar / gesture bar on Android | Components must consume the safe-area insets. The mobile shell, landing view, and bottom nav already offset via inline styles using `--safe-area-top` / `--safe-area-bottom` (see [Safe Area Handling](#safe-area-handling)). New full-screen mobile components must do the same. |
+| WebView safe area values are 0px | The activity's inset injection or the `index.html` fallback did not run before the frame captured | Rely on the Kotlin `MainActivity` injection (retries at 100/500/1500/5000 ms) plus the `index.html` touch-device `visualViewport` fallback. Desktop should report `0px` by design — the `env()` fallback is gated to `pointer: coarse` so compositor-reported inset values do not break desktop layouts. |
