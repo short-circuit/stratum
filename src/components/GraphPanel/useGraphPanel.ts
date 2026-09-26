@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '../../lib/commands';
 import type { GraphSettings, GraphDataDto, GraphNodeDto, ComponentDto, OrphanDto } from '../../lib/types';
+import { detectGraph3dSupport, type Graph3dSupport } from '../../lib/graph3d';
 import { DEFAULT_SETTINGS, type GraphNode } from './GraphCanvas';
 import { effectiveNodeCap, capNodesByDegree, edgesWithin } from './graphFilter';
 
@@ -35,6 +36,12 @@ export interface UseGraphPanelReturn {
     graphSettings: GraphSettings;
     saveStatus: 'saved' | 'unsaved';
     graphRef: React.MutableRefObject<any>;
+    /**
+     * WebGL / device capability for the 3D graph. `ok` → 3D is viable when the
+     * user opts in (or on desktop always). Other reasons → the mobile variant
+     * falls back to 2D with a user-visible explanation.
+     */
+    graph3dSupport: Graph3dSupport;
   };
   setViewMode: (mode: 'full' | 'component' | 'orphans') => void;
   setSelectedComponent: (index: number) => void;
@@ -99,6 +106,10 @@ export function useGraphPanel(): UseGraphPanelReturn {
   const [search, setSearch] = useState('');
   const [graphSettings, setGraphSettings] = useState<GraphSettings>(DEFAULT_SETTINGS);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'unsaved'>('saved');
+  // WebGL / device capability for the 3D graph. Computed once on mount and
+  // never changes during the panel's lifetime, so it can be read synchronously
+  // by both the desktop and mobile variants to decide what to render / show.
+  const [graph3dSupport] = useState<Graph3dSupport>(detectGraph3dSupport);
 
   // ---- progressive rendering state ----
 
@@ -410,6 +421,7 @@ export function useGraphPanel(): UseGraphPanelReturn {
       graphSettings,
       saveStatus,
       graphRef,
+      graph3dSupport,
     },
     setViewMode,
     setSelectedComponent,

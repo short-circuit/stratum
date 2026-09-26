@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS = {
   show_connected: true, show_orphaned: true, show_tags: true,
   charge_strength: -30, link_distance: 50, alpha_decay: 0.15,
   velocity_decay: 0.4, link_curvature: 0.15, node_cap: 0,
+  use_3d: false as boolean,
 };
 
 interface Props {
