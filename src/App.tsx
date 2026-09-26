@@ -8,6 +8,7 @@ import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import { useStore } from './stores/appStore';
+import { useRecentsStore } from './stores/recentsStore';
 import { useSyncModalStore } from './stores/syncModalStore';
 import { createMuiTheme } from './lib/muiTheme';
 import Sidebar from './components/Sidebar';
@@ -30,6 +31,7 @@ import ConflictModal from './components/ui/ConflictModal';
 import PassphraseModal from './components/ui/PassphraseModal';
 import { getCurrentWindow, type CloseRequestedEvent } from '@tauri-apps/api/window';
 import { getLatestLibraryJson } from './lib/libraryStore';
+import { subscribePagesChanged } from './lib/recentsEvents';
 import * as api from './lib/commands';
 
 // Register window close handler at app level so it survives route changes
@@ -103,8 +105,35 @@ function AppContent() {
   useEffect(() => {
     if (vault) {
       loadPages();
+      // Seed the recents store from the canonical page list on initial vault
+      // load so the sidebar "Recent" list renders immediately (the store
+      // normally populates through the debounced refresh on events).
+      useRecentsStore.getState().refresh();
     }
   }, [vault, loadPages]);
+
+  // Subscribe to backend "pages changed" events (external file-watcher
+  // changes) and route them into the recents store's debounced refresh. The
+  // store coalesces bursts, so a sync/git pull unleashing many watcher events
+  // collapses into a single reload without churn.
+  useEffect(() => {
+    if (!vault) return;
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    subscribePagesChanged(() => {
+      useRecentsStore.getState().refresh();
+    }).then((fn) => {
+      if (cancelled) {
+        fn();
+      } else {
+        unlisten = fn;
+      }
+    });
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [vault]);
 
   if (loading && !vault) {
     return (
