@@ -58,6 +58,11 @@ pub struct GraphSettingsDto {
     pub alpha_decay: f64,
     pub velocity_decay: f64,
     pub link_curvature: f64,
+    /// Opt-in 3D rendering (mobile). Desktop always renders 3D; this flag is
+    /// only consumed by the mobile variant (see src/lib/graph3d.ts for the
+    /// WebGL-capability fallback).
+    #[serde(default)]
+    pub use_3d: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -194,6 +199,7 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             alpha_decay: config.graph.alpha_decay,
             velocity_decay: config.graph.velocity_decay,
             link_curvature: config.graph.link_curvature,
+            use_3d: config.graph.use_3d,
         },
         sync: SyncSettingsDto {
             mode: match config.sync.mode {
@@ -316,6 +322,7 @@ pub async fn save_settings(
             alpha_decay: settings.graph.alpha_decay,
             velocity_decay: settings.graph.velocity_decay,
             link_curvature: settings.graph.link_curvature,
+            use_3d: settings.graph.use_3d,
         },
         sync: pkm_core::SyncConfig {
             mode: sync_mode,
@@ -413,6 +420,7 @@ pub async fn save_graph_settings(
         alpha_decay: graph.alpha_decay,
         velocity_decay: graph.velocity_decay,
         link_curvature: graph.link_curvature,
+        use_3d: graph.use_3d,
     };
 
     config.save(&config_path).map_err(|e| e.to_string())?;

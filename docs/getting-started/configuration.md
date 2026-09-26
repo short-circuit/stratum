@@ -96,6 +96,9 @@ link_distance = 100
 alpha_decay = 0.02
 # Force-directed layout: velocity decay rate
 velocity_decay = 0.4
+# Render the graph in 3D on mobile (opt-in; desktop always renders 3D regardless
+# of this flag). On constrained devices Stratum falls back to 2D automatically.
+use_3d = false
 ```
 
 ## Settings Panel Reference

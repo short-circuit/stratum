@@ -455,6 +455,7 @@ fn graph_settings_persist_through_config_toml_round_trip() {
         alpha_decay: 0.11,
         velocity_decay: 0.29,
         link_curvature: 0.42,
+        use_3d: true,
     };
     invoke(&wv, "save_graph_settings", json!({ "graph": custom }))
         .expect("save_graph_settings succeeds");
@@ -469,6 +470,7 @@ fn graph_settings_persist_through_config_toml_round_trip() {
     assert_eq!(after["graph"]["alpha_decay"], json!(0.11));
     assert_eq!(after["graph"]["velocity_decay"], json!(0.29));
     assert_eq!(after["graph"]["link_curvature"], json!(0.42));
+    assert_eq!(after["graph"]["use_3d"], json!(true));
 
     // The values must be on disk in the vault's config.toml (the persistence
     // contract that survives an app restart).

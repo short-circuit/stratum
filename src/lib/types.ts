@@ -144,6 +144,13 @@ export interface GraphSettings {
   link_curvature: number;
   /** Maximum nodes to render before capping. 0 = unlimited. */
   node_cap: number;
+  /**
+   * Opt-in 3D rendering. Desktop always renders 3D regardless of this flag;
+   * on mobile this switches the graph from the 2D force layout to the 3D one.
+   * The mobile variant additionally falls back to 2D automatically when the
+   * device cannot render WebGL (see src/lib/graph3d.ts).
+   */
+  use_3d: boolean;
 }
 
 // --- Connection suggestions ---
