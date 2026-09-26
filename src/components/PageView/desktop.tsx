@@ -29,7 +29,7 @@ export default function PageViewDesktop() {
       await api.normalizeFile(currentPage.path);
     } catch (e) {
       console.error('Normalize failed:', e);
-      useStore.setState({ error: String(e) });
+      useStore.getState().showError(String(e));
     }
   }, [currentPage]);
 

@@ -256,7 +256,7 @@ The `ui/` directory holds reusable, presentation-only components. They have no b
 |-----------|-------|---------|
 | `LoadingOverlay` | `message?`, `overlay?` | Centered spinner, absolute overlay or inline |
 | `AILoadingOverlay` | `loading: boolean`, `message?` | Fullscreen portal overlay for AI operations |
-| `ErrorAlert` | `message`, `onDismiss?` | Dismissable error Alert |
+| `ErrorAlert` | `message`, `onClose?` | Dismissable error Alert |
 | `EmptyState` | `icon?`, `message`, `description?`, `actionLabel?`, `onAction?` | Centered empty state with optional CTA |
 | `PageHeader` | `title`, `actions?`, `onBack?` | Consistent header bar |
 | `ConfirmDialog` | `open`, `title`, `message`, `onConfirm`, `onCancel` | Confirmation dialog |
