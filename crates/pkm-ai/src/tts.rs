@@ -40,12 +40,20 @@ const BASE_BACKOFF: Duration = Duration::from_millis(250);
 const MAX_BACKOFF: Duration = Duration::from_secs(4);
 
 /// Resolve the base endpoint for OpenAI-compatible audio routes.
+///
+/// Uses [`AiConfig::effective_endpoint`] so per-provider defaults resolve
+/// the same way as the chat provider (single source of truth). Ollama
+/// appends `/v1` for its OpenAI-compatible surface.
 fn resolve_endpoint(ai: &AiConfig) -> String {
-    let base = ai.endpoint.as_deref().unwrap_or("").trim_end_matches('/');
-    if ai.provider == pkm_core::AiProvider::Ollama {
-        format!("{base}/v1")
+    if let Some(base) = ai.effective_endpoint() {
+        let base = base.trim_end_matches('/');
+        if ai.provider == pkm_core::AiProvider::Ollama {
+            format!("{base}/v1")
+        } else {
+            base.to_string()
+        }
     } else {
-        base.to_string()
+        String::new()
     }
 }
 
@@ -400,12 +408,14 @@ mod tests {
     }
 
     #[test]
-    fn test_resolved_config_missing_endpoint_is_error() {
+    fn test_resolved_config_resolves_default_endpoint_when_unset() {
+        // Unset endpoint must not be corrupted to a different provider's
+        // default (FM-1): CustomOpenAI resolves to its documented default.
         let mut ai = ai_config("http://localhost:18080/v1");
         ai.endpoint = None;
-        let err = TtsConfigResolved::from_config(&ai, &tts_config())
-            .expect_err("should fail without endpoint");
-        assert!(matches!(err, PkmError::Ai(_)));
+        let cfg = TtsConfigResolved::from_config(&ai, &tts_config())
+            .expect("should resolve per-provider default");
+        assert_eq!(cfg.endpoint, "http://localhost:8080/v1");
     }
 
     #[test]

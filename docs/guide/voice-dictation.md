@@ -100,6 +100,13 @@ use_llm_gateway_and_auth = false   # optional; reuse the AI endpoint+key for STT
     recognition and Test Connection then use the AI endpoint and API key.
     See [AI Features → Reusing the LLM gateway and auth](ai-features.md#reusing-the-llm-gateway-and-auth-stt-rag-tts).
 
+::: tip Keep the STT key out of the vault
+Set the `STRATUM_STT_API_KEY` environment variable instead of writing an
+`api_key` into `.pkm/config.toml`. A configured env var takes precedence;
+an empty or whitespace-only env var is ignored and the config value (if any)
+is used instead.
+:::
+
 ## Setting up a diarization model (LocalAI example)
 
 Any endpoint that answers `POST /v1/audio/diarization` works. On LocalAI the
