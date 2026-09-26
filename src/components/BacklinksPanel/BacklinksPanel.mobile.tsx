@@ -18,6 +18,7 @@ import { useLongPress } from '../../lib/hooks/useLongPress';
 import { useBacklinksData, usePreview } from './BacklinksPanel.shared';
 import type { BacklinksPanelProps } from './BacklinksPanel.shared';
 import type { BacklinkItem } from '../../lib/types';
+import BacklinkSnippetBody from '../BacklinkSnippetBody';
 import { useBacklinkNavigation } from '../../lib/backlinkNavigation';
 
 const BacklinkRow = memo(function BacklinkRow({
@@ -135,28 +136,42 @@ const BacklinksPanelMobile = memo(function BacklinksPanelMobile({ pagePath }: Ba
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(preview)} onClose={dismissPreview} fullWidth maxWidth="xs">
-        {preview?.loading ? (
-          <DialogContent sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress size={14} />
-          </DialogContent>
-        ) : (
-          <>
-            <DialogTitle sx={{ pb: 0.5 }}>
-              <Typography
-                variant="subtitle2"
-                color="primary"
-                sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
-                onClick={() => { navigate(`/page/${encodeURIComponent(preview!.pagePath)}`); dismissPreview(); setOpen(false); }}
-              >
-                {preview?.pageTitle || preview?.pagePath}
-              </Typography>
-            </DialogTitle>
-            <DialogContent>
-              <Typography variant="body2" color="text.secondary">{preview?.content}</Typography>
-            </DialogContent>
-          </>
-        )}
+      <Dialog
+        open={Boolean(preview)}
+        onClose={dismissPreview}
+        fullWidth
+        maxWidth="xs"
+        slotProps={{
+          paper: {
+            role: 'dialog',
+            'aria-label': `Snippet from: ${preview?.noteTitle || preview?.noteId || 'note'}`,
+            'aria-busy': Boolean(preview?.loading),
+          },
+        }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 0 }}>
+          <Typography variant="subtitle2">Backlinked snippet</Typography>
+          <IconButton onClick={dismissPreview} size="small" aria-label="Close snippet">
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {preview && (
+            <BacklinkSnippetBody
+              noteTitle={preview.noteTitle}
+              noteId={preview.noteId}
+              context={preview.context}
+              anchorContent={preview.anchorContent}
+              loading={preview.loading}
+              error={preview.error}
+              onNavigate={() => {
+                dismissPreview();
+                setOpen(false);
+                if (preview.noteId) navigate(`/page/${encodeURIComponent(preview.noteId)}`);
+              }}
+            />
+          )}
+        </DialogContent>
       </Dialog>
     </>
   );

@@ -17,7 +17,7 @@ tauri-build = { version = "2", features = [] }
 ignored = ["tauri-build"]
 
 [dependencies]
-tauri = { version = "2", features = ["custom-protocol"] }
+tauri = { version = "2", features = ["custom-protocol", "test"] }
 tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
 serde.workspace = true
@@ -62,3 +62,4 @@ wat.workspace = true
 wiremock = "0.6"
 tokio.workspace = true
 serde_json.workspace = true
+pretty_assertions = { workspace = true }

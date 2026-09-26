@@ -6352,7 +6352,6 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
- "wat",
  "wiremock",
 ]
 
