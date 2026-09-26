@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { VaultInfo, PageDto } from '../lib/types';
 import * as api from '../lib/commands';
+import { useRecentsStore } from './recentsStore';
 
 export interface ThemeConfig {
   primaryHex: string;
@@ -144,6 +145,10 @@ export const useStore = create<AppState>((set, get) => ({
       set({ currentPage: page });
       // Successful navigation clears a stale transient error.
       get().clearTransientError();
+      // Opening a page can create it (dead-link create → open) or reorder the
+      // modified_at list; refresh recents so the sidebar stays current. The
+      // store's debounce collapses bursts.
+      useRecentsStore.getState().refresh();
     } catch (e) {
       get().showError(String(e));
     } finally {
@@ -156,6 +161,7 @@ export const useStore = create<AppState>((set, get) => ({
       await api.createPage(path, title);
       await get().loadPages();
       get().clearTransientError();
+      useRecentsStore.getState().refresh();
     } catch (e) {
       get().showError(String(e));
     }
@@ -167,6 +173,7 @@ export const useStore = create<AppState>((set, get) => ({
       set({ currentPage: null });
       await get().loadPages();
       get().clearTransientError();
+      useRecentsStore.getState().refresh();
     } catch (e) {
       get().showError(String(e));
     }

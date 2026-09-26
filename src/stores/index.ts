@@ -17,3 +17,6 @@ export type {
   AiConfig,
   ResearchSettings,
 } from './settingsStore';
+
+export { useRecentsStore } from './recentsStore';
+export type { RecentsState } from './recentsStore';
