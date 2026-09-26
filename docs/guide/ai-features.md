@@ -29,6 +29,18 @@ You need a running LLM provider. Options:
 7. Toggle **RAG** on for retrieval-augmented generation
 8. Click **Save**
 
+::: tip Keep API keys out of the vault
+For OpenAI/Anthropic providers you can set `OPENAI_API_KEY` or
+`ANTHROPIC_API_KEY` as an environment variable instead of storing the key in
+`.pkm/config.toml`. The variable takes precedence when set to a non-empty
+value; an empty or whitespace-only value is ignored.
+
+Endpoints left blank are resolved to that provider's documented default
+(Ollama → `http://localhost:11434`, OpenAI → `https://api.openai.com/v1`,
+Anthropic → `https://api.anthropic.com`), so a fresh install works even when
+no endpoint was explicitly entered.
+:::
+
 <!-- SCREENSHOT: [settings-ai-tab] AI configuration tab in Settings -->
 
 ### Reusing the LLM gateway and auth (STT, RAG, TTS)
