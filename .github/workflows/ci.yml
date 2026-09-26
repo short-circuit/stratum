@@ -95,6 +95,75 @@ jobs:
       - name: Run frontend unit tests
         run: npm test
 
+  # ── MCP server coverage gate (required for PR merge) ──────────────
+  # Enforces >=80% line coverage of the MCP server crate (QA acceptance for
+  # t_547e25f1). Runs the pkm-mcp suites under -Cinstrument-coverage using
+  # the rustup llvm-tools (no external crates) and fails if the MCP crates'
+  # line coverage drops below the threshold. Under-instrumented changes to
+  # the MCP tool/adapter layer are caught here even though `cargo test`
+  # passes.
+  mcp-coverage:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (+ llvm-tools for coverage)
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: llvm-tools-preview
+          cache: false
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Linux dependencies (rusqlite build)
+        uses: ./.github/actions/install-linux-deps
+
+      - name: Run MCP coverage gate (>=80%)
+        run: bash scripts/mcp-coverage-gate.sh
+
+  # ── Supply-chain security gate ─────────────────────────────────
+  security-audit:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: Rust supply-chain audit (blocks on NEW advisories)
+        # .cargo/audit.toml pins the accepted workspace baseline
+        # (wasmtime/unic-*/excalidraw chains). Any advisory not in that
+        # list fails this step, so new vulnerabilities are caught in CI.
+        run: cargo audit
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: npm audit (report)
+        # Report-only: 3 known production high advisories are pinned by
+        # transitive @blocknote/@excalidraw deps and tracked for remediation
+        # (see ADR-0006). Dependabot opens bumps; the report keeps visibility.
+        run: npm audit --audit-level=high || echo "::warning::npm audit found findings (see ADR-0006 supply-chain baseline)"
+
   # ── tauri-driver E2E harness (automatic on push/PR; required after merge;
   #    weekly on schedule / manual via workflow_dispatch) ──
   e2e-harness:
