@@ -13,6 +13,7 @@ import type {
   GraphEdgeDto,
   AutocompleteItem,
   KanbanBlockDto,
+  SavedQuery,
 } from '../../src/lib/types';
 
 // ---------------------------------------------------------------------------
@@ -277,6 +278,25 @@ export const MOCK_PLUGINS_DTO = [
   },
 ];
 
+/**
+ * Seed data for the mocked saved-query commands. Mirrors the real `SavedQuery`
+ * shape (name, query, updated_at) per docs/guide/datalog-queries.md. Tests can
+ * override the store by pre-seeding `mock_saved_queries` in localStorage on a
+ * per-context basis, or the seed below is used as the persisted baseline.
+ */
+export const MOCK_SAVED_QUERIES_DTO: SavedQuery[] = [
+  {
+    name: 'All TODO',
+    query: '{:query [:find ?b :where [?b :block/marker "TODO"]]}',
+    updated_at: '2026-09-22T20:00:00Z',
+  },
+  {
+    name: 'Blocked',
+    query: '{:query [:find ?b :where [?b :block/marker "WAITING"]]}',
+    updated_at: '2026-09-22T21:00:00Z',
+  },
+];
+
 
 // ---------------------------------------------------------------------------
 // Config object for tests to control mock behavior
@@ -343,6 +363,25 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
         for (var i = 0; i < mockPlugins.length; i++) if (mockPlugins[i].id === id) return mockPlugins[i];
         return null;
       }
+
+      // In-page saved-queries store so list_saved_queries -> save/rename/delete
+      // round-trips within the test. Persisted via localStorage so it survives
+      // navigation/reload within the test's browser context, mirroring the real
+      // backend's on-disk persistence of .pkm/saved_queries.json.
+      const MOCK_SAVED_QUERY_ROWS = ${JSON.stringify(MOCK_SAVED_QUERIES_DTO)};
+      const persistedQueries = window.localStorage.getItem('mock_saved_queries');
+      let mockSavedQueries = persistedQueries ? JSON.parse(persistedQueries) : MOCK_SAVED_QUERY_ROWS.map(function(q){ return Object.assign({}, q); });
+      function persistSavedQueries() {
+        window.localStorage.setItem('mock_saved_queries', JSON.stringify(mockSavedQueries));
+      }
+      function savedQueryByName(name) {
+        for (var i = 0; i < mockSavedQueries.length; i++) if (mockSavedQueries[i].name === name) return mockSavedQueries[i];
+        return null;
+      }
+      function touchTimestamp() {
+        return new Date().toISOString();
+      }
+
       function syncPluginStatus(list) {
         for (var i = 0; i < list.length; i++) {
           var p = list[i];
@@ -619,6 +658,42 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
           headers: [['content-type', 'application/json']],
           body: JSON.stringify({ mocked: true }),
         }),
+        list_saved_queries: () => mockSavedQueries.map(function(q){ return Object.assign({}, q); }),
+        save_saved_query: (args) => {
+          const name = String(args && args.name !== undefined ? args.name : '').trim();
+          if (!name) throw new Error('name must not be empty');
+          const existing = savedQueryByName(name);
+          const updated = { name: name, query: String(args && args.query !== undefined ? args.query : ''), updated_at: touchTimestamp() };
+          if (existing) {
+            existing.query = updated.query;
+            existing.updated_at = updated.updated_at;
+          } else {
+            mockSavedQueries.push(updated);
+          }
+          persistSavedQueries();
+          return Object.assign({}, existing || updated);
+        },
+        rename_saved_query: (args) => {
+          const oldName = args && args.oldName;
+          const newName = String(args && args.newName !== undefined ? args.newName : '').trim();
+          const q = savedQueryByName(oldName);
+          if (!q) throw new Error('saved query not found: ' + oldName);
+          if (!newName) throw new Error('name must not be empty');
+          const clash = mockSavedQueries.find(function(other){ return other !== q && other.name === newName; });
+          if (clash) throw new Error('saved query already exists: ' + newName);
+          q.name = newName;
+          q.updated_at = touchTimestamp();
+          persistSavedQueries();
+          return Object.assign({}, q);
+        },
+        delete_saved_query: (args) => {
+          const name = args && args.name;
+          const before = mockSavedQueries.length;
+          mockSavedQueries = mockSavedQueries.filter(function(q){ return q.name !== name; });
+          if (mockSavedQueries.length === before) throw new Error('saved query not found: ' + name);
+          persistSavedQueries();
+          return null;
+        },
       };
 
       // Event plugin handlers (used by onCloseRequested, listen, etc.)

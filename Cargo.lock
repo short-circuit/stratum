@@ -5308,10 +5308,14 @@ dependencies = [
 name = "pkm-query"
 version = "0.7.1"
 dependencies = [
+ "chrono",
  "pkm-block",
+ "pkm-core",
  "rusqlite",
+ "serde",
  "serde_json",
  "tempfile",
+ "tracing",
  "uuid",
 ]
 
