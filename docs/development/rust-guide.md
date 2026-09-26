@@ -21,6 +21,8 @@ stratum/
 │   ├── pkm-watcher/           # File system watcher (notify)
 │   ├── pkm-ai/                # Embeddings, RAG, LLM provider interface
 │   ├── pkm-plugin/            # WASM plugin runtime (wasmtime)
+│   ├── pkm-mcp/               # MCP server — stdio + Streamable HTTP
+│   ├── pkm-mcp-security/      # MCP security controls (PAT, scopes, limits)
 │   └── pkm-cli/               # CLI binary
 └── src-tauri/                 # Tauri v2 desktop app (binary + command handlers)
 ```
@@ -38,6 +40,8 @@ stratum/
 | `pkm-watcher` | Filesystem change detection | `FileWatcher` |
 | `pkm-ai` | LLM provider interface, RAG, embeddings | `AiProvider`, `EmbeddingEngine` |
 | `pkm-plugin` | WASM plugin sandbox | `PluginRuntime` |
+| `pkm-mcp` | MCP server (stdio + Streamable HTTP) exposing the vault to AI clients | `KbServer`, `McpConfig`, 15 `kb_*` tools |
+| `pkm-mcp-security` | Transport-agnostic MCP security controls | `pat`, `scope`, `ratelimit`, `path`, `input`, `output` |
 | `pkm-cli` | Terminal interface | `main()` with clap args |
 
 ### Dependency Graph
@@ -52,6 +56,8 @@ pkm-sync       -> pkm-core, pkm-markdown
 pkm-watcher    -> pkm-core, pkm-markdown, pkm-index
 pkm-ai         -> pkm-core, pkm-index
 pkm-plugin     -> pkm-core
+pkm-mcp        -> pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query
+pkm-mcp-security -> (standalone; no Stratum crates)
 pkm-cli        -> pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
 src-tauri      -> pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
 ```
@@ -59,6 +65,10 @@ src-tauri      -> pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm-s
 Note: the deskbound app (`src-tauri`) and the CLI both depend on `pkm-plugin`
 (the WASM plugin runtime is wired into the desktop app's vault state and
 surfaced through the Tauri plugin commands; the CLI links the same crate).
+The MCP server (`pkm-mcp`) is a standalone binary that reuses the same data
+layer crates (`pkm-block`, `pkm-index`, `pkm-markdown`, `pkm-query`); its
+security controls are isolated in `pkm-mcp-security`, which depends on no
+Stratum crate.
 
 ---
 
