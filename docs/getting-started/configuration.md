@@ -208,8 +208,8 @@ for the full behavior of the `use_llm_gateway_and_auth` settings.
 
 | Setting | Description |
 |---------|-------------|
-| Reindex All | Re-sync all pages from disk into the database. Idempotent. Useful after importing notes or recovering from corruption. |
-| Repair DB from disk | Rebuild the database from the `.md` files on disk |
+| Reindex All | Re-sync all pages from disk into the SQLite database. Idempotent. Useful after importing notes or recovering from corruption. Refreshes the running page list automatically. |
+| Repair DB from disk | First-class stale-database repair: re-syncs every `.md` whose on-disk modification time is newer than its database record (true drift), plus missing or empty pages, and prunes database entries with no file on disk. Use this when a page or the journal shows stale/empty content. Refreshes the running page list automatically. |
 | Normalize All Files | Parse every `.md` file through the block parser and re-serialize to normalize indentation, block syntax, and frontmatter |
 | Reindex Progress | Live progress bar shown during reindex operations |
 

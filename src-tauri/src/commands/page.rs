@@ -212,9 +212,9 @@ pub fn get_blocks_heal_from_disk(
     if sync_page_from_disk(store, page_path, vault_path, None).is_ok() {
         // Index the healed blocks so full-text search reflects the on-disk content.
         let _ = std::fs::create_dir_all(vault_path.join(".pkm").join("search"));
-        let bi =
+        let mut bi =
             pkm_index::block_search::BlockIndex::create(&vault_path.join(".pkm").join("search"));
-        if let Ok(mut bi) = bi {
+        if let Ok(ref mut bi) = bi {
             for block in &disk_blocks {
                 let _ = bi.index_block(block, page_path);
             }

@@ -178,3 +178,68 @@ fn test_repair_db_is_idempotent() {
     let b_blocks = tv.store.get_blocks_by_page("pages/b.md").unwrap();
     assert_eq!(b_blocks.len(), 1);
 }
+
+/// Regression: the read path must never render an empty editor when the `pages`
+/// table lists a page but its `blocks` rows are missing while the `.md` on disk
+/// has real content (the `Borrowing.md` corruption shape found in the live vault).
+///
+/// Without `get_blocks_heal_from_disk`, `get_blocks` returns zero rows and the
+/// frontend shows an empty editor / infinite spinner until an app restart. The
+/// helper must converge the DB from disk and return the on-disk blocks.
+#[test]
+fn test_get_blocks_heals_stale_page_with_missing_block_rows() {
+    use app_lib::commands::page::get_blocks_heal_from_disk;
+
+    let tv = create_test_vault();
+    // Disk: a page with real BlockNote-serialized content (with .id: lines).
+    tv.create_md_file(
+        "Borrowing.md",
+        "- On-disk block one\n  .id: 6179411f-1906-476c-bc0b-2fbc71620a8f\n\
+         - On-disk block two\n  .id: ea59ea95-12f4-42b5-bdf4-5cc4e6de9de3\n",
+    );
+    // SQLite: page registered with a block_count but ZERO block rows (the decayed shape).
+    tv.add_page("Borrowing.md");
+
+    // Before healing: zero blocks in SQLite.
+    let before = tv.store.get_blocks_by_page("Borrowing.md").unwrap();
+    assert!(
+        before.is_empty(),
+        "precondition: stale DB has no block rows"
+    );
+
+    let healed = get_blocks_heal_from_disk(&tv.store, &tv.vault_path, "Borrowing.md").unwrap();
+    assert_eq!(healed.len(), 2, "read path must return the on-disk blocks");
+    assert!(
+        healed
+            .iter()
+            .any(|b| b.content.contains("On-disk block one")),
+        "returned rows must carry the disk content"
+    );
+
+    // The DB is now converged — a subsequent read returns the same rows without
+    // duplication, and the persisted rows match.
+    let after = tv.store.get_blocks_by_page("Borrowing.md").unwrap();
+    assert_eq!(after.len(), 2, "DB must be healed, not duplicated");
+}
+
+/// Regression: opening a page whose DB rows are stale must report the on-disk
+/// block count via `open_page`, so the frontend never loops on `todayExists=false`
+/// or renders an empty editor for a page that has real content.
+#[test]
+fn test_open_page_reports_disk_blocks_when_db_stale() {
+    use app_lib::commands::page::get_blocks_heal_from_disk;
+
+    let tv = create_test_vault();
+    tv.create_md_file(
+        "pages/journal-2026-09-22.md",
+        "---\ntitle: journal-2026-09-22\n---\n- current entry\n  .id: 0ade90cf-2110-4c1e-be7a-924bea2383a9\n",
+    );
+    tv.add_page("pages/journal-2026-09-22.md");
+
+    // Simulate the exact `open_page` read: blocks come from the healing helper.
+    let blocks =
+        get_blocks_heal_from_disk(&tv.store, &tv.vault_path, "pages/journal-2026-09-22.md")
+            .unwrap();
+    assert_eq!(blocks.len(), 1);
+    assert_eq!(blocks[0].content, "current entry");
+}
