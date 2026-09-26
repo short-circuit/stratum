@@ -552,6 +552,32 @@ mod tests {
         assert_eq!(cfg.endpoint, "https://api.openai.com/v1");
     }
 
+    /// RAG/embedding always consume the main LLM gateway (`AiConfig`) directly —
+    /// there is no separate embedding endpoint to switch away from. The
+    /// `use_llm_gateway_and_auth` flag must therefore be a no-op here: both
+    /// flag states produce the exact same endpoint, key and model. This test
+    /// pins that contract so a future "separate embedding endpoint" feature
+    /// cannot change behavior without an explicit decision.
+    #[test]
+    fn from_ai_config_is_agnostic_to_use_llm_gateway_and_auth() {
+        let base = |flag: bool| AiConfig {
+            provider: AiProvider::CustomOpenAI,
+            endpoint: Some("https://api.example.com/v1".to_string()),
+            api_key: Some("sk-abc".to_string()),
+            model: "text-embedding-3-small".to_string(),
+            use_llm_gateway_and_auth: flag,
+            ..Default::default()
+        };
+
+        let on = EmbeddingConfig::from_ai_config(&base(true)).unwrap();
+        let off = EmbeddingConfig::from_ai_config(&base(false)).unwrap();
+        assert_eq!(on.endpoint, off.endpoint);
+        assert_eq!(on.api_key, off.api_key);
+        assert_eq!(on.model, off.model);
+        assert_eq!(on.endpoint, "https://api.example.com/v1");
+        assert_eq!(on.api_key.as_deref(), Some("sk-abc"));
+    }
+
     #[test]
     fn from_ai_config_forwards_embedding_dimensions() {
         let ai = AiConfig {

@@ -1,0 +1,42 @@
+[
+  {
+    "l": "boot",
+    "p": true,
+    "d": ""
+  },
+  {
+    "l": "baseline: get_blocks reachable",
+    "p": true,
+    "d": "{\"ok\":true,\"cnt\":16}"
+  },
+  {
+    "l": "baseline: markers present in fresh sync",
+    "p": true,
+    "d": "{\"ok\":true,\"markers\":[\"TODO\",\"DOING\",\"DOING\",\"DONE\"]}"
+  },
+  {
+    "l": "watcher: external modify synced to DB (existing page)",
+    "p": true,
+    "d": "{\"ok\":true,\"cnt\":17,\"has\":true}"
+  },
+  {
+    "l": "watcher: external modify searchable",
+    "p": true,
+    "d": "{\"ok\":true,\"hits\":1}"
+  },
+  {
+    "l": "watcher: new external page appears in list_pages",
+    "p": true,
+    "d": "{\"ok\":true,\"has\":true}"
+  },
+  {
+    "l": "watcher: new page blocks reachable",
+    "p": true,
+    "d": "{\"ok\":true,\"cnt\":1}"
+  },
+  {
+    "l": "backlinks API reachable",
+    "p": true,
+    "d": "[]"
+  }
+]
