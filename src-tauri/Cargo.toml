@@ -51,6 +51,9 @@ tauri-plugin-android-fs = "28"
 tempfile.workspace = true
 uuid.workspace = true
 chrono.workspace = true
+# Benchmark harness (`tests/graph_perf_bench.rs`) uses rusqlite directly for
+# `EXPLAIN QUERY PLAN` introspection of the graph-pipeline store queries.
+rusqlite.workspace = true
 # Integration tests for the plugin command layer use the Tauri mock test
 # harness (`tauri::test`) plus a real in-process `wat`-compiled WASM module
 # and wiremock where HTTP is involved.

@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import * as api from '../../lib/commands';
 import type { GraphSettings, GraphDataDto, GraphNodeDto, ComponentDto, OrphanDto } from '../../lib/types';
 import { DEFAULT_SETTINGS, type GraphNode } from './GraphCanvas';
+import { effectiveNodeCap, capNodesByDegree, edgesWithin } from './graphFilter';
 
 /** Number of nodes added per progressive-rendering batch. Was 200 — increased to handle all nodes
  *  in one batch to avoid d3 simulation restart thrashing during progressive reveal. */
@@ -50,12 +51,21 @@ export interface UseGraphPanelReturn {
   filteredEdges: { source: string; target: string }[];
   /** Data shaped for ForceGraph[2D|3D] consumption ({ nodes, links }). */
   graphDataProp: { nodes: GraphNode[]; links: { source: string; target: string }[] };
+  /**
+   * Whether the safe-default cap (applied to unlimited large vaults) is what
+   * is currently limiting the rendered set — distinct from an explicit user
+   * node_cap. Shown in the banner so users understand WHY a cap is active.
+   */
+  defaultCapActive: boolean;
+
   /** Whether a node cap is actively limiting rendered nodes. */
   nodeCapActive: boolean;
   /** Pre-computed layout positions from Web Worker. */
   layoutPositions: Map<string, { x: number; y: number; z: number }>;
   /** Node count before node_cap was applied (for the warning banner). */
   preCapNodeCount: number;
+  /** The cap value actually applied (>0 when a cap is active). Shown in the banner. */
+  effectiveCap: number;
   /** Whether progressive rendering is still revealing node batches. */
   progressiveLoading: boolean;
   /** Progress of the progressive render: {current, total} nodes revealed so far. */
@@ -229,7 +239,12 @@ export function useGraphPanel(): UseGraphPanelReturn {
    * Applies view-mode (full / component / orphans), visibility toggles
    * (show_connected / show_orphaned), and text search filter.
    */
-  const { nodes: filteredNodes, edges: filteredEdges, preCapNodeCount, totalUnbatched } = useMemo(() => {
+  const {
+    nodes: filteredNodes,
+    edges: filteredEdges,
+    preCapNodeCount,
+    totalUnbatched,
+  } = useMemo(() => {
     if (!graphData) {
       return { nodes: [] as GraphNode[], edges: [] as { source: string; target: string }[], preCapNodeCount: 0, totalUnbatched: 0 };
     }
@@ -281,10 +296,13 @@ export function useGraphPanel(): UseGraphPanelReturn {
       }
     }
 
-    // Apply node cap
+    // Apply node cap (explicit user cap, or safe default for large unlimited vaults).
+    // Effective cap keeps the most-connected notes (degree-ordered) so the
+    // visible set stays meaningful at 10k notes. No cap → no reordering.
     const preCap = resultNodes.length;
-    if (graphSettings.node_cap > 0 && resultNodes.length > graphSettings.node_cap) {
-      resultNodes = resultNodes.slice(0, graphSettings.node_cap);
+    const effCap = effectiveNodeCap(graphSettings.node_cap, preCap);
+    if (effCap > 0 && resultNodes.length > effCap) {
+      resultNodes = capNodesByDegree(resultNodes, effCap);
     }
 
     // Progressive rendering batch slice — reveals CHUNK_SIZE nodes at a time.
@@ -318,9 +336,7 @@ export function useGraphPanel(): UseGraphPanelReturn {
   // to only include connections between currently visible (unbatched) nodes.
   const graphDataProp = useMemo(() => {
     const visibleIds = new Set(filteredNodes.map((n) => n.id));
-    const links = filteredEdges.filter(
-      (e) => visibleIds.has(e.source) && visibleIds.has(e.target),
-    );
+    const links = edgesWithin(filteredEdges, visibleIds);
     if (layoutPositions.size === 0) {
       return { nodes: filteredNodes, links };
     }
@@ -372,7 +388,9 @@ export function useGraphPanel(): UseGraphPanelReturn {
     [],
   );
 
-  const nodeCapActive = graphSettings.node_cap > 0 && preCapNodeCount > graphSettings.node_cap;
+  const effCapActive = effectiveNodeCap(graphSettings.node_cap, preCapNodeCount);
+  const nodeCapActive = effCapActive > 0 && preCapNodeCount > effCapActive;
+  const defaultCapActive = nodeCapActive && graphSettings.node_cap === 0;
   const progressiveLoading = graphData !== null && totalUnbatched > displayBatch * CHUNK_SIZE;
   const progress = {
     current: Math.min(filteredNodes.length, totalUnbatched),
@@ -404,6 +422,8 @@ export function useGraphPanel(): UseGraphPanelReturn {
     filteredEdges,
     graphDataProp,
     nodeCapActive,
+    defaultCapActive,
+    effectiveCap: effCapActive,
     preCapNodeCount,
     progressiveLoading,
     progress,
