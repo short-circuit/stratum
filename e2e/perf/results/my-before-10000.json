@@ -1,0 +1,48 @@
+{
+  "base": "http://localhost:4173",
+  "seed": 1,
+  "ts": "2026-09-22T21:14:49.804Z",
+  "results": [
+    {
+      "case": {
+        "nodes": 10000,
+        "seed": 1
+      },
+      "status": "OK",
+      "wallMs": {
+        "navStart_abs": 523,
+        "firstRender_abs": 124198,
+        "quiet_abs": null
+      },
+      "perfNowMs": {
+        "firstRender": 842,
+        "quiet": null
+      },
+      "renderer": "ANGLE (NVIDIA Corporation, NVIDIA GeForce RTX 4090/PCIe/SSE2, OpenGL 4.5.0)",
+      "canvasCount": 1,
+      "idle": {
+        "fps": 164,
+        "p1Fps": 162.4,
+        "p50Fps": 164.4,
+        "longTaskCount": 512,
+        "longTaskTotalMs": 122091
+      },
+      "longTaskWindowMs": 122584,
+      "memory": {
+        "usedJSHeapMB": 1254,
+        "totalJSHeapMB": 1311,
+        "documents": 249,
+        "nodes": 1
+      },
+      "interactions": {
+        "fed": 3,
+        "handled": 0,
+        "maxGapMs": 223.39999997615814,
+        "totalLongTaskMs": 3042,
+        "longTaskCount": 14,
+        "dragged": true
+      },
+      "errors": []
+    }
+  ]
+}

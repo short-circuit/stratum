@@ -59,8 +59,17 @@ Type in the search field within the graph panel to filter nodes by name. Only ma
 | Link Distance | Preferred edge length | `100` |
 | Alpha Decay | How quickly the simulation stabilizes | `0.02` |
 | Velocity Decay | Damping factor | `0.4` |
+| Node cap | Maximum number of nodes rendered. `0` (Unlimited) renders the full vault below 2,000 notes and **automatically caps to 2,000** on larger vaults so the graph stays responsive. | `0` |
 
 These settings can be adjusted in **Settings → Graph** or by editing `.pkm/config.toml`.
+
+## Performance
+
+Graph loading and rendering are optimized for large vaults:
+
+- **Authoritative links table.** Graph edges are read directly from the `links` table (the same index that powers backlinks), not re-parsed from block content on every load. Every save/edit reconciles this table in the same transaction, so the graph always reflects the latest edits. On first launch after upgrading, the app self-heals any vault whose links table predates this wiring.
+- **Cached responses.** The computed graph is cached per vault and served cheaply on subsequent opens, invalidated automatically after any page or block edit.
+- **Safe default node cap for large vaults.** With the **Node cap** set to `0` (Unlimited), the full vault is rendered below 2,000 notes; on larger vaults the rendered and simulated set is automatically capped to the 2,000 most-connected notes so the force simulation and rendering stay interactive. You can still reveal more by raising the cap in **Settings → Graph** — the most-connected notes are always kept first, so the visible structure remains meaningful.
 
 ## Tips
 
