@@ -210,9 +210,9 @@ pub async fn get_blocks(
 ) -> Result<BlockListDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = state.get_store().map_err(|e| e.to_string())?;
-    let blocks = store
-        .get_blocks_by_page(&page_path)
-        .map_err(|e| e.to_string())?;
+    let blocks =
+        crate::commands::page::get_blocks_heal_from_disk(&store, &state.vault_path, &page_path)
+            .map_err(|e| e.to_string())?;
 
     let dtos: Vec<BlockDto> = blocks
         .into_iter()

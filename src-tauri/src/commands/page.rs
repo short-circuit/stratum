@@ -93,6 +93,24 @@ pub struct PageListDto {
     pub pages: Vec<PageDto>,
 }
 
+/// Build a `PageDto` for a vault-relative page path. `block_count` is left at 0;
+/// callers that need a live count use `open_page` (which self-heals from disk).
+fn page_dto_from_path(path: String, vault_path: &std::path::Path) -> PageDto {
+    let slug = std::path::Path::new(&path)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("untitled")
+        .to_string();
+    let full_path = vault_path.join(&path);
+    PageDto {
+        path,
+        slug,
+        title: None,
+        block_count: 0,
+        modified_at: get_file_mtime(&full_path),
+    }
+}
+
 #[tauri::command]
 pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto, String> {
     let vault_path = {
@@ -113,27 +131,104 @@ pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto
     .map_err(|e| e.to_string())?
     .map_err(|e| e.to_string())?;
 
+    // Disk fallback for journal pages: a journal `.md` that exists on disk but has
+    // no `pages` row in SQLite (external edit, git pull, or interrupted save after
+    // boot) must still surface in the journal view. The journal panel derives its
+    // `pastDates` exclusively from `list_pages`, so on-disk `journals/*.md` files
+    // are merged in here — deduplicated against the DB list so no path appears twice.
+    // This mirrors `sync_filesystem_to_db`'s `MdCollector` scan without mutating the
+    // DB: the read path stays read-only and the next write/ensure converges the DB.
+    let mut seen: std::collections::HashSet<String> = paths.iter().cloned().collect();
+    let mut disk_only_journals: Vec<String> = Vec::new();
+    let journals_dir = vault_path.join("journals");
+    if journals_dir.is_dir() {
+        if let Ok(files) = MdCollector::new()
+            .skip_dirs(vec![".pkm", "templates", ".git"])
+            .collect_relative(&journals_dir, &vault_path)
+        {
+            for rel in files {
+                if seen.insert(rel.clone()) {
+                    disk_only_journals.push(rel);
+                }
+            }
+        }
+    }
+
     let mut pages = Vec::new();
     for path in paths {
         if path.starts_with(".git/") || path.contains("/.git/") {
             continue;
         }
-        let slug = std::path::Path::new(&path)
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("untitled")
-            .to_string();
-        let full_path = vault_path.join(&path);
-        pages.push(PageDto {
-            path,
-            slug,
-            title: None,
-            block_count: 0,
-            modified_at: get_file_mtime(&full_path),
-        });
+        pages.push(page_dto_from_path(path, &vault_path));
+    }
+    // Append on-disk journal files not present in SQLite (deduplicated above).
+    for rel in disk_only_journals {
+        if rel.starts_with(".git/") || rel.contains("/.git/") {
+            continue;
+        }
+        pages.push(page_dto_from_path(rel, &vault_path));
     }
 
     Ok(PageListDto { pages })
+}
+
+/// Read-path disk fallback for the DB-drift class where the `pages` table lists a
+/// page but its `blocks` rows are missing/stale (e.g. an external editor changed the
+/// `.md`, a prior interrupted write deleted rows, or a git pull imported files the DB
+/// never indexed). Reads hit SQLite only, so without this the editor would render
+/// empty until an app restart triggers `sync_filesystem_to_db`.
+///
+/// When the page has zero blocks in SQLite but a non-empty body on disk, the page is
+/// re-synced from disk (same primitive as startup/repair) so the returned rows reflect
+/// the current file. Returns the on-disk block rows.
+pub fn get_blocks_heal_from_disk(
+    store: &pkm_block::BlockStore,
+    vault_path: &Path,
+    page_path: &str,
+) -> Result<Vec<pkm_block::Block>, String> {
+    let blocks = store
+        .get_blocks_by_page(page_path)
+        .map_err(|e| e.to_string())?;
+    if !blocks.is_empty() {
+        return Ok(blocks);
+    }
+
+    // No blocks in SQLite — check whether the file on disk actually has content.
+    let full = vault_path.join(page_path);
+    if !full.exists() {
+        return Ok(blocks);
+    }
+    let content = match std::fs::read_to_string(&full) {
+        Ok(c) => c,
+        Err(_) => return Ok(blocks),
+    };
+    let (_, _, disk_blocks) = pkm_markdown::block_parser::parse_document(&content);
+    if disk_blocks.is_empty() {
+        return Ok(blocks);
+    }
+
+    // Heal: re-sync the page + blocks from disk so the DB converges with the file.
+    // Best-effort — if the write fails, still serve the parsed rows from disk.
+    if sync_page_from_disk(store, page_path, vault_path, None).is_ok() {
+        // Index the healed blocks so full-text search reflects the on-disk content.
+        let _ = std::fs::create_dir_all(vault_path.join(".pkm").join("search"));
+        let bi =
+            pkm_index::block_search::BlockIndex::create(&vault_path.join(".pkm").join("search"));
+        if let Ok(mut bi) = bi {
+            for block in &disk_blocks {
+                let _ = bi.index_block(block, page_path);
+            }
+            let _ = bi.flush();
+        }
+        // Return the freshly-parsed rows (authoritative — the persisted rows are
+        // identical to disk_blocks after sync_page_from_disk).
+        return Ok(disk_blocks);
+    }
+
+    // Persistence failed: fall back to serving the parsed rows read-only so the
+    // editor still renders the file's actual content, and let the next startup
+    // sync converge the DB.
+    Ok(disk_blocks)
 }
 
 /// Read a single .md file from disk, parse it, and sync its page metadata + blocks
@@ -505,8 +600,8 @@ pub async fn open_page(path: String, state: tauri::State<'_, AppState>) -> Resul
         let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
         let (fm, _, _) = pkm_markdown::block_parser::parse_document(&content);
         let store = state.get_store().map_err(|e| e.to_string())?;
-        let blocks = store.get_blocks_by_page(&path).map_err(|e| e.to_string())?;
-        (fm, blocks.len())
+        let blocks = get_blocks_heal_from_disk(&store, &state.vault_path, &path)?.len();
+        (fm, blocks)
     } else {
         (pkm_core::Frontmatter::default(), 0)
     };
