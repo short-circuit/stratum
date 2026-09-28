@@ -340,6 +340,16 @@ pub fn heal_missing_page_links(store: &pkm_block::BlockStore) -> Result<usize, S
         if blocks.is_empty() {
             continue;
         }
+        // A page with no `[[wikilink]]` anywhere can never produce `page_ref`
+        // rows — it is legitimately zero-link (orphan/isolated note) and must
+        // not be re-counted as "healed" on every sync (idempotency). Only
+        // reconcile when there is at least one extractable link to write.
+        let has_links = blocks
+            .iter()
+            .any(|b| !pkm_markdown::linker::extract_links(&b.content).is_empty());
+        if !has_links {
+            continue;
+        }
         if reconcile_page_links(store, &rel, &blocks).is_ok() {
             healed += 1;
         }
