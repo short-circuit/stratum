@@ -103,7 +103,27 @@ impl TtsConfigResolved {
     /// SSRF/URL validation (see [`validate_endpoint_safe`]).
     pub fn from_config(ai: &AiConfig, tts: &TtsConfig) -> PkmResult<Self> {
         let use_gateway = tts.use_llm_gateway_and_auth;
-        let endpoint = if use_gateway || tts.endpoint.trim().is_empty() {
+        let endpoint = if use_gateway {
+            // Gateway mode promises "use the main LLM gateway I configured":
+            // an explicitly configured AI endpoint is required. Falling back
+            // to a per-provider default here would silently synthesize through
+            // an endpoint the user never set (regression: M-3 gateway flag x
+            // M-4 per-provider default fallback).
+            let configured = ai
+                .endpoint
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty());
+            match configured {
+                Some(_) => resolve_endpoint(ai),
+                None => {
+                    return Err(PkmError::Ai(
+                        "No AI endpoint configured — enable the gateway checkbox requires an AI API endpoint in Settings → AI"
+                            .to_string(),
+                    ));
+                }
+            }
+        } else if tts.endpoint.trim().is_empty() {
             resolve_endpoint(ai)
         } else {
             tts.endpoint.trim_end_matches('/').to_string()
