@@ -332,7 +332,10 @@ pub fn reconcile_page_links(
 /// e.g. orphan/isolated notes). Rewrites only pages actually missing links.
 pub fn heal_missing_page_links(store: &pkm_block::BlockStore) -> Result<usize, String> {
     let mut healed = 0usize;
-    for rel in store.pages_missing_page_links().map_err(|e| e.to_string())? {
+    for rel in store
+        .pages_missing_page_links()
+        .map_err(|e| e.to_string())?
+    {
         let blocks = store.get_blocks_by_page(&rel).unwrap_or_default();
         if blocks.is_empty() {
             continue;

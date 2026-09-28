@@ -90,7 +90,10 @@ struct AdjacencyList {
 /// The `links` table is populated by `reconcile_page_links` on every block/page write
 /// and self-healed at boot (`sync_filesystem_to_db`), so graph edges are read directly
 /// from it instead of re-reading and re-parsing every block's content on each load.
-fn build_adjacency_list(meta: &PageMetaIndex, store: &pkm_block::BlockStore) -> Result<AdjacencyList, String> {
+fn build_adjacency_list(
+    meta: &PageMetaIndex,
+    store: &pkm_block::BlockStore,
+) -> Result<AdjacencyList, String> {
     let mut outgoing: HashMap<String, Vec<GraphEdgeDto>> = HashMap::new();
     let mut degree: HashMap<String, usize> = HashMap::new();
     let mut adjacency: HashMap<String, Vec<String>> = HashMap::new();
@@ -561,8 +564,12 @@ mod tests {
         // Reproduce the production write path: the graph reads edges from the
         // `links` table (authoritative), so reconcile this page's wiki-links the
         // way the command write paths do.
-        crate::commands::page::reconcile_page_links(&store, &rel_path, std::slice::from_ref(&block))
-            .unwrap();
+        crate::commands::page::reconcile_page_links(
+            &store,
+            &rel_path,
+            std::slice::from_ref(&block),
+        )
+        .unwrap();
 
         let data = build_graph_data_from_store(&store, "/tmp/test-vault").unwrap();
 

@@ -647,7 +647,9 @@ fn assert_card_state(
         Some(expected_interval),
         "{label}: interval"
     );
-    let ease = card["ease_factor"].as_f64().expect("{label}: ease is a number");
+    let ease = card["ease_factor"]
+        .as_f64()
+        .expect("{label}: ease is a number");
     assert!(
         (ease - expected_ease).abs() < 1e-9,
         "{label}: ease {ease} != expected {expected_ease}"
@@ -667,7 +669,8 @@ fn command_flashcard_sm2_known_ladder_scales_interval() {
     // Pins the exact documented ladder 1 → 6 → 13 → 27 and the ease decrease
     // on Good ratings (2.36 → 2.22 → 2.08) followed by the q=5 bump (2.18).
     let tv = common::create_test_vault();
-    let body = "---\ntitle: fc-ladder\n---\n\n- Ladder step?\n  .question: true\n  .answer: Answer.\n";
+    let body =
+        "---\ntitle: fc-ladder\n---\n\n- Ladder step?\n  .question: true\n  .answer: Answer.\n";
     seed_disk_page(&tv, "pages/fc-ladder.md", body);
     let block = &tv.store.get_blocks_by_page("pages/fc-ladder.md").unwrap()[0];
     let id = block.id.to_string();
@@ -700,7 +703,8 @@ fn command_flashcard_sm2_again_resets_schedule_and_ease_floor_holds() {
     // a regression where a lapse fails to reset, or where ease drops below
     // 1.3, is caught here.
     let tv = common::create_test_vault();
-    let body = "---\ntitle: fc-again\n---\n\n- Lapse behaviour?\n  .question: true\n  .answer: Resets.\n";
+    let body =
+        "---\ntitle: fc-again\n---\n\n- Lapse behaviour?\n  .question: true\n  .answer: Resets.\n";
     seed_disk_page(&tv, "pages/fc-again.md", body);
     let block = &tv.store.get_blocks_by_page("pages/fc-again.md").unwrap()[0];
     let id = block.id.to_string();
@@ -784,7 +788,8 @@ fn command_flashcard_grown_ladder_schedule_survives_restart() {
     // the full schedule, not just the first-step values, and that the
     // boot-time rebuild re-reads it faithfully.
     let tv = common::create_test_vault();
-    let body = "---\ntitle: fc-grown\n---\n\n- Grown schedule?\n  .question: true\n  .answer: Durable.\n";
+    let body =
+        "---\ntitle: fc-grown\n---\n\n- Grown schedule?\n  .question: true\n  .answer: Durable.\n";
     seed_disk_page(&tv, "pages/fc-grown.md", body);
     let block = &tv.store.get_blocks_by_page("pages/fc-grown.md").unwrap()[0];
     let id = block.id.to_string();

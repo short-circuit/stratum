@@ -418,10 +418,7 @@ fn graph_edges_are_read_from_links_table_not_block_content() {
     let resp2 = invoke(&wv, "get_graph_panel_data", json!({})).expect("after links rewrite");
     let edges2 = resp2["graph"]["edges"].as_array().unwrap();
     // alpha now points at orphan per the links table; beta's [[alpha]] is unchanged.
-    let alpha_out: Vec<_> = edges2
-        .iter()
-        .filter(|e| e["source"] == "alpha")
-        .collect();
+    let alpha_out: Vec<_> = edges2.iter().filter(|e| e["source"] == "alpha").collect();
     assert_eq!(
         alpha_out.len(),
         1,
@@ -432,7 +429,9 @@ fn graph_edges_are_read_from_links_table_not_block_content() {
         "edge follows the links table (alpha→orphan), not block content ([[beta]])"
     );
     assert!(
-        !edges2.iter().any(|e| e["source"] == "alpha" && e["target"] == "beta"),
+        !edges2
+            .iter()
+            .any(|e| e["source"] == "alpha" && e["target"] == "beta"),
         "block-content link [[beta]] is not surfaced when the links table contradicts it"
     );
 }

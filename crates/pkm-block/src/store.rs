@@ -1149,14 +1149,24 @@ mod tests {
         // alpha→beta ([[beta]]) and beta→gamma ([[gamma]]). delta is never linked;
         // stale.md is not a page so its [[delta]] link row must be dropped (a stale
         // source block contributes no edge).
-        store.insert_link(a, "page_ref", Some("pages/beta.md"), None).unwrap();
-        store.insert_link(b, "page_ref", Some("pages/gamma.md"), None).unwrap();
-        store.insert_link(c, "page_ref", Some("pages/delta.md"), None).unwrap();
+        store
+            .insert_link(a, "page_ref", Some("pages/beta.md"), None)
+            .unwrap();
+        store
+            .insert_link(b, "page_ref", Some("pages/gamma.md"), None)
+            .unwrap();
+        store
+            .insert_link(c, "page_ref", Some("pages/delta.md"), None)
+            .unwrap();
 
         // The store read returns the raw stored target for every live source page;
         // dead-target filtering is the caller's job (against the live page index).
         let edges = store.get_page_ref_edges().unwrap();
-        assert_eq!(edges.len(), 2, "stale source pages are excluded, resolved kept");
+        assert_eq!(
+            edges.len(),
+            2,
+            "stale source pages are excluded, resolved kept"
+        );
         assert!(edges.contains(&("pages/alpha.md".into(), "pages/beta.md".into())));
         assert!(edges.contains(&("pages/beta.md".into(), "pages/gamma.md".into())));
     }
@@ -1169,7 +1179,10 @@ mod tests {
 
         // `a` has a block (so it owns a page) but no links row → must be listed.
         store
-            .insert_block(&Block::new(a, "no links here".into()), "pages/needs_heal.md")
+            .insert_block(
+                &Block::new(a, "no links here".into()),
+                "pages/needs_heal.md",
+            )
             .unwrap();
         // `b` has a block AND a links row → must not be listed.
         store

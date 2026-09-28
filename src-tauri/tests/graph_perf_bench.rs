@@ -64,7 +64,12 @@ fn seed_ring_vault(tv: &common::TestVault, n: usize) -> (usize, usize) {
     for (i, bid) in block_ids.iter().enumerate() {
         let next = (i + 1) % n;
         tv.store
-            .insert_link(*bid, "page_ref", Some(&format!("pages/page-{next}.md")), None)
+            .insert_link(
+                *bid,
+                "page_ref",
+                Some(&format!("pages/page-{next}.md")),
+                None,
+            )
             .unwrap();
     }
     // One isolated page (orphan).
@@ -218,7 +223,9 @@ fn explain_query_plan(store: &BlockStore, label: &str, sql: &str, params: &[Stri
         let mut stmt = conn_owned
             .prepare(&format!("EXPLAIN QUERY PLAN {}", sql))
             .unwrap();
-        let mut rows = stmt.query(rusqlite::params_from_iter(params.iter())).unwrap();
+        let mut rows = stmt
+            .query(rusqlite::params_from_iter(params.iter()))
+            .unwrap();
         while let Ok(Some(row)) = rows.next() {
             let detail: String = row.get(3).unwrap();
             println!("      {label}: {detail}");
@@ -298,10 +305,13 @@ fn bench_small_vault_100_pages() {
     };
     let elapsed = start.elapsed();
     println!("  total IPC round-trip: {elapsed:?}");
-    println!("  nodes={} edges={} components={} orphans={}",
-        resp["graph"]["node_count"], resp["graph"]["edge_count"],
+    println!(
+        "  nodes={} edges={} components={} orphans={}",
+        resp["graph"]["node_count"],
+        resp["graph"]["edge_count"],
         resp["components"].as_array().map(|a| a.len()).unwrap_or(0),
-        resp["orphans"].as_array().map(|a| a.len()).unwrap_or(0));
+        resp["orphans"].as_array().map(|a| a.len()).unwrap_or(0)
+    );
 
     let ser = serde_json::to_string(&resp).unwrap();
     println!("  serialized payload size: {} bytes", ser.len());
@@ -404,7 +414,8 @@ fn seed_machinery_roundtrips() {
     let pages_fm = tv.store.get_pages(&paths).unwrap();
     assert!(pages_fm.contains_key("pages/page-0.md"));
 
-    let blocks = tv.store
+    let blocks = tv
+        .store
         .get_blocks_by_pages(&["pages/page-0.md".to_string()])
         .unwrap();
     assert_eq!(blocks["pages/page-0.md"].len(), 1);
