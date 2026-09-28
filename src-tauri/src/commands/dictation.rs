@@ -128,8 +128,7 @@ fn endpoint_for(config: &Config) -> Result<SttEndpoint, String> {
                 .to_string()
         })?;
         let api_key = config.ai.effective_api_key();
-        return SttEndpoint::new(base, api_key)
-            .map_err(|e| format!("Invalid STT endpoint: {e}"));
+        return SttEndpoint::new(base, api_key).map_err(|e| format!("Invalid STT endpoint: {e}"));
     }
     if config.stt.endpoint.trim().is_empty() {
         return Err("STT not configured. Set the transcription endpoint in Settings.".into());

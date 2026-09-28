@@ -208,8 +208,12 @@ mod tests {
     #[test]
     fn save_then_load_roundtrip() {
         let dir = vault();
-        let saved = save_saved_query(dir.path(), "Top tasks", "{:query [:find ?b :where [?b :block/marker \"TODO\"]]}")
-            .unwrap();
+        let saved = save_saved_query(
+            dir.path(),
+            "Top tasks",
+            "{:query [:find ?b :where [?b :block/marker \"TODO\"]]}",
+        )
+        .unwrap();
         assert_eq!(saved.name, "Top tasks");
         assert!(!saved.updated_at.is_empty());
 

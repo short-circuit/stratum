@@ -84,8 +84,8 @@ fn list_saved_queries_missing_file_returns_empty() {
     let app = build_app(&tv);
     let wv = webview(&app);
 
-    let resp = invoke(&wv, "list_saved_queries", json!({}))
-        .expect("list_saved_queries must resolve");
+    let resp =
+        invoke(&wv, "list_saved_queries", json!({})).expect("list_saved_queries must resolve");
     assert_eq!(resp.as_array().expect("array").len(), 0);
 }
 
@@ -164,10 +164,7 @@ fn save_empty_name_reports_clear_error() {
     )
     .expect_err("empty name must reject");
     let msg = error_message(&err);
-    assert!(
-        msg.contains("empty"),
-        "clear error expected, got: {msg}"
-    );
+    assert!(msg.contains("empty"), "clear error expected, got: {msg}");
 
     // Nothing was written.
     assert!(!tv.vault_path.join(SAVED_QUERIES_FILE).exists());
@@ -192,8 +189,7 @@ fn delete_removes_entry_and_persists() {
     )
     .unwrap();
 
-    invoke(&wv, "delete_saved_query", json!({ "name": "a" }))
-        .expect("delete must resolve");
+    invoke(&wv, "delete_saved_query", json!({ "name": "a" })).expect("delete must resolve");
 
     let list = invoke(&wv, "list_saved_queries", json!({})).expect("list resolves");
     let arr = list.as_array().expect("array");
