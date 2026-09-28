@@ -22,6 +22,7 @@ pub struct TtsSettingsDto {
     pub voice: String,
     pub format: String,
     pub speed: f32,
+    #[serde(default)]
     pub use_llm_gateway_and_auth: bool,
 }
 
@@ -48,6 +49,7 @@ pub struct SttSettingsDto {
     pub diarize: bool,
     pub auto_summarize: bool,
     pub auto_identify: bool,
+    #[serde(default)]
     pub use_llm_gateway_and_auth: bool,
 }
 
@@ -96,6 +98,7 @@ pub struct AiSettingsDto {
     pub rag_chunk_count: usize,
     /// Expected embedding vector dimensionality; `0` = infer from response.
     pub embedding_dimensions: usize,
+    #[serde(default)]
     pub use_llm_gateway_and_auth: bool,
 }
 
