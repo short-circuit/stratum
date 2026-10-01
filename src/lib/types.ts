@@ -51,6 +51,14 @@ export interface QueryResultDto {
   rows: string[][];
 }
 
+/** A named Datalog query persisted in the vault (`.pkm/saved_queries.json`). */
+export interface SavedQuery {
+  name: string;
+  query: string;
+  /** RFC 3339 UTC timestamp of the last create/update. */
+  updated_at: string;
+}
+
 export interface BacklinkItem {
   source_id: string;
   source_page: string;
@@ -144,6 +152,13 @@ export interface GraphSettings {
   link_curvature: number;
   /** Maximum nodes to render before capping. 0 = unlimited. */
   node_cap: number;
+  /**
+   * Opt-in 3D rendering. Desktop always renders 3D regardless of this flag;
+   * on mobile this switches the graph from the 2D force layout to the 3D one.
+   * The mobile variant additionally falls back to 2D automatically when the
+   * device cannot render WebGL (see src/lib/graph3d.ts).
+   */
+  use_3d: boolean;
 }
 
 // --- Connection suggestions ---

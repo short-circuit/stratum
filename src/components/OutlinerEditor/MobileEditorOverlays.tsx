@@ -35,6 +35,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import * as api from '../../lib/commands';
+import { useRecentsStore } from '../../stores/recentsStore';
 import { speakText, textFromBlock } from '../../lib/audio';
 import LinkPreviewPopup from '../LinkPreviewPopup';
 import MathEditorModal from '../MathEditorModal';
@@ -370,6 +371,7 @@ export default function MobileEditorOverlays({
               const slug = deadLinkPopup.target;
               try {
                 await api.createPage(slug);
+                useRecentsStore.getState().refresh();
               } catch (e) {
                 if (!String(e).includes('already exists')) {
                   console.error('Failed to create page:', e);

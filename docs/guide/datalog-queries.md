@@ -103,6 +103,44 @@ Results are displayed in a table with:
 - **Rows** — each matching combination of values
 - Click a page path to navigate to that page
 
+## Saved Queries
+
+You can save the current query under a name and reload it later. Saved queries are stored in `.pkm/saved_queries.json` inside your vault and sync with the vault, so they are available on every device where the vault is synced.
+
+### Saving the current query
+
+With the query you want to keep in the editor:
+
+1. Click **Save Query** (desktop) or **Save** (mobile) above the editor.
+2. Enter a name in the dialog and click **Save**.
+
+The name must not be empty. Leading and trailing whitespace is trimmed and names are limited to 256 characters.
+
+Saving under a name that already exists **overwrites** the previous version of that saved query — it does not create a duplicate.
+
+### Viewing saved queries
+
+The **Saved Queries** list below the results shows every saved query with its name and the last-updated date. Use the refresh button to reload the list.
+
+### Loading a saved query
+
+Click a saved query in the list to load its query text into the editor. The query is **not executed automatically** — click **Run Query** (or **Run**) to run it.
+
+### Renaming a saved query
+
+Use the rename (pencil) icon next to a saved query, enter the new name, and confirm. Renaming to a name that already exists fails and keeps the original name.
+
+### Deleting a saved query
+
+Use the delete (trash) icon next to a saved query, then confirm in the dialog. Deletion cannot be undone.
+
+### Error handling and limitations
+
+- A missing or corrupt `saved_queries.json` is treated as an empty list; the next save rewrites a valid file.
+- Writes are atomic, so a crash or power loss cannot leave a half-written file behind.
+- Errors loading the list are shown in an error banner; errors during save, rename, or delete are shown in a warning banner.
+- Saving an empty query is allowed — the store does not validate the query syntax.
+
 ## Tips
 
 - Start with the example queries by clicking **Reset**

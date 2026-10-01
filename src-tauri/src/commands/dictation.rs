@@ -99,19 +99,66 @@ pub struct SpeakerAssignDto {
 
 fn load_config(state: &VaultState) -> Result<Config, String> {
     let config_path = state.vault_path.join(".pkm").join("config.toml");
-    if !config_path.exists() {
-        return Err("STT not configured. Set the transcription endpoint in Settings.".into());
-    }
-    Config::load(&config_path).map_err(|e| e.to_string())
+    Config::load(&config_path).map_err(|e| {
+        if !config_path.exists() {
+            format!(
+                "No config file found at {}. Set a transcription endpoint in Settings → AI → Voice.",
+                config_path.display()
+            )
+        } else {
+            format!("Failed to read AI/STT config: {e}")
+        }
+    })
 }
 
+/// Resolve the STT endpoint honoring the per-capability
+/// `use_llm_gateway_and_auth` flag.
+///
+/// When the flag is set, transcription, diarization, speaker recognition and
+/// the connection test all reuse the main LLM gateway endpoint and its auth
+/// (from the `[ai]` config section) instead of the STT-specific
+/// endpoint/api_key. When the flag is unset (the default, or absent from an
+/// older config file), the existing behavior is preserved exactly: the STT
+/// endpoint and STT api_key are used.
 fn endpoint_for(config: &Config) -> Result<SttEndpoint, String> {
+    if config.stt.use_llm_gateway_and_auth {
+        let base = ai_base_route(&config.ai).ok_or_else(|| {
+            "STT is set to reuse the LLM gateway, but no AI endpoint is configured. \
+             Set Settings → AI → API Endpoint."
+                .to_string()
+        })?;
+        let api_key = config.ai.effective_api_key();
+        return SttEndpoint::new(base, api_key).map_err(|e| format!("Invalid STT endpoint: {e}"));
+    }
     if config.stt.endpoint.trim().is_empty() {
         return Err("STT not configured. Set the transcription endpoint in Settings.".into());
     }
-    SttEndpoint::new(config.stt.endpoint.clone(), config.stt.api_key.clone())
+    // Use the effective API key (env override `STRATUM_STT_API_KEY` first).
+    SttEndpoint::new(config.stt.endpoint.clone(), config.stt.effective_api_key())
         .map_err(|e| format!("Invalid STT endpoint: {e}"))
 }
+
+/// Resolve the base URL for an OpenAI-compatible audio route from the main
+/// AI config, mirroring [`pkm_ai::embedding`] semantics: the LLM gateway is
+/// used verbatim, and any trailing `/v1` segment is stripped because
+/// [`SttEndpoint`] appends its own `/v1/...` path on top of `base_url`
+/// (avoids `/v1/v1`). Returns `None` when no AI endpoint is configured.
+fn ai_base_route(ai: &pkm_core::AiConfig) -> Option<String> {
+    let base = ai.endpoint.as_deref()?.trim_end_matches('/').to_string();
+    if base.is_empty() {
+        return None;
+    }
+    Some(
+        base.strip_suffix("/v1")
+            .unwrap_or(&base)
+            .trim_end_matches('/')
+            .to_string(),
+    )
+}
+
+// ---------------------------------------------------------------------------
+// Recordings directory + speaker registry
+// ---------------------------------------------------------------------------
 
 /// Recordings directory (absolute) from the vault layout config.
 fn recordings_dir(state: &VaultState) -> PathBuf {
@@ -549,7 +596,9 @@ pub async fn stt_test_connection(state: tauri::State<'_, AppState>) -> Result<St
                 #[serde(default)]
                 id: String,
             }
-            let models: Models = resp.json().await.unwrap_or(Models { data: vec![] });
+            let models: Models = resp.json().await.map_err(|e| {
+                format!("Endpoint returned 200 but the body could not be parsed: {e}")
+            })?;
             Ok(SttTestDto {
                 ok: true,
                 models: models.data.into_iter().map(|m| m.id).collect(),
@@ -557,7 +606,18 @@ pub async fn stt_test_connection(state: tauri::State<'_, AppState>) -> Result<St
                 error: None,
             })
         }
-        Ok(resp) => Err(format!("Endpoint responded with HTTP {}", resp.status())),
+        Ok(resp) => {
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            if text.trim().is_empty() {
+                Err(format!("Endpoint responded with HTTP {status}"))
+            } else {
+                Err(format!(
+                    "Endpoint responded with HTTP {status}: {}",
+                    text.chars().take(300).collect::<String>()
+                ))
+            }
+        }
         Err(e) => Err(format!("Connection failed: {e}")),
     }
 }
@@ -689,4 +749,112 @@ fn refresh_page_index(state: &mut VaultState, page_path: &str) -> Result<(), Str
         .map_err(|e| format!("Index refresh failed: {e}"))?;
     crate::commands::graph::invalidate_graph_cache();
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pkm_core::{AiConfig, AiProvider, SttConfig};
+
+    fn config(stt: SttConfig, ai: AiConfig) -> Config {
+        Config {
+            ai,
+            stt,
+            ..Default::default()
+        }
+    }
+
+    fn stt(endpoint: &str, api_key: Option<&str>) -> SttConfig {
+        SttConfig {
+            endpoint: endpoint.to_string(),
+            api_key: api_key.map(str::to_string),
+            ..Default::default()
+        }
+    }
+
+    fn ollama_ai(endpoint: &str) -> AiConfig {
+        AiConfig {
+            provider: AiProvider::Ollama,
+            endpoint: Some(endpoint.to_string()),
+            api_key: None,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn endpoint_for_uses_stt_endpoint_and_key_when_flag_false() {
+        // Default: flag false → STT-specific endpoint/api_key are used.
+        let cfg = config(
+            stt("http://127.0.0.1:8081", Some("stt-secret")),
+            ollama_ai("http://127.0.0.1:11434"),
+        );
+        assert!(!cfg.stt.use_llm_gateway_and_auth, "default is disabled");
+        let ep = endpoint_for(&cfg).expect("resolves from STT config");
+        assert_eq!(ep.base_url, "http://127.0.0.1:8081");
+        assert_eq!(ep.api_key.as_deref(), Some("stt-secret"));
+    }
+
+    #[test]
+    fn endpoint_for_reuses_llm_gateway_and_auth_when_flag_true() {
+        let mut cfg = config(
+            stt("http://127.0.0.1:8081", Some("stt-secret")),
+            AiConfig {
+                provider: AiProvider::CustomOpenAI,
+                endpoint: Some("https://gateway.example.com/v1".to_string()),
+                api_key: Some("llm-secret".to_string()),
+                ..Default::default()
+            },
+        );
+        cfg.stt.use_llm_gateway_and_auth = true;
+        assert!(cfg.stt.use_llm_gateway_and_auth);
+
+        // The `/v1` suffix is stripped so SttEndpoint can re-append its own
+        // `/v1/...` route, and the LLM api_key is used — not the STT key.
+        let ep = endpoint_for(&cfg).expect("resolves from AI config");
+        assert_eq!(ep.base_url, "https://gateway.example.com");
+        assert_eq!(ep.api_key.as_deref(), Some("llm-secret"));
+    }
+
+    #[test]
+    fn endpoint_for_flag_true_without_ai_endpoint_is_an_error() {
+        let mut cfg = config(
+            stt("http://127.0.0.1:8081", None),
+            AiConfig {
+                endpoint: None,
+                ..Default::default()
+            },
+        );
+        cfg.stt.use_llm_gateway_and_auth = true;
+        let err = endpoint_for(&cfg).expect_err("must fail without an AI endpoint");
+        assert!(err.contains("no AI endpoint is configured"), "got: {err}");
+    }
+
+    #[test]
+    fn endpoint_for_flag_false_without_stt_endpoint_is_an_error() {
+        // Existing behavior preserved: empty STT endpoint → not configured.
+        let cfg = config(stt("", None), ollama_ai("http://127.0.0.1:11434"));
+        let err = endpoint_for(&cfg).expect_err("empty stt endpoint must fail");
+        assert!(err.contains("STT not configured"), "got: {err}");
+    }
+
+    #[test]
+    fn ai_base_route_strips_v1_and_trailing_slashes() {
+        assert_eq!(
+            ai_base_route(&ollama_ai("http://localhost:11434/")).as_deref(),
+            Some("http://localhost:11434")
+        );
+        assert_eq!(
+            ai_base_route(&ollama_ai("http://localhost:11434/v1")).as_deref(),
+            Some("http://localhost:11434")
+        );
+        assert_eq!(
+            ai_base_route(&ollama_ai("http://localhost:11434/v1/")).as_deref(),
+            Some("http://localhost:11434")
+        );
+        assert_eq!(ai_base_route(&ollama_ai("")).as_deref(), None);
+        assert_eq!(
+            ai_base_route(&ollama_ai("https://gateway.example.com/v1")).as_deref(),
+            Some("https://gateway.example.com")
+        );
+    }
 }

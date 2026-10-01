@@ -2,12 +2,13 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useResponsive } from './lib/hooks/useResponsive';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
+import ErrorAlert from './components/ui/ErrorAlert';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
-import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import { useStore } from './stores/appStore';
+import { useRecentsStore } from './stores/recentsStore';
 import { useSyncModalStore } from './stores/syncModalStore';
 import { createMuiTheme } from './lib/muiTheme';
 import Sidebar from './components/Sidebar';
@@ -30,6 +31,7 @@ import ConflictModal from './components/ui/ConflictModal';
 import PassphraseModal from './components/ui/PassphraseModal';
 import { getCurrentWindow, type CloseRequestedEvent } from '@tauri-apps/api/window';
 import { getLatestLibraryJson } from './lib/libraryStore';
+import { subscribePagesChanged } from './lib/recentsEvents';
 import * as api from './lib/commands';
 
 // Register window close handler at app level so it survives route changes
@@ -55,6 +57,7 @@ function AppContent() {
   const vault = useStore(s => s.vault);
   const loading = useStore(s => s.loading);
   const error = useStore(s => s.error);
+  const persistentError = useStore(s => s.persistentError);
   const loadVault = useStore(s => s.loadVault);
   const loadPages = useStore(s => s.loadPages);
   const { isMobile } = useResponsive();
@@ -102,8 +105,35 @@ function AppContent() {
   useEffect(() => {
     if (vault) {
       loadPages();
+      // Seed the recents store from the canonical page list on initial vault
+      // load so the sidebar "Recent" list renders immediately (the store
+      // normally populates through the debounced refresh on events).
+      useRecentsStore.getState().refresh();
     }
   }, [vault, loadPages]);
+
+  // Subscribe to backend "pages changed" events (external file-watcher
+  // changes) and route them into the recents store's debounced refresh. The
+  // store coalesces bursts, so a sync/git pull unleashing many watcher events
+  // collapses into a single reload without churn.
+  useEffect(() => {
+    if (!vault) return;
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    subscribePagesChanged(() => {
+      useRecentsStore.getState().refresh();
+    }).then((fn) => {
+      if (cancelled) {
+        fn();
+      } else {
+        unlisten = fn;
+      }
+    });
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [vault]);
 
   if (loading && !vault) {
     return (
@@ -120,7 +150,7 @@ function AppContent() {
 
   if (isMobile) {
     return (
-      <MobileLayout error={error}>
+      <MobileLayout error={error} persistentError={persistentError}>
         <Routes>
           <Route path="/" element={<Navigate to="/journal" replace />} />
           <Route path="/journal" element={<ErrorBoundary><JournalPanel /></ErrorBoundary>} />
@@ -159,8 +189,15 @@ function AppContent() {
     <Box sx={{ display: 'flex', height: '100vh', width: '100vw', bgcolor: 'background.default', color: 'text.primary' }} className="safe-area-container">
       <Sidebar />
       <Box component="main" sx={{ flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }} className="safe-area-main">
-        {error && (
-          <Alert severity="error" sx={{ borderRadius: 0, flexShrink: 0 }}>{error}</Alert>
+        {(persistentError || error) && (
+          <ErrorAlert
+            message={(persistentError ?? error)!.message}
+            onClose={() => {
+              const target = persistentError ?? error;
+              if (target) useStore.getState().dismissError(target.id);
+            }}
+            sx={{ flexShrink: 0 }}
+          />
         )}
         <Box sx={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
           <Routes>

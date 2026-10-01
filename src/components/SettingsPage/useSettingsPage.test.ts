@@ -51,6 +51,7 @@ const SETTINGS = {
     alpha_decay: 0.12,
     velocity_decay: 0.6,
     link_curvature: 0,
+    use_3d: false,
   },
   sync: {
     mode: 'manual',

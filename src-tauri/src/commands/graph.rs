@@ -3,15 +3,14 @@
 use crate::commands::vault::AppState;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
-use std::sync::Mutex;
-use std::sync::OnceLock;
+use std::sync::{Arc, Mutex, OnceLock};
 use tracing::{debug, info};
 
 /// In-memory cache for graph panel data, keyed by vault path so concurrent
 /// vaults (multiple windows, tests running in parallel) never observe each
 /// other's graphs. Invalidated per-vault by `invalidate_graph_cache()` after
 /// any page/block mutation; a full `clear_graph_cache()` drops all entries.
-static GRAPH_CACHE: OnceLock<Mutex<HashMap<String, GraphPanelDataDto>>> = OnceLock::new();
+static GRAPH_CACHE: OnceLock<Mutex<HashMap<String, Arc<GraphPanelDataDto>>>> = OnceLock::new();
 
 /// Clear the in-memory cache for a specific vault.
 /// Call this after any page or block mutation in that vault so the next graph
@@ -85,8 +84,12 @@ struct AdjacencyList {
     connected: HashSet<String>,
 }
 
-/// Build a shared adjacency structure from all blocks in a single pass.
-/// Used by graph, connected components, and orphan derivation to avoid triple-scanning blocks.
+/// Build a shared adjacency structure from the authoritative `links` table.
+/// Used by graph, connected components, and orphan derivation to avoid triple-scanning.
+///
+/// The `links` table is populated by `reconcile_page_links` on every block/page write
+/// and self-healed at boot (`sync_filesystem_to_db`), so graph edges are read directly
+/// from it instead of re-reading and re-parsing every block's content on each load.
 fn build_adjacency_list(
     meta: &PageMetaIndex,
     store: &pkm_block::BlockStore,
@@ -96,49 +99,56 @@ fn build_adjacency_list(
     let mut adjacency: HashMap<String, Vec<String>> = HashMap::new();
     let mut connected: HashSet<String> = HashSet::new();
 
-    // Batch-load all blocks for all pages in a single query instead of N+1
-    let page_paths: Vec<String> = meta.slug_to_path.values().cloned().collect();
-    let blocks_by_page = store
-        .get_blocks_by_pages(&page_paths)
-        .map_err(|e| e.to_string())?;
+    // The `links` table is the authoritative graph-edge source: every write path
+    // (`save_blocks`, `save_page`, `sync_page_from_disk`, reindex, marker ops)
+    // reconciles it transactionally, and boot-time backfill (`sync_filesystem_to_db`)
+    // heals any pre-existing vault that predates that wiring. So the graph path is a
+    // pure read here — no re-reading/re-parsing block content, and no per-read heal
+    // (which would not converge for pages that legitimately have zero links).
+    let edges = store.get_page_ref_edges().map_err(|e| e.to_string())?;
 
-    for (slug, page_path) in &meta.slug_to_path {
-        if let Some(blocks) = blocks_by_page.get(page_path) {
-            for block in blocks {
-                let links = pkm_markdown::linker::extract_links(&block.content);
-                for link in links {
-                    let target_slug = meta.resolve_slug(&link.target);
-                    if let Some(target) = target_slug {
-                        // Include all resolved links including self-links
-                        outgoing
-                            .entry(slug.clone())
-                            .or_default()
-                            .push(GraphEdgeDto {
-                                source: slug.clone(),
-                                target: target.clone(),
-                                label: link.display_text.clone(),
-                            });
-                        // Degree: source always +1, target +1 only if different
-                        *degree.entry(slug.clone()).or_default() += 1;
-                        if target != *slug {
-                            *degree.entry(target.clone()).or_default() += 1;
-                        }
-                        // Bidirectional adjacency for BFS (self-links are harmless)
-                        adjacency
-                            .entry(slug.clone())
-                            .or_default()
-                            .push(target.clone());
-                        adjacency
-                            .entry(target.clone())
-                            .or_default()
-                            .push(slug.clone());
-                        // Track which slugs have any connection (for orphan detection)
-                        connected.insert(slug.clone());
-                        connected.insert(target);
-                    }
-                }
-            }
+    for (src_path, target_ref) in &edges {
+        let Some(source_slug) = meta.slug_for_path(src_path) else {
+            continue;
+        };
+        // Resolve the stored target against the CURRENT page set — the historical
+        // graph semantic. A target that was written as raw `[[Text]]` (because the
+        // page did not exist at write time) resolves once that page exists; dead
+        // targets (never a page) resolve to nothing and are dropped.
+        let target_slug = meta
+            .slug_for_path(target_ref)
+            .or_else(|| meta.resolve_slug(target_ref));
+        let Some(target_slug) = target_slug else {
+            continue;
+        };
+
+        outgoing
+            .entry(source_slug.clone())
+            .or_default()
+            .push(GraphEdgeDto {
+                source: source_slug.clone(),
+                target: target_slug.clone(),
+                label: None, // not consumed by the frontend; reserved
+            });
+
+        // Degree: source always +1, target +1 only if different (self-links never double-count)
+        *degree.entry(source_slug.clone()).or_default() += 1;
+        if target_slug != *source_slug {
+            *degree.entry(target_slug.clone()).or_default() += 1;
         }
+
+        // Bidirectional adjacency for BFS (self-links are harmless)
+        adjacency
+            .entry(source_slug.clone())
+            .or_default()
+            .push(target_slug.clone());
+        adjacency
+            .entry(target_slug.clone())
+            .or_default()
+            .push(source_slug.clone());
+
+        connected.insert(source_slug.clone());
+        connected.insert(target_slug.clone());
     }
 
     Ok(AdjacencyList {
@@ -333,7 +343,7 @@ pub async fn get_orphaned_notes(
 #[tauri::command]
 pub async fn get_graph_panel_data(
     state: tauri::State<'_, AppState>,
-) -> Result<GraphPanelDataDto, String> {
+) -> Result<Arc<GraphPanelDataDto>, String> {
     let vault_path_str = {
         let s = state.lock().map_err(|e| e.to_string())?;
         s.vault_path.to_string_lossy().to_string()
@@ -347,7 +357,8 @@ pub async fn get_graph_panel_data(
         .get(&vault_path_str)
     {
         info!("Returning cached graph data");
-        return Ok(cached.clone());
+        // Cheap Arc clone — the DTO is immutable once cached, so no deep copy.
+        return Ok(Arc::clone(cached));
     }
 
     let db_path = {
@@ -373,18 +384,19 @@ pub async fn get_graph_panel_data(
     .map_err(|e| e.to_string())?;
     let (graph, components, orphans) = result?;
 
-    let panel_data = GraphPanelDataDto {
+    let panel_data = Arc::new(GraphPanelDataDto {
         graph,
         components,
         orphans,
-    };
+    });
 
-    // Cache the result (keyed by vault path)
+    // Cache the result (keyed by vault path) — store the Arc so cache hits only
+    // do a cheap Arc clone instead of deep-copying the (potentially multi-MB) DTO.
     if let Ok(mut cache) = GRAPH_CACHE
         .get_or_init(|| Mutex::new(HashMap::new()))
         .lock()
     {
-        cache.insert(cache_key, panel_data.clone());
+        cache.insert(cache_key, Arc::clone(&panel_data));
     }
 
     debug!(
@@ -436,6 +448,7 @@ pub async fn resolve_link_target(
 /// Eliminates duplicated map-building across graph, connected components, orphans, and link resolution.
 struct PageMetaIndex {
     slug_to_path: HashMap<String, String>,
+    path_to_slug: HashMap<String, String>,
     slug_to_title: HashMap<String, String>,
     slug_to_tags: HashMap<String, Vec<String>>,
     title_to_slug: HashMap<String, String>,
@@ -445,6 +458,7 @@ impl PageMetaIndex {
     fn from_store(store: &pkm_block::BlockStore) -> Result<Self, String> {
         let paths = store.list_pages().map_err(|e| e.to_string())?;
         let mut slug_to_path = HashMap::new();
+        let mut path_to_slug = HashMap::new();
         let mut slug_to_title = HashMap::new();
         let mut slug_to_tags = HashMap::new();
         let mut title_to_slug = HashMap::new();
@@ -455,6 +469,7 @@ impl PageMetaIndex {
         for path in &paths {
             let slug = slug_from_path(path);
             slug_to_path.insert(slug.clone(), path.clone());
+            path_to_slug.insert(path.clone(), slug.clone());
 
             let title = pages
                 .get(path)
@@ -469,10 +484,18 @@ impl PageMetaIndex {
 
         Ok(Self {
             slug_to_path,
+            path_to_slug,
             slug_to_title,
             slug_to_tags,
             title_to_slug,
         })
+    }
+
+    /// Reverse lookup: canonical page path → slug. The `links` table stores
+    /// canonical page paths (as written by `reconcile_page_links`), so graph
+    /// edge sources/targets from the links table are resolved to slugs here.
+    fn slug_for_path(&self, path: &str) -> Option<String> {
+        self.path_to_slug.get(path).cloned()
     }
 
     fn resolve_slug(&self, target: &str) -> Option<String> {
@@ -538,6 +561,15 @@ mod tests {
 
         let block = Block::new(Uuid::new_v4(), format!("Self reference [[{}]]", slug));
         store.insert_block(&block, &rel_path).unwrap();
+        // Reproduce the production write path: the graph reads edges from the
+        // `links` table (authoritative), so reconcile this page's wiki-links the
+        // way the command write paths do.
+        crate::commands::page::reconcile_page_links(
+            &store,
+            &rel_path,
+            std::slice::from_ref(&block),
+        )
+        .unwrap();
 
         let data = build_graph_data_from_store(&store, "/tmp/test-vault").unwrap();
 
@@ -564,9 +596,21 @@ mod tests {
 
         let block_a = Block::new(Uuid::new_v4(), "[[page-a]]".into());
         store.insert_block(&block_a, "pages/page-a.md").unwrap();
+        crate::commands::page::reconcile_page_links(
+            &store,
+            "pages/page-a.md",
+            std::slice::from_ref(&block_a),
+        )
+        .unwrap();
 
         let block_b = Block::new(Uuid::new_v4(), "[[page-a]]".into());
         store.insert_block(&block_b, "pages/page-b.md").unwrap();
+        crate::commands::page::reconcile_page_links(
+            &store,
+            "pages/page-b.md",
+            std::slice::from_ref(&block_b),
+        )
+        .unwrap();
 
         let components = get_connected_components_from_store(&store).unwrap();
 

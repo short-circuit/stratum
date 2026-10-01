@@ -1,0 +1,42 @@
+[
+  {
+    "l": "boot",
+    "p": true,
+    "d": ""
+  },
+  {
+    "l": "editor loads with ProseMirror",
+    "p": true,
+    "d": "{\"path\":\"/page/notes%2Ff1-editor.md\"}"
+  },
+  {
+    "l": "fixture content rendered",
+    "p": true,
+    "d": "\"F1 Editor Test\\nWelcome. This references Alpha Project and mentions Beta Notes in plain text.\\nship the f1 mission\\ncomplet\""
+  },
+  {
+    "l": "get_blocks reachable",
+    "p": true,
+    "d": "{\"cnt\":4}"
+  },
+  {
+    "l": "markers present (TODO/DONE)",
+    "p": true,
+    "d": "[\"TODO\",\"DONE\"]"
+  },
+  {
+    "l": "save_blocks applies a live edit",
+    "p": true,
+    "d": "{\"ok\":true}"
+  },
+  {
+    "l": "live edit persisted to disk",
+    "p": true,
+    "d": ""
+  },
+  {
+    "l": "frontmatter tag preserved on save (tags block form)",
+    "p": true,
+    "d": "---|title: F1 Editor Test|tags:|- project|- editor|---||- F1"
+  }
+]

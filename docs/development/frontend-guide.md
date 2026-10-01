@@ -37,6 +37,7 @@ src/
 │   ├── muiTheme.ts          # MUI Theme creation from config
 │   ├── wikiLinks.ts         # Wiki-link parsing/serialization
 │   ├── libraryStore.ts      # Module-level library JSON cache
+│   ├── recentsEvents.ts     # Backend "pages changed" → recents refresh bridge
 │   ├── useCtrlHeld.ts       # Hook: Ctrl/Meta key tracking
 │   ├── useMathInline.tsx    # Hook: ProseMirror inline KaTeX plugin
 │   └── hooks/
@@ -49,7 +50,8 @@ src/
 │   ├── appStore.ts          # Core Zustand store
 │   ├── settingsStore.ts     # Theme + AI + sync config
 │   ├── graphStore.ts        # Graph data + settings
-│   └── syncStore.ts         # Sync status + commits
+│   ├── syncStore.ts         # Sync status + commits
+│   └── recentsStore.ts      # Sidebar "Recent" list + debounced refresh
 ├── components/
 │   ├── ui/                  # Reusable UI primitives
 │   ├── Sidebar/
@@ -124,7 +126,7 @@ Components **never** call `invoke()` directly — always through `commands.ts`. 
 
 ### Zustand Stores
 
-Stratum uses four domain-specific Zustand stores, each in `src/stores/`:
+Stratum uses five domain-specific Zustand stores, each in `src/stores/`:
 
 #### `appStore` — Core Application State
 
@@ -206,11 +208,35 @@ Manages user preferences including theme colors, AI provider settings, research 
 
 #### `graphStore` — Graph Data and View Settings
 
-Holds the node/edge data for the force-directed graph, connected components, orphans, and interactive settings (repulsion, link distance, visibility toggles).
+Holds the node/edge data for the force-directed graph, connected components, orphans, and interactive settings (repulsion, link distance, visibility toggles, mobile 3D opt-in).
+
+##### 3D capability detection
+
+`src/lib/graph3d.ts` provides `detectGraph3dSupport()`, which reports whether the current device can render the 3D graph (WebGL availability and RAM/core constraints). It is used by the mobile graph variant to fall back to the 2D force layout on constrained devices. See `docs/guide/graph-view.md`.
 
 #### `syncStore` — Git Sync Status
 
 Tracks sync state (idle/syncing/error), commit log, and conflict resolution state.
+
+#### `recentsStore` — Sidebar "Recent" List
+
+Holds the recent-pages list shown in the sidebar and exposes a single **debounced** `refresh()` entry point. `refresh()` reloads from the canonical source (`list_pages`, which orders by `modified_at DESC`), drops the `journals/` namespace, and only publishes a new list when the derived data actually changed — so event sources can call it freely without causing churn or disturbing user scroll/selection. Rapid successive triggers coalesce into a single reload within `RECENTS_DEBOUNCE_MS` (500ms trailing).
+
+```typescript
+// event source (autosave, page ops, watcher)
+import { useRecentsStore } from '../stores/recentsStore';
+useRecentsStore.getState().refresh();
+```
+
+Derivation is exposed as pure functions (`deriveRecents`, `isRecentPage`, `sameRecents`) for unit testing without IPC.
+
+**Event wiring.** The store is kept current by the event sources listed below; no manual refresh is needed:
+
+- **Editor autosave/edit** — `OutlinerEditor`'s save path calls `useRecentsStore.getState().refresh()`.
+- **Page create/open/delete** — the `appStore` actions (`createPage`, `openPage`, `deletePage`) call `refresh()` after the command succeeds, and the two dead-link "create page" entry points in the editors do the same.
+- **Watcher / external changes** — the backend file watcher emits a `pages-changed` Tauri event after it syncs an external `.md` change into the block store; `src/lib/recentsEvents.ts` bridges that event into `refresh()` (subscribed at app level in `App.tsx` when a vault is present).
+
+All paths converge on the store's debounced `refresh()`, so bursts (a git pull hitting many files, rapid typing) collapse into a single reload.
 
 ### Async Data Flow Pattern
 
@@ -252,7 +278,7 @@ The `ui/` directory holds reusable, presentation-only components. They have no b
 |-----------|-------|---------|
 | `LoadingOverlay` | `message?`, `overlay?` | Centered spinner, absolute overlay or inline |
 | `AILoadingOverlay` | `loading: boolean`, `message?` | Fullscreen portal overlay for AI operations |
-| `ErrorAlert` | `message`, `onDismiss?` | Dismissable error Alert |
+| `ErrorAlert` | `message`, `onClose?` | Dismissable error Alert |
 | `EmptyState` | `icon?`, `message`, `description?`, `actionLabel?`, `onAction?` | Centered empty state with optional CTA |
 | `PageHeader` | `title`, `actions?`, `onBack?` | Consistent header bar |
 | `ConfirmDialog` | `open`, `title`, `message`, `onConfirm`, `onCancel` | Confirmation dialog |
