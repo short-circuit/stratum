@@ -3,7 +3,9 @@ pub mod commands;
 use commands::vault::{AppState, VaultState};
 use std::path::PathBuf;
 use std::sync::Mutex;
-use tauri::{Emitter, Manager};
+#[cfg(not(target_os = "android"))]
+use tauri::Emitter;
+use tauri::Manager;
 
 fn resolve_default_vault_path(_app: &tauri::AppHandle) -> PathBuf {
     #[cfg(target_os = "android")]
