@@ -61,7 +61,7 @@ cpal = "0.16"
 flacenc = "0.5"
 claxon = "0.4"
 hound = "3.5"
-base64 = "0.22"
+base64 = "0.23"
 
 # Validation
 url = "2"
