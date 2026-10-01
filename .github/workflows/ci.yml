@@ -214,7 +214,7 @@ jobs:
 
       - name: Upload E2E artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-harness-artifacts
           path: |
@@ -249,7 +249,7 @@ jobs:
         run: npm run build
 
       - name: Upload frontend build for release
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-dist
           path: dist/
@@ -344,7 +344,7 @@ jobs:
           fi
 
       - name: Upload bundles
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact_name }}
           path: |
@@ -356,7 +356,7 @@ jobs:
 
       - name: Upload build log
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact_name }}-log
           path: ${{ runner.temp }}/tauri-build.log
@@ -538,7 +538,7 @@ jobs:
 
       - name: Upload Android release artifacts
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android
           path: |
@@ -549,7 +549,7 @@ jobs:
 
       - name: Upload Android debug APK
         if: github.event_name == 'pull_request' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/'))
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-debug-apk
           path: src-tauri/gen/android/**/*.apk
@@ -558,7 +558,7 @@ jobs:
 
       - name: Upload build log
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-log
           path: ${{ runner.temp }}/tauri-build.log
@@ -639,7 +639,7 @@ jobs:
 
       - name: Upload smoke-test evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-smoke-evidence
           path: android-smoke-evidence/
@@ -729,7 +729,7 @@ jobs:
 
       - name: Upload iOS simulator app (PRs / pushes)
         if: github.event_name == 'pull_request' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/'))
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios-sim-app
           path: src-tauri/gen/apple/build/**/*.zip
@@ -738,7 +738,7 @@ jobs:
 
       - name: Upload iOS artifact (tags)
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios
           path: src-tauri/gen/apple/build/**/*.zip
@@ -747,7 +747,7 @@ jobs:
 
       - name: Upload build log
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios-log
           path: ${{ runner.temp }}/tauri-build.log
