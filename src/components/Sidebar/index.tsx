@@ -9,6 +9,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '../../stores/appStore';
+import { useRecentsStore } from '../../stores/recentsStore';
 import * as api from '../../lib/commands';
 import StratumIcon from '../StratumIcon';
 import NavItemList, { type TabId } from './NavItemList';
@@ -20,9 +21,15 @@ const DRAWER_WIDTH = 224;
 const DRAWER_COLLAPSED = 52;
 
 export default function Sidebar() {
-  const { pages, vault, loadPages, createPage, deletePage } = useStore(useShallow(
-    s => ({ pages: s.pages, vault: s.vault, loadPages: s.loadPages, createPage: s.createPage, deletePage: s.deletePage }),
+  const { vault, loadPages, createPage, deletePage } = useStore(useShallow(
+    s => ({ vault: s.vault, loadPages: s.loadPages, createPage: s.createPage, deletePage: s.deletePage }),
   ));
+  // The sidebar "Recent" list is backed by the recents store: it is the
+  // canonical, debounced, journal-filtered source of recent pages and is
+  // refreshed automatically by the event wiring (autosave, page ops,
+  // watcher). The store applies the same journal exclusion + ordering the
+  // list previously derived ad hoc from the full page list.
+  const recents = useRecentsStore(s => s.recents);
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -130,7 +137,7 @@ export default function Sidebar() {
 
       <Box sx={{ overflow: 'auto', flex: 1 }}>
         <PageTree
-          pages={pages}
+          pages={recents}
           collapsed={collapsed}
           showNew={showNew}
           newPath={newPath}

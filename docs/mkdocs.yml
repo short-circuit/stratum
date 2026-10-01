@@ -103,11 +103,13 @@ nav:
     - guide/git-sync.md
     - guide/export.md
     - guide/plugins.md
+    - guide/mcp-server.md
   - CLI Reference:
     - cli/command-reference.md
   - Advanced:
     - advanced/file-format.md
     - advanced/plugins.md
+    - advanced/mcp-deployment.md
   - Contributing: contributing.md
   - Development:
     - development/frontend-guide.md
@@ -116,3 +118,7 @@ nav:
     - development/branch-policy.md
     - ADR-0004 WASM Plugin ABI:
       - development/adr/0004-wasm-plugin-abi.md
+    - ADR-0005 MCP Server Contract:
+      - development/adr/0005-mcp-server-contract.md
+    - ADR-0006 MCP Server Threat Model:
+      - development/adr/0006-mcp-threat-model.md

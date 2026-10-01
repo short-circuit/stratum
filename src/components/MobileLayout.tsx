@@ -1,8 +1,11 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import MobileNav from './MobileNav';
+import ErrorAlert from './ui/ErrorAlert';
+import { useStore, type AppError } from '../stores/appStore';
 
 interface MobileLayoutProps {
-  error: string | null;
+  error: AppError | null;
+  persistentError: AppError | null;
   children: React.ReactNode;
 }
 
@@ -17,7 +20,7 @@ const SAFE_AREA_TOP = 'var(--safe-area-top, 0px)';
 const TOP_BAR_HEIGHT = 48;
 const BOTTOM_NAV_HEIGHT = 56;
 
-export default function MobileLayout({ error, children }: MobileLayoutProps) {
+export default function MobileLayout({ error, persistentError, children }: MobileLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -38,9 +41,13 @@ export default function MobileLayout({ error, children }: MobileLayoutProps) {
   else if (location.pathname.startsWith('/plugins')) title = 'Plugins';
   else if (location.pathname.startsWith('/settings')) title = 'Settings';
 
-  // Content area begins below the top bar (offset by the safe-area inset)
-  // plus the error banner when one is shown.
-  const contentTop = TOP_BAR_HEIGHT + (error ? 40 : 0);
+  // Persistent errors take visual precedence; transient errors are dismissed
+  // automatically and only shift content while visible. The content area
+  // begins below the top bar (offset by the safe-area inset) plus the error
+  // banner when one is shown.
+  const visibleError = persistentError ?? error;
+  const visible = Boolean(visibleError);
+  const contentTop = TOP_BAR_HEIGHT + (visible ? 40 : 0);
 
   return (
     <div style={{ position: 'relative', height: '100vh', width: '100%', maxWidth: '100vw', backgroundColor: 'inherit', overflow: 'hidden' }}>
@@ -55,9 +62,12 @@ export default function MobileLayout({ error, children }: MobileLayoutProps) {
         </span>
       </div>
 
-      {error && (
+      {visibleError && (
         <div style={{ position: 'absolute', top: `calc(${SAFE_AREA_TOP} + ${TOP_BAR_HEIGHT}px)`, left: 0, right: 0, zIndex: 1090 }}>
-          <div style={{ padding: '8px 16px', backgroundColor: '#fdeded', color: '#5f2120', borderRadius: 0, fontSize: 14 }}>{error}</div>
+          <ErrorAlert
+            message={visibleError.message}
+            onClose={() => useStore.getState().dismissError(visibleError.id)}
+          />
         </div>
       )}
 

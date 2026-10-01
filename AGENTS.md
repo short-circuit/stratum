@@ -64,6 +64,8 @@ stratum/
 │   ├── pkm-dictation/          # Voice dictation: transcribe, summarize, render
 │   ├── pkm-index/              # Backlinks, graph, search (Tantivy)
 │   ├── pkm-markdown/           # Block-based markdown parser + serializer
+│   ├── pkm-mcp/                # MCP server exposing the KB to external AI clients (stdio + Streamable HTTP)
+│   ├── pkm-mcp-security/       # Security controls for the MCP server (PAT hashing, scope, rate limit)
 │   ├── pkm-plugin/             # WASM plugin runtime
 │   ├── pkm-query/              # Datalog query engine
 │   ├── pkm-stt/                # Speech-to-text, diarization, speaker recognition
@@ -123,6 +125,8 @@ stratum/
 │   │   ├── DictationPanel.tsx
 │   │   ├── AutocompletePopup.tsx
 │   │   ├── LinkPreviewPopup.tsx
+│   │   ├── BacklinkSnippetBody.tsx
+│   │   ├── BacklinkSnippetPopup.tsx
 │   │   ├── MathEditorModal.tsx
 │   │   ├── MathSymbolPalette.tsx
 │   │   ├── MermaidBlock.tsx
@@ -216,6 +220,8 @@ pkm-sync       →  pkm-core, pkm-markdown
 pkm-watcher    →  pkm-core, pkm-markdown, pkm-index
 pkm-ai         →  pkm-core, pkm-index
 pkm-plugin     →  pkm-core
+pkm-mcp        →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query
+pkm-mcp-security →  (standalone security primitives)
 pkm-cli        →  pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
 src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm-sync, pkm-watcher, pkm-ai
 ```
@@ -242,6 +248,7 @@ React app uses **Zustand** for state. Domain-specific stores in `src/stores/`:
 - **settingsStore** — theme, AI, research, sync configuration
 - **graphStore** — graph data, connected components, orphans, graph settings
 - **syncStore** — sync status, commit log, conflict state
+- **navigationStore** — modifier-click navigation state (source-editor scroll restore on return; session-scoped)
 
 All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rust command → crate logic.
 
@@ -268,7 +275,9 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | Component | Parent | Purpose |
 |-----------|--------|---------|
 | `OutlinerEditor` | `PageView` | BlockNote-based outliner with auto-save, markers, wiki-links — decomposed into `index.tsx` + `dtoConverters.ts` + `markerDetection.ts` |
-| `BacklinksPanel` | `PageView` | Linked references + unlinked mentions + hover preview |
+| `BacklinksPanel` | `PageView` | Linked references + unlinked mentions + hover preview; Ctrl+hover snippet popup + Ctrl+click navigation via `useBacklinkNavigation` |
+| `BacklinkSnippetBody` | `BacklinksPanel` | Renders backlinked block snippet (title, context, anchor highlight, loading/error) |
+| `BacklinkSnippetPopup` | `BacklinksPanel` (desktop) | Viewport-clamped popup for the backlink snippet (Ctrl+hover) |
 | `SuggestedConnectionsPanel` | `PageView` | AI-suggested wiki-link connections |
 | `MermaidBlock` | `OutlinerEditor` | Custom BlockNote block for Mermaid diagrams |
 | `AISlashMenu` | `OutlinerEditor` | Slash menu with AI actions (rewrite, summarize, etc.) |

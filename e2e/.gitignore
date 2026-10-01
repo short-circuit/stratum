@@ -1,3 +1,6 @@
 test-results/
 playwright-report/
 playwright/.cache/
+# Exploratory debug probes (one-off QA scratch)
+probe-*.mjs
+repro-*.mjs

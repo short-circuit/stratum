@@ -218,6 +218,11 @@ pub struct AiConfig {
     /// first response" (recommended; some providers expose variable or
     /// version-pinned dimensions).
     pub embedding_dimensions: usize,
+    /// Reuse the main LLM gateway endpoint and auth for RAG embedding/chat
+    /// instead of a separate endpoint/api_key. Off by default; additive so
+    /// existing configs remain valid.
+    #[serde(default)]
+    pub use_llm_gateway_and_auth: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -230,13 +235,14 @@ impl Default for AiConfig {
     fn default() -> Self {
         Self {
             provider: AiProvider::Ollama,
-            endpoint: Some("http://localhost:11434".to_string()),
+            endpoint: None,
             api_key: None,
             model: "llama3.2".to_string(),
             models: Vec::new(),
             rag_enabled: true,
             rag_chunk_count: 5,
             embedding_dimensions: 0,
+            use_llm_gateway_and_auth: false,
         }
     }
 }
@@ -255,7 +261,39 @@ impl AiConfig {
             AiProvider::Google => "GOOGLE_API_KEY",
             _ => return self.api_key.clone(),
         };
-        std::env::var(env_var).ok().or_else(|| self.api_key.clone())
+        std::env::var(env_var)
+            .ok()
+            .map(|k| k.trim().to_string())
+            .filter(|k| !k.is_empty())
+            .or_else(|| self.api_key.clone())
+    }
+
+    /// Resolve the effective API endpoint for this provider.
+    ///
+    /// Mirrors the per-provider defaults in `pkm_ai::provider::ProviderFactory`
+    /// so every consumer (chat, embedding, TTS, model fetch) resolves the same
+    /// endpoint from a single code path. Returns `None` only when no endpoint
+    /// is configured and the provider has no documented default.
+    pub fn effective_endpoint(&self) -> Option<String> {
+        let configured = self
+            .endpoint
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty());
+        configured
+            .map(str::to_string)
+            .or_else(|| match self.provider {
+                AiProvider::Ollama => Some("http://localhost:11434".to_string()),
+                AiProvider::OpenAI => Some("https://api.openai.com/v1".to_string()),
+                AiProvider::Anthropic => Some("https://api.anthropic.com".to_string()),
+                AiProvider::Custom => Some("http://localhost:8080/v1/chat/completions".to_string()),
+                AiProvider::CustomOpenAI => Some("http://localhost:8080/v1".to_string()),
+                AiProvider::CustomAnthropic => Some("https://api.anthropic.com".to_string()),
+                AiProvider::Google => {
+                    Some("https://generativelanguage.googleapis.com/v1beta".to_string())
+                }
+                AiProvider::Zai => Some("https://api.z.ai".to_string()),
+            })
     }
 }
 
@@ -298,6 +336,11 @@ pub struct SttConfig {
     pub auto_summarize: bool,
     /// Attempt to auto-identify speakers against the enrolled voice registry.
     pub auto_identify: bool,
+    /// Reuse the main LLM gateway endpoint and auth for transcription instead
+    /// of a separate endpoint/api_key. Off by default; additive so existing
+    /// configs remain valid.
+    #[serde(default)]
+    pub use_llm_gateway_and_auth: bool,
 }
 
 impl Default for SttConfig {
@@ -311,7 +354,23 @@ impl Default for SttConfig {
             diarize: true,
             auto_summarize: true,
             auto_identify: true,
+            use_llm_gateway_and_auth: false,
         }
+    }
+}
+
+impl SttConfig {
+    /// Returns the STT API key, preferring the `STRATUM_STT_API_KEY`
+    /// environment variable over the config file value.
+    ///
+    /// Mirrors `AiConfig::effective_api_key` for the dictation pipeline so a
+    /// shared secret never has to live in the vault's `config.toml`.
+    pub fn effective_api_key(&self) -> Option<String> {
+        std::env::var("STRATUM_STT_API_KEY")
+            .ok()
+            .map(|k| k.trim().to_string())
+            .filter(|k| !k.is_empty())
+            .or_else(|| self.api_key.clone())
     }
 }
 
@@ -335,6 +394,11 @@ pub struct TtsConfig {
     pub format: String,
     /// Playback speed multiplier (0.25–4.0).
     pub speed: f32,
+    /// Reuse the main LLM gateway endpoint and auth for synthesis instead of
+    /// a separate endpoint/api_key. Off by default; additive so existing
+    /// configs remain valid.
+    #[serde(default)]
+    pub use_llm_gateway_and_auth: bool,
 }
 
 impl Default for TtsConfig {
@@ -345,6 +409,7 @@ impl Default for TtsConfig {
             voice: "alloy".to_string(),
             format: "mp3".to_string(),
             speed: 1.0,
+            use_llm_gateway_and_auth: false,
         }
     }
 }
@@ -361,6 +426,11 @@ pub struct GraphConfig {
     pub alpha_decay: f64,
     pub velocity_decay: f64,
     pub link_curvature: f64,
+    /// Render the graph in 3D. Desktop always renders 3D regardless of this
+    /// flag; on mobile this is the opt-in that switches the graph from the 2D
+    /// force layout to the 3D one. The frontend additionally falls back to 2D
+    /// automatically when the device cannot render WebGL (see src/lib/graph3d.ts).
+    pub use_3d: bool,
 }
 
 impl Default for GraphConfig {
@@ -378,6 +448,8 @@ impl Default for GraphConfig {
             alpha_decay: 0.02,
             velocity_decay: 0.4,
             link_curvature: 0.15,
+            // Mobile ships 2D by default; desktop ignores this flag (always 3D).
+            use_3d: false,
         }
     }
 }
@@ -596,6 +668,80 @@ mod tests {
         assert_eq!(ai.provider, AiProvider::Ollama);
         assert_eq!(ai.model, "llama3.2");
         assert!(ai.rag_enabled);
+        assert!(!ai.use_llm_gateway_and_auth, "default must be disabled");
+    }
+
+    #[test]
+    fn test_use_llm_gateway_and_auth_defaults_false() {
+        let dir = TempDir::new().unwrap();
+        let config_path = dir.path().join("config.toml");
+        // A config that predates the reuse-llm-gateway flags must still parse
+        // and default all of them to false.
+        std::fs::write(
+            &config_path,
+            "[theme]\ndark_mode = false\n\n[ai]\nmodel = \"llama3.2\"\n\n[stt]\nendpoint = \"http://127.0.0.1:8081\"\n\n[tts]\nvoice = \"onyx\"\n",
+        )
+        .unwrap();
+        let loaded = Config::load(&config_path).unwrap();
+        assert!(!loaded.ai.use_llm_gateway_and_auth);
+        assert!(!loaded.stt.use_llm_gateway_and_auth);
+        assert!(!loaded.tts.use_llm_gateway_and_auth);
+    }
+
+    #[test]
+    fn test_use_llm_gateway_and_auth_roundtrip() {
+        let dir = TempDir::new().unwrap();
+        let config_path = dir.path().join("config.toml");
+
+        let cfg = Config {
+            ai: AiConfig {
+                use_llm_gateway_and_auth: true,
+                ..Default::default()
+            },
+            stt: SttConfig {
+                use_llm_gateway_and_auth: true,
+                ..Default::default()
+            },
+            tts: TtsConfig {
+                use_llm_gateway_and_auth: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        cfg.save(&config_path).unwrap();
+
+        let loaded = Config::load(&config_path).unwrap();
+        assert!(loaded.ai.use_llm_gateway_and_auth);
+        assert!(loaded.stt.use_llm_gateway_and_auth);
+        assert!(loaded.tts.use_llm_gateway_and_auth);
+
+        // Round-trip the individual structs through TOML too.
+        let ai_json = toml::to_string(&AiConfig {
+            use_llm_gateway_and_auth: true,
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(ai_json.contains("use_llm_gateway_and_auth = true"));
+        let ai_loaded: AiConfig = toml::from_str(&ai_json).unwrap();
+        assert!(ai_loaded.use_llm_gateway_and_auth);
+
+        let stt_json = toml::to_string(&SttConfig {
+            use_llm_gateway_and_auth: true,
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(stt_json.contains("use_llm_gateway_and_auth = true"));
+        let stt_loaded: SttConfig = toml::from_str(&stt_json).unwrap();
+        assert!(stt_loaded.use_llm_gateway_and_auth);
+
+        let tts_json = toml::to_string(&TtsConfig {
+            use_llm_gateway_and_auth: true,
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(tts_json.contains("use_llm_gateway_and_auth = true"));
+        let tts_loaded: TtsConfig = toml::from_str(&tts_json).unwrap();
+        assert!(tts_loaded.use_llm_gateway_and_auth);
     }
 
     #[test]
@@ -723,17 +869,21 @@ mod tests {
     fn test_graph_config_link_curvature_default() {
         let cfg = GraphConfig::default();
         assert_eq!(cfg.link_curvature, 0.15);
+        // 3D is opt-in (mobile defaults to 2D).
+        assert!(!cfg.use_3d);
     }
 
     #[test]
     fn test_graph_config_serde_round_trip() {
         let cfg = GraphConfig {
             link_curvature: 0.3,
+            use_3d: true,
             ..Default::default()
         };
         let json = serde_json::to_string(&cfg).unwrap();
         let deserialized: GraphConfig = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.link_curvature, 0.3);
+        assert!(deserialized.use_3d);
     }
 
     #[test]
@@ -746,6 +896,97 @@ mod tests {
         assert_eq!(cfg.link_distance, 100.0);
         assert_eq!(cfg.alpha_decay, 0.02);
         assert_eq!(cfg.velocity_decay, 0.4);
+    }
+
+    #[test]
+    fn test_ai_config_effective_endpoint_configured_wins() {
+        // A configured endpoint always wins over the provider default.
+        let ai = AiConfig {
+            provider: AiProvider::OpenAI,
+            endpoint: Some("https://my-proxy.example/v1".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(
+            ai.effective_endpoint().as_deref(),
+            Some("https://my-proxy.example/v1")
+        );
+    }
+
+    #[test]
+    fn test_ai_config_effective_endpoint_per_provider_default() {
+        // With no endpoint set, each provider resolves its documented default
+        // (FM-1): an unset CustomOpenAI endpoint must NOT inherit the baked
+        // Ollama default.
+        let cases = [
+            (AiProvider::Ollama, "http://localhost:11434"),
+            (AiProvider::OpenAI, "https://api.openai.com/v1"),
+            (AiProvider::Anthropic, "https://api.anthropic.com"),
+            (AiProvider::CustomOpenAI, "http://localhost:8080/v1"),
+        ];
+        for (provider, expected) in cases {
+            let ai = AiConfig {
+                provider,
+                endpoint: None,
+                ..Default::default()
+            };
+            assert_eq!(
+                ai.effective_endpoint().as_deref(),
+                Some(expected),
+                "provider {provider:?}"
+            );
+        }
+        // The baked default must not leak a real Ollama URL either.
+        let custom_openai = AiConfig {
+            provider: AiProvider::CustomOpenAI,
+            ..Default::default()
+        };
+        assert_ne!(
+            custom_openai.effective_endpoint().as_deref(),
+            Some("http://localhost:11434")
+        );
+    }
+
+    #[test]
+    fn test_ai_config_effective_endpoint_ignores_whitespace() {
+        let ai = AiConfig {
+            provider: AiProvider::OpenAI,
+            endpoint: Some("   ".to_string()),
+            ..Default::default()
+        };
+        // A blank endpoint is treated as unset and falls back to the default.
+        assert_eq!(
+            ai.effective_endpoint().as_deref(),
+            Some("https://api.openai.com/v1")
+        );
+    }
+
+    #[test]
+    fn test_stt_config_effective_api_key_falls_back_to_config() {
+        // Unset env var → config file value is used.
+        unsafe { std::env::remove_var("STRATUM_STT_API_KEY") };
+        let stt = SttConfig {
+            api_key: Some("from-config".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(stt.effective_api_key().as_deref(), Some("from-config"));
+    }
+
+    #[test]
+    fn test_stt_config_effective_api_key_env_wins_and_empty_ignored() {
+        // Set a real value → env wins. Empty → treated as unset.
+        unsafe { std::env::set_var("STRATUM_STT_API_KEY", "from-env") };
+        let stt = SttConfig {
+            api_key: Some("from-config".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(stt.effective_api_key().as_deref(), Some("from-env"));
+
+        unsafe { std::env::set_var("STRATUM_STT_API_KEY", "   ") };
+        assert_eq!(
+            stt.effective_api_key().as_deref(),
+            Some("from-config"),
+            "whitespace-only env vars must not override the configured key"
+        );
     }
 
     #[test]

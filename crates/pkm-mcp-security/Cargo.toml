@@ -1,0 +1,21 @@
+[package]
+name = "pkm-mcp-security"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Security controls for the MCP server (Stratum-MCP): PAT hashing, scope enforcement, rate limiting, path containment, input/output hardening"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+sha2.workspace = true
+constant_time_eq.workspace = true
+base64.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lib]
+name = "pkm_mcp_security"
+path = "src/lib.rs"

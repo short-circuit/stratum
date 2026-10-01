@@ -76,13 +76,19 @@ pub trait Embedding: Send + Sync {
 ///
 /// Ollama exposes the OpenAI-compatible API on `{endpoint}/v1`; other
 /// providers are expected to already carry the `/v1` prefix in their
-/// configured endpoint, so the base URL is used untouched.
+/// configured endpoint, so the base URL is used untouched. Uses
+/// [`AiConfig::effective_endpoint`] so per-provider defaults resolve the
+/// same way as the chat provider (single source of truth).
 fn resolve_endpoint(ai: &AiConfig) -> String {
-    let base = ai.endpoint.as_deref().unwrap_or("").trim_end_matches('/');
-    if ai.provider == pkm_core::AiProvider::Ollama {
-        format!("{base}/v1")
+    if let Some(base) = ai.effective_endpoint() {
+        let base = base.trim_end_matches('/');
+        if ai.provider == pkm_core::AiProvider::Ollama {
+            format!("{base}/v1")
+        } else {
+            base.to_string()
+        }
     } else {
-        base.to_string()
+        String::new()
     }
 }
 
@@ -531,14 +537,17 @@ mod tests {
     }
 
     #[test]
-    fn from_ai_config_rejects_missing_endpoint() {
+    fn from_ai_config_resolves_default_endpoint_when_unset() {
+        // Unset endpoint must not be corrupted to a different provider's
+        // default (FM-1): CustomOpenAI resolves to its own documented
+        // default, not the baked Ollama one.
         let ai = AiConfig {
             provider: AiProvider::CustomOpenAI,
             endpoint: None,
             ..Default::default()
         };
-        let err = EmbeddingConfig::from_ai_config(&ai).unwrap_err();
-        assert!(err.to_string().contains("No AI endpoint"));
+        let cfg = EmbeddingConfig::from_ai_config(&ai).unwrap();
+        assert_eq!(cfg.endpoint, "http://localhost:8080/v1");
     }
 
     #[test]
@@ -550,6 +559,32 @@ mod tests {
         };
         let cfg = EmbeddingConfig::from_ai_config(&ai).unwrap();
         assert_eq!(cfg.endpoint, "https://api.openai.com/v1");
+    }
+
+    /// RAG/embedding always consume the main LLM gateway (`AiConfig`) directly —
+    /// there is no separate embedding endpoint to switch away from. The
+    /// `use_llm_gateway_and_auth` flag must therefore be a no-op here: both
+    /// flag states produce the exact same endpoint, key and model. This test
+    /// pins that contract so a future "separate embedding endpoint" feature
+    /// cannot change behavior without an explicit decision.
+    #[test]
+    fn from_ai_config_is_agnostic_to_use_llm_gateway_and_auth() {
+        let base = |flag: bool| AiConfig {
+            provider: AiProvider::CustomOpenAI,
+            endpoint: Some("https://api.example.com/v1".to_string()),
+            api_key: Some("sk-abc".to_string()),
+            model: "text-embedding-3-small".to_string(),
+            use_llm_gateway_and_auth: flag,
+            ..Default::default()
+        };
+
+        let on = EmbeddingConfig::from_ai_config(&base(true)).unwrap();
+        let off = EmbeddingConfig::from_ai_config(&base(false)).unwrap();
+        assert_eq!(on.endpoint, off.endpoint);
+        assert_eq!(on.api_key, off.api_key);
+        assert_eq!(on.model, off.model);
+        assert_eq!(on.endpoint, "https://api.example.com/v1");
+        assert_eq!(on.api_key.as_deref(), Some("sk-abc"));
     }
 
     #[test]

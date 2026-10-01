@@ -1,0 +1,55 @@
+# Dependabot: automated dependency update PRs.
+#
+# The supply-chain posture (ADR-0006) is:
+#   - `cargo audit` (strict) gates Rust in CI with a pinned baseline.
+#   - Dependabot opens bounded update PRs so the baseline shrinks over time
+#     instead of silently accumulating. Weekly cadence keeps PR noise low.
+#
+# The three known production npm 'high' advisories (transitive @blocknote/
+# @excalidraw pins) are prime candidates for these PRs — see the ADR.
+
+version: 2
+updates:
+  # ── Rust (crates.io) ───────────────────────────────────────────
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Zurich"
+    open-pull-requests-limit: 10
+    # Group routine bumps to cut CI load; security/critical updates are
+    # still opened individually by severity.
+    groups:
+      non-breaking:
+        applies-to: version-updates
+        update-types:
+          - "patch"
+          - "minor"
+
+  # ── npm (frontend) ─────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:30"
+      timezone: "Europe/Zurich"
+    open-pull-requests-limit: 10
+    groups:
+      non-breaking:
+        applies-to: version-updates
+        update-types:
+          - "patch"
+          - "minor"
+
+  # ── GitHub Actions ─────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Europe/Zurich"
+    open-pull-requests-limit: 5

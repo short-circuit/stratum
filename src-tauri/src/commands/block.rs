@@ -210,9 +210,9 @@ pub async fn get_blocks(
 ) -> Result<BlockListDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = state.get_store().map_err(|e| e.to_string())?;
-    let blocks = store
-        .get_blocks_by_page(&page_path)
-        .map_err(|e| e.to_string())?;
+    let blocks =
+        crate::commands::page::get_blocks_heal_from_disk(&store, &state.vault_path, &page_path)
+            .map_err(|e| e.to_string())?;
 
     let dtos: Vec<BlockDto> = blocks
         .into_iter()
@@ -345,11 +345,17 @@ pub async fn toggle_block_marker(
         store
             .delete_blocks_by_page(&page_path)
             .map_err(|e| e.to_string())?;
-        for b in tree.all_blocks() {
+        let all_blocks: Vec<pkm_block::Block> = tree.all_blocks().cloned().collect();
+        for b in &all_blocks {
             store
                 .insert_block(b, &page_path)
                 .map_err(|e| e.to_string())?;
         }
+        // Rebuild the `links` table for this page. `delete_blocks_by_page` above
+        // cascades to the page's `links` rows (FK ON), so without reconciliation
+        // the graph/backlink view of this page's wiki-links would go stale.
+        // The `links` table is now the authoritative source for graph edges.
+        crate::commands::page::reconcile_page_links(&store, &page_path, &all_blocks)?;
         Ok(())
     })();
     match result {
@@ -444,9 +450,16 @@ pub async fn clear_block_marker(
         // Wrap SQLite operation in a transaction
         store.execute_batch("BEGIN").map_err(|e| e.to_string())?;
         let result = (|| -> Result<(), String> {
-            store
-                .insert_block(block, &page_path)
-                .map_err(|e| e.to_string())?;
+            if let Some(block) = blocks.iter().find(|b| b.id == id) {
+                store
+                    .insert_block(block, &page_path)
+                    .map_err(|e| e.to_string())?;
+            }
+            // `INSERT OR REPLACE` deletes the conflicting row first, which with
+            // FK cascade ON wipes this block's `links` rows. Rebuild the page's
+            // `links` from the full block set so the graph/backlink view stays
+            // correct (the `links` table is the authoritative graph edge source).
+            crate::commands::page::reconcile_page_links(&store, &page_path, &blocks)?;
             Ok(())
         })();
         match result {

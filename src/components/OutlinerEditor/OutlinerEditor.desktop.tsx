@@ -27,6 +27,7 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
 import * as api from '../../lib/commands';
+import { useRecentsStore } from '../../stores/recentsStore';
 import { speakText, textFromBlock } from '../../lib/audio';
 import LinkPreviewPopup from '../LinkPreviewPopup';
 import AISlashMenu from '../AISlashMenu';
@@ -286,6 +287,7 @@ export default function OutlinerEditorDesktop(props: Props) {
                 const slug = deadLinkPopup.target;
                 try {
                   await api.createPage(slug);
+                  useRecentsStore.getState().refresh();
                 } catch (e) {
                   if (!String(e).includes('already exists')) {
                     console.error('Failed to create page:', e);

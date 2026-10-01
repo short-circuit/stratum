@@ -16,6 +16,7 @@ export interface SettingsData {
     rag_enabled: boolean;
     rag_chunk_count: number;
     embedding_dimensions: number;
+    use_llm_gateway_and_auth: boolean;
   };
   research?: {
     searxng_endpoint: string;

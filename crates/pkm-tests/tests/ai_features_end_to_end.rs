@@ -367,6 +367,7 @@ async fn tts_uses_tts_endpoint_override() {
         voice: "onyx".into(),
         format: "mp3".into(),
         speed: 0.9,
+        ..TtsConfig::default()
     };
     let resolved = TtsConfigResolved::from_config(&ai_config(&server.uri()), &tts).unwrap();
     assert_eq!(resolved.endpoint, format!("{}/v1", server.uri()));

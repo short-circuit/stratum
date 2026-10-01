@@ -22,6 +22,8 @@ pub struct TtsSettingsDto {
     pub voice: String,
     pub format: String,
     pub speed: f32,
+    #[serde(default)]
+    pub use_llm_gateway_and_auth: bool,
 }
 
 impl Default for TtsSettingsDto {
@@ -32,6 +34,7 @@ impl Default for TtsSettingsDto {
             voice: "alloy".to_string(),
             format: "mp3".to_string(),
             speed: 1.0,
+            use_llm_gateway_and_auth: false,
         }
     }
 }
@@ -46,6 +49,8 @@ pub struct SttSettingsDto {
     pub diarize: bool,
     pub auto_summarize: bool,
     pub auto_identify: bool,
+    #[serde(default)]
+    pub use_llm_gateway_and_auth: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -58,6 +63,11 @@ pub struct GraphSettingsDto {
     pub alpha_decay: f64,
     pub velocity_decay: f64,
     pub link_curvature: f64,
+    /// Opt-in 3D rendering (mobile). Desktop always renders 3D; this flag is
+    /// only consumed by the mobile variant (see src/lib/graph3d.ts for the
+    /// WebGL-capability fallback).
+    #[serde(default)]
+    pub use_3d: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -88,6 +98,8 @@ pub struct AiSettingsDto {
     pub rag_chunk_count: usize,
     /// Expected embedding vector dimensionality; `0` = infer from response.
     pub embedding_dimensions: usize,
+    #[serde(default)]
+    pub use_llm_gateway_and_auth: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -119,6 +131,20 @@ fn mask_api_key(key: &Option<String>) -> Option<String> {
     }
 }
 
+/// Human-readable provider name for error messages.
+fn provider_display(provider: &pkm_core::AiProvider) -> &'static str {
+    match provider {
+        pkm_core::AiProvider::Ollama => "Ollama",
+        pkm_core::AiProvider::OpenAI => "OpenAI",
+        pkm_core::AiProvider::Anthropic => "Anthropic",
+        pkm_core::AiProvider::Google => "Google",
+        pkm_core::AiProvider::Zai => "Z-AI",
+        pkm_core::AiProvider::Custom => "Custom",
+        pkm_core::AiProvider::CustomOpenAI => "Custom OpenAI",
+        pkm_core::AiProvider::CustomAnthropic => "Custom Anthropic",
+    }
+}
+
 #[tauri::command]
 pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsDto, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
@@ -133,14 +159,20 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
         }
     };
 
+    // FM-14: an env var that is present but empty is the same as unset.
+    let env_non_empty = |name: &str| {
+        std::env::var(name)
+            .map(|v| !v.trim().is_empty())
+            .unwrap_or(false)
+    };
     let api_key_from_env = match config.ai.provider {
         pkm_core::AiProvider::OpenAI | pkm_core::AiProvider::CustomOpenAI => {
-            std::env::var("OPENAI_API_KEY").is_ok()
+            env_non_empty("OPENAI_API_KEY")
         }
         pkm_core::AiProvider::Anthropic | pkm_core::AiProvider::CustomAnthropic => {
-            std::env::var("ANTHROPIC_API_KEY").is_ok()
+            env_non_empty("ANTHROPIC_API_KEY")
         }
-        pkm_core::AiProvider::Google => std::env::var("GOOGLE_API_KEY").is_ok(),
+        pkm_core::AiProvider::Google => env_non_empty("GOOGLE_API_KEY"),
         _ => false,
     };
 
@@ -179,6 +211,7 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             rag_enabled: config.ai.rag_enabled,
             rag_chunk_count: config.ai.rag_chunk_count,
             embedding_dimensions: config.ai.embedding_dimensions,
+            use_llm_gateway_and_auth: config.ai.use_llm_gateway_and_auth,
         },
         research: ResearchSettingsDto {
             searxng_endpoint: config.research.searxng_endpoint.clone(),
@@ -194,6 +227,7 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             alpha_decay: config.graph.alpha_decay,
             velocity_decay: config.graph.velocity_decay,
             link_curvature: config.graph.link_curvature,
+            use_3d: config.graph.use_3d,
         },
         sync: SyncSettingsDto {
             mode: match config.sync.mode {
@@ -218,6 +252,7 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             diarize: config.stt.diarize,
             auto_summarize: config.stt.auto_summarize,
             auto_identify: config.stt.auto_identify,
+            use_llm_gateway_and_auth: config.stt.use_llm_gateway_and_auth,
         },
         tts: TtsSettingsDto {
             endpoint: config.tts.endpoint.clone(),
@@ -225,6 +260,7 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             voice: config.tts.voice.clone(),
             format: config.tts.format.clone(),
             speed: config.tts.speed,
+            use_llm_gateway_and_auth: config.tts.use_llm_gateway_and_auth,
         },
     })
 }
@@ -301,6 +337,7 @@ pub async fn save_settings(
             rag_enabled: settings.ai.rag_enabled,
             rag_chunk_count: settings.ai.rag_chunk_count,
             embedding_dimensions: settings.ai.embedding_dimensions,
+            use_llm_gateway_and_auth: settings.ai.use_llm_gateway_and_auth,
         },
         research: pkm_core::ResearchConfig {
             searxng_endpoint: settings.research.searxng_endpoint,
@@ -316,6 +353,7 @@ pub async fn save_settings(
             alpha_decay: settings.graph.alpha_decay,
             velocity_decay: settings.graph.velocity_decay,
             link_curvature: settings.graph.link_curvature,
+            use_3d: settings.graph.use_3d,
         },
         sync: pkm_core::SyncConfig {
             mode: sync_mode,
@@ -354,6 +392,7 @@ pub async fn save_settings(
             diarize: settings.stt.diarize,
             auto_summarize: settings.stt.auto_summarize,
             auto_identify: settings.stt.auto_identify,
+            use_llm_gateway_and_auth: settings.stt.use_llm_gateway_and_auth,
         },
         tts: pkm_core::TtsConfig {
             endpoint: settings.tts.endpoint,
@@ -379,6 +418,7 @@ pub async fn save_settings(
             voice: settings.tts.voice,
             format: settings.tts.format,
             speed: settings.tts.speed,
+            use_llm_gateway_and_auth: settings.tts.use_llm_gateway_and_auth,
         },
         ..pkm_core::Config::default()
     };
@@ -413,6 +453,7 @@ pub async fn save_graph_settings(
         alpha_decay: graph.alpha_decay,
         velocity_decay: graph.velocity_decay,
         link_curvature: graph.link_curvature,
+        use_3d: graph.use_3d,
     };
 
     config.save(&config_path).map_err(|e| e.to_string())?;
@@ -433,14 +474,13 @@ pub async fn fetch_models(state: tauri::State<'_, AppState>) -> Result<Vec<Strin
             return Err("No config found. Save settings first.".into());
         };
 
-        (
-            config
-                .ai
-                .endpoint
-                .clone()
-                .unwrap_or_else(|| "http://localhost:11434".into()),
-            config.ai.effective_api_key(),
-        )
+        let endpoint = config.ai.effective_endpoint().ok_or_else(|| {
+            format!(
+                "No endpoint configured for {} provider — set one in Settings → AI",
+                provider_display(&config.ai.provider)
+            )
+        })?;
+        (endpoint, config.ai.effective_api_key())
     };
 
     // Validate endpoint URL to prevent SSRF
@@ -463,7 +503,13 @@ pub async fn fetch_models(state: tauri::State<'_, AppState>) -> Result<Vec<Strin
     let response = request.send().await.map_err(|e| e.to_string())?;
 
     if !response.status().is_success() {
-        return Err(format!("API returned status {}", response.status()));
+        let status = response.status();
+        let text = response.text().await.unwrap_or_default();
+        if text.trim().is_empty() {
+            return Err(format!("API returned status {status}"));
+        }
+        let snippet: String = text.chars().take(300).collect();
+        return Err(format!("API returned status {status}: {snippet}"));
     }
 
     let body: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
