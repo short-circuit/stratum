@@ -45,7 +45,7 @@ dirs = "5"
 log = "0.4"
 
 # Index
-tantivy = "0.22"
+tantivy = "0.26"
 
 # Sync
 gix = { version = "0.85", features = ["comfort", "blocking-network-client", "credentials", "status", "worktree-mutation", "blob-diff"] }
