@@ -67,7 +67,7 @@ base64 = "0.22"
 url = "2"
 
 # Plugin
-wasmtime = "36"
+wasmtime = "49"
 wasmtime-wasi = "36"
 wat = "1"
 
