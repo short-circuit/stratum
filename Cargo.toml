@@ -104,7 +104,7 @@ constant_time_eq = "0.3"
 # Dev
 tempfile = "3"
 rstest = "0.23"
-mockall = "0.13"
+mockall = "0.15"
 criterion = { version = "0.5", features = ["html_reports"] }
 pretty_assertions = "1"
 test-log = "0.2"
