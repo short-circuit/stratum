@@ -10,31 +10,29 @@
       
       
       
-        <link rel="canonical" href="https://short-circuit.github.io/stratum/docs/guide/graph-view/">
+        <link rel="canonical" href="https://short-circuit.github.io/stratum/docs/development/adr/0006-mcp-threat-model/">
       
       
-        <link rel="prev" href="../tasks/">
+        <link rel="prev" href="../0005-mcp-server-contract/">
       
-      
-        <link rel="next" href="../search/">
       
       
         
       
       
-      <link rel="icon" href="../../assets/images/icon.svg">
+      <link rel="icon" href="../../../assets/images/icon.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Graph View - Stratum</title>
+        <title>ADR-0006 — MCP Server Threat Model & Security Controls - Stratum</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,7 +51,7 @@
       
     
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#graph-view" class="md-skip">
+        <a href="#adr-0006-mcp-server-threat-model-security-controls" class="md-skip">
           Skip to content
         </a>
       
@@ -92,9 +90,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="Stratum" class="md-header__button md-logo" aria-label="Stratum" data-md-component="logo">
+    <a href="../../.." title="Stratum" class="md-header__button md-logo" aria-label="Stratum" data-md-component="logo">
       
-  <img src="../../assets/images/icon.svg" alt="logo">
+  <img src="../../../assets/images/icon.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -111,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Graph View
+              ADR-0006 — MCP Server Threat Model &amp; Security Controls
             
           </span>
         </div>
@@ -229,7 +227,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../.." class="md-tabs__link">
+      <a href="../../.." class="md-tabs__link">
         
   
   
@@ -250,7 +248,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../getting-started/installation/" class="md-tabs__link">
+        <a href="../../../getting-started/installation/" class="md-tabs__link">
           
   
   
@@ -268,13 +266,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../vault-management/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../../guide/vault-management/" class="md-tabs__link">
           
   
   
@@ -296,7 +292,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../cli/command-reference/" class="md-tabs__link">
+        <a href="../../../cli/command-reference/" class="md-tabs__link">
           
   
   
@@ -318,7 +314,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../advanced/file-format/" class="md-tabs__link">
+        <a href="../../../advanced/file-format/" class="md-tabs__link">
           
   
   
@@ -338,7 +334,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../contributing/" class="md-tabs__link">
+      <a href="../../../contributing/" class="md-tabs__link">
         
   
   
@@ -355,11 +351,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../development/frontend-guide/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../frontend-guide/" class="md-tabs__link">
           
   
   
@@ -395,9 +393,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="Stratum" class="md-nav__button md-logo" aria-label="Stratum" data-md-component="logo">
+    <a href="../../.." title="Stratum" class="md-nav__button md-logo" aria-label="Stratum" data-md-component="logo">
       
-  <img src="../../assets/images/icon.svg" alt="logo">
+  <img src="../../../assets/images/icon.svg" alt="logo">
 
     </a>
     Stratum
@@ -424,7 +422,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -513,7 +511,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/installation/" class="md-nav__link">
+      <a href="../../../getting-started/installation/" class="md-nav__link">
         
   
   
@@ -541,7 +539,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/quickstart/" class="md-nav__link">
+      <a href="../../../getting-started/quickstart/" class="md-nav__link">
         
   
   
@@ -569,7 +567,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/configuration/" class="md-nav__link">
+      <a href="../../../getting-started/configuration/" class="md-nav__link">
         
   
   
@@ -601,10 +599,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -654,22 +650,21 @@
     
     
       
-        
-        
-      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   
@@ -687,7 +682,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -705,7 +700,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../vault-management/" class="md-nav__link">
+      <a href="../../../guide/vault-management/" class="md-nav__link">
         
   
   
@@ -733,7 +728,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../block-editor/" class="md-nav__link">
+      <a href="../../../guide/block-editor/" class="md-nav__link">
         
   
   
@@ -761,7 +756,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../linking-and-backlinks/" class="md-nav__link">
+      <a href="../../../guide/linking-and-backlinks/" class="md-nav__link">
         
   
   
@@ -789,7 +784,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tags/" class="md-nav__link">
+      <a href="../../../guide/tags/" class="md-nav__link">
         
   
   
@@ -817,7 +812,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tasks/" class="md-nav__link">
+      <a href="../../../guide/tasks/" class="md-nav__link">
         
   
   
@@ -842,37 +837,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Graph View
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../../guide/graph-view/" class="md-nav__link">
         
   
   
@@ -888,170 +856,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#opening-the-graph" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Opening the Graph
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#graph-elements" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Graph Elements
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#interacting-with-the-graph" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Interacting with the Graph
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#graph-views" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Graph Views
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Graph Views">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#connected-components" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Connected Components
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#orphaned-notes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Orphaned Notes
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#filter-by-search" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Filter by Search
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#graph-settings" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Graph Settings
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3d-view-on-mobile" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3D View on Mobile
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3D View on Mobile">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#automatic-fallback-to-2d" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Automatic fallback to 2D
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#performance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Performance
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1064,7 +868,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../search/" class="md-nav__link">
+      <a href="../../../guide/search/" class="md-nav__link">
         
   
   
@@ -1092,7 +896,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../datalog-queries/" class="md-nav__link">
+      <a href="../../../guide/datalog-queries/" class="md-nav__link">
         
   
   
@@ -1120,7 +924,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../journal/" class="md-nav__link">
+      <a href="../../../guide/journal/" class="md-nav__link">
         
   
   
@@ -1148,7 +952,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../templates/" class="md-nav__link">
+      <a href="../../../guide/templates/" class="md-nav__link">
         
   
   
@@ -1176,7 +980,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../flashcards/" class="md-nav__link">
+      <a href="../../../guide/flashcards/" class="md-nav__link">
         
   
   
@@ -1204,7 +1008,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../whiteboards/" class="md-nav__link">
+      <a href="../../../guide/whiteboards/" class="md-nav__link">
         
   
   
@@ -1232,7 +1036,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../math-equations/" class="md-nav__link">
+      <a href="../../../guide/math-equations/" class="md-nav__link">
         
   
   
@@ -1260,7 +1064,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../diagrams/" class="md-nav__link">
+      <a href="../../../guide/diagrams/" class="md-nav__link">
         
   
   
@@ -1288,7 +1092,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ai-features/" class="md-nav__link">
+      <a href="../../../guide/ai-features/" class="md-nav__link">
         
   
   
@@ -1316,7 +1120,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../voice-dictation/" class="md-nav__link">
+      <a href="../../../guide/voice-dictation/" class="md-nav__link">
         
   
   
@@ -1344,7 +1148,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../web-research/" class="md-nav__link">
+      <a href="../../../guide/web-research/" class="md-nav__link">
         
   
   
@@ -1372,7 +1176,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../git-sync/" class="md-nav__link">
+      <a href="../../../guide/git-sync/" class="md-nav__link">
         
   
   
@@ -1400,7 +1204,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../export/" class="md-nav__link">
+      <a href="../../../guide/export/" class="md-nav__link">
         
   
   
@@ -1428,7 +1232,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/" class="md-nav__link">
+      <a href="../../../guide/plugins/" class="md-nav__link">
         
   
   
@@ -1456,7 +1260,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../mcp-server/" class="md-nav__link">
+      <a href="../../../guide/mcp-server/" class="md-nav__link">
         
   
   
@@ -1549,7 +1353,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../cli/command-reference/" class="md-nav__link">
+      <a href="../../../cli/command-reference/" class="md-nav__link">
         
   
   
@@ -1646,7 +1450,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced/file-format/" class="md-nav__link">
+      <a href="../../../advanced/file-format/" class="md-nav__link">
         
   
   
@@ -1674,7 +1478,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced/plugins/" class="md-nav__link">
+      <a href="../../../advanced/plugins/" class="md-nav__link">
         
   
   
@@ -1702,7 +1506,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced/mcp-deployment/" class="md-nav__link">
+      <a href="../../../advanced/mcp-deployment/" class="md-nav__link">
         
   
   
@@ -1737,7 +1541,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/" class="md-nav__link">
+      <a href="../../../contributing/" class="md-nav__link">
         
   
   
@@ -1761,8 +1565,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -1784,21 +1590,22 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
-        
-          
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
             
   
   
@@ -1816,7 +1623,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1834,7 +1641,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/frontend-guide/" class="md-nav__link">
+      <a href="../../frontend-guide/" class="md-nav__link">
         
   
   
@@ -1862,7 +1669,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/rust-guide/" class="md-nav__link">
+      <a href="../../rust-guide/" class="md-nav__link">
         
   
   
@@ -1890,7 +1697,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/mobile-guide/" class="md-nav__link">
+      <a href="../../mobile-guide/" class="md-nav__link">
         
   
   
@@ -1918,7 +1725,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/branch-policy/" class="md-nav__link">
+      <a href="../../branch-policy/" class="md-nav__link">
         
   
   
@@ -1956,10 +1763,13 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
@@ -1968,7 +1778,7 @@
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="">
             
   
   
@@ -2004,7 +1814,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/adr/0004-wasm-plugin-abi/" class="md-nav__link">
+      <a href="../0004-wasm-plugin-abi/" class="md-nav__link">
         
   
   
@@ -2050,10 +1860,13 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
@@ -2062,7 +1875,7 @@
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_6" >
         
           
-          <label class="md-nav__link" for="__nav_7_6" id="__nav_7_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_6" id="__nav_7_6_label" tabindex="">
             
   
   
@@ -2098,7 +1911,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/adr/0005-mcp-server-contract/" class="md-nav__link">
+      <a href="../0005-mcp-server-contract/" class="md-nav__link">
         
   
   
@@ -2131,8 +1944,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -2143,20 +1958,21 @@
     
       
       
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
         
           
+          
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_7" >
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" checked>
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
             
   
   
@@ -2174,7 +1990,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_7_7">
             <span class="md-nav__icon md-icon"></span>
             
@@ -2189,10 +2005,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../development/adr/0006-mcp-threat-model/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0006 — MCP Server Threat Model &amp; Security Controls
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -2208,6 +2051,153 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trust-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trust boundaries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stride-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        STRIDE analysis
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="STRIDE analysis">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#per-transport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per transport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per-tool-class" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per tool class
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#controls-and-enforcement-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Controls and enforcement mapping
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supply-chain-posture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supply-chain posture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vulnerability-assessment-workspace-baseline-2026-09-19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vulnerability assessment (workspace baseline, 2026-09-19)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#known-npm-findings-after-npm-audit-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known npm findings (after npm audit fix)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-review-checklist-acceptance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security review checklist (acceptance)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -2255,10 +2245,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#opening-the-graph" class="md-nav__link">
+  <a href="#context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Opening the Graph
+        Context
       
     </span>
   </a>
@@ -2266,10 +2256,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#graph-elements" class="md-nav__link">
+  <a href="#scope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Graph Elements
+        Scope
       
     </span>
   </a>
@@ -2277,10 +2267,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#interacting-with-the-graph" class="md-nav__link">
+  <a href="#trust-boundaries" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Interacting with the Graph
+        Trust boundaries
       
     </span>
   </a>
@@ -2288,22 +2278,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#graph-views" class="md-nav__link">
+  <a href="#stride-analysis" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Graph Views
+        STRIDE analysis
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Graph Views">
+    <nav class="md-nav" aria-label="STRIDE analysis">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#connected-components" class="md-nav__link">
+  <a href="#per-transport" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Connected Components
+        Per transport
       
     </span>
   </a>
@@ -2311,21 +2301,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#orphaned-notes" class="md-nav__link">
+  <a href="#per-tool-class" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Orphaned Notes
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#filter-by-search" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Filter by Search
+        Per tool class
       
     </span>
   </a>
@@ -2338,10 +2317,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#graph-settings" class="md-nav__link">
+  <a href="#controls-and-enforcement-mapping" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Graph Settings
+        Controls and enforcement mapping
       
     </span>
   </a>
@@ -2349,38 +2328,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3d-view-on-mobile" class="md-nav__link">
+  <a href="#supply-chain-posture" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3D View on Mobile
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3D View on Mobile">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#automatic-fallback-to-2d" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Automatic fallback to 2D
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#performance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Performance
+        Supply-chain posture
       
     </span>
   </a>
@@ -2388,10 +2339,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips" class="md-nav__link">
+  <a href="#vulnerability-assessment-workspace-baseline-2026-09-19" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips
+        Vulnerability assessment (workspace baseline, 2026-09-19)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#known-npm-findings-after-npm-audit-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known npm findings (after npm audit fix)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-review-checklist-acceptance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security review checklist (acceptance)
       
     </span>
   </a>
@@ -2418,166 +2391,493 @@
   
 
 
-<h1 id="graph-view">Graph View<a class="headerlink" href="#graph-view" title="Permanent link">&para;</a></h1>
-<p>The graph visualizes connections between your notes as an interactive force-directed network.</p>
-<!-- SCREENSHOT: [graph-view] Full graph view showing connected nodes -->
-
-<h2 id="opening-the-graph">Opening the Graph<a class="headerlink" href="#opening-the-graph" title="Permanent link">&para;</a></h2>
-<p>Click <strong>Graph</strong> in the sidebar or navigate to <code>/graph</code>. The graph loads automatically with all pages and their <code>[[wiki-link]]</code> connections.</p>
-<h2 id="graph-elements">Graph Elements<a class="headerlink" href="#graph-elements" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Element</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Nodes</strong></td>
-<td>Each page in your vault</td>
-</tr>
-<tr>
-<td><strong>Edges</strong></td>
-<td><code>[[wiki-link]]</code> connections between pages</td>
-</tr>
-<tr>
-<td><strong>Node size</strong></td>
-<td>Scaled by degree (number of connections)</td>
-</tr>
-<tr>
-<td><strong>Node color</strong></td>
-<td>Colored by most prominent tag</td>
-</tr>
-<tr>
-<td><strong>Tag nodes</strong></td>
-<td>Optional tag nodes shown as diamonds (configurable)</td>
-</tr>
-</tbody>
-</table>
-<h2 id="interacting-with-the-graph">Interacting with the Graph<a class="headerlink" href="#interacting-with-the-graph" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Action</th>
-<th>Result</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Click a node</strong></td>
-<td>Navigate to that page</td>
-</tr>
-<tr>
-<td><strong>Drag a node</strong></td>
-<td>Reposition manually</td>
-</tr>
-<tr>
-<td><strong>Scroll</strong></td>
-<td>Zoom in/out</td>
-</tr>
-<tr>
-<td><strong>Pan</strong></td>
-<td>Click and drag empty space</td>
-</tr>
-<tr>
-<td><strong>Hover</strong></td>
-<td>Highlight connections and show label</td>
-</tr>
-</tbody>
-</table>
-<!-- SCREENSHOT: [graph-interaction] Hover highlight showing connected nodes -->
-
-<h2 id="graph-views">Graph Views<a class="headerlink" href="#graph-views" title="Permanent link">&para;</a></h2>
-<h3 id="connected-components">Connected Components<a class="headerlink" href="#connected-components" title="Permanent link">&para;</a></h3>
-<p>Toggle to show only nodes that are part of connected clusters. Isolates the "conversations" happening in your vault.</p>
-<!-- SCREENSHOT: [graph-components] Connected components view -->
-
-<h3 id="orphaned-notes">Orphaned Notes<a class="headerlink" href="#orphaned-notes" title="Permanent link">&para;</a></h3>
-<p>Toggle to show only nodes with zero incoming or outgoing connections. These pages aren't linked to anything — great for finding content that needs integration.</p>
-<!-- SCREENSHOT: [graph-orphans] Orphaned notes view -->
-
-<h3 id="filter-by-search">Filter by Search<a class="headerlink" href="#filter-by-search" title="Permanent link">&para;</a></h3>
-<p>Type in the search field within the graph panel to filter nodes by name. Only matching nodes and their immediate connections are shown.</p>
-<h2 id="graph-settings">Graph Settings<a class="headerlink" href="#graph-settings" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Setting</th>
-<th>Description</th>
-<th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Show Connected</td>
-<td>Show connected components only</td>
-<td><code>true</code></td>
-</tr>
-<tr>
-<td>Show Orphaned</td>
-<td>Show orphaned notes</td>
-<td><code>true</code></td>
-</tr>
-<tr>
-<td>Show Tags</td>
-<td>Display tag nodes in the graph</td>
-<td><code>true</code></td>
-</tr>
-<tr>
-<td>3D View (mobile)</td>
-<td>Render the graph in 3D instead of the 2D force layout (see <a href="#3d-view-on-mobile">3D View on Mobile</a>)</td>
-<td><code>false</code></td>
-</tr>
-<tr>
-<td>Charge Strength</td>
-<td>Node repulsion (more negative = more spread)</td>
-<td><code>-30</code></td>
-</tr>
-<tr>
-<td>Link Distance</td>
-<td>Preferred edge length</td>
-<td><code>100</code></td>
-</tr>
-<tr>
-<td>Alpha Decay</td>
-<td>How quickly the simulation stabilizes</td>
-<td><code>0.02</code></td>
-</tr>
-<tr>
-<td>Velocity Decay</td>
-<td>Damping factor</td>
-<td><code>0.4</code></td>
-</tr>
-<tr>
-<td>Node cap</td>
-<td>Maximum number of nodes rendered. <code>0</code> (Unlimited) renders the full vault below 2,000 notes and <strong>automatically caps to 2,000</strong> on larger vaults so the graph stays responsive.</td>
-<td><code>0</code></td>
-</tr>
-</tbody>
-</table>
-<p>These settings can be adjusted in <strong>Settings → Graph</strong> or by editing <code>.pkm/config.toml</code>.</p>
-<h2 id="3d-view-on-mobile">3D View on Mobile<a class="headerlink" href="#3d-view-on-mobile" title="Permanent link">&para;</a></h2>
-<p>On mobile, the graph starts in the <strong>2D force layout</strong> for performance. You can opt in to a <strong>3D view</strong> with the "3D view" toggle in the graph settings menu (bottom sheet). The 3D layout supports the same interactions: drag to pan, pinch to zoom, tap a node to open the page, and drag nodes to reposition them.</p>
-<p>The toggle is only shown where it applies:</p>
+<h1 id="adr-0006-mcp-server-threat-model-security-controls">ADR-0006 — MCP Server Threat Model &amp; Security Controls<a class="headerlink" href="#adr-0006-mcp-server-threat-model-security-controls" title="Permanent link">&para;</a></h1>
 <ul>
-<li><strong>Mobile</strong>: the "3D view" toggle is available in the settings bottom sheet.</li>
-<li><strong>Desktop</strong>: the graph always renders in 3D; the toggle is not shown.</li>
+<li><strong>Status:</strong> accepted</li>
+<li><strong>Deciders:</strong> security-auditor, backend-dev, architect (API owner), devops, qa-engineer</li>
+<li><strong>Date:</strong> 2026-09-19</li>
+<li><strong>Related:</strong> <code>docs/advanced/mcp.md</code> (authoritative API contract), ADR-0005 (MCP
+  server contract), <code>crates/pkm-mcp</code> (server), <code>crates/pkm-mcp-security</code> (controls)</li>
+<li><strong>Replaces:</strong> n/a</li>
 </ul>
-<h3 id="automatic-fallback-to-2d">Automatic fallback to 2D<a class="headerlink" href="#automatic-fallback-to-2d" title="Permanent link">&para;</a></h3>
-<p>Stratum checks hardware capability before enabling 3D. On devices that cannot render 3D (WebGL unavailable), or on very constrained hardware (≤2 GB RAM or ≤2 CPU cores), Stratum automatically falls back to the 2D layout and shows a notice explaining that 3D isn't supported on the device. Your preference is still saved — if you later open the graph on a capable device, 3D is used. The 3D view is disabled in the settings when the device can't render it.</p>
-<h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h2>
-<p>Graph loading and rendering are optimized for large vaults:</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>The MCP server exposes a read/write window into the Stratum knowledge base to
+external AI clients over two transports (stdio, Streamable HTTP). This ADR is
+the <strong>threat model</strong> for that exposure. It:</p>
+<ol>
+<li>documents the trust boundaries and assets;</li>
+<li>applies STRIDE per tool and per transport;</li>
+<li>records the controls that MUST be enforced (and where each is enforced);</li>
+<li>records the vulnerability assessment and supply-chain posture;</li>
+<li>defines the acceptance criteria for the security review and test suite.</li>
+</ol>
+<p>The controller source of truth for wire behavior is ADR-0005. Where this ADR
+uses words like "MUST" the requirement originates from the contract and is
+mandatory; the "control" column names the enforcing component.</p>
+<h2 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">&para;</a></h2>
+<p>In scope: the <code>pkm-mcp</code> server crate, its two transports, the 15 <code>kb_*</code> tools,
+PAT/scope auth, rate limiting, and the write path (atomic save semantics).</p>
+<p>Out of scope (owned elsewhere): TLS termination (reverse proxy / devops card),
+OAuth2.1 identity provider integration, the desktop app's own command layer.</p>
+<h2 id="trust-boundaries">Trust boundaries<a class="headerlink" href="#trust-boundaries" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Boundary</th>
+<th>Sender at risk</th>
+<th>Trust</th>
+<th>Controls</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B1</td>
+<td>External AI client → HTTP transport</td>
+<td>knowledge base (read/write)</td>
+<td>Low (public/untrusted network)</td>
+<td>PAT auth, scopes, TLS (proxy), rate limit, size caps</td>
+</tr>
+<tr>
+<td>B2</td>
+<td>External AI client → stdio transport</td>
+<td>same-host notes</td>
+<td>Medium (same-user local)</td>
+<td>implicit no-auth or optional PAT, filesystem perms</td>
+</tr>
+<tr>
+<td>B3</td>
+<td>MCP tool handler → BlockStore/Index</td>
+<td>notes integrity</td>
+<td>Internal</td>
+<td>single-writer mutex, atomic write, validation</td>
+</tr>
+<tr>
+<td>B4</td>
+<td>MCP tool handler → markdown serializer</td>
+<td>on-disk <code>.md</code> fidelity</td>
+<td>Internal</td>
+<td>no-loss serialization round-trip</td>
+</tr>
+<tr>
+<td>B5</td>
+<td>Client-provided <code>path</code>/<code>target</code> → filesystem</td>
+<td>arbitrary files under vault</td>
+<td>Low</td>
+<td>path containment, canonical check</td>
+</tr>
+<tr>
+<td>B6</td>
+<td>Search/link output → client</td>
+<td>note content disclosure</td>
+<td>Internal</td>
+<td>scopes gate reads; sanitized errors</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Assets:</strong> note files (<code>.md</code>), block store (SQLite), search index, wiki-link graph,
+tags, PAT records (hashes).</p>
+<h2 id="stride-analysis">STRIDE analysis<a class="headerlink" href="#stride-analysis" title="Permanent link">&para;</a></h2>
+<h3 id="per-transport">Per transport<a class="headerlink" href="#per-transport" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Threat</th>
+<th>HTTP (B1)</th>
+<th>stdio (B2)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Spoofing</td>
+<td>Forged bearer token → attacker impersonates a valid client</td>
+<td>Same-user local IPC; spoofing only if another process on host can attach</td>
+</tr>
+<tr>
+<td>Tampering</td>
+<td>Modified request body → schema validation + size caps reject</td>
+<td>Payloads over stdio are under client control; same trust</td>
+</tr>
+<tr>
+<td>Repudiation</td>
+<td>No meaningful; audit logs of tool calls to <code>/health</code> in-memory</td>
+<td>n/a</td>
+</tr>
+<tr>
+<td>Info disclosure</td>
+<td>Unauthenticated read of private notes if PAT not required → MUST require PAT for HTTP unless loopback-only</td>
+<td>stdio is same-user; acceptable</td>
+</tr>
+<tr>
+<td>DoS</td>
+<td>Unbounded bodies, unbounded results, request flood → rate limiter + body/response caps</td>
+<td>Local; less risk, but long-running sessions still bounded</td>
+</tr>
+<tr>
+<td>Elevation</td>
+<td>Scope escalation: token with <code>kb:read</code> performing writes → scope checks before dispatch</td>
+<td>If auth disabled, all scopes implicitly granted</td>
+</tr>
+</tbody>
+</table>
+<h3 id="per-tool-class">Per tool class<a class="headerlink" href="#per-tool-class" title="Permanent link">&para;</a></h3>
+<p>Write tools (<code>kb_write_page</code>, <code>kb_delete_page</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Threat</th>
+<th>Vector</th>
+<th>Control</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tampering / corruption</td>
+<td>Atomic write interrupted mid-write leaves truncated <code>.md</code></td>
+<td>temp-file + rename (reuse of desktop <code>save_page</code> path), single-writer mutex</td>
+</tr>
+<tr>
+<td>Write to wrong path</td>
+<td><code>path</code> with <code>../</code> or absolute</td>
+<td>path containment (§path)</td>
+</tr>
+<tr>
+<td>Lost update (two clients)</td>
+<td>concurrent writes clobber</td>
+<td>single-writer mutex + <code>expected_modified</code> conflict guard</td>
+</tr>
+<tr>
+<td>Oversize payload</td>
+<td><code>content</code>/blocks too large</td>
+<td>body cap + per-field caps</td>
+</tr>
+<tr>
+<td>Write outside vault</td>
+<td><code>path</code> escapes root</td>
+<td>canonical containment</td>
+</tr>
+<tr>
+<td>Deleting read-only area</td>
+<td>delete of vault root itself</td>
+<td>path containment rejects empty/collapses</td>
+</tr>
+</tbody>
+</table>
+<p>Index tools (<code>kb_reindex</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Threat</th>
+<th>Vector</th>
+<th>Control</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DoS via lock</td>
+<td>reindex holds exclusive lock indefinitely</td>
+<td>bounded exclusive lock; non-blocking status</td>
+</tr>
+<tr>
+<td>Tampering index</td>
+<td>concurrent reindex + write</td>
+<td>lock ordering, atomic swap</td>
+</tr>
+</tbody>
+</table>
+<p>Search/link tools (<code>kb_search</code>, <code>kb_search_by_tag</code>, <code>kb_autocomplete</code>,
+<code>kb_backlinks</code>, <code>kb_graph</code>, <code>kb_resolve_link</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Threat</th>
+<th>Vector</th>
+<th>Control</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Info disclosure</td>
+<td>unauthenticated search returns private note contents</td>
+<td>search requires <code>kb:search</code>/<code>kb:read</code> scope (no unauthenticated default over HTTP)</td>
+</tr>
+<tr>
+<td>Query injection</td>
+<td>very long query / regex</td>
+<td>query length cap, bounded token budget</td>
+</tr>
+<tr>
+<td>Resource exhaustion</td>
+<td>huge result set</td>
+<td>response cap (1 MiB) + truncation to valid JSON</td>
+</tr>
+<tr>
+<td>Path leak in errors</td>
+<td>absolute fs path in error payload</td>
+<td>output sanitizer (<code>to_vault_relative</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>Read tools (<code>kb_get_page</code>, <code>kb_list_pages</code>, <code>kb_index_status</code>, <code>kb_vault_info</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Threat</th>
+<th>Vector</th>
+<th>Control</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Info disclosure</td>
+<td>reading arbitrary paths outside vault</td>
+<td>path containment</td>
+</tr>
+<tr>
+<td>Traversal</td>
+<td><code>../../etc/passwd</code></td>
+<td>containment + normalized path</td>
+</tr>
+</tbody>
+</table>
+<p>Organize/link tools (<code>kb_add_tag</code>, <code>kb_remove_tag</code>, <code>kb_resolve_link</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Threat</th>
+<th>Vector</th>
+<th>Control</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tag injection</td>
+<td>tag strings with control chars/newlines corrupting frontmatter</td>
+<td>input length + charset validation</td>
+</tr>
+<tr>
+<td>Link target injection</td>
+<td><code>[[target]]</code> with <code>]</code>/nul breaking parsing</td>
+<td>validation</td>
+</tr>
+</tbody>
+</table>
+<h2 id="controls-and-enforcement-mapping">Controls and enforcement mapping<a class="headerlink" href="#controls-and-enforcement-mapping" title="Permanent link">&para;</a></h2>
+<p>Each control below has a concrete owner. The <code>pkm-mcp-security</code> crate exists so
+these controls are unit-tested independent of the transport; the <code>pkm-mcp</code>
+server binds them. Where the server crate is not yet present in this worktree,
+the control crate + its tests are the reference acceptance payload.</p>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Contract §</th>
+<th>Enforced by</th>
+<th>Tested by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PAT format validation (43-char base64url)</td>
+<td>7.1</td>
+<td><code>pkm-mcp-security::pat</code></td>
+<td><code>pat::*</code></td>
+</tr>
+<tr>
+<td>PAT hashed storage (SHA-256), constant-time compare</td>
+<td>7.4</td>
+<td><code>pkm-mcp-security::pat</code></td>
+<td><code>pat::*</code></td>
+</tr>
+<tr>
+<td>Scope vocabulary + required-scope per tool</td>
+<td>7.2</td>
+<td><code>pkm-mcp-security::scope</code></td>
+<td><code>scope::*</code></td>
+</tr>
+<tr>
+<td>Scope check before storage access</td>
+<td>7.2</td>
+<td><code>pkm-mcp</code> dispatch</td>
+<td>(server)</td>
+</tr>
+<tr>
+<td>Token-bucket rate limiting per key</td>
+<td>9</td>
+<td><code>pkm-mcp-security::ratelimit</code></td>
+<td><code>ratelimit::*</code></td>
+</tr>
+<tr>
+<td>Path containment (no traversal, no absolute)</td>
+<td>6</td>
+<td><code>pkm-mcp-security::path</code></td>
+<td><code>path::*</code></td>
+</tr>
+<tr>
+<td>Canonical containment below vault root</td>
+<td>6</td>
+<td><code>pkm-mcp-security::path</code></td>
+<td><code>path::*</code></td>
+</tr>
+<tr>
+<td>Body/field size caps</td>
+<td>11</td>
+<td><code>pkm-mcp-security::input</code></td>
+<td><code>input::*</code></td>
+</tr>
+<tr>
+<td>Response cap + valid-JSON truncation</td>
+<td>8.2, 11</td>
+<td><code>pkm-mcp-security::output</code></td>
+<td><code>output::*</code></td>
+</tr>
+<tr>
+<td>Error payload sanitization (no absolute paths)</td>
+<td>8.2</td>
+<td><code>pkm-mcp-security::output</code></td>
+<td><code>output::*</code></td>
+</tr>
+<tr>
+<td>Single-writer atomic write</td>
+<td>8/10</td>
+<td><code>pkm-mcp</code> (reuse save_page)</td>
+<td>(server)</td>
+</tr>
+<tr>
+<td>Conflict guard (<code>expected_modified</code>)</td>
+<td>8</td>
+<td><code>pkm-mcp</code></td>
+<td>(server)</td>
+</tr>
+<tr>
+<td>TLS at proxy</td>
+<td>3</td>
+<td>devops</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Rate-limit honeypot diagnostics</td>
+<td>9</td>
+<td>ratelimit <code>tracked_keys</code>/<code>reset</code></td>
+<td><code>ratelimit::*</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="supply-chain-posture">Supply-chain posture<a class="headerlink" href="#supply-chain-posture" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Authoritative links table.</strong> Graph edges are read directly from the <code>links</code> table (the same index that powers backlinks), not re-parsed from block content on every load. Every save/edit reconciles this table in the same transaction, so the graph always reflects the latest edits. On first launch after upgrading, the app self-heals any vault whose links table predates this wiring.</li>
-<li><strong>Cached responses.</strong> The computed graph is cached per vault and served cheaply on subsequent opens, invalidated automatically after any page or block edit.</li>
-<li><strong>Safe default node cap for large vaults.</strong> With the <strong>Node cap</strong> set to <code>0</code> (Unlimited), the full vault is rendered below 2,000 notes; on larger vaults the rendered and simulated set is automatically capped to the 2,000 most-connected notes so the force simulation and rendering stay interactive. You can still reveal more by raising the cap in <strong>Settings → Graph</strong> — the most-connected notes are always kept first, so the visible structure remains meaningful.</li>
+<li>Rust: <code>cargo audit</code> runs in CI (job <code>security-audit</code>) with a pinned baseline
+  in <code>.cargo/audit.toml</code>. Baseline covers the pre-existing transitive cluster
+  (wasmtime / cap-std / unic-<em> / glib / lru / chacha20); any </em><em>new</em>* advisory
+  fails the pipeline.</li>
+<li>npm: <code>npm audit</code> runs report-only in the same job; 3 known production <code>high</code>
+  findings are pinned by transitive <code>@blocknote</code> / <code>@excalidraw</code> deps and
+  tracked for remediation via Dependabot.</li>
+<li>Dependabot (<code>.github/dependabot.yml</code>) opens bounded weekly update PRs for
+  cargo, npm and GitHub Actions so the baseline shrinks over time.</li>
+<li><code>pkm-mcp-security</code>'s own dependencies (sha2, base64, constant_time_eq,
+  serde_json, thiserror, serde) are current and carry no advisories.</li>
 </ul>
-<h2 id="tips">Tips<a class="headerlink" href="#tips" title="Permanent link">&para;</a></h2>
+<h2 id="vulnerability-assessment-workspace-baseline-2026-09-19">Vulnerability assessment (workspace baseline, 2026-09-19)<a class="headerlink" href="#vulnerability-assessment-workspace-baseline-2026-09-19" title="Permanent link">&para;</a></h2>
+<p>Audit of the full workspace <code>Cargo.lock</code> (846 crates) before baselining:
+24 findings (misc severities) + 13 <code>unsound</code>/<code>yanked</code> warnings. None affect the
+MCP security crate. Highest-impact clusters:</p>
+<table>
+<thead>
+<tr>
+<th>Cluster</th>
+<th>Crates</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>wasmtime / wasi</td>
+<td><code>wasmtime*</code> (~18 advisories)</td>
+<td>WASM plugin runtime; advisories are config-specific; pinned by <code>pkm-plugin</code> (wasmtime 26). Remediation: bump wasmtime when plugin ABI allows.</td>
+</tr>
+<tr>
+<td>cap-std / rustix</td>
+<td>via wasmtime-wasi</td>
+<td>coboundary of the above</td>
+</tr>
+<tr>
+<td>lru</td>
+<td><code>LruCache</code> unsoundness</td>
+<td>used by index internals; benign in practice</td>
+</tr>
+<tr>
+<td>unic-*</td>
+<td><code>unic-char-*</code></td>
+<td>unicode-derived crates; low real-world impact</td>
+</tr>
+<tr>
+<td>glib</td>
+<td><code>VariantStrIter</code> unsoundness</td>
+<td>Linux gtk path only</td>
+</tr>
+<tr>
+<td>chacha20</td>
+<td>yanked</td>
+<td>used by <code>cpal</code>/audio path; benign</td>
+</tr>
+<tr>
+<td>h2</td>
+<td>moderate</td>
+<td>http/2 crate; used by reqwest</td>
+</tr>
+</tbody>
+</table>
+<p>None of these are reachable from attacker-controlled MCP inputs in a way that
+rises above the documented severity. The strict <code>cargo audit</code> gate ensures new
+findings are caught.</p>
+<h2 id="known-npm-findings-after-npm-audit-fix">Known npm findings (after <code>npm audit fix</code>)<a class="headerlink" href="#known-npm-findings-after-npm-audit-fix" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Severity</th>
+<th>Path</th>
+<th>Remediation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>@tiptap/core</code></td>
+<td>high</td>
+<td>via <code>@blocknote/core</code></td>
+<td>bump blocknote when upstream releases</td>
+</tr>
+<tr>
+<td><code>lodash-es</code></td>
+<td>high</td>
+<td>via <code>@excalidraw/*</code> → chevrotain</td>
+<td>bump excalidraw</td>
+</tr>
+<tr>
+<td><code>nanoid</code></td>
+<td>high</td>
+<td>via <code>@excalidraw/*</code></td>
+<td>bump excalidraw</td>
+</tr>
+</tbody>
+</table>
+<h2 id="security-review-checklist-acceptance">Security review checklist (acceptance)<a class="headerlink" href="#security-review-checklist-acceptance" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Start with orphans</strong> — opening the orphan view first helps find pages that need linking</li>
-<li><strong>Larger nodes are hubs</strong> — highly connected pages are the most important in your knowledge graph</li>
-<li><strong>Color reveals topics</strong> — if all your nodes are the same color, you might need more diverse tagging</li>
+<li>[ ] Auth: every HTTP tool call without a valid PAT is rejected (unless
+      loopback-only no-auth mode explicitly configured).</li>
+<li>[ ] Scopes: a request with <code>kb:read</code> only cannot perform a write or a
+      reindex; denied → <code>ScopesDenied</code> (-32005) before storage access.</li>
+<li>[ ] Rate limit: per-client bucket; exceeded → <code>RateLimited</code> (-32003) with
+      <code>Retry-After</code>.</li>
+<li>[ ] Path: <code>../</code> escapes, absolute paths, Windows drive paths all rejected as
+      <code>InvalidArgs</code>.</li>
+<li>[ ] Write: cannot escape vault root; atomic temp+rename; concurrent writes
+      serialized; <code>expected_modified</code> conflicts → <code>Conflict</code> (-32002).</li>
+<li>[ ] Output: no absolute fs paths in error payloads; responses ≤ 1 MiB and
+      always valid JSON when truncated.</li>
+<li>[ ] Supply chain: <code>cargo audit</code> clean (baseline pinned) in CI.</li>
+<li>[ ] The <code>pkm-mcp-security</code> unit suite (≥50 tests) passes; server-side
+      integration suite (QA card t_547e25f1) covers the 15 tools end-to-end.</li>
 </ul>
 
 
@@ -2651,10 +2951,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.tabs.link", "content.admonition"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.tabs.link", "content.admonition"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

@@ -10,31 +10,27 @@
       
       
       
-        <link rel="canonical" href="https://short-circuit.github.io/stratum/docs/guide/graph-view/">
+        <link rel="canonical" href="https://short-circuit.github.io/stratum/docs/audit-ai-config-error-propagation/">
       
       
-        <link rel="prev" href="../tasks/">
-      
-      
-        <link rel="next" href="../search/">
       
       
         
       
       
-      <link rel="icon" href="../../assets/images/icon.svg">
+      <link rel="icon" href="../assets/images/icon.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Graph View - Stratum</title>
+        <title>Task t_8f681a47 — Audit: AI config loading & error propagation in ai.rs commands - Stratum</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,7 +49,7 @@
       
     
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#graph-view" class="md-skip">
+        <a href="#task-t_8f681a47-audit-ai-config-loading-error-propagation-in-airs-commands" class="md-skip">
           Skip to content
         </a>
       
@@ -92,9 +88,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="Stratum" class="md-header__button md-logo" aria-label="Stratum" data-md-component="logo">
+    <a href=".." title="Stratum" class="md-header__button md-logo" aria-label="Stratum" data-md-component="logo">
       
-  <img src="../../assets/images/icon.svg" alt="logo">
+  <img src="../assets/images/icon.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -111,7 +107,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Graph View
+              Task t_8f681a47 — Audit: AI config loading &amp; error propagation in ai.rs commands
             
           </span>
         </div>
@@ -229,7 +225,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../.." class="md-tabs__link">
+      <a href=".." class="md-tabs__link">
         
   
   
@@ -250,7 +246,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../getting-started/installation/" class="md-tabs__link">
+        <a href="../getting-started/installation/" class="md-tabs__link">
           
   
   
@@ -268,13 +264,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../vault-management/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../guide/vault-management/" class="md-tabs__link">
           
   
   
@@ -296,7 +290,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../cli/command-reference/" class="md-tabs__link">
+        <a href="../cli/command-reference/" class="md-tabs__link">
           
   
   
@@ -318,7 +312,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../advanced/file-format/" class="md-tabs__link">
+        <a href="../advanced/file-format/" class="md-tabs__link">
           
   
   
@@ -338,7 +332,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../contributing/" class="md-tabs__link">
+      <a href="../contributing/" class="md-tabs__link">
         
   
   
@@ -359,7 +353,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../development/frontend-guide/" class="md-tabs__link">
+        <a href="../development/frontend-guide/" class="md-tabs__link">
           
   
   
@@ -395,9 +389,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="Stratum" class="md-nav__button md-logo" aria-label="Stratum" data-md-component="logo">
+    <a href=".." title="Stratum" class="md-nav__button md-logo" aria-label="Stratum" data-md-component="logo">
       
-  <img src="../../assets/images/icon.svg" alt="logo">
+  <img src="../assets/images/icon.svg" alt="logo">
 
     </a>
     Stratum
@@ -424,7 +418,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -513,7 +507,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/installation/" class="md-nav__link">
+      <a href="../getting-started/installation/" class="md-nav__link">
         
   
   
@@ -541,7 +535,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/quickstart/" class="md-nav__link">
+      <a href="../getting-started/quickstart/" class="md-nav__link">
         
   
   
@@ -569,7 +563,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/configuration/" class="md-nav__link">
+      <a href="../getting-started/configuration/" class="md-nav__link">
         
   
   
@@ -601,10 +595,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -654,22 +646,21 @@
     
     
       
-        
-        
-      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   
@@ -687,7 +678,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -705,7 +696,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../vault-management/" class="md-nav__link">
+      <a href="../guide/vault-management/" class="md-nav__link">
         
   
   
@@ -733,7 +724,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../block-editor/" class="md-nav__link">
+      <a href="../guide/block-editor/" class="md-nav__link">
         
   
   
@@ -761,7 +752,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../linking-and-backlinks/" class="md-nav__link">
+      <a href="../guide/linking-and-backlinks/" class="md-nav__link">
         
   
   
@@ -789,7 +780,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tags/" class="md-nav__link">
+      <a href="../guide/tags/" class="md-nav__link">
         
   
   
@@ -817,7 +808,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tasks/" class="md-nav__link">
+      <a href="../guide/tasks/" class="md-nav__link">
         
   
   
@@ -842,37 +833,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Graph View
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../guide/graph-view/" class="md-nav__link">
         
   
   
@@ -888,170 +852,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#opening-the-graph" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Opening the Graph
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#graph-elements" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Graph Elements
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#interacting-with-the-graph" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Interacting with the Graph
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#graph-views" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Graph Views
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Graph Views">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#connected-components" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Connected Components
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#orphaned-notes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Orphaned Notes
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#filter-by-search" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Filter by Search
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#graph-settings" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Graph Settings
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3d-view-on-mobile" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3D View on Mobile
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3D View on Mobile">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#automatic-fallback-to-2d" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Automatic fallback to 2D
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#performance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Performance
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1064,7 +864,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../search/" class="md-nav__link">
+      <a href="../guide/search/" class="md-nav__link">
         
   
   
@@ -1092,7 +892,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../datalog-queries/" class="md-nav__link">
+      <a href="../guide/datalog-queries/" class="md-nav__link">
         
   
   
@@ -1120,7 +920,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../journal/" class="md-nav__link">
+      <a href="../guide/journal/" class="md-nav__link">
         
   
   
@@ -1148,7 +948,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../templates/" class="md-nav__link">
+      <a href="../guide/templates/" class="md-nav__link">
         
   
   
@@ -1176,7 +976,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../flashcards/" class="md-nav__link">
+      <a href="../guide/flashcards/" class="md-nav__link">
         
   
   
@@ -1204,7 +1004,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../whiteboards/" class="md-nav__link">
+      <a href="../guide/whiteboards/" class="md-nav__link">
         
   
   
@@ -1232,7 +1032,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../math-equations/" class="md-nav__link">
+      <a href="../guide/math-equations/" class="md-nav__link">
         
   
   
@@ -1260,7 +1060,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../diagrams/" class="md-nav__link">
+      <a href="../guide/diagrams/" class="md-nav__link">
         
   
   
@@ -1288,7 +1088,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ai-features/" class="md-nav__link">
+      <a href="../guide/ai-features/" class="md-nav__link">
         
   
   
@@ -1316,7 +1116,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../voice-dictation/" class="md-nav__link">
+      <a href="../guide/voice-dictation/" class="md-nav__link">
         
   
   
@@ -1344,7 +1144,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../web-research/" class="md-nav__link">
+      <a href="../guide/web-research/" class="md-nav__link">
         
   
   
@@ -1372,7 +1172,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../git-sync/" class="md-nav__link">
+      <a href="../guide/git-sync/" class="md-nav__link">
         
   
   
@@ -1400,7 +1200,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../export/" class="md-nav__link">
+      <a href="../guide/export/" class="md-nav__link">
         
   
   
@@ -1428,7 +1228,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/" class="md-nav__link">
+      <a href="../guide/plugins/" class="md-nav__link">
         
   
   
@@ -1456,7 +1256,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../mcp-server/" class="md-nav__link">
+      <a href="../guide/mcp-server/" class="md-nav__link">
         
   
   
@@ -1549,7 +1349,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../cli/command-reference/" class="md-nav__link">
+      <a href="../cli/command-reference/" class="md-nav__link">
         
   
   
@@ -1646,7 +1446,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced/file-format/" class="md-nav__link">
+      <a href="../advanced/file-format/" class="md-nav__link">
         
   
   
@@ -1674,7 +1474,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced/plugins/" class="md-nav__link">
+      <a href="../advanced/plugins/" class="md-nav__link">
         
   
   
@@ -1702,7 +1502,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced/mcp-deployment/" class="md-nav__link">
+      <a href="../advanced/mcp-deployment/" class="md-nav__link">
         
   
   
@@ -1737,7 +1537,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/" class="md-nav__link">
+      <a href="../contributing/" class="md-nav__link">
         
   
   
@@ -1834,7 +1634,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/frontend-guide/" class="md-nav__link">
+      <a href="../development/frontend-guide/" class="md-nav__link">
         
   
   
@@ -1862,7 +1662,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/rust-guide/" class="md-nav__link">
+      <a href="../development/rust-guide/" class="md-nav__link">
         
   
   
@@ -1890,7 +1690,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/mobile-guide/" class="md-nav__link">
+      <a href="../development/mobile-guide/" class="md-nav__link">
         
   
   
@@ -1918,7 +1718,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/branch-policy/" class="md-nav__link">
+      <a href="../development/branch-policy/" class="md-nav__link">
         
   
   
@@ -2004,7 +1804,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/adr/0004-wasm-plugin-abi/" class="md-nav__link">
+      <a href="../development/adr/0004-wasm-plugin-abi/" class="md-nav__link">
         
   
   
@@ -2098,7 +1898,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/adr/0005-mcp-server-contract/" class="md-nav__link">
+      <a href="../development/adr/0005-mcp-server-contract/" class="md-nav__link">
         
   
   
@@ -2192,7 +1992,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/adr/0006-mcp-threat-model/" class="md-nav__link">
+      <a href="../development/adr/0006-mcp-threat-model/" class="md-nav__link">
         
   
   
@@ -2255,55 +2055,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#opening-the-graph" class="md-nav__link">
+  <a href="#1-config-paths-the-sources-of-truth-for-aistt-settings" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Opening the Graph
+        1. Config paths (the sources of truth for AI/STT settings)
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#graph-elements" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Graph Elements
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#interacting-with-the-graph" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Interacting with the Graph
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#graph-views" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Graph Views
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Graph Views">
+    <nav class="md-nav" aria-label="1. Config paths (the sources of truth for AI/STT settings)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#connected-components" class="md-nav__link">
+  <a href="#11-aiconfig-config-file-values" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Connected Components
+        1.1 AiConfig — config file values
       
     </span>
   </a>
@@ -2311,10 +2078,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#orphaned-notes" class="md-nav__link">
+  <a href="#12-effective_api_key-env-fallback-configrs244-260" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Orphaned Notes
+        1.2 effective_api_key() — env fallback (config.rs:244-260)
       
     </span>
   </a>
@@ -2322,10 +2089,43 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#filter-by-search" class="md-nav__link">
+  <a href="#13-stt-stt-endpoint-config" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Filter by Search
+        1.3 [stt] — STT endpoint config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-tts-tts-endpoint-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 [tts] — TTS endpoint config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-config-file-location-load" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5 config file location / load
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#16-endpoint-defaulting-providerfactory-providerrs1078-1131" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.6 Endpoint defaulting (ProviderFactory) — provider.rs:1078-1131
       
     </span>
   </a>
@@ -2338,33 +2138,99 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#graph-settings" class="md-nav__link">
+  <a href="#2-error-masking-sites" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Graph Settings
+        2. Error-masking sites
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Error-masking sites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-ai-not-configured-early-returns-mask-real-configparseendpoint-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 "AI not configured" early-returns mask real config/parse/endpoint errors
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#3d-view-on-mobile" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#22-same-mask-in-stt-commands-dictationrs-masks-parse-errors-too" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3D View on Mobile
+        2.2 Same mask in STT commands (dictation.rs) — masks parse errors too
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="3D View on Mobile">
-      <ul class="md-nav__list">
+</li>
         
           <li class="md-nav__item">
-  <a href="#automatic-fallback-to-2d" class="md-nav__link">
+  <a href="#23-same-mask-in-tts-commands-ttsrs" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Automatic fallback to 2D
+        2.3 Same mask in TTS commands (tts.rs)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-cli-cratespkm-clisrcmainrs-masking-deliberate-partial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 CLI (crates/pkm-cli/src/main.rs) — masking, deliberate + partial
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-endpoint-validation-errors-are-silently-dropped-swallowed-here" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Endpoint validation errors are silently dropped (swallowed) here
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#26-parsingparse-error-swallowing-inside-the-providers-cratespkm-aisrcproviderrs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6 Parsing/parse-error swallowing inside the providers (crates/pkm-ai/src/provider.rs)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#27-http-status-is-not-checked-before-body-parse-in-non-stream-chat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.7 HTTP status is not checked before body parse in non-stream chat
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#28-config-error-inside-providerfactory-is-properly-translated-to-config-not-masked" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.8 Config error inside ProviderFactory is properly translated to Config (not masked)
       
     </span>
   </a>
@@ -2377,10 +2243,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#performance" class="md-nav__link">
+  <a href="#3-where-each-ai-command-gets-its-config-cmd-methods-summary" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Performance
+        3. Where each AI command gets its config (cmd -&gt; methods) — summary
       
     </span>
   </a>
@@ -2388,10 +2254,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips" class="md-nav__link">
+  <a href="#4-full-failure-mode-inventory" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips
+        4. Full failure-mode inventory
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-recommendation-future-work-no-changes-made-per-acceptance-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Recommendation (future work, no changes made per acceptance criteria)
       
     </span>
   </a>
@@ -2418,167 +2295,515 @@
   
 
 
-<h1 id="graph-view">Graph View<a class="headerlink" href="#graph-view" title="Permanent link">&para;</a></h1>
-<p>The graph visualizes connections between your notes as an interactive force-directed network.</p>
-<!-- SCREENSHOT: [graph-view] Full graph view showing connected nodes -->
-
-<h2 id="opening-the-graph">Opening the Graph<a class="headerlink" href="#opening-the-graph" title="Permanent link">&para;</a></h2>
-<p>Click <strong>Graph</strong> in the sidebar or navigate to <code>/graph</code>. The graph loads automatically with all pages and their <code>[[wiki-link]]</code> connections.</p>
-<h2 id="graph-elements">Graph Elements<a class="headerlink" href="#graph-elements" title="Permanent link">&para;</a></h2>
+<h1 id="task-t_8f681a47-audit-ai-config-loading-error-propagation-in-airs-commands">Task t_8f681a47 — Audit: AI config loading &amp; error propagation in ai.rs commands<a class="headerlink" href="#task-t_8f681a47-audit-ai-config-loading-error-propagation-in-airs-commands" title="Permanent link">&para;</a></h1>
+<p>Commit audited: b73ac55 (working tree clean). No code changes made in this
+audit — this is a findings report only.</p>
+<p>Primary scope is <code>src-tauri/src/commands/ai.rs</code>; related surfaces traced into
+<code>crates/pkm-ai</code>, <code>crates/pkm-stt</code>, <code>src-tauri/src/commands/{dictation,tts,settings}.rs</code>
+and <code>crates/pkm-cli/src/main.rs</code> because the config and masking behaviour is
+shared. All line references are to the current working tree.</p>
+<hr />
+<h2 id="1-config-paths-the-sources-of-truth-for-aistt-settings">1. Config paths (the sources of truth for AI/STT settings)<a class="headerlink" href="#1-config-paths-the-sources-of-truth-for-aistt-settings" title="Permanent link">&para;</a></h2>
+<h3 id="11-aiconfig-config-file-values">1.1 <code>AiConfig</code> — config file values<a class="headerlink" href="#11-aiconfig-config-file-values" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>crates/pkm-core/src/config.rs:200-242</code> — <code>AiConfig</code> struct + defaults.
+  Fields: <code>provider</code> (enum-line 262-273), <code>endpoint: Option&lt;String&gt;</code>,
+  <code>api_key: Option&lt;String&gt;</code>, <code>model</code>, <code>models</code> (capability list),
+  <code>rag_enabled</code>, <code>rag_chunk_count</code>, <code>embedding_dimensions</code>.</li>
+<li>Defaults (<code>config.rs:229-241</code>): provider = Ollama, endpoint =
+  <code>http://localhost:11434</code>, api_key = None, model = <code>llama3.2</code>.</li>
+</ul>
+<h3 id="12-effective_api_key-env-fallback-configrs244-260">1.2 <code>effective_api_key()</code> — env fallback (config.rs:244-260)<a class="headerlink" href="#12-effective_api_key-env-fallback-configrs244-260" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Env checked per provider, env wins over the config-file value:</li>
+<li>OpenAI / CustomOpenAI  -&gt; <code>OPENAI_API_KEY</code></li>
+<li>Anthropic / CustomAnthropic -&gt; <code>ANTHROPIC_API_KEY</code></li>
+<li>Google -&gt; <code>GOOGLE_API_KEY</code></li>
+<li>Ollama / Zai / Custom -&gt; config-file value only, <strong>no env fallback</strong>.</li>
+<li>Consumed at:</li>
+<li><code>crates/pkm-ai/src/provider.rs:1100,1106,1112,1115,1122,1128</code> (ProviderFactory::create)</li>
+<li><code>crates/pkm-ai/src/embedding.rs:125</code> (EmbeddingConfig::from_ai_config)</li>
+<li><code>crates/pkm-ai/src/tts.rs:127</code> (fallback only when <code>tts.api_key</code> unset)</li>
+<li><code>src-tauri/src/commands/settings.rs:442</code> (fetch_models) and 136-145 (get_settings UI flag)</li>
+<li>The UI flags <code>api_key_from_env</code> by <strong>presence only</strong>: <code>std::env::var(...).is_ok()</code>
+  (settings.rs:136-145) — an env var set to an empty string is treated as
+  configured, though <code>effective_api_key()</code> would also return that empty string.</li>
+</ul>
+<h3 id="13-stt-stt-endpoint-config">1.3 <code>[stt]</code> — STT endpoint config<a class="headerlink" href="#13-stt-stt-endpoint-config" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>SttConfig</code> — <code>config.rs:281-316</code>; fields <code>endpoint: String</code> (empty =
+  disabled), <code>api_key</code>, <code>model</code>, <code>diarize_model</code>, <code>language</code>, <code>diarize</code>,
+  <code>auto_summarize</code>, <code>auto_identify</code>. <strong>No env fallback for the STT key.</strong></li>
+<li><code>crates/pkm-stt/src/client.rs:27-31</code> — <code>SttEndpoint::new</code> trims trailing <code>/</code>,
+  validates via <code>validate_endpoint_safe</code>; errors mapped to <code>PkmError::Ai</code>.</li>
+</ul>
+<h3 id="14-tts-tts-endpoint-config">1.4 <code>[tts]</code> — TTS endpoint config<a class="headerlink" href="#14-tts-tts-endpoint-config" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>TtsConfig</code> — <code>config.rs:324-350</code>; fields <code>endpoint</code> (empty = use AI
+  endpoint), <code>api_key</code>, <code>voice</code>, <code>format</code>, <code>speed</code>.</li>
+<li><code>crates/pkm-ai/src/tts.rs:87-138</code> — <code>TtsConfigResolved::from_config</code>: endpoint
+  = <code>tts.endpoint</code> if set, else <code>ai</code> endpoint (+<code>/v1</code> for Ollama); api_key =
+  <code>tts.api_key</code> if set, else <code>ai.effective_api_key()</code> (env fallback applies).</li>
+</ul>
+<h3 id="15-config-file-location-load">1.5 config file location / load<a class="headerlink" href="#15-config-file-location-load" title="Permanent link">&para;</a></h3>
+<ul>
+<li>All commands resolve the same path: <code>&lt;vault&gt;/.pkm/config.toml</code>.</li>
+<li><code>Config::load</code> = <code>config.rs:445-457</code>: read + <code>toml::from_str</code>; TOML parse
+  errors become <code>PkmError::Config</code> via <code>config.rs:85-88</code>.</li>
+<li>Load sites: <code>ai.rs:91-95,163-167,219-223,265-269,407-411</code>; <code>tts.rs:52-56,95-99</code>;
+  <code>dictation.rs:100-106</code>; <code>settings.rs:128-134,430-434</code>; CLI <code>main.rs:552-563,601-612</code>.</li>
+</ul>
+<h3 id="16-endpoint-defaulting-providerfactory-providerrs1078-1131">1.6 Endpoint defaulting (ProviderFactory) — provider.rs:1078-1131<a class="headerlink" href="#16-endpoint-defaulting-providerfactory-providerrs1078-1131" title="Permanent link">&para;</a></h3>
+<ul>
+<li>No endpoint set -&gt; per-provider default (provider.rs:1080-1094):
+  Ollama <code>localhost:11434</code>, OpenAI <code>api.openai.com/v1</code>,
+  Anthropic <code>api.anthropic.com</code>, Custom <code>localhost:8080/v1/chat/completions</code>,
+  CustomOpenAI <code>localhost:8080/v1</code>, CustomAnthropic <code>api.anthropic.com</code>,
+  Google <code>generativelanguage.googleapis.com/v1beta</code>, Zai <code>api.z.ai</code>.</li>
+</ul>
+<hr />
+<h2 id="2-error-masking-sites">2. Error-masking sites<a class="headerlink" href="#2-error-masking-sites" title="Permanent link">&para;</a></h2>
+<h3 id="21-ai-not-configured-early-returns-mask-real-configparseendpoint-errors">2.1 "AI not configured" early-returns mask real config/parse/endpoint errors<a class="headerlink" href="#21-ai-not-configured-early-returns-mask-real-configparseendpoint-errors" title="Permanent link">&para;</a></h3>
+<p>Each command checks <code>config_path.exists()</code> and, on absence, returns a generic
+"AI not configured…" string; on presence it calls <code>Config::load(...)?</code> which
+<strong>does propagate</strong> read+TOML-parse errors (so <code>2.1</code> is the missing-file path
+only). Failure mode: if the file exists but TOML is malformed, the real
+<code>PkmError::Config</code> does surface — good; the mask is only raised for a missing
+file, where the real reason is "no config file", not necessarily "AI not
+configured".</p>
 <table>
 <thead>
 <tr>
-<th>Element</th>
-<th>Description</th>
+<th>#</th>
+<th>Location (ai.rs)</th>
+<th>Early-return</th>
+<th>Underlying cause replaced</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>Nodes</strong></td>
-<td>Each page in your vault</td>
+<td>M1</td>
+<td>91-95 (<code>ai_transform_block</code>)</td>
+<td>"AI not configured. Please configure AI provider in Settings."</td>
+<td>missing <code>config.toml</code>; note: file could be missing for any reason</td>
 </tr>
 <tr>
-<td><strong>Edges</strong></td>
-<td><code>[[wiki-link]]</code> connections between pages</td>
+<td>M2</td>
+<td>163-167 (<code>ai_research</code>)</td>
+<td>same</td>
+<td>same; also masks that <code>[research]</code> may be the real gap</td>
 </tr>
 <tr>
-<td><strong>Node size</strong></td>
-<td>Scaled by degree (number of connections)</td>
+<td>M3</td>
+<td>219-223 (<code>generate_mermaid</code>)</td>
+<td>same</td>
+<td>missing file only</td>
 </tr>
 <tr>
-<td><strong>Node color</strong></td>
-<td>Colored by most prominent tag</td>
+<td>M4</td>
+<td>265-269 (<code>ai_interlink_notes</code>)</td>
+<td><code>"AI not configured."</code> (shorter variant)</td>
+<td>missing file</td>
 </tr>
 <tr>
-<td><strong>Tag nodes</strong></td>
-<td>Optional tag nodes shown as diamonds (configurable)</td>
+<td>M5</td>
+<td>407-411 (<code>ai_rag_query</code>)</td>
+<td>"AI not configured. Configure the AI provider in Settings → AI."</td>
+<td>missing file</td>
 </tr>
 </tbody>
 </table>
-<h2 id="interacting-with-the-graph">Interacting with the Graph<a class="headerlink" href="#interacting-with-the-graph" title="Permanent link">&para;</a></h2>
+<p>Note (research): <code>ai_research</code> requires <code>config.research.searxng_endpoint</code>;
+it goes through <code>ResearchEngine::new(searxng_endpoint, …)</code> — provider creation
+via <code>ProviderFactory::create</code> (research.rs:37). If only the AI config is
+missing, but the file exists, M2's guard passes, then <code>ProviderFactory::create</code>
+can return <code>PkmError::Config("…requires an API key")</code> which <strong>is</strong> propagated
+(unlike the missing-file path).</p>
+<h3 id="22-same-mask-in-stt-commands-dictationrs-masks-parse-errors-too">2.2 Same mask in STT commands (dictation.rs) — masks parse errors too<a class="headerlink" href="#22-same-mask-in-stt-commands-dictationrs-masks-parse-errors-too" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>dictation.rs:100-106</code> — <code>load_config</code>: missing file -&gt; <code>"STT not
+  configured. Set the transcription endpoint in Settings."</code>; <code>Config::load</code>
+  errors (<code>PkmError::Config</code>, i.e. TOML parse) are <strong>swallowed and re-prefixed
+  to the same generic STT-not-configured string</strong>, then returned as <code>Err(String)</code>.
+  This is a <strong>real error-masking bug</strong>: a corrupt/malformed <code>config.toml</code>
+  (or an IO error) is reported to the user as "STT not configured", hiding the
+  underlying parse error.</li>
+<li><code>dictation.rs:108-114</code> — <code>endpoint_for</code>: empty <code>stt.endpoint</code> -&gt; same generic
+  STT-not-configured string; non-empty but SSRF-invalid -&gt; <code>"Invalid STT
+  endpoint: {parse error}"</code> (surfaced properly).</li>
+<li><code>stt_test_connection</code> (dictation.rs:525-563): calls <code>load_config</code> +
+  <code>endpoint_for</code> (same masking), then <code>GET {base}/v1/models</code>. Non-2xx or
+  transport errors are surfaced verbatim. The <code>/v1/models</code> GET is also a
+  <strong>different contract</strong> than the actual transcription path
+  (<code>POST /v1/audio/transcriptions</code>) — a 200 on models ≠ the endpoint actually
+  able to transcribe (documented as a likely-false-positive "success").</li>
+</ul>
+<h3 id="23-same-mask-in-tts-commands-ttsrs">2.3 Same mask in TTS commands (tts.rs)<a class="headerlink" href="#23-same-mask-in-tts-commands-ttsrs" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>tts.rs:52-56</code> &amp; <code>95-99</code> — missing config file -&gt; <code>"AI not configured.
+  Configure the AI provider in Settings → AI."</code>. Note: TTS may be deliberately
+  using a <code>[tts]</code> endpoint rather than <code>[ai]</code>, but the mask always blames AI.</li>
+<li><code>TtsConfigResolved::from_config</code> errors (empty endpoint, no TTS model,
+  SSRF-invalid) are <strong>propagated</strong> (tts.rs:93-104) — not masked.</li>
+</ul>
+<h3 id="24-cli-cratespkm-clisrcmainrs-masking-deliberate-partial">2.4 CLI (crates/pkm-cli/src/main.rs) — masking, deliberate + partial<a class="headerlink" href="#24-cli-cratespkm-clisrcmainrs-masking-deliberate-partial" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>main.rs:552-563</code> (<code>cmd_ask</code>) — missing config -&gt; <code>PkmError::Config("AI not
+  configured. No config found at &lt;path&gt;. Run stratum init…")</code>. This is
+  <strong>explicit and actionable</strong> (includes the path + next step), so it's the
+  well-behaved variant.</li>
+<li><code>main.rs:601-612</code> (<code>cmd_rag</code>) — missing config -&gt; <code>PkmError::Config("No
+  config found at … Run stratum init…")</code> (no "AI not configured" prefix).</li>
+<li>Both propagate <code>Config::load</code> parse errors (wrapped <code>main.rs:553-555,602-604</code>).</li>
+<li><code>main.rs:130-136</code> — top-level error handler: prints to stderr, exits non-zero.
+  <strong>Sync/Ask/Rag no-op successes were previously masked as "ok"</strong> (comment at
+  131-133 documents this was already fixed for the AI path); not itself an
+  error-masker.</li>
+</ul>
+<h3 id="25-endpoint-validation-errors-are-silently-dropped-swallowed-here">2.5 Endpoint validation errors are silently dropped (swallowed) here<a class="headerlink" href="#25-endpoint-validation-errors-are-silently-dropped-swallowed-here" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>ai_interlink_notes</code> — <code>ai.rs:282-289</code>: <code>RelatedFinder::find_related(...).ok()
+  .unwrap_or_default()</code> <strong>discards the retrieval error</strong>; if the Tantivy index
+  is missing/corrupt, related notes silently come back empty and the command
+  returns the original text unchanged (ai.rs:293-296) — no error surfaced, and
+  the <code>warn!</code> is the only trace of the real cause.</li>
+<li><code>dictation.rs:552</code> — <code>resp.json().await.unwrap_or(Models { data: vec![] })</code>:
+  a malformed <code>/v1/models</code> body in <code>stt_test_connection</code> is treated as
+  "success with zero models" instead of surfacing the parse error.</li>
+</ul>
+<h3 id="26-parsingparse-error-swallowing-inside-the-providers-cratespkm-aisrcproviderrs">2.6 Parsing/parse-error swallowing inside the providers (crates/pkm-ai/src/provider.rs)<a class="headerlink" href="#26-parsingparse-error-swallowing-inside-the-providers-cratespkm-aisrcproviderrs" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Ollama stream</strong> (provider.rs:385-396): any chunk that fails to parse as
+  <code>OllamaStreamChunk</code> is replaced by an <strong>empty-content, done=false</strong> delta —
+  the parse failure is silently swallowed; not even a <code>warn!</code>. A malformed
+  stream yields silently-empty output.</li>
+<li><strong>OpenAI stream</strong> (provider.rs:633-648): same swallow — a line that doesn't
+  start with <code>data:</code> is dropped via <code>filter_map</code> (some error paths just get
+  omitted), JSON parse failure -&gt; empty delta (done=false). malformed SSE =
+  silent empty output.</li>
+<li><strong>Anthropic stream</strong> (provider.rs:867-879): same pattern — parse failure -&gt;
+  empty delta (done=false).</li>
+<li><strong>CustomProvider non-stream</strong> (provider.rs:1029-1051): response parse failure
+  is <strong>propagated</strong> (<code>Custom provider parse error: {e}</code>), but an ambiguous
+  shape where no field parses yields <code>.unwrap_or_default()</code> = empty content
+  <strong>without error</strong> (provider.rs:1051) — a "successful" empty response.
+  Streaming: <code>custom</code> provider hard-errors <code>Unsupported("Streaming not
+  supported…")</code> (provider.rs:1064-1067) — a caller that requires streaming gets
+  a functional error, fine.</li>
+<li>Non-stream http errors are mostly propagated with context
+  (provider.rs:272,289,363,492,519,598,739,764) — but <code>reqwest::Response::json()</code>
+  does <strong>not</strong> re-check <code>status()</code>; a non-2xx HTML/error body surfaces as a
+  confusing "parse error" rather than an HTTP status error (relevant in
+  <code>chat()</code>, e.g. provider.rs:286-289).</li>
+</ul>
+<h3 id="27-http-status-is-not-checked-before-body-parse-in-non-stream-chat">2.7 HTTP status is not checked before body parse in non-stream chat<a class="headerlink" href="#27-http-status-is-not-checked-before-body-parse-in-non-stream-chat" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Ollama (provider.rs:266-289), OpenAI (provider.rs:485-519), Anthropic
+  (provider.rs:731-764): <code>resp.json()</code> is called on any status; a 4xx/5xx JSON
+  error body fails to deserialize into the success shape -&gt; the true
+  server-side error is masked as <code>PkmError::Ai("&lt;provider&gt; parse error: …")</code>.
+  e.g. an OpenAI 401 with <code>{"error":{"message":"Invalid API key"}}</code> becomes
+  "OpenAI parse error: missing field <code>choices</code>" — the <strong>real config failure
+  (bad key / env key) is hidden</strong> behind a parse message.</li>
+<li>CustomProvider is the exception: it checks <code>status().is_success()</code>
+  (provider.rs:991-999) and surfaces the body (first 200 chars).</li>
+</ul>
+<h3 id="28-config-error-inside-providerfactory-is-properly-translated-to-config-not-masked">2.8 Config error inside ProviderFactory is properly translated to Config (not masked)<a class="headerlink" href="#28-config-error-inside-providerfactory-is-properly-translated-to-config-not-masked" title="Permanent link">&para;</a></h3>
+<ul>
+<li>provider.rs:1099-1129 — missing API key for OpenAI/Anthropic/CustomOpenAI/
+  CustomAnthropic -&gt; <code>PkmError::Config("&lt;Provider&gt; requires an API key")</code>.
+  Since commands <code>.map_err(|e| e.to_string())</code>, the user <strong>does</strong> see the real
+  reason (contrast with 2.1's missing-file mask).</li>
+</ul>
+<hr />
+<h2 id="3-where-each-ai-command-gets-its-config-cmd-methods-summary">3. Where each AI command gets its config (cmd -&gt; methods) — summary<a class="headerlink" href="#3-where-each-ai-command-gets-its-config-cmd-methods-summary" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Action</th>
+<th>Command (ai.rs)</th>
+<th>load</th>
+<th>provider</th>
+<th>llm call</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ai_transform_block (73-136)</td>
+<td>86-95</td>
+<td>ProviderFactory::create @97</td>
+<td>provider.chat @126; errors logged <code>error!</code> + surfaced</td>
+</tr>
+<tr>
+<td>ai_research (152-205)</td>
+<td>158-167</td>
+<td>via ResearchEngine::new @174-180 -&gt; ProviderFactory::create (research.rs:37)</td>
+<td>engine.research @182-185; errors surfaced</td>
+</tr>
+<tr>
+<td>generate_mermaid (208-245)</td>
+<td>214-223</td>
+<td>ProviderFactory::create @225</td>
+<td>provider.chat @235; logged + surfaced</td>
+</tr>
+<tr>
+<td>ai_interlink_notes (248-362)</td>
+<td>255-269</td>
+<td>ProviderFactory::create @298</td>
+<td>provider.chat @326-329; related-finder error swallowed @282-289</td>
+</tr>
+<tr>
+<td>ai_rag_query (396-454)</td>
+<td>402-411</td>
+<td>OpenAIEmbeddingClient::from_ai_config @417 + ProviderFactory::create @418</td>
+<td>RagEngine::query @427-430; errors surfaced with "RAG query failed:" prefix</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Command (dictation.rs)</th>
+<th>load</th>
+<th>stt endpoint</th>
+<th>llm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>dictation_transcribe (223-355)</td>
+<td>load_config @232</td>
+<td>endpoint_for @233 (early) + @279; <code>ProviderFactory::create(&amp;config.ai)</code> @253 (failures surfaced)</td>
+<td>pkm_dictation::run @302</td>
+</tr>
+<tr>
+<td>speaker_assign (383-507)</td>
+<td>load_config @404 + endpoint_for @405</td>
+<td>VoiceIdClient @448</td>
+<td>—</td>
+</tr>
+<tr>
+<td>stt_test_connection (525-563)</td>
+<td>load_config @528 + endpoint_for @529</td>
+<td>GET models @536</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Command (tts.rs)</th>
+<th>load</th>
+<th>config resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tts_synthesize (46-83)</td>
+<td>50-57</td>
+<td>TtsConfigResolved::from_config @60 (errors propagated)</td>
+</tr>
+<tr>
+<td>tts_speak (89-126)</td>
+<td>93-100</td>
+<td>TtsConfigResolved::from_config @103</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Command (settings.rs)</th>
+<th>load</th>
+<th>purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>get_settings (123-…)</td>
+<td>124-134</td>
+<td>DTO build, <code>api_key_from_env</code> flag @136-145 (env presence-only)</td>
+</tr>
+<tr>
+<td>save_settings / save_graph_settings</td>
+<td>load-or-zero @398-405</td>
+<td>config file writes</td>
+</tr>
+<tr>
+<td>fetch_models (424-488)</td>
+<td>426-444</td>
+<td>GET /v1/models; uses <code>effective_api_key</code> @442; endpoint/url validated @447-452</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-full-failure-mode-inventory">4. Full failure-mode inventory<a class="headerlink" href="#4-full-failure-mode-inventory" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Location</th>
+<th>Trigger</th>
 <th>Result</th>
+<th>Masked?</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>Click a node</strong></td>
-<td>Navigate to that page</td>
+<td>FM-1</td>
+<td>ai.rs:91-95+</td>
+<td>config.toml missing</td>
+<td>generic "AI not configured"</td>
+<td>masks "no config file" (all AI cmds)</td>
 </tr>
 <tr>
-<td><strong>Drag a node</strong></td>
-<td>Reposition manually</td>
+<td>FM-2</td>
+<td>dictation.rs:100-106</td>
+<td>config.toml missing OR <strong>Config::load parse/IO error</strong></td>
+<td>generic "STT not configured"</td>
+<td><strong>YES — real parse/IO error replaced by STT-not-configured string</strong></td>
 </tr>
 <tr>
-<td><strong>Scroll</strong></td>
-<td>Zoom in/out</td>
+<td>FM-3</td>
+<td>dictation.rs:108-114</td>
+<td>stt.endpoint empty</td>
+<td>"STT not configured…"</td>
+<td>(accurate)</td>
 </tr>
 <tr>
-<td><strong>Pan</strong></td>
-<td>Click and drag empty space</td>
+<td>FM-4</td>
+<td>dictation.rs:108-114</td>
+<td>stt.endpoint SSRF-invalid</td>
+<td>"Invalid STT endpoint: <e>"</td>
+<td>no</td>
 </tr>
 <tr>
-<td><strong>Hover</strong></td>
-<td>Highlight connections and show label</td>
+<td>FM-5</td>
+<td>dictation.rs:552</td>
+<td>/v1/models body malformed</td>
+<td>treated as success, 0 models</td>
+<td>YES</td>
+</tr>
+<tr>
+<td>FM-6</td>
+<td>dictation.rs:536-562</td>
+<td>endpoint down / 4xx</td>
+<td>"Connection failed / Endpoint responded with HTTP …"</td>
+<td>no</td>
+</tr>
+<tr>
+<td>FM-7</td>
+<td>tts.rs:52-56,95-99</td>
+<td>config.toml missing</td>
+<td>"AI not configured …" (blames AI, not [tts])</td>
+<td>masks missing file; wrong attribution when using [tts] endpoint</td>
+</tr>
+<tr>
+<td>FM-8</td>
+<td>provider.rs:286-289,516-519,761-764</td>
+<td>non-2xx JSON error body</td>
+<td>"parse error: missing field …"</td>
+<td><strong>YES — real server error (401 invalid key etc.) hidden behind a JSON parse error</strong></td>
+</tr>
+<tr>
+<td>FM-9</td>
+<td>provider.rs:385-396,633-648,867-879</td>
+<td>malformed stream chunk</td>
+<td>silently emitted empty delta (done=false)</td>
+<td>YES — silent empty output, no warn</td>
+</tr>
+<tr>
+<td>FM-10</td>
+<td>provider.rs:1051</td>
+<td>custom response w/ no recognizable field</td>
+<td>Ok with empty content</td>
+<td>YES — empty response reported as success</td>
+</tr>
+<tr>
+<td>FM-11</td>
+<td>provider.rs:1099-1129</td>
+<td>missing API key (no env, no config)</td>
+<td><code>Config("&lt;Provider&gt; requires an API key")</code></td>
+<td>no — surfaced to user (good)</td>
+</tr>
+<tr>
+<td>FM-12</td>
+<td>ai.rs:282-289</td>
+<td>RelatedFinder retrieval error (index missing/corrupt)</td>
+<td><code>.ok().unwrap_or_default()</code> → empty related + returns original text</td>
+<td><strong>YES — retrieval error dropped; no error surfaced</strong></td>
+</tr>
+<tr>
+<td>FM-13</td>
+<td>ai.rs:293-296</td>
+<td>no related pages found</td>
+<td>returns original text (this is intended)</td>
+<td>intended</td>
+</tr>
+<tr>
+<td>FM-14</td>
+<td>settings.rs:136-145</td>
+<td>env var set but empty</td>
+<td><code>api_key_from_env=true</code> though key is empty</td>
+<td>YES — presence-only check reports empty key as configured</td>
+</tr>
+<tr>
+<td>FM-15</td>
+<td>settings.rs:424-487</td>
+<td>fetch_models non-2xx / transport</td>
+<td>"API returned status 4xx" / transport <code>to_string()</code></td>
+<td>partial — status surfaced, body dropped</td>
+</tr>
+<tr>
+<td>FM-16</td>
+<td>provider.rs:982-989</td>
+<td>custom 405 retry also fails</td>
+<td>retry error surfaced</td>
+<td>no</td>
+</tr>
+<tr>
+<td>FM-17</td>
+<td>main.rs:559-562</td>
+<td>CLI ask, file missing</td>
+<td>Config error w/ path + next step (actionable)</td>
+<td>no — explicit + actionable</td>
+</tr>
+<tr>
+<td>FM-18</td>
+<td>provider.rs:1064-1067</td>
+<td>custom provider streaming</td>
+<td><code>Unsupported("Streaming not supported…")</code></td>
+<td>no (functional error)</td>
 </tr>
 </tbody>
 </table>
-<!-- SCREENSHOT: [graph-interaction] Hover highlight showing connected nodes -->
-
-<h2 id="graph-views">Graph Views<a class="headerlink" href="#graph-views" title="Permanent link">&para;</a></h2>
-<h3 id="connected-components">Connected Components<a class="headerlink" href="#connected-components" title="Permanent link">&para;</a></h3>
-<p>Toggle to show only nodes that are part of connected clusters. Isolates the "conversations" happening in your vault.</p>
-<!-- SCREENSHOT: [graph-components] Connected components view -->
-
-<h3 id="orphaned-notes">Orphaned Notes<a class="headerlink" href="#orphaned-notes" title="Permanent link">&para;</a></h3>
-<p>Toggle to show only nodes with zero incoming or outgoing connections. These pages aren't linked to anything — great for finding content that needs integration.</p>
-<!-- SCREENSHOT: [graph-orphans] Orphaned notes view -->
-
-<h3 id="filter-by-search">Filter by Search<a class="headerlink" href="#filter-by-search" title="Permanent link">&para;</a></h3>
-<p>Type in the search field within the graph panel to filter nodes by name. Only matching nodes and their immediate connections are shown.</p>
-<h2 id="graph-settings">Graph Settings<a class="headerlink" href="#graph-settings" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Setting</th>
-<th>Description</th>
-<th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Show Connected</td>
-<td>Show connected components only</td>
-<td><code>true</code></td>
-</tr>
-<tr>
-<td>Show Orphaned</td>
-<td>Show orphaned notes</td>
-<td><code>true</code></td>
-</tr>
-<tr>
-<td>Show Tags</td>
-<td>Display tag nodes in the graph</td>
-<td><code>true</code></td>
-</tr>
-<tr>
-<td>3D View (mobile)</td>
-<td>Render the graph in 3D instead of the 2D force layout (see <a href="#3d-view-on-mobile">3D View on Mobile</a>)</td>
-<td><code>false</code></td>
-</tr>
-<tr>
-<td>Charge Strength</td>
-<td>Node repulsion (more negative = more spread)</td>
-<td><code>-30</code></td>
-</tr>
-<tr>
-<td>Link Distance</td>
-<td>Preferred edge length</td>
-<td><code>100</code></td>
-</tr>
-<tr>
-<td>Alpha Decay</td>
-<td>How quickly the simulation stabilizes</td>
-<td><code>0.02</code></td>
-</tr>
-<tr>
-<td>Velocity Decay</td>
-<td>Damping factor</td>
-<td><code>0.4</code></td>
-</tr>
-<tr>
-<td>Node cap</td>
-<td>Maximum number of nodes rendered. <code>0</code> (Unlimited) renders the full vault below 2,000 notes and <strong>automatically caps to 2,000</strong> on larger vaults so the graph stays responsive.</td>
-<td><code>0</code></td>
-</tr>
-</tbody>
-</table>
-<p>These settings can be adjusted in <strong>Settings → Graph</strong> or by editing <code>.pkm/config.toml</code>.</p>
-<h2 id="3d-view-on-mobile">3D View on Mobile<a class="headerlink" href="#3d-view-on-mobile" title="Permanent link">&para;</a></h2>
-<p>On mobile, the graph starts in the <strong>2D force layout</strong> for performance. You can opt in to a <strong>3D view</strong> with the "3D view" toggle in the graph settings menu (bottom sheet). The 3D layout supports the same interactions: drag to pan, pinch to zoom, tap a node to open the page, and drag nodes to reposition them.</p>
-<p>The toggle is only shown where it applies:</p>
-<ul>
-<li><strong>Mobile</strong>: the "3D view" toggle is available in the settings bottom sheet.</li>
-<li><strong>Desktop</strong>: the graph always renders in 3D; the toggle is not shown.</li>
-</ul>
-<h3 id="automatic-fallback-to-2d">Automatic fallback to 2D<a class="headerlink" href="#automatic-fallback-to-2d" title="Permanent link">&para;</a></h3>
-<p>Stratum checks hardware capability before enabling 3D. On devices that cannot render 3D (WebGL unavailable), or on very constrained hardware (≤2 GB RAM or ≤2 CPU cores), Stratum automatically falls back to the 2D layout and shows a notice explaining that 3D isn't supported on the device. Your preference is still saved — if you later open the graph on a capable device, 3D is used. The 3D view is disabled in the settings when the device can't render it.</p>
-<h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h2>
-<p>Graph loading and rendering are optimized for large vaults:</p>
-<ul>
-<li><strong>Authoritative links table.</strong> Graph edges are read directly from the <code>links</code> table (the same index that powers backlinks), not re-parsed from block content on every load. Every save/edit reconciles this table in the same transaction, so the graph always reflects the latest edits. On first launch after upgrading, the app self-heals any vault whose links table predates this wiring.</li>
-<li><strong>Cached responses.</strong> The computed graph is cached per vault and served cheaply on subsequent opens, invalidated automatically after any page or block edit.</li>
-<li><strong>Safe default node cap for large vaults.</strong> With the <strong>Node cap</strong> set to <code>0</code> (Unlimited), the full vault is rendered below 2,000 notes; on larger vaults the rendered and simulated set is automatically capped to the 2,000 most-connected notes so the force simulation and rendering stay interactive. You can still reveal more by raising the cap in <strong>Settings → Graph</strong> — the most-connected notes are always kept first, so the visible structure remains meaningful.</li>
-</ul>
-<h2 id="tips">Tips<a class="headerlink" href="#tips" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Start with orphans</strong> — opening the orphan view first helps find pages that need linking</li>
-<li><strong>Larger nodes are hubs</strong> — highly connected pages are the most important in your knowledge graph</li>
-<li><strong>Color reveals topics</strong> — if all your nodes are the same color, you might need more diverse tagging</li>
-</ul>
+<p>Worth flagging separately:
+- <strong>STT has no env fallback</strong> for its API key (<code>SttConfig.api_key</code> only),
+  unlike AI/TTS — documented but asymmetric.
+- <strong>TTS API-key fallback to AI</strong>, even when the TTS endpoint is configured
+  independently: a user pointing TTS at a separate server with a separate key
+  and leaving <code>tts.api_key</code> empty will silently send the <strong>AI</strong> provider's key
+  (from <code>effective_api_key</code>, which may even be an env key) to the TTS server
+  (tts.rs:124-128). Not an error-mask, but a credential-routing surprise.</p>
+<hr />
+<h2 id="5-recommendation-future-work-no-changes-made-per-acceptance-criteria">5. Recommendation (future work, no changes made per acceptance criteria)<a class="headerlink" href="#5-recommendation-future-work-no-changes-made-per-acceptance-criteria" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Never replace propagated errors with the generic "not configured" string —
+   <code>Config::load</code> errors should be prefixed, not swallowed (dictation.rs:105;
+   the ai/tts commands already do this correctly).</li>
+<li>In non-stream <code>chat()</code> for Ollama/OpenAI/Anthropic, branch on
+   <code>resp.status()</code> and surface the server error body before attempting to
+   deserialize the success shape (closes FM-8).</li>
+<li>Emit a <code>warn!</code>/<code>debug!</code> when a stream chunk fails to parse instead of a
+   silent empty delta (FM-9) — ideally surface <code>Err(PkmError::Ai(...))</code> so a
+   malformed stream stops the UI silently producing nothing.</li>
+<li><code>stt_test_connection</code> should probe the real transcription contract or at
+   least surface the models-parse failure (FM-5/FM-6 ambiguity).</li>
+<li><code>ai_interlink_notes</code> should propagate <code>find_related</code> errors instead of
+   <code>.ok().unwrap_or_default()</code> (FM-12).</li>
+<li>Consider an STT env fallback for symmetry and document TTS key-fallback
+   semantics (F-flag above).</li>
+</ol>
 
 
 
@@ -2651,10 +2876,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.tabs.link", "content.admonition"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.tabs.link", "content.admonition"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

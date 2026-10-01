@@ -10,31 +10,31 @@
       
       
       
-        <link rel="canonical" href="https://short-circuit.github.io/stratum/docs/guide/graph-view/">
+        <link rel="canonical" href="https://short-circuit.github.io/stratum/docs/development/adr/0005-mcp-server-contract/">
       
       
-        <link rel="prev" href="../tasks/">
+        <link rel="prev" href="../0004-wasm-plugin-abi/">
       
       
-        <link rel="next" href="../search/">
+        <link rel="next" href="../0006-mcp-threat-model/">
       
       
         
       
       
-      <link rel="icon" href="../../assets/images/icon.svg">
+      <link rel="icon" href="../../../assets/images/icon.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Graph View - Stratum</title>
+        <title>ADR-0005: MCP Server — Architecture and API Contract - Stratum</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,7 +53,7 @@
       
     
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#graph-view" class="md-skip">
+        <a href="#adr-0005-mcp-server-architecture-and-api-contract" class="md-skip">
           Skip to content
         </a>
       
@@ -92,9 +92,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="Stratum" class="md-header__button md-logo" aria-label="Stratum" data-md-component="logo">
+    <a href="../../.." title="Stratum" class="md-header__button md-logo" aria-label="Stratum" data-md-component="logo">
       
-  <img src="../../assets/images/icon.svg" alt="logo">
+  <img src="../../../assets/images/icon.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Graph View
+              ADR-0005: MCP Server — Architecture and API Contract
             
           </span>
         </div>
@@ -229,7 +229,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../.." class="md-tabs__link">
+      <a href="../../.." class="md-tabs__link">
         
   
   
@@ -250,7 +250,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../getting-started/installation/" class="md-tabs__link">
+        <a href="../../../getting-started/installation/" class="md-tabs__link">
           
   
   
@@ -268,13 +268,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../vault-management/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../../guide/vault-management/" class="md-tabs__link">
           
   
   
@@ -296,7 +294,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../cli/command-reference/" class="md-tabs__link">
+        <a href="../../../cli/command-reference/" class="md-tabs__link">
           
   
   
@@ -318,7 +316,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../advanced/file-format/" class="md-tabs__link">
+        <a href="../../../advanced/file-format/" class="md-tabs__link">
           
   
   
@@ -338,7 +336,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../contributing/" class="md-tabs__link">
+      <a href="../../../contributing/" class="md-tabs__link">
         
   
   
@@ -355,11 +353,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../development/frontend-guide/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../frontend-guide/" class="md-tabs__link">
           
   
   
@@ -395,9 +395,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="Stratum" class="md-nav__button md-logo" aria-label="Stratum" data-md-component="logo">
+    <a href="../../.." title="Stratum" class="md-nav__button md-logo" aria-label="Stratum" data-md-component="logo">
       
-  <img src="../../assets/images/icon.svg" alt="logo">
+  <img src="../../../assets/images/icon.svg" alt="logo">
 
     </a>
     Stratum
@@ -424,7 +424,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -513,7 +513,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/installation/" class="md-nav__link">
+      <a href="../../../getting-started/installation/" class="md-nav__link">
         
   
   
@@ -541,7 +541,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/quickstart/" class="md-nav__link">
+      <a href="../../../getting-started/quickstart/" class="md-nav__link">
         
   
   
@@ -569,7 +569,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/configuration/" class="md-nav__link">
+      <a href="../../../getting-started/configuration/" class="md-nav__link">
         
   
   
@@ -601,10 +601,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -654,22 +652,21 @@
     
     
       
-        
-        
-      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   
@@ -687,7 +684,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -705,7 +702,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../vault-management/" class="md-nav__link">
+      <a href="../../../guide/vault-management/" class="md-nav__link">
         
   
   
@@ -733,7 +730,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../block-editor/" class="md-nav__link">
+      <a href="../../../guide/block-editor/" class="md-nav__link">
         
   
   
@@ -761,7 +758,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../linking-and-backlinks/" class="md-nav__link">
+      <a href="../../../guide/linking-and-backlinks/" class="md-nav__link">
         
   
   
@@ -789,7 +786,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tags/" class="md-nav__link">
+      <a href="../../../guide/tags/" class="md-nav__link">
         
   
   
@@ -817,7 +814,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tasks/" class="md-nav__link">
+      <a href="../../../guide/tasks/" class="md-nav__link">
         
   
   
@@ -842,37 +839,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Graph View
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../../guide/graph-view/" class="md-nav__link">
         
   
   
@@ -888,170 +858,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#opening-the-graph" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Opening the Graph
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#graph-elements" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Graph Elements
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#interacting-with-the-graph" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Interacting with the Graph
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#graph-views" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Graph Views
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Graph Views">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#connected-components" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Connected Components
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#orphaned-notes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Orphaned Notes
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#filter-by-search" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Filter by Search
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#graph-settings" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Graph Settings
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3d-view-on-mobile" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3D View on Mobile
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3D View on Mobile">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#automatic-fallback-to-2d" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Automatic fallback to 2D
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#performance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Performance
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1064,7 +870,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../search/" class="md-nav__link">
+      <a href="../../../guide/search/" class="md-nav__link">
         
   
   
@@ -1092,7 +898,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../datalog-queries/" class="md-nav__link">
+      <a href="../../../guide/datalog-queries/" class="md-nav__link">
         
   
   
@@ -1120,7 +926,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../journal/" class="md-nav__link">
+      <a href="../../../guide/journal/" class="md-nav__link">
         
   
   
@@ -1148,7 +954,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../templates/" class="md-nav__link">
+      <a href="../../../guide/templates/" class="md-nav__link">
         
   
   
@@ -1176,7 +982,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../flashcards/" class="md-nav__link">
+      <a href="../../../guide/flashcards/" class="md-nav__link">
         
   
   
@@ -1204,7 +1010,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../whiteboards/" class="md-nav__link">
+      <a href="../../../guide/whiteboards/" class="md-nav__link">
         
   
   
@@ -1232,7 +1038,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../math-equations/" class="md-nav__link">
+      <a href="../../../guide/math-equations/" class="md-nav__link">
         
   
   
@@ -1260,7 +1066,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../diagrams/" class="md-nav__link">
+      <a href="../../../guide/diagrams/" class="md-nav__link">
         
   
   
@@ -1288,7 +1094,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ai-features/" class="md-nav__link">
+      <a href="../../../guide/ai-features/" class="md-nav__link">
         
   
   
@@ -1316,7 +1122,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../voice-dictation/" class="md-nav__link">
+      <a href="../../../guide/voice-dictation/" class="md-nav__link">
         
   
   
@@ -1344,7 +1150,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../web-research/" class="md-nav__link">
+      <a href="../../../guide/web-research/" class="md-nav__link">
         
   
   
@@ -1372,7 +1178,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../git-sync/" class="md-nav__link">
+      <a href="../../../guide/git-sync/" class="md-nav__link">
         
   
   
@@ -1400,7 +1206,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../export/" class="md-nav__link">
+      <a href="../../../guide/export/" class="md-nav__link">
         
   
   
@@ -1428,7 +1234,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../plugins/" class="md-nav__link">
+      <a href="../../../guide/plugins/" class="md-nav__link">
         
   
   
@@ -1456,7 +1262,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../mcp-server/" class="md-nav__link">
+      <a href="../../../guide/mcp-server/" class="md-nav__link">
         
   
   
@@ -1549,7 +1355,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../cli/command-reference/" class="md-nav__link">
+      <a href="../../../cli/command-reference/" class="md-nav__link">
         
   
   
@@ -1646,7 +1452,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced/file-format/" class="md-nav__link">
+      <a href="../../../advanced/file-format/" class="md-nav__link">
         
   
   
@@ -1674,7 +1480,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced/plugins/" class="md-nav__link">
+      <a href="../../../advanced/plugins/" class="md-nav__link">
         
   
   
@@ -1702,7 +1508,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../advanced/mcp-deployment/" class="md-nav__link">
+      <a href="../../../advanced/mcp-deployment/" class="md-nav__link">
         
   
   
@@ -1737,7 +1543,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/" class="md-nav__link">
+      <a href="../../../contributing/" class="md-nav__link">
         
   
   
@@ -1761,8 +1567,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -1784,21 +1592,22 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
-        
-          
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
             
   
   
@@ -1816,7 +1625,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1834,7 +1643,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/frontend-guide/" class="md-nav__link">
+      <a href="../../frontend-guide/" class="md-nav__link">
         
   
   
@@ -1862,7 +1671,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/rust-guide/" class="md-nav__link">
+      <a href="../../rust-guide/" class="md-nav__link">
         
   
   
@@ -1890,7 +1699,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/mobile-guide/" class="md-nav__link">
+      <a href="../../mobile-guide/" class="md-nav__link">
         
   
   
@@ -1918,7 +1727,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/branch-policy/" class="md-nav__link">
+      <a href="../../branch-policy/" class="md-nav__link">
         
   
   
@@ -1956,10 +1765,13 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
@@ -1968,7 +1780,7 @@
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="">
             
   
   
@@ -2004,7 +1816,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/adr/0004-wasm-plugin-abi/" class="md-nav__link">
+      <a href="../0004-wasm-plugin-abi/" class="md-nav__link">
         
   
   
@@ -2037,8 +1849,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -2049,20 +1863,21 @@
     
       
       
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
         
           
+          
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_6" >
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_6" checked>
         
           
-          <label class="md-nav__link" for="__nav_7_6" id="__nav_7_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_6" id="__nav_7_6_label" tabindex="">
             
   
   
@@ -2080,7 +1895,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_6_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_6_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_7_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -2095,10 +1910,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../development/adr/0005-mcp-server-contract/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0005: MCP Server — Architecture and API Contract
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -2114,6 +1956,70 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status-of-this-adr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status of this ADR
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -2144,10 +2050,13 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
@@ -2156,7 +2065,7 @@
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
             
   
   
@@ -2192,7 +2101,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/adr/0006-mcp-threat-model/" class="md-nav__link">
+      <a href="../0006-mcp-threat-model/" class="md-nav__link">
         
   
   
@@ -2255,10 +2164,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#opening-the-graph" class="md-nav__link">
+  <a href="#context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Opening the Graph
+        Context
       
     </span>
   </a>
@@ -2266,10 +2175,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#graph-elements" class="md-nav__link">
+  <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Graph Elements
+        Decision
       
     </span>
   </a>
@@ -2277,10 +2186,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#interacting-with-the-graph" class="md-nav__link">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Interacting with the Graph
+        Consequences
       
     </span>
   </a>
@@ -2288,110 +2197,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#graph-views" class="md-nav__link">
+  <a href="#status-of-this-adr" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Graph Views
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Graph Views">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#connected-components" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Connected Components
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#orphaned-notes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Orphaned Notes
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#filter-by-search" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Filter by Search
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#graph-settings" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Graph Settings
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3d-view-on-mobile" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3D View on Mobile
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3D View on Mobile">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#automatic-fallback-to-2d" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Automatic fallback to 2D
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#performance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Performance
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips
+        Status of this ADR
       
     </span>
   </a>
@@ -2418,167 +2227,186 @@
   
 
 
-<h1 id="graph-view">Graph View<a class="headerlink" href="#graph-view" title="Permanent link">&para;</a></h1>
-<p>The graph visualizes connections between your notes as an interactive force-directed network.</p>
-<!-- SCREENSHOT: [graph-view] Full graph view showing connected nodes -->
-
-<h2 id="opening-the-graph">Opening the Graph<a class="headerlink" href="#opening-the-graph" title="Permanent link">&para;</a></h2>
-<p>Click <strong>Graph</strong> in the sidebar or navigate to <code>/graph</code>. The graph loads automatically with all pages and their <code>[[wiki-link]]</code> connections.</p>
-<h2 id="graph-elements">Graph Elements<a class="headerlink" href="#graph-elements" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Element</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Nodes</strong></td>
-<td>Each page in your vault</td>
-</tr>
-<tr>
-<td><strong>Edges</strong></td>
-<td><code>[[wiki-link]]</code> connections between pages</td>
-</tr>
-<tr>
-<td><strong>Node size</strong></td>
-<td>Scaled by degree (number of connections)</td>
-</tr>
-<tr>
-<td><strong>Node color</strong></td>
-<td>Colored by most prominent tag</td>
-</tr>
-<tr>
-<td><strong>Tag nodes</strong></td>
-<td>Optional tag nodes shown as diamonds (configurable)</td>
-</tr>
-</tbody>
-</table>
-<h2 id="interacting-with-the-graph">Interacting with the Graph<a class="headerlink" href="#interacting-with-the-graph" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Action</th>
-<th>Result</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Click a node</strong></td>
-<td>Navigate to that page</td>
-</tr>
-<tr>
-<td><strong>Drag a node</strong></td>
-<td>Reposition manually</td>
-</tr>
-<tr>
-<td><strong>Scroll</strong></td>
-<td>Zoom in/out</td>
-</tr>
-<tr>
-<td><strong>Pan</strong></td>
-<td>Click and drag empty space</td>
-</tr>
-<tr>
-<td><strong>Hover</strong></td>
-<td>Highlight connections and show label</td>
-</tr>
-</tbody>
-</table>
-<!-- SCREENSHOT: [graph-interaction] Hover highlight showing connected nodes -->
-
-<h2 id="graph-views">Graph Views<a class="headerlink" href="#graph-views" title="Permanent link">&para;</a></h2>
-<h3 id="connected-components">Connected Components<a class="headerlink" href="#connected-components" title="Permanent link">&para;</a></h3>
-<p>Toggle to show only nodes that are part of connected clusters. Isolates the "conversations" happening in your vault.</p>
-<!-- SCREENSHOT: [graph-components] Connected components view -->
-
-<h3 id="orphaned-notes">Orphaned Notes<a class="headerlink" href="#orphaned-notes" title="Permanent link">&para;</a></h3>
-<p>Toggle to show only nodes with zero incoming or outgoing connections. These pages aren't linked to anything — great for finding content that needs integration.</p>
-<!-- SCREENSHOT: [graph-orphans] Orphaned notes view -->
-
-<h3 id="filter-by-search">Filter by Search<a class="headerlink" href="#filter-by-search" title="Permanent link">&para;</a></h3>
-<p>Type in the search field within the graph panel to filter nodes by name. Only matching nodes and their immediate connections are shown.</p>
-<h2 id="graph-settings">Graph Settings<a class="headerlink" href="#graph-settings" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Setting</th>
-<th>Description</th>
-<th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Show Connected</td>
-<td>Show connected components only</td>
-<td><code>true</code></td>
-</tr>
-<tr>
-<td>Show Orphaned</td>
-<td>Show orphaned notes</td>
-<td><code>true</code></td>
-</tr>
-<tr>
-<td>Show Tags</td>
-<td>Display tag nodes in the graph</td>
-<td><code>true</code></td>
-</tr>
-<tr>
-<td>3D View (mobile)</td>
-<td>Render the graph in 3D instead of the 2D force layout (see <a href="#3d-view-on-mobile">3D View on Mobile</a>)</td>
-<td><code>false</code></td>
-</tr>
-<tr>
-<td>Charge Strength</td>
-<td>Node repulsion (more negative = more spread)</td>
-<td><code>-30</code></td>
-</tr>
-<tr>
-<td>Link Distance</td>
-<td>Preferred edge length</td>
-<td><code>100</code></td>
-</tr>
-<tr>
-<td>Alpha Decay</td>
-<td>How quickly the simulation stabilizes</td>
-<td><code>0.02</code></td>
-</tr>
-<tr>
-<td>Velocity Decay</td>
-<td>Damping factor</td>
-<td><code>0.4</code></td>
-</tr>
-<tr>
-<td>Node cap</td>
-<td>Maximum number of nodes rendered. <code>0</code> (Unlimited) renders the full vault below 2,000 notes and <strong>automatically caps to 2,000</strong> on larger vaults so the graph stays responsive.</td>
-<td><code>0</code></td>
-</tr>
-</tbody>
-</table>
-<p>These settings can be adjusted in <strong>Settings → Graph</strong> or by editing <code>.pkm/config.toml</code>.</p>
-<h2 id="3d-view-on-mobile">3D View on Mobile<a class="headerlink" href="#3d-view-on-mobile" title="Permanent link">&para;</a></h2>
-<p>On mobile, the graph starts in the <strong>2D force layout</strong> for performance. You can opt in to a <strong>3D view</strong> with the "3D view" toggle in the graph settings menu (bottom sheet). The 3D layout supports the same interactions: drag to pan, pinch to zoom, tap a node to open the page, and drag nodes to reposition them.</p>
-<p>The toggle is only shown where it applies:</p>
+<h1 id="adr-0005-mcp-server-architecture-and-api-contract">ADR-0005: MCP Server — Architecture and API Contract<a class="headerlink" href="#adr-0005-mcp-server-architecture-and-api-contract" title="Permanent link">&para;</a></h1>
 <ul>
-<li><strong>Mobile</strong>: the "3D view" toggle is available in the settings bottom sheet.</li>
-<li><strong>Desktop</strong>: the graph always renders in 3D; the toggle is not shown.</li>
+<li><strong>Status:</strong> Accepted (normative — implementation tasks build against this)</li>
+<li><strong>Date:</strong> 2026-09-19</li>
+<li><strong>Deciders:</strong> architect (API owner), backend-dev, security-auditor, qa-engineer, technical-writer, devops</li>
+<li><strong>Supersedes:</strong> none</li>
+<li><strong>Related:</strong> <code>docs/advanced/mcp.md</code> (authoritative API contract), crates in the pkm-* workspace, epic "MCP Server" (root t_7a548710)</li>
 </ul>
-<h3 id="automatic-fallback-to-2d">Automatic fallback to 2D<a class="headerlink" href="#automatic-fallback-to-2d" title="Permanent link">&para;</a></h3>
-<p>Stratum checks hardware capability before enabling 3D. On devices that cannot render 3D (WebGL unavailable), or on very constrained hardware (≤2 GB RAM or ≤2 CPU cores), Stratum automatically falls back to the 2D layout and shows a notice explaining that 3D isn't supported on the device. Your preference is still saved — if you later open the graph on a capable device, 3D is used. The 3D view is disabled in the settings when the device can't render it.</p>
-<h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h2>
-<p>Graph loading and rendering are optimized for large vaults:</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>Stratum exposes its full knowledge base through native Tauri IPC. External AI
+clients cannot call those commands. We want a Model Context Protocol (MCP)
+server so that an external AI can read, write, index, search, link, and organize
+notes in a Stratum vault. The server must reuse the existing data layer
+(SQLite <code>pkm-block</code> store, Tantivy <code>pkm-index</code> search, <code>pkm-markdown</code>
+parser/serializer), must be atomic and consistent with the desktop app's
+writers, and must be secure when exposed beyond a single user's machine.</p>
+<p>This ADR fixes the architecture and the API contract. It is the normative
+reference; the implementation card (t_96591769) makes the runtime match it
+exactly, and the security (t_4acd5437), QA (t_547e25f1), documentation
+(t_28f8e7f1) and deployment (t_af0ce286) cards build against the contract in
+<code>docs/advanced/mcp.md</code>.</p>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><strong>Protocol baseline.</strong> The server speaks MCP as defined in the current
+   stable specification revision pinned in <code>docs/advanced/mcp.md</code> (§1). That
+   pin is <code>2025-06-18</code> for the <em>message core</em> (lifecycle, tools, resources,
+   JSON-RPC 2.0 framing) and the <strong>Streamable HTTP</strong> transport (introduced in
+   revision <code>2025-03-26</code>) as the sole network transport, because the newer
+   transport revisions <strong>removed the GET stream endpoint</strong> and changed
+   client/server negotiation semantics; pinning avoids silent drift across SDK
+   upgrades. <code>stdio</code> is also supported for same-host, single-client operation
+   (local CLI/editor integration) and MUST be implemented with the same tool
+   surface and semantics as the HTTP transport.</p>
+</li>
+<li>
+<p><strong>SDK.</strong> Implement against the official Rust SDK crate <code>rmcp</code>
+   (modelcontextprotocol/rust-sdk), which binds to the experimental go-sdk
+   transport for tokio. <code>rmcp</code> supports both stdio and Streamable HTTP
+   transports and is licensed MIT OR Apache-2.0 — license-compatible per the
+   dependency policy in <code>AGENTS.md</code>. Pin the exact revision in the workspace
+   manifest; no hand-rolled protocol layer.</p>
+</li>
+<li>
+<p><strong>Transport security.</strong> Over HTTP the server MUST be served with TLS
+   terminated at the deployment boundary (reverse proxy) unless it binds to a
+   loopback-only interface. It exposes exactly one path <code>&lt;base&gt;/mcp</code> for MCP
+   sessions (Streamable HTTP), plus a non-MCP <code>&lt;base&gt;/health</code> compatibility
+   endpoint used by load balancers and orchestrators. The stdio transport needs
+   no networking configuration and is the default for local only.</p>
+</li>
+<li>
+<p><strong>Authentication &amp; authorization.</strong> MCP's authorization framework is OAuth
+   2.1 (RFC 6749/9700). For Stratum's first release we define two supported
+   schemes:</p>
+</li>
+<li>
+<p><strong>Personal access token (PAT)</strong> — an opaque bearer token (<code>Stratum-MCP v1</code>
+     format, 43-char base64url, scoped, revocable). This is the default and is
+     sufficient for single-tenant/self-hosted use and for all stdio setups.</p>
+</li>
+<li><strong>OAuth 2.1</strong> — implemented per the MCP Authorization spec for
+     multi-tenant deployments where an external client must authenticate a
+     user without issuing tokens out-of-band. OAuth is an optional capability:
+     the server advertises <code>oauth:supported</code> in its server info; the nuance is
+     in the contract spec (§7).</li>
+</ol>
+<p>Authorization is <strong>inside the server</strong>, per-client, via <strong>scopes</strong> attached
+   to the PAT (or to the OAuth token's <code>scope</code> claim). Every MCP tool declares
+   an exact required scope. Scope vocabulary: <code>kb:read</code>, <code>kb:write</code>,
+   <code>kb:index</code>, <code>kb:search</code>, <code>kb:link</code>, <code>kb:organize</code>, and <code>kb:admin</code>. A token
+   with no scope grants nothing.</p>
+<ol>
+<li>
+<p><strong>Data access.</strong> The MCP server opens the SAME on-disk data the desktop app
+   uses: SQLite <code>blocks.db</code> under <code>vault/.pkm/</code> via <code>pkm-block::BlockStore</code>,
+   plus the Tantivy index under <code>vault/.pkm/search</code> via <code>pkm-index</code>. The server
+   MUST NOT hold a long-lived write lock; a scoped read-mostly worker is used,
+   and every mutation commits inside a SQLite transaction exactly like the
+   desktop <code>save_page</code>/<code>save_blocks</code> commands do (temp-file + rename for the
+   <code>.md</code>, then transaction for SQLite, then index refresh). The on-disk file is
+   always at least as fresh as SQLite, preventing divergence and corruption on
+   crash. The write path MUST reuse <code>pkm_markdown::block_parser</code> serialization
+   and <code>pkm-markdown</code> wiki-link extraction so the server's output is byte-identical
+   to what the editor produces.</p>
+</li>
+<li>
+<p><strong>Tool surface.</strong> The MCP tool names, argument names, and input/output
+   schemas are NORMATIVE and fixed by <code>docs/advanced/mcp.md</code> (§5). Fifteen
+   tools are defined, grouped by capability:</p>
+</li>
+<li>
+<p><strong>Read:</strong> <code>kb_get_page</code>, <code>kb_list_pages</code></p>
+</li>
+<li><strong>Write:</strong> <code>kb_write_page</code>, <code>kb_delete_page</code></li>
+<li><strong>Index:</strong> <code>kb_reindex</code>, <code>kb_index_status</code></li>
+<li><strong>Search:</strong> <code>kb_search</code>, <code>kb_search_by_tag</code>, <code>kb_autocomplete</code></li>
+<li><strong>Link:</strong> <code>kb_backlinks</code>, <code>kb_graph</code>, <code>kb_resolve_link</code></li>
+<li><strong>Organize:</strong> <code>kb_add_tag</code>, <code>kb_remove_tag</code></li>
+<li><strong>Meta:</strong> <code>kb_vault_info</code></li>
+</ol>
+<p>Tools directly shadow the existing Tauri command surface (one row per tool
+   in the mapping table in <code>docs/advanced/mcp.md</code> §6), so the backend
+   implementation is a thin adapter over <code>pkm-block</code>/<code>pkm-index</code>/<code>pkm-markdown</code>
+   — no duplicated business logic.</p>
+<ol>
+<li>
+<p><strong>Data models.</strong> The MCP input/output schemas reuse the existing DTO shapes
+   (<code>PageDto</code>, <code>BlockDto</code>, <code>SearchResultDto</code>, <code>GraphDataDto</code>, <code>BacklinkDto</code>,
+   etc.) from <code>src-tauri/src/commands/*</code> wherever the two surfaces overlap, so
+   the frontend and the MCP server never observe divergent note/link graph
+   shapes. New MCP-only DTOs (e.g. relationship enumeration for <code>kb_graph</code>)
+   are defined in the contract spec. Note content is always vault-relative
+   <code>path</code> strings (POSIX separators) and <code>[[wiki-link]]</code> targets, consistent
+   with the file format spec <code>docs/advanced/file-format.md</code>. Response payloads
+   are capped at <code>MCP_RESPONSE_MAX</code> (1 MiB) with pagination tokens added by the
+   contract; clients MUST NOT assume a fixed page size.</p>
+</li>
+<li>
+<p><strong>Concurrency &amp; consistency.</strong> All read tools run on the same store with a
+   per-request check of the SQLite state. Writes are serialized per vault by a
+   per-vault write mutex (single writer) so the desktop app and the MCP server —
+   and two concurrent MCP writes — cannot corrupt a note. Write conflicts are
+   resolved by <strong>last-writer-wins with a precondition guard</strong>: the write tools
+   accept an optional <code>expected_modified</code> timestamp (RFC 3339) and fail with
+   <code>CONFLICT</code> (specific error code) when the on-disk note has since changed.
+   The desktop app's file watcher is the coordination point: the MCP server tags
+   its own saves (<code>watcher_last_save</code>-equivalent) so the watcher does not race
+   server writes. Index refresh (<code>kb_reindex</code>) is exclusive with <code>kb_write_*</code>
+   via an advisory lock mirroring the desktop <code>IndexingGuard</code>.</p>
+</li>
+<li>
+<p><strong>Rate limiting.</strong> Every PAT-bearer request over HTTP is rate-limited
+   per-token with a token bucket: default <code>MCP_RATE_LIMIT_RPS</code> burst 60,
+   sustained 10 rps (configurable per deployment). OAuth-authenticated requests
+   are keyed by token subject when present, else by client id, else by
+   authenticated IP. A 429 response uses the JSON-RPC error shape with the
+   <code>Retry-After</code> header; rate limit state is in-memory by default with an
+   optional Redis backend (see §10). sdios and loopback-only instances may
+   disable rate limiting.</p>
+</li>
+<li>
+<p><strong>Error handling.</strong> All MCP errors are returned as JSON-RPC error
+    responses with a protocol-conformant code; the canonical error vocabulary
+    is <code>KbErrorCode</code> (<code>NotFound</code>, <code>Conflict</code>, <code>InvalidArg</code>, <code>ScopesDenied</code>,
+    <code>External</code>...). Full mapping table in the contract spec (§8). Human-readable
+    <code>data</code> messages explain remediation, with no stack traces or raw paths
+    beyond the vault-relative note path; the server MUST NOT leak filesystem
+    details or PII in errors.</p>
+</li>
+<li>
+<p><strong>Observability &amp; ops.</strong> The server logs through the existing <code>tracing</code>
+    infrastructure (structured, JSON optional). It emits the MCP <code>logging</code>
+    notification for server-side warnings to connected clients. The
+    <code>/health</code> endpoint reports read-only availability, store connectivity, and
+    index freshness; it is distinct from any MCP session handshake.</p>
+</li>
+</ol>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Authoritative links table.</strong> Graph edges are read directly from the <code>links</code> table (the same index that powers backlinks), not re-parsed from block content on every load. Every save/edit reconciles this table in the same transaction, so the graph always reflects the latest edits. On first launch after upgrading, the app self-heals any vault whose links table predates this wiring.</li>
-<li><strong>Cached responses.</strong> The computed graph is cached per vault and served cheaply on subsequent opens, invalidated automatically after any page or block edit.</li>
-<li><strong>Safe default node cap for large vaults.</strong> With the <strong>Node cap</strong> set to <code>0</code> (Unlimited), the full vault is rendered below 2,000 notes; on larger vaults the rendered and simulated set is automatically capped to the 2,000 most-connected notes so the force simulation and rendering stay interactive. You can still reveal more by raising the cap in <strong>Settings → Graph</strong> — the most-connected notes are always kept first, so the visible structure remains meaningful.</li>
+<li>Backend (t_96591769) implements the transport, the 14 tools, and the
+  consistency/locking rules as specified here and in <code>docs/advanced/mcp.md</code>.</li>
+<li>Security (t_4acd5437) threat-models the PAT/OAuth paths, the scope model, the
+  SSRF-resistant http surface and the write-conflict guard, and adds dependency
+  supply-chain checks for <code>rmcp</code>.</li>
+<li>QA (t_547e25f1) drives the test suite against the fixed tools/schemas and
+  the error vocabulary; contract tests MUST validate every tool's JSON Schema.</li>
+<li>Documentation (t_28f8e7f1) writes user-facing guides to match this contract
+  and the security model; technical-writer must not invent tools.</li>
+<li>DevOps (t_af0ce286) packages the server (Dockerfile / NixOS module), the
+  <code>/health</code> probe, secrets for PAT rotation, and CI/CD steps; no deployment-only
+  endpoint name changes without a new ADR.</li>
+<li>Contract stability is a release-blocking criterion: tool names, argument
+  names, required scopes, and error codes are frozen for the v0.7.x series
+  except by a new ADR.</li>
 </ul>
-<h2 id="tips">Tips<a class="headerlink" href="#tips" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Start with orphans</strong> — opening the orphan view first helps find pages that need linking</li>
-<li><strong>Larger nodes are hubs</strong> — highly connected pages are the most important in your knowledge graph</li>
-<li><strong>Color reveals topics</strong> — if all your nodes are the same color, you might need more diverse tagging</li>
-</ul>
+<h2 id="status-of-this-adr">Status of this ADR<a class="headerlink" href="#status-of-this-adr" title="Permanent link">&para;</a></h2>
+<p>Adopted at design time. Implementation tasks build against the normative
+contract in <code>docs/advanced/mcp.md</code>; this ADR records the architectural
+decisions and is stable unless a decision is revisited by a new ADR.</p>
 
 
 
@@ -2651,10 +2479,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.tabs.link", "content.admonition"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.tabs.link", "content.admonition"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
