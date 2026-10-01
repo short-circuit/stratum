@@ -41,7 +41,7 @@ tracing-appender = "0.2"
 regex = "1"
 pulldown-cmark = { version = "0.12", features = ["simd"] }
 toml = "0.8"
-dirs = "5"
+dirs = "6"
 log = "0.4"
 
 # Index
