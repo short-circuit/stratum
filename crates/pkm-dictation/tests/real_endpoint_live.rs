@@ -197,7 +197,11 @@ async fn live_voice_embed_keeps_same_speaker_above_match_threshold() {
     let clip = write_fixture(dir.path());
 
     let v = VoiceIdClient::new(ep.clone(), "speechbrain-ecapa-tdnn");
-    let a = v.embed(&clip).await.expect("embed succeeds");
+    // Single-backend LocalAI evicts models under load; a transient HTTP 5xx
+    // (backend respawning) is environmental, so retry once like STT above.
+    let a = retry_transient(|| v.embed(&clip))
+        .await
+        .expect("embed succeeds");
     let b = v.embed(&clip).await.expect("embed succeeds (2)");
     let score = pkm_stt::cosine_similarity(&a, &b);
     assert!(
