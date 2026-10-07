@@ -24,10 +24,15 @@ impl super::GitEngine {
                 key_path.display()
             );
 
-            if self.passphrase.is_some() {
-                if let Some(ref script_path) = self.askpass_script_path {
-                    cmd.env("GIT_ASKPASS", script_path);
-                }
+            if let Some(ref script_path) = self.askpass_script_path {
+                // git credential path (HTTP)…
+                cmd.env("GIT_ASKPASS", script_path);
+                // …and the ssh(1) passphrase path: ssh reads SSH_ASKPASS; force
+                // it even without a tty and give it a notional DISPLAY so the
+                // passphrase never hits an env var or argv.
+                cmd.env("SSH_ASKPASS", script_path);
+                cmd.env("SSH_ASKPASS_REQUIRE", "force");
+                cmd.env("DISPLAY", ":0");
             }
 
             cmd.env("GIT_SSH_COMMAND", &ssh_base);

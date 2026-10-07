@@ -61,7 +61,7 @@ impl PageMetaIndex {
             slug_to_tags,
             title_to_slug,
             path_to_slug,
-})
+        })
     }
 
     pub(crate) fn slug_for_path(&self, path: &str) -> Option<String> {

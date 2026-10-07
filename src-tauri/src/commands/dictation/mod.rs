@@ -106,17 +106,24 @@ pub struct SpeakerAssignDto {
 
 fn load_config(state: &VaultState) -> Result<Config, String> {
     let config_path = state.vault_path.join(".pkm").join("config.toml");
-    if !config_path.exists() {
-        return Err("STT not configured. Set the transcription endpoint in Settings.".into());
-    }
-    Config::load(&config_path).map_err(|e| e.to_string())
+    Config::load(&config_path).map_err(|e| {
+        if !config_path.exists() {
+            format!(
+                "No config file found at {}. Set a transcription endpoint in Settings → AI → Voice.",
+                config_path.display()
+            )
+        } else {
+            format!("Failed to read AI/STT config: {e}")
+        }
+    })
 }
 
 fn endpoint_for(config: &Config) -> Result<SttEndpoint, String> {
     if config.stt.endpoint.trim().is_empty() {
         return Err("STT not configured. Set the transcription endpoint in Settings.".into());
     }
-    SttEndpoint::new(config.stt.endpoint.clone(), config.stt.api_key.clone())
+    // Use the effective API key (env override `STRATUM_STT_API_KEY` first).
+    SttEndpoint::new(config.stt.endpoint.clone(), config.stt.effective_api_key())
         .map_err(|e| format!("Invalid STT endpoint: {e}"))
 }
 
@@ -253,7 +260,12 @@ pub async fn stt_test_connection(state: tauri::State<'_, AppState>) -> Result<St
                 #[serde(default)]
                 id: String,
             }
-            let models: Models = resp.json().await.unwrap_or(Models { data: vec![] });
+            let bytes = resp
+                .bytes()
+                .await
+                .map_err(|e| format!("Models response unreadable: {e}"))?;
+            let models: Models = serde_json::from_slice(&bytes)
+                .map_err(|e| format!("Models response could not be parsed: {e}"))?;
             Ok(SttTestDto {
                 ok: true,
                 models: models.data.into_iter().map(|m| m.id).collect(),

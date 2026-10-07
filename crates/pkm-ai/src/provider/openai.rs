@@ -115,6 +115,37 @@ impl LlmProvider for OpenAIProvider {
             completion_tokens: u32,
         }
 
+        // Surface non-2xx (bad key, model missing, server error) with the
+        // provider's error body instead of failing later at JSON parse (FM-8/S3).
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            #[derive(Deserialize)]
+            struct OpenAIError {
+                error: Option<serde_json::Value>,
+            }
+            #[derive(Deserialize)]
+            struct OpenAIErrorDetail {
+                message: Option<String>,
+            }
+            let wrapper = serde_json::from_str::<OpenAIError>(&text).ok();
+            let detail = wrapper.and_then(|w| w.error).and_then(|v| {
+                if v.is_string() {
+                    v.as_str().map(|s| s.to_string())
+                } else {
+                    serde_json::from_value::<OpenAIErrorDetail>(v)
+                        .ok()
+                        .and_then(|d| d.message)
+                }
+            });
+            let msg = detail
+                .filter(|m| !m.trim().is_empty())
+                .unwrap_or_else(|| text.trim().chars().take(300).collect());
+            return Err(PkmError::Ai(format!(
+                "OpenAI endpoint error: HTTP {status}: {msg}"
+            )));
+        }
+
         let body: OpenAIResponse = resp
             .json()
             .await

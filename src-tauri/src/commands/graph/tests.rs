@@ -9,6 +9,14 @@ fn insert_test_page(store: &BlockStore, vault_root: &Path, rel_path: &str) {
     store.upsert_page(&page).unwrap();
 }
 
+/// Insert a block AND reconcile the `links` table for its page — mirrors the
+/// real write path (`save_blocks` → `reconcile_page_links`), which the graph
+/// read path depends on.
+fn insert_block_with_links(store: &BlockStore, block: Block, rel_path: &str) {
+    store.insert_block(&block, rel_path).unwrap();
+    crate::commands::page::reconcile_page_links(store, rel_path, &[block]).unwrap();
+}
+
 #[test]
 fn test_self_link_included_in_edges() {
     let store = BlockStore::open_in_memory().unwrap();
@@ -19,7 +27,7 @@ fn test_self_link_included_in_edges() {
     insert_test_page(&store, &vault_root, &rel_path);
 
     let block = Block::new(Uuid::new_v4(), format!("Self reference [[{}]]", slug));
-    store.insert_block(&block, &rel_path).unwrap();
+    insert_block_with_links(&store, block, &rel_path);
 
     let data = build_graph_data_from_store(&store, "/tmp/test-vault").unwrap();
 
@@ -45,10 +53,10 @@ fn test_self_link_does_not_affect_connected_components() {
     insert_test_page(&store, &vault_root, "pages/page-b.md");
 
     let block_a = Block::new(Uuid::new_v4(), "[[page-a]]".into());
-    store.insert_block(&block_a, "pages/page-a.md").unwrap();
+    insert_block_with_links(&store, block_a.clone(), "pages/page-a.md");
 
     let block_b = Block::new(Uuid::new_v4(), "[[page-a]]".into());
-    store.insert_block(&block_b, "pages/page-b.md").unwrap();
+    insert_block_with_links(&store, block_b, "pages/page-b.md");
 
     let components = get_connected_components_from_store(&store).unwrap();
 

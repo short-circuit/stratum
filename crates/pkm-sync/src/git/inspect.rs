@@ -58,6 +58,56 @@ impl super::GitEngine {
 
             out.push((path, flags));
         }
+
+        // Staged-but-uncommitted changes (index vs HEAD): the index-worktree
+        // iterator above only sees worktree deltas, so after `add()` a brand
+        // new file is invisible here and sync would skip the commit. Diff the
+        // HEAD tree against the index and merge in INDEX_* flags.
+        let head_tree: Option<gix::ObjectId> = self
+            .repo
+            .head()
+            .ok()
+            .and_then(|mut h| h.peel_to_commit().ok())
+            .and_then(|c| Some(c.tree().ok()?.id().detach()));
+        let empty_tree = gix::ObjectId::empty_tree(self.repo.object_hash());
+        let tree_id: gix::ObjectId = head_tree.unwrap_or(empty_tree);
+        if let Ok(tree_obj) = self.repo.find_object(tree_id) {
+            if let Ok(tree) = tree_obj.try_into_tree() {
+                let mut head_files: std::collections::HashMap<String, gix::ObjectId> =
+                    std::collections::HashMap::new();
+                collect_tree_files(&tree, "", &self.repo, &mut head_files, 0);
+
+                let mut staged: std::collections::HashMap<String, gix::ObjectId> =
+                    std::collections::HashMap::new();
+                let backing = out.len(); // placeholder to silence unused
+                let _ = backing;
+                if let Ok(index) = self.repo.index() {
+                    let path_backing = index.path_backing();
+                    for e in index.entries() {
+                        let path = String::from_utf8_lossy(e.path_in(path_backing)).to_string();
+                        staged.insert(path, e.id);
+                    }
+                }
+
+                for (path, oid) in &staged {
+                    match head_files.get(path) {
+                        None => {
+                            // New or re-added file: mark INDEX_NEW (dedup with WT flags).
+                            upsert_flag(&mut out, path, StatusFlags::INDEX_NEW);
+                        }
+                        Some(h) if h != oid => {
+                            upsert_flag(&mut out, path, StatusFlags::INDEX_MODIFIED);
+                        }
+                        _ => {}
+                    }
+                }
+                for path in head_files.keys() {
+                    if !staged.contains_key(path) {
+                        upsert_flag(&mut out, path, StatusFlags::INDEX_DELETED);
+                    }
+                }
+            }
+        }
         Ok(out)
     }
 
@@ -267,5 +317,51 @@ impl super::GitEngine {
         let behind = walk_count(&self.repo, upstream_oid, |id| id == local_oid);
 
         Ok((ahead, behind))
+    }
+}
+
+/// Recursively collect `path -> blob oid` for every file in `tree`.
+fn collect_tree_files(
+    tree: &gix::Tree,
+    prefix: &str,
+    repo: &gix::Repository,
+    out: &mut std::collections::HashMap<String, gix::ObjectId>,
+    depth: usize,
+) {
+    if depth > 16 {
+        return;
+    }
+    for entry in tree.iter().flatten() {
+        let name = String::from_utf8_lossy(entry.filename().as_bytes()).to_string();
+        let path = if prefix.is_empty() {
+            name
+        } else {
+            format!("{prefix}/{name}")
+        };
+        let mode = entry.mode().value();
+        match mode {
+            0o040000 => {
+                // subtree
+                if let Ok(obj) = repo.find_object(entry.id().detach()) {
+                    if let Ok(sub) = obj.try_into_tree() {
+                        collect_tree_files(&sub, &path, repo, out, depth + 1);
+                    }
+                }
+            }
+            0o160000 => { /* submodule commit: skip */ }
+            _ => {
+                // blob / symlink
+                out.insert(path, entry.id().detach());
+            }
+        }
+    }
+}
+
+/// OR `flag` into the existing entry for `path`, or push a new one.
+fn upsert_flag(out: &mut Vec<(String, StatusFlags)>, path: &str, flag: StatusFlags) {
+    if let Some((_, f)) = out.iter_mut().find(|(p, _)| p == path) {
+        *f = *f | flag;
+    } else {
+        out.push((path.to_string(), flag));
     }
 }
