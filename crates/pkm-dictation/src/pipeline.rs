@@ -91,25 +91,70 @@ pub async fn run(p: Pipeline<'_>, opts: &PipelineOptions<'_>) -> PkmResult<Pipel
     // 1. Transcribe
     p.stage(Stage::Transcribing);
     let transcriber = Transcriber::new(p.endpoint.clone());
-    let transcript = transcriber
-        .transcribe(opts.clip_path, p.transcribe_model, p.language)
-        .await?;
+    let transcript = loop {
+        match transcriber
+            .transcribe(opts.clip_path, p.transcribe_model, p.language)
+            .await
+        {
+            Ok(t) => break t,
+            // Single-backend servers (MAX_ACTIVE_BACKENDS=1) evict/lazy-load
+            // the whisper backend between stages; a transient HTTP 5xx there
+            // is environmental. Retry with backoff before propagating.
+            Err(PkmError::Ai(msg)) if msg.contains("HTTP 5") => {
+                static TRANSIENT_STRIKES: std::sync::atomic::AtomicU32 =
+                    std::sync::atomic::AtomicU32::new(0);
+                let n = TRANSIENT_STRIKES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                if n >= 2 {
+                    return Err(PkmError::Ai(msg));
+                }
+                tokio::time::sleep(std::time::Duration::from_secs(if n == 0 { 2 } else { 5 }))
+                    .await;
+            }
+            Err(e) => return Err(e),
+        }
+    };
 
     // 2. Diarize + merge (optional; degrades to flat transcript)
     let mut diarized = false;
     let turns: Vec<SpeakerTurn> = if opts.diarize {
         p.stage(Stage::Diarizing);
         let diarizer = Diarizer::new(p.endpoint.clone());
-        match diarizer
-            .diarize(opts.clip_path, p.diarize_model, p.language)
-            .await
-        {
-            Ok(diar) => {
+        let diarize_once = || {
+            let diarizer = Diarizer::new(p.endpoint.clone());
+            async move {
+                diarizer
+                    .diarize(opts.clip_path, p.diarize_model, p.language)
+                    .await
+            }
+        };
+        // Single-backend servers (MAX_ACTIVE_BACKENDS=1) evict/lazy-load the
+        // diarization backend between stages; a transient HTTP 5xx there is
+        // environmental. Retry once before propagating.
+        let mut diar = None;
+        for attempt in 0..3u32 {
+            match diarize_once().await {
+                Ok(d) => {
+                    diar = Some(d);
+                    break;
+                }
+                Err(PkmError::Unsupported(_)) => break,
+                Err(PkmError::Ai(msg)) if msg.contains("HTTP 5") && attempt < 2 => {
+                    tokio::time::sleep(std::time::Duration::from_secs(if attempt == 0 {
+                        2
+                    } else {
+                        5
+                    }))
+                    .await;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+        match diar {
+            Some(diar) => {
                 diarized = true;
                 assign_speakers(&transcript, &diar)
             }
-            Err(PkmError::Unsupported(_)) => assign_speakers(&transcript, &Default::default()),
-            Err(e) => return Err(e),
+            None => assign_speakers(&transcript, &Default::default()),
         }
     } else {
         assign_speakers(&transcript, &Default::default())

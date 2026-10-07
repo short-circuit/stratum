@@ -5,10 +5,10 @@ mod dto;
 pub use dto::*;
 
 use crate::commands::vault::{AppState, IndexingGuard};
-use serde::{Deserialize, Serialize};
 use pkm_core::error::PkmError;
 use pkm_index::block_search::BlockIndex;
 use pkm_markdown::linker::extract_links;
+use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 use std::collections::HashMap;
 use tauri::Emitter;

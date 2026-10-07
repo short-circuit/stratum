@@ -132,17 +132,72 @@ impl GitEngine {
 
         let mut state = index_file.into_parts().0;
 
+        // Honour .gitignore like `git add .`: collect entries first, then stage.
+        let ignore_matcher = load_ignore_patterns(&workdir);
+
+        let mut queue: Vec<(String, std::path::PathBuf)> = Vec::new();
         for p in paths {
             let full_path = workdir.join(p);
+            let meta = std::fs::metadata(&full_path)
+                .map_err(|e| PkmError::Git(format!("stat {p}: {e}")))?;
+            if meta.is_dir() {
+                let rel_prefix = p.trim_end_matches('/').to_string();
+                let mut stack = vec![full_path.clone()];
+                while let Some(dir) = stack.pop() {
+                    let entries = std::fs::read_dir(&dir)
+                        .map_err(|e| PkmError::Git(format!("read dir: {e}")))?;
+                    for entry in entries {
+                        let entry = entry.map_err(|e| PkmError::Git(format!("readdir: {e}")))?;
+                        let path = entry.path();
+                        let rel = path
+                            .strip_prefix(&workdir)
+                            .unwrap_or(&path)
+                            .to_string_lossy()
+                            .to_string();
+                        let ft = entry
+                            .file_type()
+                            .map_err(|e| PkmError::Git(format!("ftype: {e}")))?;
+                        if ignore_match(&ignore_matcher, &rel)
+                            || rel == ".git"
+                            || rel.starts_with(".git/")
+                        {
+                            continue;
+                        }
+                        if ft.is_dir() {
+                            stack.push(path);
+                        } else {
+                            queue.push((rel, path));
+                        }
+                    }
+                }
+            } else {
+                let rel: String = if *p == "." {
+                    full_path
+                        .strip_prefix(&workdir)
+                        .unwrap_or(full_path.as_path())
+                        .to_string_lossy()
+                        .to_string()
+                } else {
+                    p.to_string()
+                };
+                if ignore_match(&ignore_matcher, &rel) {
+                    continue;
+                }
+                queue.push((rel, full_path));
+            }
+        }
+        queue.sort();
+
+        for (rel, full_path) in queue {
             let content =
-                std::fs::read(&full_path).map_err(|e| PkmError::Git(format!("read {p}: {e}")))?;
+                std::fs::read(&full_path).map_err(|e| PkmError::Git(format!("read {rel}: {e}")))?;
             let blob_id = self
                 .repo
                 .write_blob(&content)
-                .map_err(|e| PkmError::Git(format!("write blob {p}: {e}")))?;
+                .map_err(|e| PkmError::Git(format!("write blob {rel}: {e}")))?;
 
             let meta = std::fs::metadata(&full_path)
-                .map_err(|e| PkmError::Git(format!("stat {p}: {e}")))?;
+                .map_err(|e| PkmError::Git(format!("stat {rel}: {e}")))?;
 
             let mode = if meta.file_type().is_symlink() {
                 gix::index::entry::Mode::SYMLINK
@@ -158,6 +213,12 @@ impl GitEngine {
                     (d.as_secs() as u32, d.subsec_nanos())
                 })
                 .unwrap_or((0, 0));
+
+            // Drop any existing entries for this path (all stages, e.g. left
+            // over conflict stages 1-3) so the new entry is authoritative.
+            let path_slice = rel.as_bytes();
+            let slice = path_slice;
+            state.remove_entries(|_idx, path, _entry| path == slice);
 
             state.dangerously_push_entry(
                 gix::index::entry::Stat {
@@ -175,13 +236,26 @@ impl GitEngine {
                 blob_id.detach(),
                 gix::index::entry::Flags::empty(),
                 mode,
-                p.as_ref(),
+                rel.as_str().into(),
             );
         }
 
         state.sort_entries();
 
-        let mut new_index = gix::index::File::from_state(state, self.repo.index_path());
+        let index_path = self.repo.index_path();
+        // A previous interrupted operation can leave `index.lock` behind; clear it
+        // (best-effort) so a legitimate write is not permanently blocked.
+        if let Some(parent) = index_path.parent() {
+            let lock = parent.join(format!(
+                "{}.lock",
+                index_path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("index")
+            ));
+            let _ = std::fs::remove_file(&lock);
+        }
+        let mut new_index = gix::index::File::from_state(state, index_path);
         new_index
             .write(gix::index::write::Options {
                 extensions: gix::index::write::Extensions::default(),
@@ -197,7 +271,7 @@ impl GitEngine {
             .write_tree_from_index()
             .map_err(|e| PkmError::Git(format!("build tree: {e}")))?;
 
-        let parents: Vec<gix::ObjectId> = self
+        let mut parents: Vec<gix::ObjectId> = self
             .repo
             .head()
             .ok()
@@ -205,6 +279,23 @@ impl GitEngine {
             .map(|c| c.id().detach())
             .into_iter()
             .collect();
+        // Mid-merge (conflict resolved): record the merged tip as second parent
+        // so the resolution commit is a real merge descendant of the remote.
+        let workdir = self.repo.workdir().map(|w| w.to_path_buf());
+        if let Some(wd) = workdir {
+            if wd.join("MERGE_HEAD").exists() || wd.join(".git/MERGE_HEAD").exists() {
+                let mh = std::fs::read_to_string(wd.join(".git/MERGE_HEAD"))
+                    .or_else(|_| std::fs::read_to_string(wd.join("MERGE_HEAD")));
+                if let Ok(content) = mh {
+                    if let Ok(oid) = gix::ObjectId::from_hex(content.trim().as_bytes()) {
+                        let id: gix::ObjectId = oid;
+                        if !parents.contains(&id) {
+                            parents.push(id);
+                        }
+                    }
+                }
+            }
+        }
 
         let sig = gix::actor::Signature {
             name: author.into(),
@@ -345,6 +436,41 @@ impl GitEngine {
                     conflicts: conflict_files,
                 });
             }
+            // Divergent histories: `--ff-only` is refused outright. Fall back to
+            // a real merge (default message, no editor) which either succeeds
+            // cleanly or surfaces textual conflicts via the status probe below.
+            if stderr.contains("fast-forward") || stderr.contains("Not possible to fast-forward") {
+                let mut merge2 = std::process::Command::new("git");
+                merge2
+                    .current_dir(workdir)
+                    .arg("merge")
+                    .arg("--no-edit")
+                    .arg(format!("{}/{}", remote, branch))
+                    .stderr(std::process::Stdio::piped())
+                    .stdout(std::process::Stdio::piped());
+                let out2 = merge2
+                    .output()
+                    .map_err(|e| PkmError::Git(format!("merge execution failed: {e}")))?;
+                if out2.status.success() {
+                    return Ok(PullResult {
+                        success: true,
+                        conflicts: vec![],
+                    });
+                }
+                let status = self.status().ok();
+                let conflict_files = status
+                    .map(|s| {
+                        s.into_iter()
+                            .filter(|(_, flags)| flags.is_conflicted())
+                            .map(|(path, _)| path)
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default();
+                return Ok(PullResult {
+                    success: false,
+                    conflicts: conflict_files,
+                });
+            }
             return Err(PkmError::Git(format!("merge failed: {}", stderr.trim())));
         }
         Ok(PullResult {
@@ -366,3 +492,32 @@ impl Drop for GitEngine {
 
 #[cfg(test)]
 mod tests;
+
+/// Minimal `.gitignore` support for `add()`: load root `.gitignore` lines and
+/// match paths with glob semantics sufficient for sync use (`*.tmp`, `dir/`,
+/// `path/file.md`, `**/node_modules/**` treated as `node_modules`).
+fn load_ignore_patterns(workdir: &std::path::Path) -> Option<Vec<String>> {
+    let txt = std::fs::read_to_string(workdir.join(".gitignore")).ok()?;
+    Some(
+        txt.lines()
+            .map(|l| l.trim())
+            .filter(|l| !l.is_empty() && !l.starts_with('#'))
+            .map(|l| l.trim_end_matches('*').trim_end_matches('/').to_string())
+            .collect(),
+    )
+}
+
+fn ignore_match(patterns: &Option<Vec<String>>, rel: &str) -> bool {
+    patterns.as_ref().is_some_and(|pats| {
+        pats.iter().any(|pat| {
+            if let Some(suffix) = pat.strip_prefix('*') {
+                rel.ends_with(suffix)
+            } else if pat.contains('*') {
+                let (head, tail) = pat.split_once('*').unwrap();
+                rel.starts_with(head) && rel.ends_with(tail)
+            } else {
+                rel == pat.as_str() || rel.starts_with(&format!("{pat}/"))
+            }
+        })
+    })
+}

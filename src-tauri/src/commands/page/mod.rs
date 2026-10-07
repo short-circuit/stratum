@@ -122,8 +122,29 @@ pub async fn list_pages(state: tauri::State<'_, AppState>) -> Result<PageListDto
     .map_err(|e| e.to_string())?
     .map_err(|e| e.to_string())?;
 
+    // Disk fallback for journal pages: a journal `.md` that exists on disk but has
+    // no `pages` row in SQLite (external edit, git pull, or interrupted save after
+    // boot) must still surface in the journal view. The journal panel derives its
+    // `pastDates` exclusively from `list_pages`, so on-disk `journals/*.md` files
+    // are merged in here — deduplicated against the DB list so no path appears twice.
+    let mut seen: std::collections::HashSet<String> = paths.iter().cloned().collect();
+    let mut disk_only: Vec<String> = Vec::new();
+    let journals_dir = vault_path.join("journals");
+    if journals_dir.is_dir() {
+        if let Ok(files) = pkm_core::fs_util::MdCollector::new()
+            .skip_dirs(vec![".pkm", "templates", ".git"])
+            .collect_relative(&journals_dir, &vault_path)
+        {
+            for rel in files {
+                if seen.insert(rel.clone()) {
+                    disk_only.push(rel);
+                }
+            }
+        }
+    }
+
     let mut pages = Vec::new();
-    for path in paths {
+    for path in paths.into_iter().chain(disk_only) {
         if path.starts_with(".git/") || path.contains("/.git/") {
             continue;
         }
