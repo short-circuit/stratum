@@ -1,0 +1,468 @@
+//! Vault management commands.
+
+use pkm_block::BlockStore;
+use pkm_block::StoreResult;
+use pkm_index::block_search::BlockIndex;
+use pkm_index::indexer::IndexEngine;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::SystemTime;
+use tracing::info;
+
+use crate::commands::plugins::PluginManager;
+
+/// Application state holding the active vault.
+pub struct VaultState {
+    pub vault_path: PathBuf,
+    pub db_path: PathBuf,
+    pub block_store: Option<BlockStore>,
+    pub index_engine: Option<IndexEngine>,
+    pub block_index: Option<BlockIndex>,
+    pub sync_scheduler: Option<pkm_sync::SyncScheduler>,
+    pub auto_commit_engine: Option<pkm_sync::AutoCommitEngine>,
+    pub passphrase: Option<String>,
+    #[cfg(not(target_os = "android"))]
+    pub watcher: Option<pkm_watcher::FileWatcher>,
+    pub watcher_last_save: SystemTime,
+    indexing_in_progress: Arc<AtomicBool>,
+    /// Active voice recording (started via `dictation_start`).
+    pub recorder: Option<ActiveRecording>,
+    /// Finished dictation sessions keyed by recording path, so speakers can
+    /// be renamed/enrolled after insertion.
+    pub dictation_sessions: std::collections::HashMap<String, DictationSession>,
+    /// Per-vault WASM plugin manager (registry + runtime + host), or `None`
+    /// until a vault is opened/initialized.
+    pub plugin_manager: Option<Arc<PluginManager>>,
+}
+
+/// An in-progress voice recording.
+pub struct ActiveRecording {
+    pub handle: pkm_audio::RecordingHandle,
+    pub recording_path: PathBuf,
+}
+
+/// A completed dictation: everything needed to re-render the memo.
+#[derive(Clone)]
+pub struct DictationSession {
+    pub page_path: String,
+    pub clip_path: PathBuf,
+    pub clip_rel_path: String,
+    pub recorded_at: chrono::DateTime<chrono::Local>,
+    pub duration_secs: f64,
+    pub turns: Vec<pkm_stt::SpeakerTurn>,
+    pub speaker_names: std::collections::HashMap<String, String>,
+    pub summary: Option<String>,
+    pub related: Vec<String>,
+    pub tags: Vec<String>,
+    pub inserted_block_ids: Vec<String>,
+}
+
+impl VaultState {
+    pub fn new(vault_path: PathBuf) -> Self {
+        let db_path = vault_path.join(".pkm").join("blocks.db");
+        let block_store = BlockStore::open(&db_path).ok();
+        let index_engine = IndexEngine::new(&vault_path).ok();
+        if index_engine.is_some() {
+            info!("IndexEngine initialized at {:?}", vault_path);
+        }
+        Self {
+            vault_path,
+            db_path,
+            block_store,
+            index_engine,
+            block_index: None,
+            sync_scheduler: None,
+            auto_commit_engine: None,
+            passphrase: None,
+            #[cfg(not(target_os = "android"))]
+            watcher: None,
+            watcher_last_save: SystemTime::UNIX_EPOCH,
+            indexing_in_progress: Arc::new(AtomicBool::new(false)),
+            recorder: None,
+            dictation_sessions: std::collections::HashMap::new(),
+            plugin_manager: None,
+        }
+    }
+
+    /// Get a handle to the block store.
+    /// Opens a new connection to the same SQLite database.
+    /// The stored block_store keeps the database "warm" (open).
+    /// Future optimization: switch to connection pooling via Arc<Mutex<Connection>>.
+    pub fn get_store(&self) -> StoreResult<BlockStore> {
+        BlockStore::open(&self.db_path)
+    }
+
+    pub fn ensure_index(&mut self) -> Result<&mut IndexEngine, String> {
+        if self.index_engine.is_none() {
+            self.index_engine = Some(
+                IndexEngine::new(&self.vault_path)
+                    .map_err(|e| format!("Failed to create IndexEngine: {}", e))?,
+            );
+        }
+        self.index_engine
+            .as_mut()
+            .ok_or_else(|| "IndexEngine not available".to_string())
+    }
+
+    pub fn ensure_block_index(&mut self) -> Result<&mut BlockIndex, String> {
+        if self.block_index.is_none() {
+            let index_path = self.vault_path.join(".pkm").join("search");
+            self.block_index = Some(
+                BlockIndex::create(&index_path)
+                    .map_err(|e| format!("Failed to create BlockIndex: {}", e))?,
+            );
+        }
+        self.block_index
+            .as_mut()
+            .ok_or_else(|| "BlockIndex not available".to_string())
+    }
+
+    #[allow(dead_code)]
+    pub fn flush_block_index(&mut self) -> Result<(), String> {
+        if let Some(ref mut block_index) = self.block_index {
+            block_index
+                .flush()
+                .map_err(|e| format!("Failed to flush block index: {}", e))?;
+        }
+        Ok(())
+    }
+
+    pub fn set_passphrase(&mut self, passphrase: String) {
+        self.passphrase = Some(passphrase);
+    }
+
+    /// Attempt to mark indexing as in-progress.
+    /// Returns an error if another index operation is already running.
+    pub fn try_start_indexing(&self) -> Result<(), String> {
+        self.indexing_in_progress
+            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .map(|_| ())
+            .map_err(|_| "A reindex operation is already in progress".to_string())
+    }
+
+    /// Clear the indexing-in-progress flag.
+    pub fn finish_indexing(&self) {
+        self.indexing_in_progress.store(false, Ordering::SeqCst);
+    }
+
+    /// Get the indexing-in-progress flag.
+    #[allow(dead_code)] // used on desktop but not android (file watcher disabled)
+    pub fn is_indexing(&self) -> bool {
+        self.indexing_in_progress.load(Ordering::SeqCst)
+    }
+
+    /// Record a file change to trigger the auto-commit engine.
+    pub fn record_change(&mut self, path: &str) {
+        if let Some(ref mut engine) = self.auto_commit_engine {
+            let _ = engine.record_change(path);
+            let _ = engine.tick(); // Immediately evaluate whether to commit
+        }
+    }
+}
+
+/// RAII guard that marks indexing as in-progress for its lifetime.
+/// When the guard is dropped, the flag is automatically cleared.
+///
+/// The guard owns an `Arc` clone of the shared flag rather than borrowing the
+/// `VaultState`, so it can be held across bodies that take `&mut self` (e.g.
+/// `ensure_index`, `get_store`) — a borrow-based guard would conflict with those
+/// mutable borrows. This lets callers span their entire fallible body with the
+/// guard, guaranteeing the flag is released even when a `?` returns early.
+pub struct IndexingGuard {
+    flag: Arc<AtomicBool>,
+}
+
+impl IndexingGuard {
+    /// Create a new guard, returning an error if indexing is already in progress.
+    pub fn new(state: &VaultState) -> Result<Self, String> {
+        state.try_start_indexing()?;
+        Ok(Self {
+            flag: Arc::clone(&state.indexing_in_progress),
+        })
+    }
+}
+
+impl Drop for IndexingGuard {
+    fn drop(&mut self) {
+        self.flag.store(false, Ordering::SeqCst);
+    }
+}
+
+pub type AppState = Mutex<VaultState>;
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct VaultInfo {
+    pub path: String,
+    pub block_count: usize,
+    pub page_count: usize,
+}
+
+#[tauri::command]
+pub async fn get_vault_info(state: tauri::State<'_, AppState>) -> Result<VaultInfo, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let store = state.get_store().map_err(|e| e.to_string())?;
+    let block_count = store.block_count().map_err(|e| e.to_string())?;
+    let page_count = store.page_count().map_err(|e| e.to_string())?;
+
+    Ok(VaultInfo {
+        path: state.vault_path.to_string_lossy().to_string(),
+        block_count,
+        page_count,
+    })
+}
+
+#[tauri::command]
+pub async fn set_vault_path(path: String, state: tauri::State<'_, AppState>) -> Result<(), String> {
+    let vault_path = PathBuf::from(&path);
+    if !vault_path.exists() {
+        return Err(format!("Vault path does not exist: {}", path));
+    }
+    let mut state = state.lock().map_err(|e| e.to_string())?;
+    state.vault_path = vault_path.clone();
+    state.db_path = vault_path.join(".pkm").join("blocks.db");
+    Ok(())
+}
+
+/// Resolve a user-picked path to a real filesystem path.
+/// On Android, converts SAF content URI to a real path.
+#[cfg(target_os = "android")]
+fn resolve_picked_path(picked: &str) -> Result<PathBuf, String> {
+    resolve_saf_content_uri(picked)
+}
+
+#[cfg(not(target_os = "android"))]
+fn resolve_picked_path(picked: &str) -> Result<PathBuf, String> {
+    Ok(PathBuf::from(picked))
+}
+
+/// Parse an Android SAF content URI of the form:
+/// `content://.../tree/primary:Documents%2FMyFolder` and resolve it to a
+/// real filesystem path like `/storage/emulated/0/Documents/MyFolder`.
+/// Also handles URIs with a `/document/` suffix segment which Android's
+/// `ACTION_OPEN_DOCUMENT_TREE` may append after the tree root.
+#[allow(dead_code)]
+fn resolve_saf_content_uri(picked: &str) -> Result<PathBuf, String> {
+    // Extract the encoded path after "/tree/" — drop any "/document/" suffix
+    let path_encoded = picked
+        .split("/tree/")
+        .nth(1)
+        .ok_or_else(|| format!("Could not parse Android content URI: {}", picked))?
+        .split("/document/")
+        .next()
+        .unwrap_or("");
+    let path_decoded = percent_decode(path_encoded);
+
+    if let Some(subpath) = path_decoded.strip_prefix("primary:") {
+        Ok(PathBuf::from("/storage/emulated/0").join(subpath))
+    } else if let Some((volume, subpath)) = path_decoded.split_once(':') {
+        Ok(PathBuf::from("/storage").join(volume).join(subpath))
+    } else {
+        Err(format!("Unrecognized content URI format: {}", picked))
+    }
+}
+
+#[allow(dead_code)]
+fn percent_decode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars();
+    while let Some(c) = chars.next() {
+        if c == '%' {
+            let hex: String = chars.by_ref().take(2).collect();
+            if let Ok(b) = u8::from_str_radix(&hex, 16) {
+                out.push(b as char);
+            } else {
+                out.push('%');
+                out.push_str(&hex);
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
+/// Initialize vault at a user-picked path.
+/// Frontend calls `open({ directory: true })` and passes the result here.
+#[tauri::command]
+pub async fn init_vault(
+    path: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<VaultInfo, String> {
+    let vault_path = resolve_picked_path(&path)?;
+
+    if !vault_path.exists() {
+        std::fs::create_dir_all(&vault_path)
+            .map_err(|e| format!("Failed to create vault directory: {}", e))?;
+    }
+
+    setup_vault_blocking(state, vault_path)
+}
+
+/// Initialize vault at the application's default data directory
+/// (app-private storage on Android, ~/StratumVault on desktop).
+/// This is the command called on mobile instead of the folder picker.
+#[tauri::command]
+pub async fn init_default_vault(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<VaultInfo, String> {
+    let vault_path = crate::resolve_default_vault_path(&app);
+    std::fs::create_dir_all(&vault_path)
+        .map_err(|e| format!("Failed to create vault directory: {}", e))?;
+    setup_vault_blocking(state, vault_path)
+}
+
+/// Pick a directory on Android via SAF, then init vault at that location.
+/// Requires MANAGE_EXTERNAL_STORAGE permission for raw file access.
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn pick_android_directory(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<VaultInfo, String> {
+    use tauri_plugin_android_fs::AndroidFsExt;
+
+    let api = app.android_fs_async();
+    let selected = api
+        .picker()
+        .pick_dir(None, false)
+        .await
+        .map_err(|e| format!("Folder picker failed: {}", e))?
+        .ok_or("No folder selected".to_string())?;
+
+    api.picker().persist_uri_permission(&selected).await.ok();
+
+    // Try MANAGE_EXTERNAL_STORAGE raw path first, fall back to private storage
+    let vault_path = match resolve_picked_path(&selected.uri) {
+        Ok(p) if p.exists() || std::fs::create_dir_all(&p).is_ok() => p,
+        _ => {
+            // Fall back to default private path
+            std::path::PathBuf::from("/data/user/0/app.stratum/StratumVault")
+        }
+    };
+
+    setup_vault_blocking(state, vault_path)
+}
+fn setup_vault(
+    vault_path: &std::path::Path,
+    vstate: &mut VaultState,
+) -> Result<(pkm_block::BlockStore, usize, usize), String> {
+    let pkm_dir = vault_path.join(".pkm");
+    std::fs::create_dir_all(&pkm_dir).map_err(|e| format!("Failed to initialize vault: {e}"))?;
+
+    // Write a .gitignore inside .pkm/ to prevent derived/indexed data from
+    // being committed — these are rebuilt from .md files and cause merge
+    // conflicts during git sync when tracked.
+    let gitignore_path = pkm_dir.join(".gitignore");
+    if !gitignore_path.exists() {
+        let contents = "\
+# Derived data — rebuilt from .md files, never commit these
+blocks.db
+blocks.db-wal
+blocks.db-shm
+cache.db
+cache.db-wal
+cache.db-shm
+search.idx/
+history/
+";
+        let _ = std::fs::write(&gitignore_path, contents);
+    }
+
+    let db_path = pkm_dir.join("blocks.db");
+    let index_engine = IndexEngine::new(vault_path).ok();
+    vstate.vault_path = vault_path.to_path_buf();
+    vstate.db_path = db_path.clone();
+    vstate.index_engine = index_engine;
+
+    // ── WASM plugins (spec §7.3) ────────────────────────────────────────────
+    // Scan `<vault>/.pkm/plugins/` and build the plugin manager. Enablement is
+    // taken from the vault config `plugins` list. Failures are logged and
+    // surfaced through `plugins_list`; a broken plugin never aborts load.
+    // Shares the same single entry point as the app startup scan.
+    let plugin_manager = crate::commands::plugins::PluginManager::init_for_vault(vault_path)
+        .map_err(|e| format!("Failed to initialize plugin manager: {e}"))?;
+
+    // Replacing the manager drops the *previous* one. That drop shuts down the
+    // old `PluginRuntime`, which owns an embedded tokio runtime (see
+    // pkm-plugin/src/runtime.rs). On tokio >= 1.52, dropping a `Runtime` from
+    // inside an entered async context panics with "Cannot drop a runtime in a
+    // context where blocking is not allowed" — and because we hold the vault
+    // `Mutex` here, that panic poisons it for the rest of the process (E7.F9
+    // on-device finding). A freshly spawned OS thread has no tokio thread-local
+    // context, so runtime shutdown there is always allowed. Vault setup is a
+    // rare operation, so one throwaway thread per re-init is acceptable.
+    let old_manager = vstate.plugin_manager.replace(plugin_manager);
+    if let Some(old) = old_manager {
+        std::thread::spawn(move || drop(old));
+    }
+
+    let store = pkm_block::BlockStore::open(&db_path).map_err(|e| e.to_string())?;
+    vstate.block_store = pkm_block::BlockStore::open(&db_path).ok();
+    let block_count = store.block_count().map_err(|e| e.to_string())?;
+    let page_count = store.page_count().map_err(|e| e.to_string())?;
+    Ok((store, block_count, page_count))
+}
+
+/// Run vault setup while holding the state lock, returning a `VaultInfo`.
+///
+/// `tauri::State` is a borrowed handle (`&AppState`) so it cannot cross into a
+/// `'static` `spawn_blocking` closure; the lock is held inline instead. The
+/// only part of setup that would panic in an async context — dropping the
+/// superseded plugin runtime — is always moved to a fresh OS thread inside
+/// `setup_vault` (see the comment there), so this is safe to call directly
+/// from async commands.
+fn setup_vault_blocking(
+    state: tauri::State<'_, AppState>,
+    vault_path: PathBuf,
+) -> Result<VaultInfo, String> {
+    let mut vstate = state.lock().map_err(|e| e.to_string())?;
+    let (_, block_count, page_count) = setup_vault(&vault_path, &mut vstate)?;
+    Ok(VaultInfo {
+        path: vault_path.to_string_lossy().to_string(),
+        block_count,
+        page_count,
+    })
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn pick_vault_directory(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<VaultInfo, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let (tx, rx) = std::sync::mpsc::channel();
+
+    app.dialog().file().pick_folder(move |path| {
+        let _ = tx.send(path);
+    });
+
+    let picked = rx
+        .recv()
+        .map_err(|_| "Folder picker cancelled".to_string())?;
+    let picked_path = picked.ok_or("No folder selected".to_string())?;
+
+    let vault_path = PathBuf::from(picked_path.to_string());
+    if !vault_path.exists() {
+        return Err(format!(
+            "Selected path does not exist: {}",
+            vault_path.display()
+        ));
+    }
+
+    let mut vstate = state.lock().map_err(|e| e.to_string())?;
+    let (_, block_count, page_count) = setup_vault(&vault_path, &mut vstate)?;
+
+    Ok(VaultInfo {
+        path: vault_path.to_string_lossy().to_string(),
+        block_count,
+        page_count,
+    })
+}
+
+#[cfg(test)]
+mod tests;
