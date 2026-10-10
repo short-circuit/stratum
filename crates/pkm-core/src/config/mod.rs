@@ -8,6 +8,8 @@ use std::path::PathBuf;
 pub struct Config {
     /// Path to the vault root (where .md notes live).
     pub vault_path: PathBuf,
+    /// UI locale (ISO 639-1 code, e.g. "en", "de"). Default: "en".
+    pub locale: String,
     /// Storage backend configuration.
     pub storage: StorageConfig,
     /// Vault layout configuration (page/journal directories).
@@ -38,6 +40,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             vault_path: PathBuf::from("."),
+            locale: "en".to_string(),
             storage: StorageConfig::default(),
             layout: VaultLayout::default(),
             sync: SyncConfig::default(),

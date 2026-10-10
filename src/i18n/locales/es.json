@@ -1,0 +1,343 @@
+{
+  "_meta": {
+    "app": "Stratum",
+    "status": "complete"
+  },
+  "ask_notes": {
+    "ask": "Preguntar",
+    "ask_your_notes": "Pregunta a tus notas",
+    "ask_your_notes_e_g_what_did_i_decide_about_the_h": "Pregunta a tus notas… p. ej. ¿Qué decidí sobre el homelab?",
+    "clear": "Borrar",
+    "sources": "Fuentes"
+  },
+  "autocomplete_popup": {
+    "no_results": "Sin resultados"
+  },
+  "backlink_snippet_body": {
+    "ctrl_click_to_navigate": "Ctrl+clic para navegar"
+  },
+  "backlinks": {
+    "backlinked_snippet": "Fragmento con backlink",
+    "close_backlinks": "Cerrar backlinks",
+    "close_snippet": "Cerrar fragmento"
+  },
+  "common": {
+    "abort_merge": "Abortar fusión",
+    "ai_is_thinking": "La IA está pensando...",
+    "cancel": "Cancelar",
+    "enter_passphrase": "Introduce la frase de contraseña...",
+    "loading": "Cargando...",
+    "resolve_all": "Resolver todo",
+    "ssh_key_passphrase": "Frase de contraseña de la clave SSH",
+    "sync_conflicts_detected": "Conflictos de sincronización detectados"
+  },
+  "dictation": {
+    "assign": "Asignar",
+    "assign_enroll_voice": "Asignar + registrar voz",
+    "back": "Atrás",
+    "cancel_recording": "Cancelar grabación",
+    "clip_saved": "Clip guardado",
+    "diarize_speakers": "Diarizar hablantes",
+    "identify_voices": "Identificar voces",
+    "name": "Nombre...",
+    "new_memo": "Nuevo memo",
+    "record_voice_memo": "Grabar memo de voz",
+    "saves_the_clip_and_transcribes_it_into_this_note": "Guarda el clip y lo transcribe en esta nota",
+    "stop_save": "Detener y guardar",
+    "summarize": "Resumir",
+    "transcribe": "Transcribir"
+  },
+  "editor": {
+    "code_block": "Bloque de código",
+    "copy": "Copiar",
+    "create_page": "Crear página",
+    "cut": "Cortar",
+    "delete": "Eliminar",
+    "insert_block": "Insertar bloque",
+    "math_equation": "Ecuación matemática",
+    "mermaid_diagram": "Diagrama Mermaid",
+    "paragraph": "Párrafo",
+    "read_aloud": "Leer en voz alta",
+    "retry": "Reintentar",
+    "toggle_marker": "Alternar marcador"
+  },
+  "error_boundary": {
+    "something_went_wrong": "Algo ha salido mal"
+  },
+  "flashcards": {
+    "no_flashcards_found_create_blocks_with": "No se encontraron flashcards. Crea bloques con",
+    "flashcards": "Flashcards",
+    "start_again": "Empezar de nuevo"
+  },
+  "graph": {
+    "all": "Todos",
+    "alpha_decay": "Decaimiento alfa",
+    "back": "Atrás",
+    "comp": "Comp",
+    "components": "Componentes",
+    "connected": "Conectados",
+    "connected_notes": "Notas conectadas",
+    "curvature": "Curvatura",
+    "filter": "Filtrar...",
+    "filter_by_title_tag": "Filtrar por título/etiqueta...",
+    "friction": "Fricción",
+    "full": "Completo",
+    "go_to_pages": "Ir a Páginas",
+    "graph_settings": "Configuración del grafo",
+    "link_distance": "Distancia de enlace",
+    "no_graph_data_yet": "Aún no hay datos del grafo",
+    "node_cap": "Límite de nodos",
+    "open_settings": "Abrir configuración",
+    "orphaned": "Huérfanas",
+    "orphaned_notes": "Notas huérfanas",
+    "orphans": "Huérfanos",
+    "orphs": "Huérf.",
+    "pages_found_but_no_wiki_links_yet_add": "Se encontraron páginas pero aún no hay wiki-links. Añade",
+    "refresh_graph": "Actualizar grafo",
+    "repulsion": "Repulsión",
+    "tags": "Etiquetas",
+    "tags_on_hover": "Etiquetas al pasar el cursor",
+    "toggle_search": "Alternar búsqueda",
+    "vault_at": "Bóveda en"
+  },
+  "journal": {
+    "calendar": "Calendario",
+    "next_day": "Día siguiente",
+    "open_calendar": "Abrir calendario",
+    "previous_day": "Día anterior",
+    "repair_database": "Reparar base de datos",
+    "retry": "Reintentar"
+  },
+  "journal_calendar": {
+    "calendar": "Calendario",
+    "close_calendar": "Cerrar calendario",
+    "journal_calendar": "Calendario del diario",
+    "next_month": "Mes siguiente",
+    "previous_month": "Mes anterior"
+  },
+  "kanban": {
+    "add": "Añadir",
+    "add_card": "Añadir tarjeta",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "kanban": "Kanban",
+    "new_task": "Nueva tarea...",
+    "no_tasks": "Sin tareas",
+    "no_tasks_yet": "Aún no hay tareas",
+    "refresh": "Actualizar",
+    "task_description": "Descripción de la tarea...",
+    "today_apos_s_journal": "El diario de hoy"
+  },
+  "kanban_edit_dialog": {
+    "cancel": "Cancelar",
+    "content": "Contenido",
+    "edit_card": "Editar tarjeta",
+    "marker": "Marcador",
+    "none": "Ninguno",
+    "priority": "Prioridad",
+    "save": "Guardar"
+  },
+  "lib": {
+    "click_to_cycle_marker_state": "Haz clic para cambiar el estado del marcador",
+    "remove_marker": "Quitar marcador",
+    "remove_priority": "Quitar prioridad"
+  },
+  "lib_commands": {
+    "t_promise": "T): Promise"
+  },
+  "link_preview_popup": {
+    "ctrl_click_to_navigate": "Ctrl+clic para navegar"
+  },
+  "math_editor_modal": {
+    "cancel": "Cancelar",
+    "ctrl_enter_to_save_esc_to_cancel": "Ctrl+Intro para guardar · Esc para cancelar",
+    "edit_equation": "Editar ecuación",
+    "katex_supported_functions": "Funciones KaTeX compatibles",
+    "preview": "Vista previa",
+    "save": "Guardar"
+  },
+  "mermaid_block": {
+    "empty_mermaid_diagram": "Diagrama Mermaid vacío"
+  },
+  "mobile_layout": {
+    "ask_your_notes": "Pregunta a tus notas",
+    "flashcards": "Flashcards",
+    "graph": "Grafo",
+    "journal": "Diario",
+    "kanban": "Kanban",
+    "pages": "Páginas",
+    "plugins": "Plugins",
+    "query": "Consulta",
+    "search": "Buscar",
+    "settings": "Configuración",
+    "stratum": "Stratum",
+    "templates": "Plantillas",
+    "whiteboards": "Pizarras"
+  },
+  "page": {
+    "actions": "Acciones",
+    "delete_page": "Eliminar página",
+    "normalize_file": "Normalizar archivo",
+    "reindex": "Reindexar",
+    "reindex_note": "Reindexar nota",
+    "stratum_pkm": "Stratum PKM",
+    "voice_memo": "Memo de voz",
+    "voice_memo_dictation": "Memo de voz (dictado)"
+  },
+  "pages_home": {
+    "pages": "Páginas"
+  },
+  "plugins": {
+    "click_to_dismiss": "Haz clic para descartar",
+    "install_a_plugin_wasm_file_or_drop_one_into_pkm_": "Instala un archivo plugin.wasm o suelta uno en ~/.pkm/plugins/ y pulsa Actualizar.",
+    "install_a_plugin_wasm_or_drop_one_into_pkm_plugi": "Instala un plugin.wasm o suelta uno en ~/.pkm/plugins/ y luego Actualizar.",
+    "no_plugins_installed": "No hay plugins instalados",
+    "plugins": "Plugins",
+    "refresh": "Actualizar",
+    "test_http_request": "Probar http_request",
+    "test_note_read": "Probar note_read",
+    "wasm_plugins_loaded_from": "Plugins WASM cargados desde"
+  },
+  "query": {
+    "cancel": "Cancelar",
+    "clear_name": "Borrar nombre",
+    "close": "Cerrar",
+    "datalog_query": "Consulta Datalog",
+    "delete": "Eliminar",
+    "delete_saved_query": "Eliminar consulta guardada",
+    "enter_datalog_query": "Introduce la consulta Datalog...",
+    "name": "Nombre",
+    "refresh_list": "Actualizar lista",
+    "refresh_saved_queries": "Actualizar consultas guardadas",
+    "rename": "Renombrar",
+    "reset": "Restablecer",
+    "save": "Guardar",
+    "save_query": "Guardar consulta"
+  },
+  "search": {
+    "search_blocks": "Buscar en bloques...",
+    "search_blocks_prefix_with_to_search_tags": "Buscar en bloques... (prefijo # para buscar etiquetas)"
+  },
+  "settings": {
+    "ai": "IA",
+    "ai_configuration": "Configuración de IA",
+    "api_endpoint": "Punto de conexión de API",
+    "api_endpoint_url": "URL del punto de conexión de API",
+    "api_key": "Clave de API",
+    "api_key_is_set_via_the": "La clave de API se establece mediante el",
+    "api_key_loaded_from": "Clave de API cargada desde",
+    "api_key_optional": "Clave de API (opcional)",
+    "asr_model": "Modelo ASR",
+    "auto_commit_settings": "Configuración de auto-commit",
+    "auto_identify_speakers": "Identificar hablantes automáticamente",
+    "auto_identify_voices": "Identificar voces automáticamente",
+    "auto_summarize": "Resumir automáticamente",
+    "auto_summarize_transcript": "Resumir transcripción automáticamente",
+    "auto_sync_settings": "Configuración de auto-sync",
+    "browse": "Examinar",
+    "chunks": "Fragmentos",
+    "commit_interval_seconds": "Intervalo de commit (segundos)",
+    "commit_message_template": "Plantilla de mensaje de commit",
+    "dark_mode": "Modo oscuro",
+    "default_chat_model": "Modelo de chat predeterminado",
+    "default_model": "Modelo predeterminado",
+    "developer": "Desarrollador",
+    "developer_tools": "Herramientas de desarrollador",
+    "diarization_model": "Modelo de diarización",
+    "diarize_speakers": "Diarizar hablantes",
+    "embedding_dimensions_0_auto": "Dimensiones de embedding (0 = automático)",
+    "enable_rag": "Activar RAG",
+    "format": "Formato",
+    "language": "Idioma",
+    "language_label": "Idioma de la interfaz",
+    "language_hint_optional": "Indicación de idioma (opcional)",
+    "langs": {
+      "de": "Deutsch",
+      "el": "Ελληνικά",
+      "en": "English",
+      "es": "Español",
+      "fr": "Français",
+      "it": "Italiano",
+      "ja": "日本語",
+      "zh": "中文"
+    },
+    "leave_0_to_infer_the_vector_size_from_your_embed": "Deja 0 para inferir el tamaño del vector de tu modelo de embedding.",
+    "max_results": "Resultados máximos",
+    "max_results_per_search": "Resultados máximos por búsqueda",
+    "number_of_context_chunks_1_20": "Número de fragmentos de contexto (1–20)",
+    "playback_speed_multiplier_0_25_4_0": "Multiplicador de velocidad de reproducción (0.25–4.0)",
+    "pull_push_interval_seconds": "Intervalo de pull/push (segundos)",
+    "remote_amp_branch": "Remote &amp; Branch",
+    "remote_branch": "Remote & Branch",
+    "research": "Investigación",
+    "research_depth": "Profundidad de investigación",
+    "research_depth_search_read_cycles": "Profundidad de investigación (ciclos de búsqueda-lectura)",
+    "searxng_endpoint": "Punto de conexión de SearXNG",
+    "searxng_endpoint_url": "URL del punto de conexión de SearXNG",
+    "speech_amp_audio": "Voz &amp; Audio",
+    "speed": "Velocidad",
+    "speed_0_25_4_0": "Velocidad (0.25–4.0)",
+    "ssh_key_path": "Ruta de la clave SSH",
+    "start_scheduler": "Iniciar programador",
+    "stt_api_key": "Clave de API STT",
+    "stt_endpoint": "Punto de conexión de STT",
+    "sync": "Sincronización",
+    "sync_mode": "Modo de sincronización",
+    "text_to_speech": "Texto a voz",
+    "the_url_of_your_searxng_instance_e_g_http_localh": "La URL de tu instancia de SearXNG (p. ej. http://localhost:8888)",
+    "theme": "Tema",
+    "transcription_endpoint_openai_compatible": "Punto de conexión de transcripción (compatible con OpenAI)",
+    "transcription_model": "Modelo de transcripción",
+    "tts_api_key": "Clave de API TTS",
+    "tts_endpoint": "Punto de conexión de TTS",
+    "tts_endpoint_optional": "Punto de conexión de TTS (opcional)",
+    "url_of_your_searxng_instance": "URL de tu instancia de SearXNG",
+    "use_gateway_and_auth_from_llm": "Usar la pasarela y autenticación del LLM",
+    "uses_the_ai_endpoint_when_empty": "Usa el punto de conexión de IA cuando está vacío",
+    "vault": "Bóveda",
+    "vault_path": "Ruta de la bóveda",
+    "voice": "Voz"
+  },
+  "sidebar": {
+    "cancel": "Cancelar",
+    "create": "Crear",
+    "delete_page": "Eliminar página",
+    "export_html": "Exportar HTML",
+    "new_page": "Nueva página",
+    "path_e_g_pages_my_note_md": "Ruta (p. ej. pages/my-note.md)",
+    "recent": "Recientes",
+    "refresh": "Actualizar",
+    "title_optional": "Título (opcional)"
+  },
+  "suggested_connections": {
+    "add_wiki_link_to_this_page": "Añadir [[wiki-link]] a esta página",
+    "suggested_connections": "Conexiones sugeridas"
+  },
+  "templates": {
+    "add_variable": "Añadir variable",
+    "apply": "Aplicar",
+    "cancel": "Cancelar",
+    "target_page_path": "Ruta de la página de destino",
+    "templates": "Plantillas",
+    "variables": "Variables"
+  },
+  "vault_picker": {
+    "choose_vault_folder": "Elegir carpeta de la bóveda",
+    "dismiss_error": "Descartar error",
+    "welcome_to_stratum": "Bienvenido a Stratum"
+  },
+  "whiteboard": {
+    "cancel": "Cancelar",
+    "create": "Crear",
+    "delete": "Eliminar",
+    "new": "Nuevo",
+    "new_name": "Nuevo nombre",
+    "new_whiteboard": "Nueva pizarra",
+    "rename": "Renombrar",
+    "rename_whiteboard": "Renombrar pizarra",
+    "unsaved": "Sin guardar",
+    "whiteboard_name": "Nombre de la pizarra",
+    "whiteboards": "Pizarras"
+  }
+}

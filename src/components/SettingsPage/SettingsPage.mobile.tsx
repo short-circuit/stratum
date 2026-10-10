@@ -30,6 +30,8 @@ export default function SettingsPageMobile() {
     syncStatus,
     theme,
     updateTheme,
+    locale,
+    onLocaleChange,
     ai,
     updateAi,
     research,
@@ -113,7 +115,7 @@ export default function SettingsPageMobile() {
         </Box>
 
         {/* ─── Theme Section ─── */}
-        <MobileThemeSection theme={theme} updateTheme={updateTheme} />
+        <MobileThemeSection theme={theme} updateTheme={updateTheme} locale={locale} onLocaleChange={onLocaleChange} />
 
         {/* ─── AI Section (collapsible) ─── */}
         <MobileAiAccordion
