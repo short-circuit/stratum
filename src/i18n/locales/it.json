@@ -1,0 +1,343 @@
+{
+  "_meta": {
+    "app": "Stratum",
+    "status": "complete"
+  },
+  "ask_notes": {
+    "ask": "Chiedi",
+    "ask_your_notes": "Chiedi ai tuoi appunti",
+    "ask_your_notes_e_g_what_did_i_decide_about_the_h": "Chiedi ai tuoi appunti… es. Cosa ho deciso sull'homelab?",
+    "clear": "Pulisci",
+    "sources": "Fonti"
+  },
+  "autocomplete_popup": {
+    "no_results": "Nessun risultato"
+  },
+  "backlink_snippet_body": {
+    "ctrl_click_to_navigate": "Ctrl+clic per navigare"
+  },
+  "backlinks": {
+    "backlinked_snippet": "Frammento con backlink",
+    "close_backlinks": "Chiudi backlink",
+    "close_snippet": "Chiudi frammento"
+  },
+  "common": {
+    "abort_merge": "Interrompi merge",
+    "ai_is_thinking": "L'IA sta pensando...",
+    "cancel": "Annulla",
+    "enter_passphrase": "Inserisci passphrase...",
+    "loading": "Caricamento...",
+    "resolve_all": "Risolvi tutto",
+    "ssh_key_passphrase": "Passphrase chiave SSH",
+    "sync_conflicts_detected": "Conflitti di sincronizzazione rilevati"
+  },
+  "dictation": {
+    "assign": "Assegna",
+    "assign_enroll_voice": "Assegna + registra voce",
+    "back": "Indietro",
+    "cancel_recording": "Annulla registrazione",
+    "clip_saved": "Clip salvato",
+    "diarize_speakers": "Segmenta i relatori",
+    "identify_voices": "Identifica le voci",
+    "name": "Nome...",
+    "new_memo": "Nuovo memo",
+    "record_voice_memo": "Registra memo vocale",
+    "saves_the_clip_and_transcribes_it_into_this_note": "Salva il clip e lo trascrive in questa nota",
+    "stop_save": "Interrompi e salva",
+    "summarize": "Riepiloga",
+    "transcribe": "Trascrivi"
+  },
+  "editor": {
+    "code_block": "Blocco di codice",
+    "copy": "Copia",
+    "create_page": "Crea pagina",
+    "cut": "Taglia",
+    "delete": "Elimina",
+    "insert_block": "Inserisci blocco",
+    "math_equation": "Equazione matematica",
+    "mermaid_diagram": "Diagramma Mermaid",
+    "paragraph": "Paragrafo",
+    "read_aloud": "Leggi ad alta voce",
+    "retry": "Riprova",
+    "toggle_marker": "Attiva marker"
+  },
+  "error_boundary": {
+    "something_went_wrong": "Qualcosa è andato storto"
+  },
+  "flashcards": {
+    "flashcards": "Flashcard",
+    "no_flashcards_found_create_blocks_with": "Nessuna flashcard trovata. Crea blocchi con",
+    "start_again": "Ricomincia"
+  },
+  "graph": {
+    "all": "Tutti",
+    "alpha_decay": "Decadimento alpha",
+    "back": "Indietro",
+    "comp": "Comp",
+    "components": "Componenti",
+    "connected": "Connessi",
+    "connected_notes": "Note connesse",
+    "curvature": "Curvatura",
+    "filter": "Filtro...",
+    "filter_by_title_tag": "Filtra per titolo/tag...",
+    "friction": "Attrito",
+    "full": "Completo",
+    "go_to_pages": "Vai alle pagine",
+    "graph_settings": "Impostazioni grafo",
+    "link_distance": "Distanza collegamento",
+    "no_graph_data_yet": "Nessun dato del grafo",
+    "node_cap": "Limite nodi",
+    "open_settings": "Apri impostazioni",
+    "orphaned": "Orfani",
+    "orphaned_notes": "Note orfane",
+    "orphans": "Orfani",
+    "orphs": "Orf.",
+    "pages_found_but_no_wiki_links_yet_add": "Pagine trovate ma nessun wiki-link. Aggiungi",
+    "refresh_graph": "Aggiorna grafo",
+    "repulsion": "Repulsione",
+    "tags": "Tag",
+    "tags_on_hover": "Tag al passaggio",
+    "toggle_search": "Attiva ricerca",
+    "vault_at": "Vault in"
+  },
+  "journal": {
+    "calendar": "Calendario",
+    "next_day": "Giorno successivo",
+    "open_calendar": "Apri calendario",
+    "previous_day": "Giorno precedente",
+    "repair_database": "Ripara database",
+    "retry": "Riprova"
+  },
+  "journal_calendar": {
+    "calendar": "Calendario",
+    "close_calendar": "Chiudi calendario",
+    "journal_calendar": "Calendario journal",
+    "next_month": "Mese successivo",
+    "previous_month": "Mese precedente"
+  },
+  "kanban": {
+    "add": "Aggiungi",
+    "add_card": "Aggiungi scheda",
+    "cancel": "Annulla",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "kanban": "Kanban",
+    "new_task": "Nuova attività...",
+    "no_tasks": "Nessuna attività",
+    "no_tasks_yet": "Nessuna attività ancora",
+    "refresh": "Aggiorna",
+    "task_description": "Descrizione attività...",
+    "today_apos_s_journal": "Il journal di oggi"
+  },
+  "kanban_edit_dialog": {
+    "cancel": "Annulla",
+    "content": "Contenuto",
+    "edit_card": "Modifica scheda",
+    "marker": "Marker",
+    "none": "Nessuno",
+    "priority": "Priorità",
+    "save": "Salva"
+  },
+  "lib": {
+    "click_to_cycle_marker_state": "Clicca per cambiare lo stato del marker",
+    "remove_marker": "Rimuovi marker",
+    "remove_priority": "Rimuovi priorità"
+  },
+  "lib_commands": {
+    "t_promise": "T): Promise"
+  },
+  "link_preview_popup": {
+    "ctrl_click_to_navigate": "Ctrl+clic per navigare"
+  },
+  "math_editor_modal": {
+    "cancel": "Annulla",
+    "ctrl_enter_to_save_esc_to_cancel": "Ctrl+Invio per salvare · Esc per annullare",
+    "edit_equation": "Modifica equazione",
+    "katex_supported_functions": "Funzioni KaTeX supportate",
+    "preview": "Anteprima",
+    "save": "Salva"
+  },
+  "mermaid_block": {
+    "empty_mermaid_diagram": "Diagramma Mermaid vuoto"
+  },
+  "mobile_layout": {
+    "ask_your_notes": "Chiedi ai tuoi appunti",
+    "flashcards": "Flashcard",
+    "graph": "Grafo",
+    "journal": "Journal",
+    "kanban": "Kanban",
+    "pages": "Pagine",
+    "plugins": "Plugin",
+    "query": "Query",
+    "search": "Cerca",
+    "settings": "Impostazioni",
+    "stratum": "Stratum",
+    "templates": "Modelli",
+    "whiteboards": "Whiteboard"
+  },
+  "page": {
+    "actions": "Azioni",
+    "delete_page": "Elimina pagina",
+    "normalize_file": "Normalizza file",
+    "reindex": "Reindicizza",
+    "reindex_note": "Reindicizza nota",
+    "stratum_pkm": "Stratum PKM",
+    "voice_memo": "Memo vocale",
+    "voice_memo_dictation": "Memo vocale (dettatura)"
+  },
+  "pages_home": {
+    "pages": "Pagine"
+  },
+  "plugins": {
+    "click_to_dismiss": "Clicca per chiudere",
+    "install_a_plugin_wasm_file_or_drop_one_into_pkm_": "Installa un file plugin.wasm oppure trascinalo in ~/.pkm/plugins/ e premi Aggiorna.",
+    "install_a_plugin_wasm_or_drop_one_into_pkm_plugi": "Installa un plugin.wasm oppure trascinalo in ~/.pkm/plugins/ e poi Aggiorna.",
+    "no_plugins_installed": "Nessun plugin installato",
+    "plugins": "Plugin",
+    "refresh": "Aggiorna",
+    "test_http_request": "Test http_request",
+    "test_note_read": "Test note_read",
+    "wasm_plugins_loaded_from": "Plugin WASM caricati da"
+  },
+  "query": {
+    "cancel": "Annulla",
+    "clear_name": "Cancella nome",
+    "close": "Chiudi",
+    "datalog_query": "Query Datalog",
+    "delete": "Elimina",
+    "delete_saved_query": "Elimina query salvata",
+    "enter_datalog_query": "Inserisci query Datalog...",
+    "name": "Nome",
+    "refresh_list": "Aggiorna elenco",
+    "refresh_saved_queries": "Aggiorna query salvate",
+    "rename": "Rinomina",
+    "reset": "Reimposta",
+    "save": "Salva",
+    "save_query": "Salva query"
+  },
+  "search": {
+    "search_blocks": "Cerca nei blocchi...",
+    "search_blocks_prefix_with_to_search_tags": "Cerca nei blocchi... (prefisso # per cercare i tag)"
+  },
+  "settings": {
+    "ai": "IA",
+    "ai_configuration": "Configurazione IA",
+    "api_endpoint": "Endpoint API",
+    "api_endpoint_url": "URL endpoint API",
+    "api_key": "Chiave API",
+    "api_key_is_set_via_the": "La chiave API è impostata tramite il",
+    "api_key_loaded_from": "Chiave API caricata da",
+    "api_key_optional": "Chiave API (facoltativa)",
+    "asr_model": "Modello ASR",
+    "auto_commit_settings": "Impostazioni auto-commit",
+    "auto_identify_speakers": "Identifica automaticamente i relatori",
+    "auto_identify_voices": "Identifica automaticamente le voci",
+    "auto_summarize": "Riepilogo automatico",
+    "auto_summarize_transcript": "Riepilogo automatico della trascrizione",
+    "auto_sync_settings": "Impostazioni auto-sync",
+    "browse": "Sfoglia",
+    "chunks": "Chunk",
+    "commit_interval_seconds": "Intervallo commit (secondi)",
+    "commit_message_template": "Modello messaggio di commit",
+    "dark_mode": "Modalità scura",
+    "default_chat_model": "Modello chat predefinito",
+    "default_model": "Modello predefinito",
+    "developer": "Sviluppatore",
+    "developer_tools": "Strumenti sviluppatore",
+    "diarization_model": "Modello di diarizzazione",
+    "diarize_speakers": "Segmenta i relatori",
+    "embedding_dimensions_0_auto": "Dimensioni embedding (0 = automatico)",
+    "enable_rag": "Abilita RAG",
+    "format": "Formato",
+    "language": "Lingua",
+    "language_label": "Lingua dell'interfaccia",
+    "language_hint_optional": "Suggerimento lingua (facoltativo)",
+    "langs": {
+      "de": "Deutsch",
+      "el": "Ελληνικά",
+      "en": "English",
+      "es": "Español",
+      "fr": "Français",
+      "it": "Italiano",
+      "ja": "日本語",
+      "zh": "中文"
+    },
+    "leave_0_to_infer_the_vector_size_from_your_embed": "Lascia 0 per dedurre la dimensione del vettore dal tuo modello di embedding.",
+    "max_results": "Risultati massimi",
+    "max_results_per_search": "Risultati massimi per ricerca",
+    "number_of_context_chunks_1_20": "Numero di chunk di contesto (1–20)",
+    "playback_speed_multiplier_0_25_4_0": "Moltiplicatore velocità di riproduzione (0.25–4.0)",
+    "pull_push_interval_seconds": "Intervallo pull/push (secondi)",
+    "remote_amp_branch": "Remote &amp; Branch",
+    "remote_branch": "Remote & Branch",
+    "research": "Ricerca",
+    "research_depth": "Profondità ricerca",
+    "research_depth_search_read_cycles": "Profondità ricerca (cicli ricerca-lettura)",
+    "searxng_endpoint": "Endpoint SearXNG",
+    "searxng_endpoint_url": "URL endpoint SearXNG",
+    "speech_amp_audio": "Voce &amp; Audio",
+    "speed": "Velocità",
+    "speed_0_25_4_0": "Velocità (0.25–4.0)",
+    "ssh_key_path": "Percorso chiave SSH",
+    "start_scheduler": "Avvia pianificatore",
+    "stt_api_key": "Chiave API STT",
+    "stt_endpoint": "Endpoint STT",
+    "sync": "Sync",
+    "sync_mode": "Modalità sync",
+    "text_to_speech": "Sintesi vocale",
+    "the_url_of_your_searxng_instance_e_g_http_localh": "L'URL della tua istanza SearXNG (es. http://localhost:8888)",
+    "theme": "Tema",
+    "transcription_endpoint_openai_compatible": "Endpoint di trascrizione (compatibile OpenAI)",
+    "transcription_model": "Modello di trascrizione",
+    "tts_api_key": "Chiave API TTS",
+    "tts_endpoint": "Endpoint TTS",
+    "tts_endpoint_optional": "Endpoint TTS (facoltativo)",
+    "url_of_your_searxng_instance": "URL della tua istanza SearXNG",
+    "use_gateway_and_auth_from_llm": "Usa gateway e autenticazione dal LLM",
+    "uses_the_ai_endpoint_when_empty": "Usa l'endpoint IA quando vuoto",
+    "vault": "Vault",
+    "vault_path": "Percorso del vault",
+    "voice": "Voce"
+  },
+  "sidebar": {
+    "cancel": "Annulla",
+    "create": "Crea",
+    "delete_page": "Elimina pagina",
+    "export_html": "Esporta HTML",
+    "new_page": "Nuova pagina",
+    "path_e_g_pages_my_note_md": "Percorso (es. pages/my-note.md)",
+    "recent": "Recenti",
+    "refresh": "Aggiorna",
+    "title_optional": "Titolo (facoltativo)"
+  },
+  "suggested_connections": {
+    "add_wiki_link_to_this_page": "Aggiungi [[wiki-link]] a questa pagina",
+    "suggested_connections": "Connessioni suggerite"
+  },
+  "templates": {
+    "add_variable": "Aggiungi variabile",
+    "apply": "Applica",
+    "cancel": "Annulla",
+    "target_page_path": "Percorso pagina di destinazione",
+    "templates": "Modelli",
+    "variables": "Variabili"
+  },
+  "vault_picker": {
+    "choose_vault_folder": "Scegli cartella del vault",
+    "dismiss_error": "Ignora errore",
+    "welcome_to_stratum": "Benvenuto in Stratum"
+  },
+  "whiteboard": {
+    "cancel": "Annulla",
+    "create": "Crea",
+    "delete": "Elimina",
+    "new": "Nuovo",
+    "new_name": "Nuovo nome",
+    "new_whiteboard": "Nuova whiteboard",
+    "rename": "Rinomina",
+    "rename_whiteboard": "Rinomina whiteboard",
+    "unsaved": "Non salvato",
+    "whiteboard_name": "Nome whiteboard",
+    "whiteboards": "Whiteboard"
+  }
+}

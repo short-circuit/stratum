@@ -6,6 +6,13 @@ import TextField from '@mui/material/TextField';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import ToggleButton from '@mui/material/ToggleButton';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import { useTranslation } from 'react-i18next';
+
+const LOCALES = ['en', 'de', 'it', 'fr', 'es', 'zh', 'ja', 'el'];
 
 const PRESET_COLORS = [
   '#f97316', '#ef4444', '#3b82f6', '#8b5cf6',
@@ -20,12 +27,30 @@ const SECONDARY_COLORS = [
 interface ThemeTabProps {
   theme: { dark_mode: boolean; primary_color: string; secondary_color: string; font_size: number };
   onThemeChange: (patch: Partial<ThemeTabProps['theme']>) => void;
+  locale: string;
+  onLocaleChange: (locale: string) => void;
 }
 
-export default function ThemeTab({ theme, onThemeChange }: ThemeTabProps) {
+export default function ThemeTab({ theme, onThemeChange, locale, onLocaleChange }: ThemeTabProps) {
+  const { t } = useTranslation();
   return (
     <Box>
-      <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>Theme</Typography>
+      <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>{t('settings.theme')}</Typography>
+
+      <FormControl size="small" sx={{ mb: 2, minWidth: 200 }}>
+        <InputLabel>{t('settings.language_label')}</InputLabel>
+        <Select
+          label={t('settings.language_label')}
+          value={locale}
+          onChange={e => onLocaleChange(e.target.value as string)}
+        >
+          {LOCALES.map(code => (
+            <MenuItem key={code} value={code}>
+              {t(`settings.langs.${code}`)}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
       <FormControlLabel
         control={<Switch checked={theme.dark_mode} onChange={e => onThemeChange({ dark_mode: e.target.checked })} />}

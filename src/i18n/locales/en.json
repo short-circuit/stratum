@@ -250,7 +250,18 @@
     "enable_rag": "Enable RAG",
     "format": "Format",
     "language": "Language",
+    "language_label": "Interface language",
     "language_hint_optional": "Language hint (optional)",
+    "langs": {
+      "de": "Deutsch",
+      "el": "Ελληνικά",
+      "en": "English",
+      "es": "Español",
+      "fr": "Français",
+      "it": "Italiano",
+      "ja": "日本語",
+      "zh": "中文"
+    },
     "leave_0_to_infer_the_vector_size_from_your_embed": "Leave 0 to infer the vector size from your embedding model.",
     "max_results": "Max Results",
     "max_results_per_search": "Max Results Per Search",

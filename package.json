@@ -41,6 +41,8 @@
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-dialog": "^2.0.0",
     "dompurify": "^3.4.12",
+    "i18next": "^26.4.3",
+    "i18next-browser-languagedetector": "^8.2.1",
     "katex": "^0.17.0",
     "mermaid": "^11.16.0",
     "prosemirror-model": "1.25.9",
@@ -48,6 +50,7 @@
     "prosemirror-view": "1.41.9",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "react-i18next": "^17.0.16",
     "react-force-graph-2d": "^1.29.1",
     "react-force-graph-3d": "^1.29.1",
     "react-router-dom": "^7.18.0",
@@ -79,5 +82,8 @@
     "vite": "^8.0.12",
     "vitest": "^4.1.9",
     "webdriver": "^9.30.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
   }
 }

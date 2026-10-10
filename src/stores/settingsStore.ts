@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { GraphSettings, SyncSettings } from '../lib/types';
 import * as api from '../lib/commands';
+import { setLocale } from '../i18n';
 
 // --- Types ---
 export interface AiConfig {
@@ -52,6 +53,7 @@ export interface TtsSettings {
 
 export interface AppSettings {
   vault_path: string;
+  locale: string;
   theme: ThemeSettings;
   ai: AiConfig;
   graph: GraphSettings;
@@ -75,6 +77,7 @@ export interface SettingsState {
   updateResearch: (patch: Partial<ResearchSettings>) => void;
   updateStt: (patch: Partial<SttSettings>) => void;
   updateTts: (patch: Partial<TtsSettings>) => void;
+  updateLocale: (locale: string) => void;
   setSettings: (settings: AppSettings) => void;
 }
 
@@ -151,6 +154,7 @@ const DEFAULT_TTS: TtsSettings = {
 
 const DEFAULT_SETTINGS: AppSettings = {
   vault_path: '',
+  locale: 'en',
   theme: DEFAULT_THEME,
   ai: DEFAULT_AI,
   graph: DEFAULT_GRAPH,
@@ -173,6 +177,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         settings: {
           ...DEFAULT_SETTINGS,
           ...result,
+          locale: result.locale ?? 'en',
           theme: { ...DEFAULT_THEME, ...result.theme },
           ai: { ...DEFAULT_AI, ...result.ai },
           graph: { ...DEFAULT_GRAPH, ...result.graph },
@@ -234,6 +239,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const s = get().settings;
     if (!s) return;
     set({ settings: { ...s, tts: { ...s.tts, ...patch } } });
+  },
+
+  updateLocale: (locale) => {
+    const s = get().settings;
+    if (!s) return;
+    set({ settings: { ...s, locale } });
+    void setLocale(locale);
   },
 
   setSettings: (settings) => set({ settings }),

@@ -31,6 +31,8 @@ export default function SettingsPageDesktop() {
     syncSettings,
     stt,
     tts,
+    locale,
+    onLocaleChange,
     setMsg,
     updateAi,
     updateVault,
@@ -110,7 +112,9 @@ export default function SettingsPageDesktop() {
             onBrowse={handlePickVaultDirectory}
           />
         )}
-        {tab === 'theme' && <ThemeTab theme={theme} onThemeChange={updateTheme} />}
+        {tab === 'theme' && (
+          <ThemeTab theme={theme} onThemeChange={updateTheme} locale={locale} onLocaleChange={onLocaleChange} />
+        )}
         {tab === 'ai' && (
           <AITab
             ai={ai}

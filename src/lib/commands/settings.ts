@@ -26,6 +26,7 @@ export async function pickVaultDirectory(): Promise<VaultInfo> {
 
 export async function getSettings(): Promise<{
   vault_path: string;
+  locale: string;
   theme: { dark_mode: boolean; primary_color: string; secondary_color: string; font_size: number };
   ai: {
     provider: string;
@@ -68,6 +69,7 @@ export async function getSettings(): Promise<{
 
 export async function saveSettings(settings: {
   vault_path: string;
+  locale: string;
   theme: { dark_mode: boolean; primary_color: string; secondary_color: string; font_size: number };
   ai: {
     provider: string;

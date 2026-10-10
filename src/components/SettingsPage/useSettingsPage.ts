@@ -9,6 +9,7 @@ import { useSyncModalStore } from '../../stores/syncModalStore';
 import { useSyncStore } from '../../stores/syncStore';
 import * as api from '../../lib/commands';
 import { applyTheme } from '../../lib/theme';
+import { setLocale } from '../../i18n';
 import type { SettingsTab } from './settingsTypes';
 
 export type { SettingsTab, SettingsData } from './settingsTypes';
@@ -161,6 +162,12 @@ export function useSettingsPage() {
     setSettings({ ...settings, stt: { ...(settings.stt || {}), ...patch } });
   const updateTts = (patch: any) =>
     setSettings({ ...settings, tts: { ...(settings.tts || {}), ...patch } });
+  const locale = settings?.locale ?? 'en';
+  const onLocaleChange = (loc: string) => {
+    setSettings({ ...settings, locale: loc });
+    void setLocale(loc);
+    api.saveSettings({ ...settings, locale: loc }).catch(() => {});
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -378,6 +385,8 @@ export function useSettingsPage() {
     syncSettings,
     stt: settings?.stt,
     tts,
+    locale,
+    onLocaleChange,
 
     // Actions
     setMsg,
