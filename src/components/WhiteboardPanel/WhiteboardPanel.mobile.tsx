@@ -99,7 +99,7 @@ export default function WhiteboardPanelMobile() {
           </IconButton>
           <Typography variant="body2" noWrap sx={{ fontWeight: 500, flexGrow: 1 }}>{activeBoard}</Typography>
           {dirty && (
-            <Chip label="Unsaved" size="small" color="warning" variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+            <Chip label={t('whiteboard.unsaved')} size="small" color="warning" variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
           )}
         </Box>
         <Box sx={{ flex: 1, position: 'relative', minHeight: 0, height: '100%' }}>
@@ -129,14 +129,14 @@ export default function WhiteboardPanelMobile() {
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1 }}>Whiteboards</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1 }}>{t('mobile_layout.whiteboards')}</Typography>
         <Button
           variant="contained"
           size="small"
           startIcon={<AddIcon />}
           onClick={() => setCreateOpen(true)}
         >
-          New
+          {t('common.new')}
         </Button>
       </Box>
 
@@ -227,7 +227,7 @@ export default function WhiteboardPanelMobile() {
           sx={{ mb: 1.5 }}
         />
         <Button variant="contained" fullWidth onClick={handleCreateSubmit}>
-          Create
+          {t('common.create')}
         </Button>
       </SwipeableDrawer>
 
@@ -252,7 +252,7 @@ export default function WhiteboardPanelMobile() {
           sx={{ mb: 1.5 }}
         />
         <Button variant="contained" fullWidth onClick={handleRenameSubmit}>
-          Rename
+          {t('common.rename')}
         </Button>
       </SwipeableDrawer>
 
@@ -273,10 +273,10 @@ export default function WhiteboardPanelMobile() {
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button variant="outlined" fullWidth onClick={() => setDeleteTarget(null)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button variant="contained" color="error" fullWidth onClick={handleDeleteConfirm}>
-            Delete
+            {t('common.delete')}
           </Button>
         </Box>
       </SwipeableDrawer>

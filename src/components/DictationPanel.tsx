@@ -207,14 +207,14 @@ export default function DictationPanel({
           />
           <FormControlLabel
             control={<Checkbox size="small" checked={summarize} onChange={e => setSummarize(e.target.checked)} />}
-            label={<Typography variant="caption">Summarize</Typography>}
+            label={<Typography variant="caption">{t('dictation.summarize')}</Typography>}
           />
           <FormControlLabel
             control={<Checkbox size="small" checked={identify} onChange={e => setIdentify(e.target.checked)} />}
             label={<Typography variant="caption">{t('dictation.identify_voices')}</Typography>}
           />
           <Button size="small" variant="contained" startIcon={<GraphicEqIcon />} onClick={transcribe} sx={{ textTransform: 'none' }}>
-            Transcribe
+            {t('dictation.transcribe')}
           </Button>
         </Box>
       )}
@@ -274,7 +274,7 @@ export default function DictationPanel({
                       onClick={() => assign(id, false)}
                       sx={{ textTransform: 'none' }}
                     >
-                      Assign
+                      {t('dictation.assign')}
                     </Button>
                     <Button
                       size="small"
@@ -303,7 +303,7 @@ export default function DictationPanel({
 
       {stage === 'error' && (
         <Button size="small" onClick={() => setStage('idle')} sx={{ textTransform: 'none' }}>
-          Back
+          {t('common.back')}
         </Button>
       )}
     </Box>

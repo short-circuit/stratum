@@ -40,7 +40,7 @@ export default function SyncTab({
   const { t } = useTranslation();
   return (
     <Box>
-      <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>Sync</Typography>
+      <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>{t('settings.sync')}</Typography>
 
       <Box sx={{ maxWidth: 600, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
         {/* Section 1 — Sync Mode */}
@@ -73,9 +73,9 @@ export default function SyncTab({
                 }}
               >
                 {mode === 'auto_commit'
-                  ? 'Auto-Commit'
+                  ? t('settings.auto_commit')
                   : mode === 'auto_sync'
-                    ? 'Auto-Sync'
+                    ? t('settings.auto_sync')
                     : mode}
               </Box>
             ))}
@@ -84,7 +84,7 @@ export default function SyncTab({
             {syncSettings.mode === 'manual' &&
               t('settings.sync_only_when_you_click_the_sync_button_no_automatic_commit')}
             {syncSettings.mode === 'auto_commit' &&
-              'Changes are automatically committed to git on a timer. Manual push/pull required.'}
+              t('settings.auto_commit_mode_help')}
             {syncSettings.mode === 'auto_sync' &&
               t('settings.automatic_commits_periodic_push_pull_to_remote')}
             {syncSettings.mode === 'background' &&

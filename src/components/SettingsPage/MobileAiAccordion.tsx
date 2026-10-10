@@ -31,8 +31,8 @@ import { useTranslation } from 'react-i18next';
 
 const PROVIDERS = [
   { value: 'ollama', label: 'settings.ollama_local' },
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'anthropic', label: 'Anthropic' },
+  { value: 'openai', label: 'settings.openai' },
+  { value: 'anthropic', label: 'settings.anthropic' },
   { value: 'google', label: 'settings.google_ai' },
   { value: 'zai', label: 'settings.z_ai' },
   { value: 'custom', label: 'settings.custom_openai_compatible' },
@@ -99,7 +99,7 @@ export default function MobileAiAccordion({
   return (
     <Box sx={{ px: 2, pt: 3 }}>
       <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-        AI
+        {t('settings.ai')}
       </Typography>
       <Divider sx={{ mb: 1 }} />
       <Accordion
@@ -242,7 +242,7 @@ export default function MobileAiAccordion({
             />
             {ai?.rag_enabled && (
               <TextField
-                label="Chunks"
+                label={t('settings.chunks')}
                 type="number"
                 value={ai.rag_chunk_count || 5}
                 onChange={e => updateAi({ rag_chunk_count: parseInt(e.target.value) || 5 })}

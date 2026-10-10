@@ -124,10 +124,10 @@ export default function QueryPanelMobile() {
             startIcon={<SaveIcon />}
             onClick={() => setDialog({ kind: 'save', initial: '' })}
           >
-            Save
+            {t('common.save')}
           </Button>
           <Button variant="text" size="small" onClick={resetQuery}>
-            Reset
+            {t('common.reset')}
           </Button>
         </Box>
 
@@ -214,7 +214,7 @@ export default function QueryPanelMobile() {
         open={deleteTarget !== null}
         title={t('query.delete_saved_query')}
         message={`${t('query.delete_label')}${deleteTarget ?? ''}”? This cannot be undone.`}
-        confirmLabel="Delete"
+        confirmLabel={t('common.delete')}
         confirmColor="error"
         onConfirm={async () => {
           if (deleteTarget) await saved.deleteQuery(deleteTarget);

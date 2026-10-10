@@ -29,19 +29,19 @@ export default function MobileLayout({ error, persistentError, children }: Mobil
   const isDetailPage = location.pathname.startsWith('/page/');
   const showBack = isDetailPage;
 
-  let title = 'Stratum';
-  if (location.pathname.startsWith('/journal')) title = 'Journal';
-  else if (location.pathname.startsWith('/search')) title = 'Search';
-  else if (location.pathname.startsWith('/graph')) title = 'Graph';
-  else if (location.pathname === '/' || location.pathname.startsWith('/page/')) title = 'Pages';
-  else if (location.pathname.startsWith('/kanban')) title = 'Kanban';
-  else if (location.pathname.startsWith('/query')) title = 'Query';
+  let title = t('mobile_layout.stratum');
+  if (location.pathname.startsWith('/journal')) title = t('mobile_layout.journal');
+  else if (location.pathname.startsWith('/search')) title = t('mobile_layout.search');
+  else if (location.pathname.startsWith('/graph')) title = t('mobile_layout.graph');
+  else if (location.pathname === '/' || location.pathname.startsWith('/page/')) title = t('mobile_layout.pages');
+  else if (location.pathname.startsWith('/kanban')) title = t('mobile_layout.kanban');
+  else if (location.pathname.startsWith('/query')) title = t('mobile_layout.query');
   else if (location.pathname.startsWith('/ask-notes')) title = t('ask_notes.ask_your_notes');
-  else if (location.pathname.startsWith('/templates')) title = 'Templates';
-  else if (location.pathname.startsWith('/flashcards')) title = 'Flashcards';
-  else if (location.pathname.startsWith('/whiteboards')) title = 'Whiteboards';
-  else if (location.pathname.startsWith('/plugins')) title = 'Plugins';
-  else if (location.pathname.startsWith('/settings')) title = 'Settings';
+  else if (location.pathname.startsWith('/templates')) title = t('mobile_layout.templates');
+  else if (location.pathname.startsWith('/flashcards')) title = t('mobile_layout.flashcards');
+  else if (location.pathname.startsWith('/whiteboards')) title = t('mobile_layout.whiteboards');
+  else if (location.pathname.startsWith('/plugins')) title = t('mobile_layout.plugins');
+  else if (location.pathname.startsWith('/settings')) title = t('mobile_layout.settings');
 
   // Persistent errors take visual precedence; transient errors are dismissed
   // automatically and only shift content while visible. The content area

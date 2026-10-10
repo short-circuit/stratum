@@ -27,7 +27,7 @@ export default function AskNotesPanelDesktop() {
         </Typography>
         {result && (
           <Button size="small" onClick={reset}>
-            Clear
+            {t('ask_notes.clear')}
           </Button>
         )}
       </Box>

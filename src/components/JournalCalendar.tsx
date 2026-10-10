@@ -173,7 +173,7 @@ export default function JournalCalendar({
     return (
       <Dialog fullScreen open={open} onClose={onClose} aria-label={t('journal_calendar.journal_calendar')}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Calendar</Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t('journal_calendar.calendar')}</Typography>
           <IconButton size="small" onClick={onClose} aria-label={t('journal_calendar.close_calendar')}>
             <CloseIcon />
           </IconButton>

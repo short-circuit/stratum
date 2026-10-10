@@ -199,7 +199,7 @@ export default function OutlinerEditorMobile(props: Props) {
               setStatus('init');
             }}
           >
-            Retry
+            {t('common.retry')}
           </Button>
         }
       >

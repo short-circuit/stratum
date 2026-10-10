@@ -198,6 +198,86 @@ async function runTests(driver) {
     bad(`page body has rendered text (got ${ui?.bodyText})`);
   }
 
+  console.log('\n── Test 2b: i18n locale switch (any booted locale → de renders translated UI) ──');
+  // WebKitGTK persist localStorage across harness runs, so the app may boot en
+  // or de. The flow must work regardless: adapt to the booted locale labels.
+  const boot = await driver.executeScript(
+    `return { hasSettings: (document.body.innerText||'').includes('Settings'),
+              hasEinstellungen: (document.body.innerText||'').includes('Einstellungen') };`,
+    [],
+  );
+  console.log(`   booted UI: ${boot && boot.hasEinstellungen ? 'de' : boot && boot.hasSettings ? 'en' : 'unknown'}`);
+  // Click Settings (en) or Einstellungen (de) — then Theme (en) or Design (de).
+  await driver.executeScript(
+    `var s=[...document.querySelectorAll('[role="button"],button,a,li')].find(function(e){var t=e.textContent.trim(); return t==='Settings'||t==='Einstellungen';}); if(s){s.click();} return !!s;`,
+    [],
+  );
+  await sleep(3000);
+  await driver.executeScript(
+    `var t=[...document.querySelectorAll('[role="tab"]')].find(function(e){var x=e.textContent.trim(); return x==='Theme'||x==='Design';}); if(t){t.click();} return !!t;`,
+    [],
+  );
+  await sleep(2500);
+  // The Theme tab has exactly one combobox (the locale selector), rendering the
+  // current locale's endonym ("English", "Deutsch", …). Open it directly.
+  const openOk = await driver.executeScript(
+    `var cb=document.querySelector('[role="combobox"]');
+     if(!cb) return false;
+     cb.dispatchEvent(new MouseEvent('mousedown',{bubbles:true}));
+     cb.dispatchEvent(new MouseEvent('mouseup',{bubbles:true}));
+     cb.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+     return true;`,
+    [],
+  );
+  if (openOk) ok('language dropdown opened'); else bad('language dropdown opened');
+  await sleep(1500);
+  const pickOk = await driver.executeScript(
+    `var d=[...document.querySelectorAll('[role="option"],.MuiMenuItem-root,[role="menuitem"]')].find(function(e){return e.textContent.trim()==='Deutsch';});
+     if(!d) return false;
+     d.dispatchEvent(new MouseEvent('mousedown',{bubbles:true}));
+     d.dispatchEvent(new MouseEvent('mouseup',{bubbles:true}));
+     d.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+     return true;`,
+    [],
+  );
+  if (pickOk) ok('Deutsch option selected'); else bad('Deutsch option selected');
+  await sleep(3500);
+  const de = await driver.executeScript(
+    `const t = document.body.innerText || '';
+     return {
+       hasGermanSettings: t.includes('Einstellungen'),
+       hasGermanSearch: t.includes('Suche'),
+       hasEnglishSettings: t.includes('Settings'),
+       persisted: localStorage.getItem('stratum-locale'),
+       bodyLen: t.length,
+     };`,
+    [],
+  );
+  if (de && de.hasGermanSettings) {
+    ok('locale switch to de rendered German UI (Settings = "Einstellungen")');
+  } else {
+    bad(`locale switch to de rendered German UI (settings label not found; body ${de?.bodyLen} chars)`);
+  }
+  if (de && de.hasGermanSearch) {
+    ok('German search label rendered (Suche)');
+  } else {
+    bad('German search label rendered (Suche)');
+  }
+  if (de && de.hasEnglishSettings) {
+    bad('English-only string still visible in de UI ("Settings" found)');
+  } else {
+    ok('no English string remains in de UI ("Settings" gone)');
+  }
+  if (de && de.persisted === 'de') {
+    ok('locale persisted (stratum-locale=de)');
+  } else {
+    bad(`locale persisted (got ${de?.persisted})`);
+  }
+  // Restore en for the remaining tests.
+  await driver.executeScript(`localStorage.setItem('stratum-locale', 'en'); return true;`, []);
+  await driver.executeScript(`location.reload(); return true;`, []);
+  await waitForApp(driver, { url: 'tauri://localhost' });
+
   console.log('\n── Test 3: IPC round-trip (query real app state) ──');
   const info = await driver.executeScript(
     `const d = document;

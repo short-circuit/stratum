@@ -86,6 +86,11 @@ stratum/
 │   │   ├── useCtrlHeld.ts      # Hook: Ctrl/Meta key tracking
 │   │   ├── useMathInline.tsx   # Hook: ProseMirror inline KaTeX plugin
 │   │   └── hooks/              # # Custom hooks (useAsyncData, useDebounce, etc.)
+│   ├── i18n/                   # i18next bootstrap; locales + parity/gate tests
+│   │   ├── index.ts            # initI18n, setLocale, Intl formatting helpers
+│   │   ├── locales/            # en/de/it/fr/es (full) + zh/ja/el (placeholders)
+│   │   ├── i18nGate.test.ts    # Static gate: no hardcoded user-facing strings
+│   │   └── localeParity.test.ts# Locale key-set parity + untranslated scan
 │   ├── stores/
 │   │   ├── appStore.ts         # Core Zustand store (vault, pages, currentPage)
 │   │   ├── settingsStore.ts    # Settings + theme state
@@ -169,7 +174,7 @@ stratum/
 │   │   ├── installation.md
 │   │   ├── quickstart.md
 │   │   └── configuration.md
-│   ├── guide/                  # 20 user guides (one per feature)
+│   ├── guide/                  # 21 user guides (one per feature)
 │   │   ├── vault-management.md
 │   │   ├── block-editor.md
 │   │   ├── linking-and-backlinks.md
@@ -189,7 +194,8 @@ stratum/
 │   │   ├── web-research.md
 │   │   ├── git-sync.md
 │   │   ├── voice-dictation.md
-│   │   └── export.md
+│   │   ├── export.md
+│   │   └── localization.md     # UI language + i18n gates
 │   ├── cli/
 │   │   └── command-reference.md
 │   ├── advanced/
