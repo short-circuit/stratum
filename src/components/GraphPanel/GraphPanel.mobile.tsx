@@ -109,7 +109,7 @@ export default function GraphPanelMobile() {
       {/* ── Header Bar ── */}
       <AppBar position="static" color="default" elevation={1} sx={{ height: 56 }}>
         <Toolbar variant="dense" sx={{ gap: 0.5, minHeight: '56px !important' }}>
-          <IconButton edge="start" size="small" onClick={() => navigate(-1)} aria-label="Back">
+          <IconButton edge="start" size="small" onClick={() => navigate(-1)} aria-label={t('common.back')}>
             <ArrowBackIcon />
           </IconButton>
 
@@ -120,9 +120,9 @@ export default function GraphPanelMobile() {
             size="small"
             sx={{ '& .MuiToggleButton-root': { fontSize: '0.7rem', px: 1, py: 0.25, textTransform: 'none' } }}
           >
-            <ToggleButton value="full">All</ToggleButton>
-            <ToggleButton value="component">Comp</ToggleButton>
-            <ToggleButton value="orphans">Orphs</ToggleButton>
+            <ToggleButton value="full">{t('graph.all')}</ToggleButton>
+            <ToggleButton value="component">{t('graph.comp')}</ToggleButton>
+            <ToggleButton value="orphans">{t('graph.orphs')}</ToggleButton>
           </ToggleButtonGroup>
 
           {/* Component selector — visible only in component view mode */}
@@ -210,9 +210,9 @@ export default function GraphPanelMobile() {
         {nodeCapActive && (
           <Alert severity="info" icon={false} sx={{ position: 'absolute', top: error ? 44 : 8, left: 8, right: 8, zIndex: 10, py: 0, '& .MuiAlert-message': { py: 0.5 } }}>
             <Typography variant="caption">
-              Showing {filteredNodes.length}/{preCapNodeCount} nodes{defaultCapActive
+              {t('graph.showing', { count: filteredNodes.length, total: preCapNodeCount, cap: defaultCapActive
                 ? ` ${t('graph._capped_to')} ${effectiveCap} by default; increase the cap in Graph settings to reveal more)`
-                : ` ${t('graph._cap')} ${effectiveCap})`}
+                : ` ${t('graph._cap')} ${effectiveCap})` })}
             </Typography>
           </Alert>
         )}
@@ -220,7 +220,7 @@ export default function GraphPanelMobile() {
         {progressiveLoading && (
           <Alert severity="info" icon={false} sx={{ position: 'absolute', top: (nodeCapActive ? 44 : error ? 44 : 8), left: 8, right: 8, zIndex: 10, py: 0, '& .MuiAlert-message': { py: 0.5 } }}>
             <Typography variant="caption" sx={{ mb: 0.25, display: 'block' }}>
-              Rendering {progress.current}/{progress.total} nodes...
+              {t('graph.rendering', { current: progress.current, total: progress.total })}
             </Typography>
             <LinearProgress
               variant="determinate"
@@ -315,15 +315,15 @@ export default function GraphPanelMobile() {
           <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
             <FormControlLabel
               control={<Checkbox size="small" checked={graphSettings.show_connected} onChange={(e) => updateSetting('show_connected', e.target.checked)} />}
-              label={<Typography variant="caption">Connected</Typography>}
+              label={<Typography variant="caption">{t('graph.connected')}</Typography>}
             />
             <FormControlLabel
               control={<Checkbox size="small" checked={graphSettings.show_orphaned} onChange={(e) => updateSetting('show_orphaned', e.target.checked)} />}
-              label={<Typography variant="caption">Orphaned</Typography>}
+              label={<Typography variant="caption">{t('graph.orphaned')}</Typography>}
             />
             <FormControlLabel
               control={<Checkbox size="small" checked={graphSettings.show_tags} onChange={(e) => updateSetting('show_tags', e.target.checked)} />}
-              label={<Typography variant="caption">Tags</Typography>}
+              label={<Typography variant="caption">{t('graph.tags')}</Typography>}
             />
           </Box>
 
@@ -345,11 +345,11 @@ export default function GraphPanelMobile() {
           </Box>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            <SliderSetting label="Repulsion" value={graphSettings.charge_strength} min={-30} max={0} step={1} display={`${Math.round(graphSettings.charge_strength)}`} onChange={(v) => updateSetting('charge_strength', v)} />
+            <SliderSetting label={t('graph.repulsion')} value={graphSettings.charge_strength} min={-30} max={0} step={1} display={`${Math.round(graphSettings.charge_strength)}`} onChange={(v) => updateSetting('charge_strength', v)} />
             <SliderSetting label={t('graph.link_distance')} value={graphSettings.link_distance} min={10} max={120} step={5} display={`${Math.round(graphSettings.link_distance)}px`} onChange={(v) => updateSetting('link_distance', v)} />
             <SliderSetting label={t('graph.alpha_decay')} value={graphSettings.alpha_decay} min={0.01} max={0.3} step={0.01} display={graphSettings.alpha_decay.toFixed(2)} onChange={(v) => updateSetting('alpha_decay', v)} />
-            <SliderSetting label="Friction" value={graphSettings.velocity_decay} min={0.05} max={0.95} step={0.05} display={graphSettings.velocity_decay.toFixed(2)} onChange={(v) => updateSetting('velocity_decay', v)} />
-            <SliderSetting label="Curvature" value={graphSettings.link_curvature} min={0} max={0.5} step={0.05} display={graphSettings.link_curvature.toFixed(2)} onChange={(v) => updateSetting('link_curvature', v)} />
+            <SliderSetting label={t('graph.friction')} value={graphSettings.velocity_decay} min={0.05} max={0.95} step={0.05} display={graphSettings.velocity_decay.toFixed(2)} onChange={(v) => updateSetting('velocity_decay', v)} />
+            <SliderSetting label={t('graph.curvature')} value={graphSettings.link_curvature} min={0} max={0.5} step={0.05} display={graphSettings.link_curvature.toFixed(2)} onChange={(v) => updateSetting('link_curvature', v)} />
             <Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="caption">{t('graph.node_cap')}</Typography>

@@ -16,17 +16,17 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import { useTranslation } from 'react-i18next';
 
 const NAV_ITEMS = [
-  { id: 'journal', label: 'Journal', path: '/journal', icon: <CalendarMonthIcon /> },
-  { id: 'graph', label: 'Graph', path: '/graph', icon: <HubIcon /> },
-  { id: 'kanban', label: 'Kanban', path: '/kanban', icon: <ChecklistIcon /> },
-  { id: 'search', label: 'Search', path: '/search', icon: <SearchIcon /> },
-  { id: 'query', label: 'Query', path: '/query', icon: <CodeIcon /> },
+  { id: 'journal', label: 'mobile_nav.journal', path: '/journal', icon: <CalendarMonthIcon /> },
+  { id: 'graph', label: 'mobile_nav.graph', path: '/graph', icon: <HubIcon /> },
+  { id: 'kanban', label: 'mobile_nav.kanban', path: '/kanban', icon: <ChecklistIcon /> },
+  { id: 'search', label: 'mobile_nav.search', path: '/search', icon: <SearchIcon /> },
+  { id: 'query', label: 'mobile_nav.query', path: '/query', icon: <CodeIcon /> },
   { id: 'asknotes', label: 'mobile_nav.ask_notes', path: '/ask-notes', icon: <AutoAwesomeIcon /> },
-  { id: 'templates', label: 'Templates', path: '/templates', icon: <DescriptionIcon /> },
-  { id: 'flashcards', label: 'Flashcards', path: '/flashcards', icon: <QuizIcon /> },
-  { id: 'whiteboards', label: 'Whiteboards', path: '/whiteboards', icon: <DrawIcon /> },
-  { id: 'plugins', label: 'Plugins', path: '/plugins', icon: <ExtensionIcon /> },
-  { id: 'settings', label: 'Settings', path: '/settings', icon: <SettingsIcon /> },
+  { id: 'templates', label: 'mobile_nav.templates', path: '/templates', icon: <DescriptionIcon /> },
+  { id: 'flashcards', label: 'mobile_nav.flashcards', path: '/flashcards', icon: <QuizIcon /> },
+  { id: 'whiteboards', label: 'mobile_nav.whiteboards', path: '/whiteboards', icon: <DrawIcon /> },
+  { id: 'plugins', label: 'mobile_nav.plugins', path: '/plugins', icon: <ExtensionIcon /> },
+  { id: 'settings', label: 'mobile_nav.settings', path: '/settings', icon: <SettingsIcon /> },
 ] as const;
 
 type TabId = (typeof NAV_ITEMS)[number]['id'];

@@ -95,7 +95,7 @@ export default function MathEditorModal({ initialLatex, onSave, onCancel }: Prop
 
         <Box>
           <Typography variant="caption" color="text.disabled" sx={{ textTransform: 'uppercase', fontWeight: 500, display: 'block', mb: 0.5 }}>
-            Preview
+            {t('math_editor_modal.preview')}
           </Typography>
           <Box
             sx={{ minHeight: 60, p: 2, border: 1, borderColor: 'divider', borderRadius: 1, bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center', overflowX: 'auto' }}
@@ -128,8 +128,8 @@ export default function MathEditorModal({ initialLatex, onSave, onCancel }: Prop
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onCancel}>Cancel</Button>
-        <Button variant="contained" onClick={() => onSave(latex)}>Save</Button>
+        <Button onClick={onCancel}>{t('common.cancel')}</Button>
+        <Button variant="contained" onClick={() => onSave(latex)}>{t('common.save')}</Button>
       </DialogActions>
     </Dialog>
   );

@@ -57,7 +57,7 @@ function SavedQueryRow({
         className="sq-actions"
         sx={{ display: 'flex', opacity: 0, transition: 'opacity 0.15s', ml: 1 }}
       >
-        <Tooltip title="Rename" arrow>
+        <Tooltip title={t('common.rename')} arrow>
           <IconButton
             size="small"
             aria-label={`${t('query.rename_saved_query')} ${q.name}`}
@@ -67,7 +67,7 @@ function SavedQueryRow({
             <EditIcon fontSize="inherit" />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Delete" arrow>
+        <Tooltip title={t('common.delete')} arrow>
           <IconButton
             size="small"
             aria-label={`${t('query.delete_saved_query')} ${q.name}`}
@@ -136,7 +136,7 @@ export default function QueryPanelDesktop() {
             </Button>
             <Box sx={{ flex: 1 }} />
             <Button variant="text" onClick={resetQuery}>
-              Reset
+              {t('common.reset')}
             </Button>
           </Box>
 
@@ -226,7 +226,7 @@ export default function QueryPanelDesktop() {
         open={deleteTarget !== null}
         title={t('query.delete_saved_query')}
         message={`${t('query.delete_label')}${deleteTarget ?? ''}”? This cannot be undone.`}
-        confirmLabel="Delete"
+        confirmLabel={t('common.delete')}
         confirmColor="error"
         onConfirm={async () => {
           if (deleteTarget) await saved.deleteQuery(deleteTarget);

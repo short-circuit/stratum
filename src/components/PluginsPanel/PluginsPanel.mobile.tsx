@@ -42,10 +42,10 @@ export default function PluginsPanelMobile() {
   return (
     <Box sx={{ height: '100%', overflow: 'auto', p: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>Plugins</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>{t('mobile_layout.plugins')}</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button size="small" startIcon={<RefreshIcon />} onClick={() => void refresh()} disabled={loading || installing} sx={{ textTransform: 'none' }}>
-            Refresh
+            {t('common.refresh')}
           </Button>
           <Button
             size="small"
@@ -134,7 +134,7 @@ export default function PluginsPanelMobile() {
                       onClick={() => void uninstall(plugin.id)}
                       sx={{ textTransform: 'none', flex: '1 1 45%' }}
                     >
-                      {busy ? '…' : 'Uninstall'}
+                      {busy ? '…' : t('plugins.uninstall')}
                     </Button>
                   </Box>
 

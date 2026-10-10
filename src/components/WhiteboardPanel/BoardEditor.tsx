@@ -5,6 +5,7 @@ import Chip from '@mui/material/Chip';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Excalidraw, MainMenu } from '@excalidraw/excalidraw';
 import type { ExcalidrawImperativeAPI, SceneData, LibraryItems } from '@excalidraw/excalidraw/types';
+import { useTranslation } from 'react-i18next';
 
 interface BoardEditorProps {
   activeBoard: string;
@@ -29,6 +30,7 @@ export default function BoardEditor({
   onLibraryChange,
   onNavigateBack,
 }: BoardEditorProps) {
+  const { t } = useTranslation();
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.5, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.default' }}>
@@ -37,7 +39,7 @@ export default function BoardEditor({
         </IconButton>
         <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8rem' }}>{activeBoard}</Typography>
         {dirty && (
-          <Chip label="Unsaved" size="small" color="warning" variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+          <Chip label={t('whiteboard.unsaved')} size="small" color="warning" variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
         )}
         <Box sx={{ flex: 1 }} />
       </Box>

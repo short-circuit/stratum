@@ -81,7 +81,7 @@ export default function JournalPanelDesktop() {
             setCalendarAnchorEl(e.currentTarget);
             setCalendarOpen((o) => !o);
           }}
-          aria-label="Calendar"
+          aria-label={t('journal_calendar.calendar')}
         >
           <CalendarMonthIcon fontSize="small" />
         </IconButton>
@@ -104,10 +104,9 @@ export default function JournalPanelDesktop() {
             {journalError}
           </Alert>
           <Button variant="outlined" size="small" onClick={retryJournal}>
-            Retry
+            {t('common.retry')}
           </Button>
-          <Button variant="outlined" size="small" onClick={repairJournal} sx={{ ml: 1 }}>
-            {t('journal.repair_database')}
+          <Button variant="outlined" size="small" onClick={repairJournal} sx={{ ml: 1 }}>            {t('journal.repair_database')}
           </Button>
         </Box>
       ) : journalLoading || !todayExists ? (

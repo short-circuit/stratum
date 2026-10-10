@@ -77,7 +77,7 @@ const GraphToolbar = memo(function GraphToolbar({
           >
             {components.map((c, i) => (
               <MenuItem key={i} value={i} sx={{ fontSize: '0.75rem' }}>
-                Component {i + 1} ({c.size} {t('graph.notes')}
+                {t('graph.component')} {i + 1} ({c.size} {t('graph.notes')}
               </MenuItem>
             ))}
           </Select>

@@ -43,7 +43,7 @@ export default function PluginsPanelDesktop() {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Box sx={{ flex: 1, overflow: 'auto', p: 3, maxWidth: 760, mx: 'auto', width: '100%' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>Plugins</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>{t('mobile_layout.plugins')}</Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
               size="small"
@@ -52,7 +52,7 @@ export default function PluginsPanelDesktop() {
               disabled={loading || installing}
               sx={{ textTransform: 'none' }}
             >
-              Refresh
+              {t('common.refresh')}
             </Button>
             <Button
               size="small"
@@ -153,7 +153,7 @@ export default function PluginsPanelDesktop() {
                             onClick={() => void uninstall(plugin.id)}
                             sx={{ textTransform: 'none' }}
                           >
-                            {busy ? '…' : 'Uninstall'}
+                            {busy ? '…' : t('plugins.uninstall')}
                           </Button>
                         </Box>
                       </Box>

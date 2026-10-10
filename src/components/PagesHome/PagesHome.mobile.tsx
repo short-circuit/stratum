@@ -13,7 +13,7 @@ export default function PagesHomeMobile() {
 
   return (
     <Box sx={{ p: 2 }}>
-      <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>Pages</Typography>
+      <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>{t('mobile_layout.pages')}</Typography>
       {vault && (
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
           {vault.path} · {pages.length} page{pages.length !== 1 ? 's' : ''}

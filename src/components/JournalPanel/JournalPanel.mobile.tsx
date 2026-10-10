@@ -80,7 +80,7 @@ export default function JournalPanelMobile() {
             {journalError}
           </Alert>
           <Button variant="outlined" size="small" onClick={retryJournal}>
-            Retry
+            {t('common.retry')}
           </Button>
           <Button variant="outlined" size="small" onClick={repairJournal} sx={{ ml: 1 }}>
             {t('journal.repair_database')}
