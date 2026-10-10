@@ -5,8 +5,10 @@ import ListItemText from '@mui/material/ListItemText';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import { usePagesHomeData } from './PagesHome.shared';
+import { useTranslation } from 'react-i18next';
 
 export default function PagesHomeMobile() {
+  const { t } = useTranslation();
   const { pages, vault, navigateToPage } = usePagesHomeData();
 
   return (
@@ -49,9 +51,9 @@ export default function PagesHomeMobile() {
         </List>
       ) : (
         <Box sx={{ textAlign: 'center', py: 6 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>No pages yet.</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>{t('pages_home.no_pages_yet')}</Typography>
           <Typography variant="caption" color="text.disabled">
-            Create a page from the sidebar or open the journal to get started.
+            {t('pages_home.create_a_page_from_the_sidebar_or_open_the_journal_to_get_st')}
           </Typography>
         </Box>
       )}

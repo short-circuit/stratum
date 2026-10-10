@@ -12,17 +12,18 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import ToggleButton from '@mui/material/ToggleButton';
 import Divider from '@mui/material/Divider';
+import { useTranslation } from 'react-i18next';
 import { SttTestButton, TtsTestButton } from './AiTestButtons';
 
 const PROVIDERS = [
-  { value: 'ollama', label: 'Ollama (Local)' },
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'anthropic', label: 'Anthropic' },
-  { value: 'google', label: 'Google AI' },
-  { value: 'zai', label: 'Z.AI' },
-  { value: 'custom', label: 'Custom (OpenAI-compatible)' },
-  { value: 'custom-openai', label: 'Custom OpenAI API' },
-  { value: 'custom-anthropic', label: 'Custom Anthropic API' },
+  { value: 'ollama', labelKey: 'settings.ollama_local' },
+  { value: 'openai', labelKey: 'settings.openai' },
+  { value: 'anthropic', labelKey: 'settings.anthropic' },
+  { value: 'google', labelKey: 'settings.google_ai' },
+  { value: 'zai', labelKey: 'settings.z_ai' },
+  { value: 'custom', labelKey: 'settings.custom_openai_compatible' },
+  { value: 'custom-openai', labelKey: 'settings.custom_openai_api' },
+  { value: 'custom-anthropic', labelKey: 'settings.custom_anthropic_api' },
 ];
 
 const CAPABILITIES = ['chat', 'embedding', 'tts'] as const;
@@ -95,6 +96,7 @@ export default function AITab({
   tts,
   onTtsChange,
 }: AITabProps) {
+  const { t } = useTranslation();
   const modelCaps = (name: string) =>
     (ai.models || []).find(m => m.name === name)?.capabilities || [];
   const envVarName = envVarForProvider(ai.provider);
@@ -106,14 +108,14 @@ export default function AITab({
 
   return (
     <Box>
-      <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>AI Configuration</Typography>
+      <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>{t('settings.ai_configuration')}</Typography>
 
       {ai.api_key_from_env && (
         <Alert severity="warning" sx={{ mb: 2, maxWidth: 480 }}>
           <Typography variant="caption">
-            <strong>Security Notice:</strong> API key is set via the <strong>{envVarName}</strong> environment variable.
-            {' '}Environment variables are more secure than storing keys in config files.
-            {' '}To use a different key, unset the environment variable or update it.
+            <strong>{t('settings.security_notice')}</strong> {t('settings.api_key_is_set_via_the')} <strong>{envVarName}</strong> {t('settings.environment_variable')}
+            {' '}{t('settings.environment_variables_are_more_secure_than_storing_keys_in_c')}
+            {' '}{t('settings.to_use_a_different_key_unset_the_environment_variable_or_upd')}
           </Typography>
         </Alert>
       )}
@@ -127,7 +129,7 @@ export default function AITab({
         >
           {PROVIDERS.map(p => (
             <MenuItem key={p.value} value={p.value}>
-              {p.label}
+              {t(p.labelKey)}
             </MenuItem>
           ))}
         </Select>
@@ -138,7 +140,7 @@ export default function AITab({
           ai.provider === 'custom-openai' ||
           ai.provider === 'custom-anthropic') && (
           <TextField
-            label="API Endpoint URL"
+            label={t('settings.api_endpoint_url')}
             placeholder="http://localhost:11434"
             value={ai.endpoint || ''}
             onChange={e => onAiChange({ endpoint: e.target.value || null })}
@@ -147,9 +149,9 @@ export default function AITab({
         )}
 
         <TextField
-          label="API Key"
+          label={t('settings.api_key')}
           type="password"
-          placeholder={isKeyMasked ? 'Key saved - enter new value to change' : 'sk-...'}
+          placeholder={isKeyMasked ? t('settings.key_saved_enter_new_value_to_change') : 'sk-...'}
           value={isKeyMasked ? '' : (ai.api_key || '')}
           onChange={e => onAiChange({ api_key: e.target.value || null })}
           size="small"
@@ -159,14 +161,14 @@ export default function AITab({
         {ai.api_key_from_env && (
           <Alert severity="info" sx={{ py: 0, px: 1.5, '& .MuiAlert-message': { py: 0.75 } }}>
             <Typography variant="caption">
-              API key loaded from <strong>{envVarName}</strong> environment variable.
-              {ai.api_key ? ' Config file key is ignored while the env var is set.' : ''}
+              {t('settings.api_key_loaded_from')} <strong>{envVarName}</strong> {t('settings.environment_variable')}
+              {ai.api_key ? ` ${t('settings.config_file_key_is_ignored_while_the_env_var_is_set')}` : ''}
             </Typography>
           </Alert>
         )}
 
         <TextField
-          label="Default Chat Model"
+          label={t('settings.default_chat_model')}
           placeholder="gpt-4o"
           value={ai.model || ''}
           onChange={e => onAiChange({ model: e.target.value })}
@@ -175,14 +177,14 @@ export default function AITab({
 
         <Box>
           <Button variant="outlined" size="small" onClick={onFetchModels} disabled={fetching}>
-            {fetching ? 'Fetching...' : 'Fetch Available Models'}
+            {fetching ? t('settings.fetching') : t('settings.fetch_available_models')}
           </Button>
         </Box>
 
         {availableModels.length > 0 && (
           <Box>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-              Models (click to enable capabilities)
+              {t('settings.models_click_to_enable_capabilities')}
             </Typography>
             <Box
               sx={{
@@ -237,11 +239,11 @@ export default function AITab({
                 onChange={e => onAiChange({ rag_enabled: e.target.checked })}
               />
             }
-            label="Enable RAG"
+            label={t('settings.enable_rag')}
           />
           {ai.rag_enabled && (
             <TextField
-              label="Chunks"
+              label={t('settings.chunks')}
               type="number"
               value={ai.rag_chunk_count || 5}
               onChange={e => onAiChange({ rag_chunk_count: parseInt(e.target.value) || 5 })}
@@ -258,19 +260,19 @@ export default function AITab({
               onChange={e => onAiChange({ use_llm_gateway_and_auth: e.target.checked })}
             />
           }
-          label="Use gateway and auth from LLM"
+          label={t('settings.use_gateway_and_auth_from_llm')}
           sx={{ '& .MuiFormControlLabel-label': { fontSize: '0.875rem' } }}
         />
 
         <TextField
-          label="Embedding Dimensions (0 = auto)"
+          label={t('settings.embedding_dimensions_0_auto')}
           type="number"
           value={ai.embedding_dimensions || 0}
           onChange={e => onAiChange({ embedding_dimensions: parseInt(e.target.value) || 0 })}
           size="small"
           slotProps={{ htmlInput: { min: 0, max: 4096 } }}
           sx={{ width: 220 }}
-          helperText="Leave 0 to infer the vector size from your embedding model."
+          helperText={t('settings.leave_0_to_infer_the_vector_size_from_your_embed')}
         />
       </Box>
 
@@ -278,20 +280,20 @@ export default function AITab({
         <Box sx={{ mt: 3 }}>
           <Divider sx={{ mb: 2 }} />
           <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>
-            Voice Dictation (STT)
+            {t('settings.voice_dictation_stt')}
           </Typography>
           <Box sx={{ maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
-              label="Transcription endpoint (OpenAI-compatible)"
+              label={t('settings.transcription_endpoint_openai_compatible')}
               placeholder="http://localhost:8081"
               value={stt.endpoint || ''}
               onChange={e => onSttChange({ endpoint: e.target.value })}
               size="small"
             />
             <TextField
-              label="API Key (optional)"
+              label={t('settings.api_key_optional')}
               type="password"
-              placeholder={stt.api_key?.includes('****') ? 'Key saved - enter new value to change' : ''}
+              placeholder={stt.api_key?.includes('****') ? t('settings.key_saved_enter_new_value_to_change') : ''}
               value={stt.api_key?.includes('****') ? '' : (stt.api_key || '')}
               onChange={e => onSttChange({ api_key: e.target.value || null })}
               size="small"
@@ -299,14 +301,14 @@ export default function AITab({
             />
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField
-                label="Transcription model"
+                label={t('settings.transcription_model')}
                 value={stt.model || ''}
                 onChange={e => onSttChange({ model: e.target.value })}
                 size="small"
                 sx={{ flex: 1 }}
               />
               <TextField
-                label="Diarization model"
+                label={t('settings.diarization_model')}
                 value={stt.diarize_model || ''}
                 onChange={e => onSttChange({ diarize_model: e.target.value })}
                 size="small"
@@ -314,7 +316,7 @@ export default function AITab({
               />
             </Box>
             <TextField
-              label="Language hint (optional)"
+              label={t('settings.language_hint_optional')}
               placeholder="en"
               value={stt.language || ''}
               onChange={e => onSttChange({ language: e.target.value || null })}
@@ -323,15 +325,15 @@ export default function AITab({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
               <FormControlLabel
                 control={<Switch checked={stt.diarize} onChange={e => onSttChange({ diarize: e.target.checked })} />}
-                label="Diarize speakers"
+                label={t('dictation.diarize_speakers')}
               />
               <FormControlLabel
                 control={<Switch checked={stt.auto_summarize} onChange={e => onSttChange({ auto_summarize: e.target.checked })} />}
-                label="Auto-summarize"
+                label={t('settings.auto_summarize')}
               />
               <FormControlLabel
                 control={<Switch checked={stt.auto_identify} onChange={e => onSttChange({ auto_identify: e.target.checked })} />}
-                label="Auto-identify voices"
+                label={t('settings.auto_identify_voices')}
               />
             </Box>
             <FormControlLabel
@@ -341,7 +343,7 @@ export default function AITab({
                   onChange={e => onSttChange({ use_llm_gateway_and_auth: e.target.checked })}
                 />
               }
-              label="Use gateway and auth from LLM"
+              label={t('settings.use_gateway_and_auth_from_llm')}
               sx={{ '& .MuiFormControlLabel-label': { fontSize: '0.875rem' } }}
             />
             <SttTestButton />
@@ -352,20 +354,20 @@ export default function AITab({
       {tts && onTtsChange && (
         <Box sx={{ mt: 3 }}>
           <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>
-            Text-to-Speech
+            {t('settings.text_to_speech')}
           </Typography>
           <Box sx={{ maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
-              label="TTS Endpoint (optional)"
-              placeholder="Uses the AI endpoint when empty"
+              label={t('settings.tts_endpoint_optional')}
+              placeholder={t('settings.uses_the_ai_endpoint_when_empty')}
               value={tts.endpoint || ''}
               onChange={e => onTtsChange({ endpoint: e.target.value })}
               size="small"
             />
             <TextField
-              label="API Key (optional)"
+              label={t('settings.api_key_optional')}
               type="password"
-              placeholder={tts.api_key?.includes('****') ? 'Key saved - enter new value to change' : ''}
+              placeholder={tts.api_key?.includes('****') ? t('settings.key_saved_enter_new_value_to_change') : ''}
               value={tts.api_key?.includes('****') ? '' : (tts.api_key || '')}
               onChange={e => onTtsChange({ api_key: e.target.value || null })}
               size="small"
@@ -373,7 +375,7 @@ export default function AITab({
             />
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField
-                label="Voice"
+                label={t('settings.voice')}
                 placeholder="alloy"
                 value={tts.voice || ''}
                 onChange={e => onTtsChange({ voice: e.target.value })}
@@ -381,7 +383,7 @@ export default function AITab({
                 sx={{ flex: 1 }}
               />
               <TextField
-                label="Format"
+                label={t('settings.format')}
                 placeholder="mp3"
                 value={tts.format || ''}
                 onChange={e => onTtsChange({ format: e.target.value })}
@@ -390,13 +392,13 @@ export default function AITab({
               />
             </Box>
             <TextField
-              label="Speed"
+              label={t('settings.speed')}
               type="number"
               slotProps={{ htmlInput: { min: 0.25, max: 4.0, step: 0.1 } }}
               value={tts.speed ?? 1.0}
               onChange={e => onTtsChange({ speed: parseFloat(e.target.value) || 1.0 })}
               size="small"
-              helperText="Playback speed multiplier (0.25–4.0)"
+              helperText={t('settings.playback_speed_multiplier_0_25_4_0')}
             />
             <FormControlLabel
               control={
@@ -405,7 +407,7 @@ export default function AITab({
                   onChange={e => onTtsChange({ use_llm_gateway_and_auth: e.target.checked })}
                 />
               }
-              label="Use gateway and auth from LLM"
+              label={t('settings.use_gateway_and_auth_from_llm')}
               sx={{ '& .MuiFormControlLabel-label': { fontSize: '0.875rem' } }}
             />
             <TtsTestButton />

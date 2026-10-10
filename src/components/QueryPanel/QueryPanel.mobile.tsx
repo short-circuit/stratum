@@ -24,6 +24,7 @@ import SavedQueryDialogs from './SavedQueryDialogs';
 import type { SavedQueryDialogState } from './SavedQueryDialogs';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import type { SavedQuery } from '../../lib/types';
+import { useTranslation } from 'react-i18next';
 
 function SavedQueryRowMobile({
   q,
@@ -36,6 +37,7 @@ function SavedQueryRowMobile({
   onRename: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <ListItemButton dense onClick={onLoad} sx={{ borderRadius: 1 }}>
       <ListItemText
@@ -48,7 +50,7 @@ function SavedQueryRowMobile({
       />
       <IconButton
         size="small"
-        aria-label={`Rename saved query ${q.name}`}
+        aria-label={`${t('query.rename_saved_query')} ${q.name}`}
         onClick={(e) => { e.stopPropagation(); onRename(); }}
         sx={{ p: 0.5 }}
       >
@@ -56,7 +58,7 @@ function SavedQueryRowMobile({
       </IconButton>
       <IconButton
         size="small"
-        aria-label={`Delete saved query ${q.name}`}
+        aria-label={`${t('query.delete_saved_query')} ${q.name}`}
         onClick={(e) => { e.stopPropagation(); onDelete(); }}
         sx={{ p: 0.5, color: 'error.main' }}
       >
@@ -67,6 +69,7 @@ function SavedQueryRowMobile({
 }
 
 export default function QueryPanelMobile() {
+  const { t } = useTranslation();
   const { datalog, setDatalog, result, error, running, doQuery, resetQuery } = useDatalogQuery();
   const saved = useSavedQueries(datalog);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -98,7 +101,7 @@ export default function QueryPanelMobile() {
   return (
     <>
       <Box sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1.5 }}>Datalog Query</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1.5 }}>{t('query.datalog_query')}</Typography>
 
         <TextField
           inputRef={inputRef}
@@ -106,14 +109,14 @@ export default function QueryPanelMobile() {
           minRows={4}
           value={datalog}
           onChange={e => setDatalog(e.target.value)}
-          placeholder="Enter Datalog query..."
+          placeholder={t('query.enter_datalog_query')}
           fullWidth
           sx={{ mb: 1.5, '& .MuiInputBase-root': { fontFamily: 'monospace', fontSize: '0.875rem' } }}
         />
 
         <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
           <Button variant="contained" size="small" onClick={doQuery} disabled={running}>
-            {running ? 'Running...' : 'Run'}
+            {running ? t('query.running') : 'Run'}
           </Button>
           <Button
             variant="outlined"
@@ -156,21 +159,21 @@ export default function QueryPanelMobile() {
         )}
 
         {result && result.rows.length === 0 && (
-          <Typography variant="body2" color="text.secondary">No results.</Typography>
+          <Typography variant="body2" color="text.secondary">{t('query.no_results')}</Typography>
         )}
 
         <Divider sx={{ my: 2.5 }} />
 
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-          <Typography variant="body1" sx={{ fontWeight: 600 }}>Saved Queries ({saved.saved.length})</Typography>
-          <IconButton size="small" onClick={() => void saved.refresh()} aria-label="Refresh saved queries">
+          <Typography variant="body1" sx={{ fontWeight: 600 }}>{t('query.saved_queries')}{saved.saved.length})</Typography>
+          <IconButton size="small" onClick={() => void saved.refresh()} aria-label={t('query.refresh_saved_queries')}>
             <RefreshIcon fontSize="small" />
           </IconButton>
         </Box>
 
         {saved.loadError && (
           <Alert severity="error" sx={{ mb: 1.5 }} onClose={() => saved.refresh()}>
-            Could not load saved queries: {saved.loadError}
+            {t('query.could_not_load_saved_queries')} {saved.loadError}
           </Alert>
         )}
         {saved.actionError && (
@@ -183,7 +186,7 @@ export default function QueryPanelMobile() {
           <CircularProgress size={20} sx={{ display: 'block', mx: 'auto', my: 2.5 }} />
         ) : saved.saved.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
-            No saved queries yet. Write a query above and tap “Save”.
+            {t('query.no_saved_queries_yet_write_a_query_above_and_tap_save')}
           </Typography>
         ) : (
           <List dense disablePadding>
@@ -209,8 +212,8 @@ export default function QueryPanelMobile() {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="Delete saved query"
-        message={`Delete “${deleteTarget ?? ''}”? This cannot be undone.`}
+        title={t('query.delete_saved_query')}
+        message={`${t('query.delete_label')}${deleteTarget ?? ''}”? This cannot be undone.`}
         confirmLabel="Delete"
         confirmColor="error"
         onConfirm={async () => {

@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useBlockNoteEditor } from '@blocknote/react';
 import { SuggestionMenuController, type DefaultReactSuggestionItem } from '@blocknote/react';
 import { filterSuggestionItems } from '@blocknote/core';
+import { useTranslation } from 'react-i18next';
 import type { BlockMeta } from './dtoConverters';
 import { MARKER_KEYWORDS } from './markerDetection';
 
@@ -28,15 +29,16 @@ interface Props {
 
 export default function MarkerSuggestMenu({ blockMetaRef, onSelect }: Props) {
   const editor = useBlockNoteEditor();
+  const { t } = useTranslation();
 
   const suggestionItems = useMemo((): DefaultReactSuggestionItem[] => {
     const markerItems: DefaultReactSuggestionItem[] = MARKER_KEYWORDS.map(m => {
       const colors = MARKER_COLORS[m] ?? { bg: '#6b7280', text: '#fff' };
       return {
         title: m,
-        subtext: 'Task marker',
+        subtext: t('editor.task_marker'),
         aliases: [m.toLowerCase()],
-        group: 'Markers',
+        group: t('editor.markers'),
         icon: (
           <span
             style={{
@@ -73,12 +75,12 @@ export default function MarkerSuggestMenu({ blockMetaRef, onSelect }: Props) {
 
     const priorityItems: DefaultReactSuggestionItem[] = ['A', 'B', 'C'].map(p => {
       const colors = PRIORITY_COLORS[p];
-      const subtext = p === 'A' ? 'High priority' : p === 'B' ? 'Medium priority' : 'Low priority';
+      const subtext = p === 'A' ? t('editor.high_priority') : p === 'B' ? t('editor.medium_priority') : t('editor.low_priority');
       return {
-        title: `Priority ${p}`,
+        title: t('editor.priority_level', { priority: p }),
         subtext,
         aliases: [`${p.toLowerCase()}`, `priority ${p.toLowerCase()}`],
-        group: 'Priority',
+        group: t('editor.priority'),
         icon: (
           <span
             style={{
@@ -114,7 +116,7 @@ export default function MarkerSuggestMenu({ blockMetaRef, onSelect }: Props) {
     });
 
     return [...markerItems, ...priorityItems];
-  }, [editor, blockMetaRef, onSelect]);
+  }, [editor, blockMetaRef, onSelect, t]);
 
   const getItems = useCallback(
     async (query: string): Promise<DefaultReactSuggestionItem[]> => {

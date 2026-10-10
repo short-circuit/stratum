@@ -11,6 +11,7 @@ import { useStore } from './stores/appStore';
 import { useRecentsStore } from './stores/recentsStore';
 import { useSyncModalStore } from './stores/syncModalStore';
 import { createMuiTheme } from './lib/muiTheme';
+import { useTranslation } from 'react-i18next';
 import Sidebar from './components/Sidebar';
 import PageView from './components/PageView';
 import JournalPanel from './components/JournalPanel';
@@ -54,6 +55,7 @@ getCurrentWindow().onCloseRequested(async (event: CloseRequestedEvent) => {
 });
 
 function AppContent() {
+  const { t } = useTranslation();
   const vault = useStore(s => s.vault);
   const loading = useStore(s => s.loading);
   const error = useStore(s => s.error);
@@ -139,7 +141,7 @@ function AppContent() {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100vw', bgcolor: 'background.default' }}>
         <CircularProgress size={20} sx={{ mr: 1.5 }} />
-        <Typography variant="body2" color="text.secondary">Loading vault...</Typography>
+        <Typography variant="body2" color="text.secondary">{t('app.loading_vault')}</Typography>
       </Box>
     );
   }

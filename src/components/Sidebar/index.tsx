@@ -16,11 +16,13 @@ import NavItemList, { type TabId } from './NavItemList';
 import PageTree from './PageTree';
 import SidebarFooter from './SidebarFooter';
 import { useResponsive } from '../../lib/hooks/useResponsive';
+import { useTranslation } from 'react-i18next';
 
 const DRAWER_WIDTH = 224;
 const DRAWER_COLLAPSED = 52;
 
 export default function Sidebar() {
+  const { t } = useTranslation();
   const { vault, loadPages, createPage, deletePage } = useStore(useShallow(
     s => ({ vault: s.vault, loadPages: s.loadPages, createPage: s.createPage, deletePage: s.deletePage }),
   ));
@@ -45,11 +47,11 @@ export default function Sidebar() {
       const result = await api.exportHtml(dir);
       alert(`Exported ${result.pages_exported} pages to ${dir}`);
     } catch (e) {
-      alert(`Export failed: ${e}`);
+      alert(`${t('sidebar.export_failed')} ${e}`);
     } finally {
       setExporting(false);
     }
-  }, []);
+  }, [t]);
 
   const handleCreate = useCallback(async () => {
     if (!newPath) return;
@@ -111,7 +113,7 @@ export default function Sidebar() {
               </Typography>
               {vault && (
                 <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', mt: 0.1 }}>
-                  {vault.block_count}b · {vault.page_count}p
+                  {vault.block_count}{t('sidebar.b')}{vault.page_count}p
                 </Typography>
               )}
             </Box>
@@ -121,7 +123,7 @@ export default function Sidebar() {
           size="small"
           onClick={() => setCollapsed(c => !c)}
           sx={{ color: 'text.secondary', flexShrink: 0 }}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? t('sidebar.expand_sidebar') : t('sidebar.collapse_sidebar')}
         >
           {collapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
         </IconButton>

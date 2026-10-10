@@ -19,26 +19,28 @@ import DrawIcon from '@mui/icons-material/Draw';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import SettingsIcon from '@mui/icons-material/Settings';
+import { useTranslation } from 'react-i18next';
 
 const PRIMARY_TABS = [
-  { label: 'Journal', value: 'journal', path: '/journal', icon: <CalendarMonthIcon /> },
-  { label: 'Search', value: 'search', path: '/search', icon: <SearchIcon /> },
-  { label: 'Graph', value: 'graph', path: '/graph', icon: <HubIcon /> },
-  { label: 'More', value: 'more', path: null, icon: <MoreHorizIcon /> },
+  { label: 'mobile_nav.journal', value: 'journal', path: '/journal', icon: <CalendarMonthIcon /> },
+  { label: 'mobile_nav.search', value: 'search', path: '/search', icon: <SearchIcon /> },
+  { label: 'mobile_nav.graph', value: 'graph', path: '/graph', icon: <HubIcon /> },
+  { label: 'mobile_nav.more', value: 'more', path: null, icon: <MoreHorizIcon /> },
 ] as const;
 
 const MORE_ITEMS = [
-  { label: 'Kanban', path: '/kanban', icon: <ChecklistIcon /> },
-  { label: 'Query', path: '/query', icon: <CodeIcon /> },
-  { label: 'Ask Notes', path: '/ask-notes', icon: <AutoAwesomeIcon /> },
-  { label: 'Templates', path: '/templates', icon: <DescriptionIcon /> },
-  { label: 'Flashcards', path: '/flashcards', icon: <QuizIcon /> },
-  { label: 'Whiteboards', path: '/whiteboards', icon: <DrawIcon /> },
-  { label: 'Plugins', path: '/plugins', icon: <ExtensionIcon /> },
-  { label: 'Settings', path: '/settings', icon: <SettingsIcon /> },
+  { label: 'mobile_nav.kanban', path: '/kanban', icon: <ChecklistIcon /> },
+  { label: 'mobile_nav.query', path: '/query', icon: <CodeIcon /> },
+  { label: 'mobile_nav.ask_notes', path: '/ask-notes', icon: <AutoAwesomeIcon /> },
+  { label: 'mobile_nav.templates', path: '/templates', icon: <DescriptionIcon /> },
+  { label: 'mobile_nav.flashcards', path: '/flashcards', icon: <QuizIcon /> },
+  { label: 'mobile_nav.whiteboards', path: '/whiteboards', icon: <DrawIcon /> },
+  { label: 'mobile_nav.plugins', path: '/plugins', icon: <ExtensionIcon /> },
+  { label: 'mobile_nav.settings', path: '/settings', icon: <SettingsIcon /> },
 ] as const;
 
 export default function MobileNav() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
@@ -73,7 +75,7 @@ export default function MobileNav() {
         {PRIMARY_TABS.map(tab => (
           <BottomNavigationAction
             key={tab.value}
-            label={tab.label}
+            label={t(tab.label)}
             value={tab.value}
             icon={tab.icon}
             onClick={tab.value === 'more' ? (e) => setMoreAnchor(e.currentTarget) : undefined}
@@ -96,7 +98,7 @@ export default function MobileNav() {
         {MORE_ITEMS.map(item => (
           <MenuItem key={item.label} onClick={() => handleMoreItem(item.path)} dense>
             <ListItemIcon sx={{ minWidth: 36 }}>{item.icon}</ListItemIcon>
-            <ListItemText>{item.label}</ListItemText>
+            <ListItemText>{t(item.label)}</ListItemText>
           </MenuItem>
         ))}
       </Menu>

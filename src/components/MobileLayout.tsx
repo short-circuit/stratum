@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import MobileNav from './MobileNav';
 import ErrorAlert from './ui/ErrorAlert';
+import { useTranslation } from 'react-i18next';
 import { useStore, type AppError } from '../stores/appStore';
 
 interface MobileLayoutProps {
@@ -21,6 +22,7 @@ const TOP_BAR_HEIGHT = 48;
 const BOTTOM_NAV_HEIGHT = 56;
 
 export default function MobileLayout({ error, persistentError, children }: MobileLayoutProps) {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -34,7 +36,7 @@ export default function MobileLayout({ error, persistentError, children }: Mobil
   else if (location.pathname === '/' || location.pathname.startsWith('/page/')) title = 'Pages';
   else if (location.pathname.startsWith('/kanban')) title = 'Kanban';
   else if (location.pathname.startsWith('/query')) title = 'Query';
-  else if (location.pathname.startsWith('/ask-notes')) title = 'Ask your notes';
+  else if (location.pathname.startsWith('/ask-notes')) title = t('ask_notes.ask_your_notes');
   else if (location.pathname.startsWith('/templates')) title = 'Templates';
   else if (location.pathname.startsWith('/flashcards')) title = 'Flashcards';
   else if (location.pathname.startsWith('/whiteboards')) title = 'Whiteboards';

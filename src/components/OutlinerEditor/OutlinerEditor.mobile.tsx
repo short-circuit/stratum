@@ -29,8 +29,10 @@ import WikiLinkAutocomplete from './WikiLinkAutocomplete';
 import { useEditorData } from './OutlinerEditor.shared';
 import type { Props } from './OutlinerEditor.shared';
 import MobileEditorOverlays from './MobileEditorOverlays';
+import { useTranslation } from 'react-i18next';
 
 export default function OutlinerEditorMobile(props: Props) {
+  const { t } = useTranslation();
   const { pagePath, autoFocus, minHeight = '400px' } = props;
 
   const {
@@ -55,10 +57,10 @@ export default function OutlinerEditorMobile(props: Props) {
   } = useEditorData(pagePath, autoFocus, minHeight);
 
   const saveLabel = useMemo(() => {
-    if (saving) return 'Saving…';
+    if (saving) return t('editor.saving');
     if (lastSavedAt) return `Saved ${new Date(lastSavedAt).toLocaleTimeString()}`;
     return null;
-  }, [saving, lastSavedAt]);
+  }, [saving, lastSavedAt, t]);
 
   // -----------------------------------------------------------------------
   // Insert actions
@@ -166,7 +168,7 @@ export default function OutlinerEditorMobile(props: Props) {
         <Box sx={{ textAlign: 'center' }}>
           <CircularProgress size={20} sx={{ mb: 1.5 }} />
           <Typography variant="body2" color="text.secondary">
-            Loading editor...
+            {t('editor.loading_editor')}
           </Typography>
           <Typography
             variant="caption"
@@ -201,7 +203,7 @@ export default function OutlinerEditorMobile(props: Props) {
           </Button>
         }
       >
-        Editor error: {error}
+        {t('editor.editor_error')} {error}
       </Alert>
     );
   }

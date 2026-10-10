@@ -7,10 +7,12 @@ import Typography from '@mui/material/Typography';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
 import SearchIcon from '@mui/icons-material/Search';
+import { useTranslation } from 'react-i18next';
 import { useSearchPanel } from './SearchPanel.shared';
 
 const SearchPanelDesktop = memo(function SearchPanelDesktop() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { query, setQuery, results, searching, indexing, indexMsg, handleSearch, doReindex } = useSearchPanel();
 
   return (
@@ -19,7 +21,7 @@ const SearchPanelDesktop = memo(function SearchPanelDesktop() {
       <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
         <TextField
           size="small"
-          placeholder="Search blocks... (prefix with # to search tags)"
+          placeholder={t('search.search_blocks_prefix_with_to_search_tags')}
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
@@ -27,12 +29,12 @@ const SearchPanelDesktop = memo(function SearchPanelDesktop() {
           slotProps={{ input: { startAdornment: <SearchIcon fontSize="small" sx={{ mr: 0.5, color: 'text.disabled' }} /> } }}
         />
         <Button variant="contained" onClick={handleSearch} disabled={searching} sx={{ whiteSpace: 'nowrap' }}>
-          {searching ? '...' : 'Search'}
+          {searching ? '...' : t('common.search')}
         </Button>
       </Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
         <Button size="small" variant="text" onClick={doReindex} disabled={indexing} sx={{ color: 'text.secondary', textTransform: 'none', fontSize: '0.75rem' }}>
-          {indexing ? 'Indexing...' : 'Rebuild search index'}
+          {indexing ? t('search.indexing') : t('search.rebuild_search_index')}
         </Button>
         {indexMsg && <Typography variant="caption" color="text.secondary">{indexMsg}</Typography>}
       </Box>
@@ -45,13 +47,13 @@ const SearchPanelDesktop = memo(function SearchPanelDesktop() {
             sx={{ borderRadius: 1, mb: 0.5, border: 1, borderColor: 'divider', flexDirection: 'column', alignItems: 'flex-start' }}
           >
             <Typography variant="caption" color="text.secondary" sx={{ mb: 0.25 }}>
-              {r.page_path} · score: {r.score.toFixed(2)}
+              {r.page_path} {t('search._score')} {r.score.toFixed(2)}
             </Typography>
             <Typography variant="body2">{r.snippet}</Typography>
           </ListItemButton>
         ))}
         {results.length === 0 && query && !searching && (
-          <Typography variant="body2" color="text.secondary">No results found.</Typography>
+          <Typography variant="body2" color="text.secondary">{t('search.no_results_found')}</Typography>
         )}
       </List>
       </Box>

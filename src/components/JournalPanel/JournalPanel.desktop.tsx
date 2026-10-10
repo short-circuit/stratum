@@ -10,6 +10,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import OutlinerEditor from '../OutlinerEditor';
 import JournalCalendar from '../JournalCalendar';
 import { useJournalPanel, formatDisplayDate } from './JournalPanel.shared';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Desktop journal panel.
@@ -19,6 +20,7 @@ import { useJournalPanel, formatDisplayDate } from './JournalPanel.shared';
  * variant offered these, contradicting docs/guide/journal.md).
  */
 export default function JournalPanelDesktop() {
+  const { t } = useTranslation();
   const {
     today,
     todayPagePath,
@@ -51,7 +53,7 @@ export default function JournalPanelDesktop() {
           <IconButton
             size="small"
             onClick={() => createNewDay(-1)}
-            aria-label="Previous day"
+            aria-label={t('journal.previous_day')}
           >
             <ChevronLeftIcon />
           </IconButton>
@@ -68,7 +70,7 @@ export default function JournalPanelDesktop() {
           <IconButton
             size="small"
             onClick={() => createNewDay(1)}
-            aria-label="Next day"
+            aria-label={t('journal.next_day')}
           >
             <ChevronRightIcon />
           </IconButton>
@@ -105,7 +107,7 @@ export default function JournalPanelDesktop() {
             Retry
           </Button>
           <Button variant="outlined" size="small" onClick={repairJournal} sx={{ ml: 1 }}>
-            Repair database
+            {t('journal.repair_database')}
           </Button>
         </Box>
       ) : journalLoading || !todayExists ? (

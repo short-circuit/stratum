@@ -20,8 +20,10 @@ import KanbanEditDialog from '../KanbanEditDialog';
 import KanbanColumn from './KanbanColumn';
 import { COLUMNS } from './constants';
 import { useKanbanPanel } from './KanbanPanel.shared';
+import { useTranslation } from 'react-i18next';
 
 export default function KanbanPanelDesktop() {
+  const { t } = useTranslation();
   const {
     blocks,
     loading,
@@ -100,7 +102,7 @@ export default function KanbanPanelDesktop() {
         }}
       >
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
-          Kanban
+          {t('kanban.kanban')}
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
@@ -109,7 +111,7 @@ export default function KanbanPanelDesktop() {
             onClick={openTodaysJournal}
             sx={{ textTransform: 'none', fontSize: '0.75rem' }}
           >
-            Today&apos;s Journal
+            {t('kanban.today_apos_s_journal')}
           </Button>
           <Button
             size="small"
@@ -117,7 +119,7 @@ export default function KanbanPanelDesktop() {
             onClick={loadBlocks}
             sx={{ textTransform: 'none', fontSize: '0.75rem' }}
           >
-            Refresh
+            {t('kanban.refresh')}
           </Button>
         </Box>
       </Box>
@@ -197,14 +199,14 @@ export default function KanbanPanelDesktop() {
         anchorPosition={contextMenu ? { left: contextMenu.x, top: contextMenu.y } : undefined}
       >
         <MenuItem onClick={() => contextMenu && handleEditFromContextMenu(contextMenu.block)} dense>
-          Edit
+          {t('kanban.edit')}
         </MenuItem>
         <MenuItem
           onClick={() => contextMenu && handleDeleteBlock(contextMenu.block)}
           dense
           sx={{ color: 'error.main' }}
         >
-          Delete
+          {t('kanban.delete')}
         </MenuItem>
       </Menu>
     </Box>

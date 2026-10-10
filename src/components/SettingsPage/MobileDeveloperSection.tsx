@@ -3,6 +3,7 @@ import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import Button from '@mui/material/Button';
 import LinearProgress from '@mui/material/LinearProgress';
+import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
 // Mobile developer tools section.
@@ -26,6 +27,7 @@ export default function MobileDeveloperSection({
   onNormalizeAll,
   reindexProgress,
 }: MobileDeveloperSectionProps) {
+  const { t } = useTranslation();
   return (
     <Box sx={{ px: 2, pt: 3 }}>
       <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
@@ -46,7 +48,7 @@ export default function MobileDeveloperSection({
           size="small"
           sx={{ textTransform: 'none' }}
         >
-          {fetching ? 'Reindexing...' : 'Reindex All'}
+          {fetching ? t('settings.reindexing') : t('settings.reindex_all')}
         </Button>
         <Button
           variant="outlined"
@@ -56,7 +58,7 @@ export default function MobileDeveloperSection({
           size="small"
           sx={{ textTransform: 'none' }}
         >
-          {fetching ? 'Repairing...' : 'Repair DB from disk'}
+          {fetching ? t('settings.repairing') : t('settings.repair_db_from_disk')}
         </Button>
       </Box>
       {reindexProgress && (
@@ -83,7 +85,7 @@ export default function MobileDeveloperSection({
         size="small"
         sx={{ textTransform: 'none' }}
       >
-        {fetching ? 'Normalizing...' : 'Normalize All Files'}
+        {fetching ? t('settings.normalizing') : t('settings.normalize_all_files')}
       </Button>
     </Box>
   );

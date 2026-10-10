@@ -13,12 +13,14 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import * as api from '../lib/commands';
 import type { ConnectionSuggestion } from '../lib/types';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   pagePath: string;
 }
 
 export default function SuggestedConnectionsPanel({ pagePath }: Props) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [suggestions, setSuggestions] = useState<ConnectionSuggestion[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -30,7 +32,7 @@ export default function SuggestedConnectionsPanel({ pagePath }: Props) {
       const result = await api.suggestConnections(pagePath);
       setSuggestions(result);
     } catch (e) {
-      console.error('Failed to find connections:', e);
+      console.error(t('suggested_connections.failed_to_find_connections'), e);
     } finally {
       setBusy(false);
     }
@@ -38,10 +40,10 @@ export default function SuggestedConnectionsPanel({ pagePath }: Props) {
 
   const addLink = async (targetTitle: string) => {
     try {
-      await api.insertBlock(pagePath, `See also: [[${targetTitle}]]`);
+      await api.insertBlock(pagePath, `${t('suggested_connections.see_also')}${targetTitle}]]`);
       findConnections();
     } catch (e) {
-      console.error('Failed to add link:', e);
+      console.error(t('suggested_connections.failed_to_add_link'), e);
     }
   };
 
@@ -49,18 +51,18 @@ export default function SuggestedConnectionsPanel({ pagePath }: Props) {
     <Accordion disableGutters square sx={{ boxShadow: 0, '&:before': { display: 'none' } }} slotProps={{ transition: { unmountOnExit: true } }}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
-          Suggested Connections
+          {t('suggested_connections.suggested_connections')}
         </Typography>
       </AccordionSummary>
       <AccordionDetails sx={{ p: 1.5 }}>
         <Box sx={{ mb: 1 }}>
           <Button size="small" variant="contained" onClick={findConnections} disabled={busy} sx={{ fontSize: '0.7rem' }}>
-            {busy ? 'Searching...' : 'Find'}
+            {busy ? t('suggested_connections.searching') : t('suggested_connections.find')}
           </Button>
         </Box>
 
         {suggestions && suggestions.length === 0 && (
-          <Typography variant="caption" color="text.disabled">No connections found.</Typography>
+          <Typography variant="caption" color="text.disabled">{t('suggested_connections.no_connections_found')}</Typography>
         )}
 
         {suggestions && suggestions.length > 0 && (
@@ -81,7 +83,7 @@ export default function SuggestedConnectionsPanel({ pagePath }: Props) {
                   <IconButton
                     size="small"
                     onClick={() => addLink(s.title)}
-                    title="Add [[wiki-link]] to this page"
+                    title={t('suggested_connections.add_wiki_link_to_this_page')}
                     sx={{ p: 0.25 }}
                   >
                     <LinkIcon fontSize="inherit" />
@@ -93,7 +95,7 @@ export default function SuggestedConnectionsPanel({ pagePath }: Props) {
                   </Typography>
                 )}
                 <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem', mt: 0.25 }}>
-                  Relevance: {Math.min(100, s.score)}%
+                  {t('suggested_connections.relevance')} {Math.min(100, s.score)}%
                 </Typography>
               </ListItemButton>
             ))}
@@ -102,7 +104,7 @@ export default function SuggestedConnectionsPanel({ pagePath }: Props) {
 
         {suggestions === null && !busy && (
           <Typography variant="caption" color="text.disabled">
-            Click "Find" to discover related notes.
+            {t('suggested_connections.click_find_to_discover_related_notes')}
           </Typography>
         )}
       </AccordionDetails>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as api from '../../lib/commands';
+import i18n from '../../i18n';
 
 export interface TemplateDto {
   name: string;
@@ -32,10 +33,10 @@ export function useTemplates() {
       try {
         const vars = variables.filter(([k]) => k.trim());
         await api.applyTemplate(name, targetPath, vars);
-        setMessage(`Created: ${targetPath}`);
+        setMessage(`${i18n.t('templates.created')} ${targetPath}`);
         setTargetPath('');
       } catch (e) {
-        setMessage(`Error: ${e}`);
+        setMessage(`${i18n.t('flashcards.error')} ${e}`);
       }
     },
     [targetPath, variables],

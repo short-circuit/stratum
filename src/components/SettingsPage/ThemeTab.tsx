@@ -54,14 +54,14 @@ export default function ThemeTab({ theme, onThemeChange, locale, onLocaleChange 
 
       <FormControlLabel
         control={<Switch checked={theme.dark_mode} onChange={e => onThemeChange({ dark_mode: e.target.checked })} />}
-        label="Dark mode"
+        label={t('settings.dark_mode')}
         sx={{ mb: 2 }}
       />
 
       {/* Primary color */}
       <Box sx={{ mb: 2.5 }}>
         <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}>
-          Primary (buttons, accents)
+          {t('settings.primary_buttons_accents')}
         </Typography>
         <ToggleButtonGroup
           value={theme.primary_color}
@@ -103,7 +103,7 @@ export default function ThemeTab({ theme, onThemeChange, locale, onLocaleChange 
       {/* Secondary color */}
       <Box sx={{ mb: 2.5 }}>
         <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}>
-          Secondary (backgrounds, borders)
+          {t('settings.secondary_backgrounds_borders')}
         </Typography>
         <ToggleButtonGroup
           value={theme.secondary_color}
@@ -145,7 +145,7 @@ export default function ThemeTab({ theme, onThemeChange, locale, onLocaleChange 
       {/* Font size */}
       <Box sx={{ mb: 2, maxWidth: 400 }}>
         <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 1 }}>
-          Font Size: {theme.font_size || 16}px
+          {t('settings.font_size')} {theme.font_size || 16}px
         </Typography>
         <Slider
           value={theme.font_size || 16}

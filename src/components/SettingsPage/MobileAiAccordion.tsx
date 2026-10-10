@@ -16,6 +16,7 @@ import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
 // Mobile AI provider configuration (collapsible accordion).
@@ -29,14 +30,14 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 // ---------------------------------------------------------------------------
 
 const PROVIDERS = [
-  { value: 'ollama', label: 'Ollama (Local)' },
+  { value: 'ollama', label: 'settings.ollama_local' },
   { value: 'openai', label: 'OpenAI' },
   { value: 'anthropic', label: 'Anthropic' },
-  { value: 'google', label: 'Google AI' },
-  { value: 'zai', label: 'Z.AI' },
-  { value: 'custom', label: 'Custom (OpenAI-compatible)' },
-  { value: 'custom-openai', label: 'Custom OpenAI API' },
-  { value: 'custom-anthropic', label: 'Custom Anthropic API' },
+  { value: 'google', label: 'settings.google_ai' },
+  { value: 'zai', label: 'settings.z_ai' },
+  { value: 'custom', label: 'settings.custom_openai_compatible' },
+  { value: 'custom-openai', label: 'settings.custom_openai_api' },
+  { value: 'custom-anthropic', label: 'settings.custom_anthropic_api' },
 ];
 
 const CAPABILITIES = ['chat', 'embedding', 'tts'] as const;
@@ -84,6 +85,7 @@ export default function MobileAiAccordion({
   onFetchModels,
   onToggleModelCapability,
 }: MobileAiAccordionProps) {
+  const { t } = useTranslation();
   const [aiExpanded, setAiExpanded] = useState(false);
   const [isKeyMasked, setIsKeyMasked] = useState(false);
 
@@ -109,7 +111,7 @@ export default function MobileAiAccordion({
       >
         <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 0, minHeight: 36 }}>
           <Typography variant="body2" color="text.secondary">
-            {aiExpanded ? 'Hide provider config' : 'Configure AI provider'}
+            {aiExpanded ? t('settings.hide_provider_config') : t('settings.configure_ai_provider')}
           </Typography>
         </AccordionSummary>
         <AccordionDetails sx={{ px: 0, pb: 1 }}>
@@ -117,8 +119,8 @@ export default function MobileAiAccordion({
             {ai?.api_key_from_env && (
               <Alert severity="warning" sx={{ py: 0.5, px: 1.5, '& .MuiAlert-message': { py: 0.5 } }}>
                 <Typography variant="caption">
-                  <strong>Security Notice:</strong> API key set via{' '}
-                  <strong>{envVarForProvider(ai?.provider)}</strong> environment variable.
+                  <strong>{t('settings.security_notice')}</strong> {t('settings.api_key_set_via')}{' '}
+                  <strong>{envVarForProvider(ai?.provider)}</strong> {t('settings.environment_variable')}.
                 </Typography>
               </Alert>
             )}
@@ -130,21 +132,21 @@ export default function MobileAiAccordion({
             >
               {PROVIDERS.map(p => (
                 <MenuItem key={p.value} value={p.value}>
-                  {p.label}
+                  {t(p.label)}
                 </MenuItem>
               ))}
             </Select>
             <TextField
-              label="API Endpoint"
+              label={t('settings.api_endpoint')}
               placeholder="http://localhost:11434"
               value={ai?.endpoint || ''}
               onChange={e => updateAi({ endpoint: e.target.value || null })}
               size="small"
             />
             <TextField
-              label="API Key"
+              label={t('settings.api_key')}
               type="password"
-              placeholder={isKeyMasked ? 'Key saved - enter new value to change' : 'sk-...'}
+              placeholder={isKeyMasked ? t('settings.key_saved_enter_new_value_to_change') : 'sk-...'}
               value={isKeyMasked ? '' : (ai?.api_key || '')}
               onChange={e => updateAi({ api_key: e.target.value || null })}
               size="small"
@@ -153,13 +155,13 @@ export default function MobileAiAccordion({
             {ai?.api_key_from_env && (
               <Alert severity="info" sx={{ py: 0, px: 1.5, '& .MuiAlert-message': { py: 0.75 } }}>
                 <Typography variant="caption">
-                  API key loaded from <strong>{envVarForProvider(ai?.provider)}</strong> environment variable.
-                  {ai?.api_key ? ' Config file key is ignored while the env var is set.' : ''}
+                  {t('settings.api_key_loaded_from')} <strong>{envVarForProvider(ai?.provider)}</strong> {t('settings.environment_variable')}.
+                  {ai?.api_key ? ` ${t('settings.config_file_key_is_ignored_while_the_env_var_is_set')}` : ''}
                 </Typography>
               </Alert>
             )}
             <TextField
-              label="Default Model"
+              label={t('settings.default_model')}
               placeholder="gpt-4o"
               value={ai?.model || ''}
               onChange={e => updateAi({ model: e.target.value })}
@@ -175,13 +177,13 @@ export default function MobileAiAccordion({
                 disabled={fetching}
                 sx={{ textTransform: 'none' }}
               >
-                {fetching ? 'Fetching...' : 'Fetch Available Models'}
+                {fetching ? t('settings.fetching') : t('settings.fetch_available_models')}
               </Button>
             </Box>
             {availableModels.length > 0 && (
               <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                  Models (tap to enable capabilities)
+                  {t('settings.models_tap_to_enable_capabilities')}
                 </Typography>
                 <Box
                   sx={{
@@ -236,7 +238,7 @@ export default function MobileAiAccordion({
                   onChange={e => updateAi({ rag_enabled: e.target.checked })}
                 />
               }
-              label="Enable RAG"
+              label={t('settings.enable_rag')}
             />
             {ai?.rag_enabled && (
               <TextField
@@ -246,7 +248,7 @@ export default function MobileAiAccordion({
                 onChange={e => updateAi({ rag_chunk_count: parseInt(e.target.value) || 5 })}
                 size="small"
                 slotProps={{ htmlInput: { min: 1, max: 20 } }}
-                helperText="Number of context chunks (1–20)"
+                helperText={t('settings.number_of_context_chunks_1_20')}
               />
             )}
 
@@ -257,10 +259,10 @@ export default function MobileAiAccordion({
                   onChange={e => updateAi({ use_llm_gateway_and_auth: e.target.checked })}
                 />
               }
-              label="Use gateway and auth from LLM"
+              label={t('settings.use_gateway_and_auth_from_llm')}
             />
             <TextField
-              label="Embedding Dimensions (0 = auto)"
+              label={t('settings.embedding_dimensions_0_auto')}
               type="number"
               value={ai?.embedding_dimensions ?? 0}
               onChange={e => updateAi({ embedding_dimensions: parseInt(e.target.value) || 0 })}

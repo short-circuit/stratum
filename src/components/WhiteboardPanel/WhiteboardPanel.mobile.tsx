@@ -17,6 +17,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Excalidraw, MainMenu } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import { useWhiteboardPanel } from './WhiteboardPanel.shared';
+import { useTranslation } from 'react-i18next';
 
 function parseBoardPreview(content: string) {
   let elementCount = 0;
@@ -38,6 +39,7 @@ function parseBoardPreview(content: string) {
 }
 
 export default function WhiteboardPanelMobile() {
+  const { t } = useTranslation();
   const {
     boards,
     activeBoard,
@@ -199,7 +201,7 @@ export default function WhiteboardPanelMobile() {
         </Box>
         {boardsWithMeta.length === 0 && (
           <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 6 }}>
-            No whiteboards yet. Create one to get started.
+            {t('whiteboard.no_whiteboards_yet_create_one_to_get_started')}
           </Typography>
         )}
       </Box>
@@ -213,12 +215,12 @@ export default function WhiteboardPanelMobile() {
         slotProps={{ paper: { sx: { borderTopLeftRadius: 16, borderTopRightRadius: 16, px: 2.5, pb: 3, pt: 2 } } }}
       >
         <Box sx={{ width: 40, height: 4, bgcolor: 'grey.300', borderRadius: 2, mx: 'auto', mb: 2 }} />
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>New Whiteboard</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>{t('whiteboard.new_whiteboard')}</Typography>
         <TextField
           autoFocus
           fullWidth
           size="small"
-          placeholder="Whiteboard name"
+          placeholder={t('whiteboard.whiteboard_name')}
           value={newName}
           onChange={e => setNewName(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleCreateSubmit(); }}
@@ -238,12 +240,12 @@ export default function WhiteboardPanelMobile() {
         slotProps={{ paper: { sx: { borderTopLeftRadius: 16, borderTopRightRadius: 16, px: 2.5, pb: 3, pt: 2 } } }}
       >
         <Box sx={{ width: 40, height: 4, bgcolor: 'grey.300', borderRadius: 2, mx: 'auto', mb: 2 }} />
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>Rename Whiteboard</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>{t('whiteboard.rename_whiteboard_label')}</Typography>
         <TextField
           autoFocus
           fullWidth
           size="small"
-          placeholder="New name"
+          placeholder={t('whiteboard.new_name')}
           value={renameValue}
           onChange={e => setRenameValue(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleRenameSubmit(); }}
@@ -264,10 +266,10 @@ export default function WhiteboardPanelMobile() {
       >
         <Box sx={{ width: 40, height: 4, bgcolor: 'grey.300', borderRadius: 2, mx: 'auto', mb: 2 }} />
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-          Delete &quot;{deleteTarget}&quot;?
+          {t('whiteboard.delete_quot')}{deleteTarget}{t('whiteboard._quot')}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          This cannot be undone.
+          {t('whiteboard.this_cannot_be_undone')}
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button variant="outlined" fullWidth onClick={() => setDeleteTarget(null)}>

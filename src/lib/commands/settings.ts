@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import i18n from '../../i18n';
 import { getPlatform } from '../platform';
 import type { VaultInfo, GraphSettings, SyncSettings } from '../types';
 
@@ -20,7 +21,7 @@ export async function pickVaultDirectory(): Promise<VaultInfo> {
   }
   const { open } = await import('@tauri-apps/plugin-dialog');
   const selected = await open({ directory: true, multiple: false });
-  if (!selected) throw new Error('No directory selected');
+  if (!selected) throw new Error(i18n.t('lib_commands.no_directory_selected'));
   return invoke('init_vault', { path: selected });
 }
 

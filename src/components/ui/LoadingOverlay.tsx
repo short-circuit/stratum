@@ -1,6 +1,7 @@
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   message?: string;
@@ -11,11 +12,13 @@ interface Props {
   overlay?: boolean;
 }
 
-export default function LoadingOverlay({ message = 'Loading...', overlay = true }: Props) {
+export default function LoadingOverlay({ message, overlay = true }: Props) {
+  const { t } = useTranslation();
+  const resolvedMessage = message ?? t('common.loading');
   const content = (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
       <CircularProgress size={20} />
-      {message && <Typography variant="body2" color="text.secondary">{message}</Typography>}
+      {resolvedMessage && <Typography variant="body2" color="text.secondary">{resolvedMessage}</Typography>}
     </Box>
   );
 

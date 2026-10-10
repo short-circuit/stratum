@@ -9,6 +9,7 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import CloseIcon from '@mui/icons-material/Close';
+import { useTranslation } from 'react-i18next';
 import type { SavedQuery } from '../../lib/types';
 
 export type SavedQueryDialogKind = 'save' | 'rename';
@@ -32,6 +33,7 @@ interface Props {
  * existing saved query. Kept in one place so desktop and mobile stay in sync.
  */
 export default function SavedQueryDialogs({ dialog, target, onDismiss, onSubmit }: Props) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +50,7 @@ export default function SavedQueryDialogs({ dialog, target, onDismiss, onSubmit 
 
   const handleSubmit = () => {
     if (!name.trim()) {
-      setError('Name must not be empty.');
+      setError(t('query.name_must_not_be_empty'));
       return;
     }
     onSubmit(name.trim());
@@ -65,9 +67,9 @@ export default function SavedQueryDialogs({ dialog, target, onDismiss, onSubmit 
     <Dialog open={Boolean(dialog)} onClose={onDismiss} maxWidth="xs" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="body1" sx={{ fontWeight: 600 }}>
-          {isRename ? 'Rename saved query' : 'Save query'}
+          {isRename ? t('query.rename_saved_query') : t('query.save_query_label')}
         </Typography>
-        <IconButton size="small" onClick={onDismiss} aria-label="Close">
+        <IconButton size="small" onClick={onDismiss} aria-label={t('query.close')}>
           <CloseIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
@@ -75,7 +77,7 @@ export default function SavedQueryDialogs({ dialog, target, onDismiss, onSubmit 
         <TextField
           autoFocus
           fullWidth
-          label="Name"
+          label={t('query.name')}
           placeholder="e.g. All TODO tasks"
           value={name}
           onChange={(e) => {
@@ -90,7 +92,7 @@ export default function SavedQueryDialogs({ dialog, target, onDismiss, onSubmit 
             input: {
               endAdornment: name && (
                 <InputAdornment position="end">
-                  <IconButton size="small" onClick={() => setName('')} aria-label="Clear name">
+                  <IconButton size="small" onClick={() => setName('')} aria-label={t('query.clear_name')}>
                     <CloseIcon fontSize="small" />
                   </IconButton>
                 </InputAdornment>
@@ -100,19 +102,19 @@ export default function SavedQueryDialogs({ dialog, target, onDismiss, onSubmit 
         />
         {isRename && target && (
           <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 1 }}>
-            Renaming “{target.name}”.
+            {t('query.renaming')}{target.name}”.
           </Typography>
         )}
         <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 1 }}>
           {isRename
-            ? 'Renamed saved queries sync with your vault.'
-            : 'Saved queries are stored in your vault and sync across devices.'}
+            ? t('query.renamed_saved_queries_sync_with_your_vault')
+            : t('query.saved_queries_are_stored_in_your_vault_and_sync_across_devic')}
         </Typography>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onDismiss} size="small">Cancel</Button>
+        <Button onClick={onDismiss} size="small">{t('query.cancel')}</Button>
         <Button variant="contained" size="small" onClick={handleSubmit} disabled={!name.trim()}>
-          {isRename ? 'Rename' : 'Save'}
+          {isRename ? t('query.rename') : 'Save'}
         </Button>
       </DialogActions>
     </Dialog>
