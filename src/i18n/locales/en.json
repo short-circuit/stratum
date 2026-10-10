@@ -1,0 +1,332 @@
+{
+  "_meta": {
+    "app": "Stratum",
+    "status": "complete"
+  },
+  "ask_notes": {
+    "ask": "Ask",
+    "ask_your_notes": "Ask your notes",
+    "ask_your_notes_e_g_what_did_i_decide_about_the_h": "Ask your notes… e.g. What did I decide about the homelab?",
+    "clear": "Clear",
+    "sources": "Sources"
+  },
+  "autocomplete_popup": {
+    "no_results": "No results"
+  },
+  "backlink_snippet_body": {
+    "ctrl_click_to_navigate": "Ctrl+click to navigate"
+  },
+  "backlinks": {
+    "backlinked_snippet": "Backlinked snippet",
+    "close_backlinks": "Close backlinks",
+    "close_snippet": "Close snippet"
+  },
+  "common": {
+    "abort_merge": "Abort Merge",
+    "ai_is_thinking": "AI is thinking...",
+    "cancel": "Cancel",
+    "enter_passphrase": "Enter passphrase...",
+    "loading": "Loading...",
+    "resolve_all": "Resolve All",
+    "ssh_key_passphrase": "SSH Key Passphrase",
+    "sync_conflicts_detected": "Sync Conflicts Detected"
+  },
+  "dictation": {
+    "assign": "Assign",
+    "assign_enroll_voice": "Assign + enroll voice",
+    "back": "Back",
+    "cancel_recording": "Cancel recording",
+    "clip_saved": "Clip saved",
+    "diarize_speakers": "Diarize speakers",
+    "identify_voices": "Identify voices",
+    "name": "Name…",
+    "new_memo": "New memo",
+    "record_voice_memo": "Record voice memo",
+    "saves_the_clip_and_transcribes_it_into_this_note": "Saves the clip and transcribes it into this note",
+    "stop_save": "Stop & save",
+    "summarize": "Summarize",
+    "transcribe": "Transcribe"
+  },
+  "editor": {
+    "code_block": "Code block",
+    "copy": "Copy",
+    "create_page": "Create page",
+    "cut": "Cut",
+    "delete": "Delete",
+    "insert_block": "Insert block",
+    "math_equation": "Math equation",
+    "mermaid_diagram": "Mermaid diagram",
+    "paragraph": "Paragraph",
+    "read_aloud": "Read aloud",
+    "retry": "Retry",
+    "toggle_marker": "Toggle marker"
+  },
+  "error_boundary": {
+    "something_went_wrong": "Something went wrong"
+  },
+  "flashcards": {
+    "flashcards": "Flashcards",
+    "no_flashcards_found_create_blocks_with": "No flashcards found. Create blocks with",
+    "start_again": "Start Again"
+  },
+  "graph": {
+    "all": "All",
+    "alpha_decay": "Alpha decay",
+    "back": "Back",
+    "comp": "Comp",
+    "components": "Components",
+    "connected": "Connected",
+    "connected_notes": "Connected notes",
+    "curvature": "Curvature",
+    "filter": "Filter…",
+    "filter_by_title_tag": "Filter by title/tag…",
+    "friction": "Friction",
+    "full": "Full",
+    "go_to_pages": "Go to Pages",
+    "graph_settings": "Graph Settings",
+    "link_distance": "Link distance",
+    "no_graph_data_yet": "No graph data yet",
+    "node_cap": "Node cap",
+    "open_settings": "Open settings",
+    "orphaned": "Orphaned",
+    "orphaned_notes": "Orphaned notes",
+    "orphans": "Orphans",
+    "orphs": "Orphs",
+    "pages_found_but_no_wiki_links_yet_add": "Pages found but no wiki-links yet. Add",
+    "refresh_graph": "Refresh graph",
+    "repulsion": "Repulsion",
+    "tags": "Tags",
+    "tags_on_hover": "Tags on hover",
+    "toggle_search": "Toggle search",
+    "vault_at": "Vault at"
+  },
+  "journal": {
+    "calendar": "Calendar",
+    "next_day": "Next day",
+    "open_calendar": "Open calendar",
+    "previous_day": "Previous day",
+    "repair_database": "Repair database",
+    "retry": "Retry"
+  },
+  "journal_calendar": {
+    "calendar": "Calendar",
+    "close_calendar": "Close calendar",
+    "journal_calendar": "Journal calendar",
+    "next_month": "Next month",
+    "previous_month": "Previous month"
+  },
+  "kanban": {
+    "add": "Add",
+    "add_card": "Add Card",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "kanban": "Kanban",
+    "new_task": "New task...",
+    "no_tasks": "No tasks",
+    "no_tasks_yet": "No tasks yet",
+    "refresh": "Refresh",
+    "task_description": "Task description...",
+    "today_apos_s_journal": "Today&apos;s Journal"
+  },
+  "kanban_edit_dialog": {
+    "cancel": "Cancel",
+    "content": "Content",
+    "edit_card": "Edit Card",
+    "marker": "Marker",
+    "none": "None",
+    "priority": "Priority",
+    "save": "Save"
+  },
+  "lib": {
+    "click_to_cycle_marker_state": "Click to cycle marker state",
+    "remove_marker": "Remove marker",
+    "remove_priority": "Remove priority"
+  },
+  "lib_commands": {
+    "t_promise": "T): Promise"
+  },
+  "link_preview_popup": {
+    "ctrl_click_to_navigate": "Ctrl+click to navigate"
+  },
+  "math_editor_modal": {
+    "cancel": "Cancel",
+    "ctrl_enter_to_save_esc_to_cancel": "Ctrl+Enter to save · Esc to cancel",
+    "edit_equation": "Edit Equation",
+    "katex_supported_functions": "KaTeX supported functions",
+    "preview": "Preview",
+    "save": "Save"
+  },
+  "mermaid_block": {
+    "empty_mermaid_diagram": "Empty mermaid diagram"
+  },
+  "mobile_layout": {
+    "ask_your_notes": "Ask your notes",
+    "flashcards": "Flashcards",
+    "graph": "Graph",
+    "journal": "Journal",
+    "kanban": "Kanban",
+    "pages": "Pages",
+    "plugins": "Plugins",
+    "query": "Query",
+    "search": "Search",
+    "settings": "Settings",
+    "stratum": "Stratum",
+    "templates": "Templates",
+    "whiteboards": "Whiteboards"
+  },
+  "page": {
+    "actions": "Actions",
+    "delete_page": "Delete Page",
+    "normalize_file": "Normalize File",
+    "reindex": "Reindex",
+    "reindex_note": "Reindex Note",
+    "stratum_pkm": "Stratum PKM",
+    "voice_memo": "Voice memo",
+    "voice_memo_dictation": "Voice memo (dictation)"
+  },
+  "pages_home": {
+    "pages": "Pages"
+  },
+  "plugins": {
+    "click_to_dismiss": "Click to dismiss",
+    "install_a_plugin_wasm_file_or_drop_one_into_pkm_": "Install a plugin.wasm file, or drop one into ~/.pkm/plugins/ and press Refresh.",
+    "install_a_plugin_wasm_or_drop_one_into_pkm_plugi": "Install a plugin.wasm, or drop one into ~/.pkm/plugins/ then Refresh.",
+    "no_plugins_installed": "No plugins installed",
+    "plugins": "Plugins",
+    "refresh": "Refresh",
+    "test_http_request": "Test http_request",
+    "test_note_read": "Test note_read",
+    "wasm_plugins_loaded_from": "WASM plugins loaded from"
+  },
+  "query": {
+    "cancel": "Cancel",
+    "clear_name": "Clear name",
+    "close": "Close",
+    "datalog_query": "Datalog Query",
+    "delete": "Delete",
+    "delete_saved_query": "Delete saved query",
+    "enter_datalog_query": "Enter Datalog query...",
+    "name": "Name",
+    "refresh_list": "Refresh list",
+    "refresh_saved_queries": "Refresh saved queries",
+    "rename": "Rename",
+    "reset": "Reset",
+    "save": "Save",
+    "save_query": "Save Query"
+  },
+  "search": {
+    "search_blocks": "Search blocks...",
+    "search_blocks_prefix_with_to_search_tags": "Search blocks... (prefix with # to search tags)"
+  },
+  "settings": {
+    "ai": "AI",
+    "ai_configuration": "AI Configuration",
+    "api_endpoint": "API Endpoint",
+    "api_endpoint_url": "API Endpoint URL",
+    "api_key": "API Key",
+    "api_key_is_set_via_the": "API key is set via the",
+    "api_key_loaded_from": "API key loaded from",
+    "api_key_optional": "API Key (optional)",
+    "asr_model": "ASR Model",
+    "auto_commit_settings": "Auto-Commit Settings",
+    "auto_identify_speakers": "Auto-identify speakers",
+    "auto_identify_voices": "Auto-identify voices",
+    "auto_summarize": "Auto-summarize",
+    "auto_summarize_transcript": "Auto-summarize transcript",
+    "auto_sync_settings": "Auto-Sync Settings",
+    "browse": "Browse",
+    "chunks": "Chunks",
+    "commit_interval_seconds": "Commit Interval (seconds)",
+    "commit_message_template": "Commit Message Template",
+    "dark_mode": "Dark mode",
+    "default_chat_model": "Default Chat Model",
+    "default_model": "Default Model",
+    "developer": "Developer",
+    "developer_tools": "Developer Tools",
+    "diarization_model": "Diarization model",
+    "diarize_speakers": "Diarize speakers",
+    "embedding_dimensions_0_auto": "Embedding Dimensions (0 = auto)",
+    "enable_rag": "Enable RAG",
+    "format": "Format",
+    "language": "Language",
+    "language_hint_optional": "Language hint (optional)",
+    "leave_0_to_infer_the_vector_size_from_your_embed": "Leave 0 to infer the vector size from your embedding model.",
+    "max_results": "Max Results",
+    "max_results_per_search": "Max Results Per Search",
+    "number_of_context_chunks_1_20": "Number of context chunks (1–20)",
+    "playback_speed_multiplier_0_25_4_0": "Playback speed multiplier (0.25–4.0)",
+    "pull_push_interval_seconds": "Pull/Push Interval (seconds)",
+    "remote_amp_branch": "Remote &amp; Branch",
+    "remote_branch": "Remote & Branch",
+    "research": "Research",
+    "research_depth": "Research Depth",
+    "research_depth_search_read_cycles": "Research Depth (search-read cycles)",
+    "searxng_endpoint": "SearXNG Endpoint",
+    "searxng_endpoint_url": "SearXNG Endpoint URL",
+    "speech_amp_audio": "Speech &amp; Audio",
+    "speed": "Speed",
+    "speed_0_25_4_0": "Speed (0.25–4.0)",
+    "ssh_key_path": "SSH Key Path",
+    "start_scheduler": "Start Scheduler",
+    "stt_api_key": "STT API Key",
+    "stt_endpoint": "STT Endpoint",
+    "sync": "Sync",
+    "sync_mode": "Sync Mode",
+    "text_to_speech": "Text-to-Speech",
+    "the_url_of_your_searxng_instance_e_g_http_localh": "The URL of your SearXNG instance (e.g. http://localhost:8888)",
+    "theme": "Theme",
+    "transcription_endpoint_openai_compatible": "Transcription endpoint (OpenAI-compatible)",
+    "transcription_model": "Transcription model",
+    "tts_api_key": "TTS API Key",
+    "tts_endpoint": "TTS Endpoint",
+    "tts_endpoint_optional": "TTS Endpoint (optional)",
+    "url_of_your_searxng_instance": "URL of your SearXNG instance",
+    "use_gateway_and_auth_from_llm": "Use gateway and auth from LLM",
+    "uses_the_ai_endpoint_when_empty": "Uses the AI endpoint when empty",
+    "vault": "Vault",
+    "vault_path": "Vault Path",
+    "voice": "Voice"
+  },
+  "sidebar": {
+    "cancel": "Cancel",
+    "create": "Create",
+    "delete_page": "Delete page",
+    "export_html": "Export HTML",
+    "new_page": "New page",
+    "path_e_g_pages_my_note_md": "Path (e.g., pages/my-note.md)",
+    "recent": "Recent",
+    "refresh": "Refresh",
+    "title_optional": "Title (optional)"
+  },
+  "suggested_connections": {
+    "add_wiki_link_to_this_page": "Add [[wiki-link]] to this page",
+    "suggested_connections": "Suggested Connections"
+  },
+  "templates": {
+    "add_variable": "Add variable",
+    "apply": "Apply",
+    "cancel": "Cancel",
+    "target_page_path": "Target page path",
+    "templates": "Templates",
+    "variables": "Variables"
+  },
+  "vault_picker": {
+    "choose_vault_folder": "Choose Vault Folder",
+    "dismiss_error": "Dismiss error",
+    "welcome_to_stratum": "Welcome to Stratum"
+  },
+  "whiteboard": {
+    "cancel": "Cancel",
+    "create": "Create",
+    "delete": "Delete",
+    "new": "New",
+    "new_name": "New name",
+    "new_whiteboard": "New Whiteboard",
+    "rename": "Rename",
+    "rename_whiteboard": "Rename whiteboard",
+    "unsaved": "Unsaved",
+    "whiteboard_name": "Whiteboard name",
+    "whiteboards": "Whiteboards"
+  }
+}
