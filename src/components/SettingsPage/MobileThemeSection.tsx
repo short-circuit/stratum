@@ -109,11 +109,11 @@ export default function MobileThemeSection({ theme, updateTheme, locale, onLocal
             onChange={e => updateTheme({ dark_mode: e.target.checked })}
           />
         }
-        label="Dark mode"
+        label={t('settings.dark_mode')}
         sx={{ mb: 1.5 }}
       />
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-        Primary (buttons, accents)
+        {t('settings.primary_buttons_accents')}
       </Typography>
       <ToggleButtonGroup
         value={theme.primary_color}
@@ -140,7 +140,7 @@ export default function MobileThemeSection({ theme, updateTheme, locale, onLocal
         onChange={v => updateTheme({ primary_color: v })}
       />
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-        Secondary (backgrounds, borders)
+        {t('settings.secondary_backgrounds_borders')}
       </Typography>
       <ToggleButtonGroup
         value={theme.secondary_color}
@@ -167,7 +167,7 @@ export default function MobileThemeSection({ theme, updateTheme, locale, onLocal
         onChange={v => updateTheme({ secondary_color: v })}
       />
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-        Font Size: {theme.font_size || 16}px
+        {t('settings.font_size')} {theme.font_size || 16}px
       </Typography>
       <Slider
         value={theme.font_size || 16}

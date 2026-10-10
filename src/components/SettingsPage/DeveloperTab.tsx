@@ -2,6 +2,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import LinearProgress from '@mui/material/LinearProgress';
+import { useTranslation } from 'react-i18next';
 
 interface DeveloperTabProps {
   fetching: boolean;
@@ -12,15 +13,14 @@ interface DeveloperTabProps {
 }
 
 export default function DeveloperTab({ fetching, onReindex, onRepair, onNormalizeAll, reindexProgress }: DeveloperTabProps) {
+  const { t } = useTranslation();
   return (
     <Box>
-      <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>Developer Tools</Typography>
+      <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>{t('settings.developer_tools')}</Typography>
 
       <Box sx={{ maxWidth: 480 }}>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-          Re-sync all pages from disk into the database. Useful after importing new notes or
-          recovering from a corrupted database. This operation is idempotent — running it multiple
-          times produces the same result.
+          {t('settings.re_sync_all_pages_from_disk_into_the_database')}
         </Typography>
         <Button
           variant="contained"
@@ -28,7 +28,7 @@ export default function DeveloperTab({ fetching, onReindex, onRepair, onNormaliz
           onClick={onReindex}
           disabled={fetching}
         >
-          {fetching ? 'Reindexing...' : 'Reindex All'}
+          {fetching ? t('settings.reindexing') : t('settings.reindex_all')}
         </Button>
         <Button
           variant="outlined"
@@ -37,7 +37,7 @@ export default function DeveloperTab({ fetching, onReindex, onRepair, onNormaliz
           disabled={fetching}
           sx={{ ml: 1 }}
         >
-          {fetching ? 'Repairing...' : 'Repair DB from disk'}
+          {fetching ? t('settings.repairing') : t('settings.repair_db_from_disk')}
         </Button>
         {reindexProgress && (
           <Box sx={{ mt: 1.5 }}>
@@ -55,8 +55,7 @@ export default function DeveloperTab({ fetching, onReindex, onRepair, onNormaliz
 
       <Box sx={{ maxWidth: 480, mt: 3 }}>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-          Parse every .md file through the block parser and re-serialize. This normalizes
-          indentation, block syntax, and frontmatter across your entire vault.
+          {t('settings.parse_every_md_file_through_the_block_parser')}
         </Typography>
         <Button
           variant="contained"
@@ -64,7 +63,7 @@ export default function DeveloperTab({ fetching, onReindex, onRepair, onNormaliz
           onClick={onNormalizeAll}
           disabled={fetching}
         >
-          {fetching ? 'Normalizing...' : 'Normalize All Files'}
+          {fetching ? t('settings.normalizing') : t('settings.normalize_all_files')}
         </Button>
       </Box>
     </Box>

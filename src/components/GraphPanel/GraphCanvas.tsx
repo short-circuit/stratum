@@ -7,6 +7,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
+import { useTranslation } from 'react-i18next';
 import type { GraphDataDto } from '../../lib/types';
 
 export interface GraphNode {
@@ -45,6 +46,7 @@ const GraphCanvas = memo(function GraphCanvas({
   graphDataProp, width, height, bgColor, textColor,
   handleNodeClick, loading, error, nodes, graphData, graphSettings, graphRef,
 }: Props) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   // ── Highlight state ──────────────────────────────────────────────
@@ -268,7 +270,7 @@ const GraphCanvas = memo(function GraphCanvas({
     <Box sx={{ flex: 1, position: 'relative' }}>
       {loading && (
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
-          <Typography variant="body2" color="white">Building graph...</Typography>
+          <Typography variant="body2" color="white">{t('graph.building_graph')}</Typography>
         </Box>
       )}
       {error && <Alert severity="error" sx={{ position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}>{error}</Alert>}
@@ -305,8 +307,8 @@ const GraphCanvas = memo(function GraphCanvas({
         />
       ) : !loading && !error ? (
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-          <Typography variant="body2" color="white">No graph data yet</Typography>
-          {graphData && <Button variant="outlined" size="small" onClick={() => navigate('/')}>Go to Pages</Button>}
+          <Typography variant="body2" color="white">{t('graph.no_graph_data_yet')}</Typography>
+          {graphData && <Button variant="outlined" size="small" onClick={() => navigate('/')}>{t('graph.go_to_pages')}</Button>}
         </Box>
       ) : null}
     </Box>

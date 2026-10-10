@@ -2,6 +2,7 @@ import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import Popover from '@mui/material/Popover';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   content: string;
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function LinkPreviewPopup({ content, pageTitle, pagePath, position, loading, onClose }: Props) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
@@ -40,7 +42,7 @@ export default function LinkPreviewPopup({ content, pageTitle, pagePath, positio
           <Typography variant="caption" color="text.secondary" sx={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {content}
           </Typography>
-          <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>Ctrl+click to navigate</Typography>
+          <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>{t('backlink_snippet_body.ctrl_click_to_navigate')}</Typography>
         </>
       )}
     </Popover>

@@ -20,6 +20,7 @@ import type { BacklinksPanelProps } from './BacklinksPanel.shared';
 import type { BacklinkItem } from '../../lib/types';
 import BacklinkSnippetBody from '../BacklinkSnippetBody';
 import { useBacklinkNavigation } from '../../lib/backlinkNavigation';
+import { useTranslation } from 'react-i18next';
 
 const BacklinkRow = memo(function BacklinkRow({
   item,
@@ -48,6 +49,7 @@ const BacklinkRow = memo(function BacklinkRow({
 });
 
 const BacklinksPanelMobile = memo(function BacklinksPanelMobile({ pagePath }: BacklinksPanelProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const navigateBacklink = useBacklinkNavigation();
   const { isMobile } = useResponsive();
@@ -88,7 +90,7 @@ const BacklinksPanelMobile = memo(function BacklinksPanelMobile({ pagePath }: Ba
       >
         <KeyboardArrowUpIcon fontSize="small" color="action" />
         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-          Backlinks ({backlinks.length})
+          {t('backlinks.backlinks')}{backlinks.length})
         </Typography>
       </Box>
 
@@ -105,22 +107,22 @@ const BacklinksPanelMobile = memo(function BacklinksPanelMobile({ pagePath }: Ba
         }}
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 0 }}>
-          <Typography variant="h6">Backlinks ({backlinks.length})</Typography>
-          <IconButton onClick={() => setOpen(false)} size="small" aria-label="Close backlinks">
+          <Typography variant="h6">{t('backlinks.backlinks')}{backlinks.length})</Typography>
+          <IconButton onClick={() => setOpen(false)} size="small" aria-label={t('backlinks.close_backlinks')}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
 
         <DialogContent sx={{ pt: 1 }}>
           <Tabs value={tab} onChange={handleTabChange} sx={{ mb: 1 }} variant="fullWidth">
-            <Tab label={`Linked (${linked.length})`} />
-            <Tab label={`Unlinked (${unlinked.length})`} />
+            <Tab label={`${t('backlinks.linked')}${linked.length})`} />
+            <Tab label={`${t('backlinks.unlinked')}${unlinked.length})`} />
           </Tabs>
 
           {loading && <CircularProgress size={14} sx={{ display: 'block', mx: 'auto' }} />}
 
           {!loading && backlinks.length === 0 && (
-            <Typography variant="caption" color="text.disabled">No backlinks found.</Typography>
+            <Typography variant="caption" color="text.disabled">{t('backlinks.no_backlinks_found')}</Typography>
           )}
 
           <List dense disablePadding>
@@ -144,14 +146,14 @@ const BacklinksPanelMobile = memo(function BacklinksPanelMobile({ pagePath }: Ba
         slotProps={{
           paper: {
             role: 'dialog',
-            'aria-label': `Snippet from: ${preview?.noteTitle || preview?.noteId || 'note'}`,
+            'aria-label': `${t('backlink_snippet_popup.snippet_from')} ${preview?.noteTitle || preview?.noteId || 'note'}`,
             'aria-busy': Boolean(preview?.loading),
           },
         }}
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 0 }}>
-          <Typography variant="subtitle2">Backlinked snippet</Typography>
-          <IconButton onClick={dismissPreview} size="small" aria-label="Close snippet">
+          <Typography variant="subtitle2">{t('backlinks.backlinked_snippet')}</Typography>
+          <IconButton onClick={dismissPreview} size="small" aria-label={t('backlinks.close_snippet')}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>

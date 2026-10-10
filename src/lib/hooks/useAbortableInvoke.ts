@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import i18n from '../../i18n';
 
 /**
  * Hook that wraps Tauri invoke() with automatic abort on unmount.
@@ -38,7 +39,7 @@ export function useAbortableInvoke() {
           new Promise<T>((_, reject) => {
             const onAbort = () => {
               reject(
-                new DOMException('The operation was aborted', 'AbortError'),
+                new DOMException(i18n.t('lib.the_operation_was_aborted'), 'AbortError'),
               );
             };
             controller.signal.addEventListener('abort', onAbort, { once: true });

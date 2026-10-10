@@ -1,6 +1,7 @@
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import { useTranslation } from 'react-i18next';
 
 interface ResearchTabProps {
   research: { searxng_endpoint: string; max_results: number; max_depth: number };
@@ -8,24 +9,25 @@ interface ResearchTabProps {
 }
 
 export default function ResearchTab({ research, onResearchChange }: ResearchTabProps) {
+  const { t } = useTranslation();
   return (
     <Box>
       <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>
-        Web Research (SearXNG)
+        {t('settings.web_research_searxng')}
       </Typography>
 
       <Box sx={{ maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <TextField
-          label="SearXNG Endpoint URL"
+          label={t('settings.searxng_endpoint_url')}
           placeholder="http://localhost:8888"
           value={research.searxng_endpoint}
           onChange={e => onResearchChange({ searxng_endpoint: e.target.value })}
           size="small"
-          helperText="The URL of your SearXNG instance (e.g. http://localhost:8888)"
+          helperText={t('settings.the_url_of_your_searxng_instance_e_g_http_localh')}
         />
 
         <TextField
-          label="Max Results Per Search"
+          label={t('settings.max_results_per_search')}
           type="number"
           value={research.max_results}
           onChange={e => onResearchChange({ max_results: parseInt(e.target.value) || 3 })}
@@ -35,7 +37,7 @@ export default function ResearchTab({ research, onResearchChange }: ResearchTabP
         />
 
         <TextField
-          label="Research Depth (search-read cycles)"
+          label={t('settings.research_depth_search_read_cycles')}
           type="number"
           value={research.max_depth}
           onChange={e => onResearchChange({ max_depth: parseInt(e.target.value) || 2 })}

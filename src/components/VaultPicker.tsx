@@ -8,9 +8,11 @@ import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import { useShallow } from 'zustand/react/shallow';
+import { useTranslation } from 'react-i18next';
 import { useStore } from '../stores/appStore';
 
 export default function VaultPicker() {
+  const { t } = useTranslation();
   const { pickVaultDirectory, error, persistentError } = useStore(useShallow(
     s => ({ pickVaultDirectory: s.pickVaultDirectory, error: s.error, persistentError: s.persistentError }),
   ));
@@ -23,11 +25,11 @@ export default function VaultPicker() {
         <CardContent sx={{ p: 4 }}>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-              Welcome to Stratum
+              {t('vault_picker.welcome_to_stratum')}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Select or create a vault to get started.
-              Your notes are stored as plain Markdown files.
+              {t('vault_picker.select_or_create_a_vault_to_get_started')}
+              {t('vault_picker.your_notes_are_stored_as_plain_markdown_files')}
             </Typography>
           </Box>
 
@@ -38,7 +40,7 @@ export default function VaultPicker() {
               action={
                 <IconButton
                   size="small"
-                  aria-label="Dismiss error"
+                  aria-label={t('vault_picker.dismiss_error')}
                   onClick={() => useStore.getState().dismissError(visibleError.id)}
                 >
                   <CloseIcon fontSize="small" />
@@ -58,15 +60,14 @@ export default function VaultPicker() {
               onClick={pickVaultDirectory}
               sx={{ py: 1.5, borderRadius: 2 }}
             >
-              Choose Vault Folder
+              {t('vault_picker.choose_vault_folder')}
             </Button>
             <Typography variant="caption" color="text.secondary" align="center">
-              Opens a folder picker to select or create a vault directory.
-              A{' '}
+              {t('vault_picker.opens_a_folder_picker_to_select_or_create_a_vault_directory_')}{' '}
               <Box component="code" sx={{ px: 0.5, py: 0.25, bgcolor: 'action.hover', borderRadius: 0.5, fontSize: '0.7rem' }}>
                 .pkm
               </Box>{' '}
-              folder will be created inside.
+              {t('vault_picker.folder_will_be_created_inside')}
             </Typography>
           </Box>
         </CardContent>

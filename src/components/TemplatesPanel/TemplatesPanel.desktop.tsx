@@ -7,8 +7,10 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import AddIcon from '@mui/icons-material/Add';
 import { useTemplates } from './TemplatesPanel.shared';
+import { useTranslation } from 'react-i18next';
 
 export default function TemplatesPanelDesktop() {
+  const { t } = useTranslation();
   const {
     templates,
     targetPath,
@@ -29,7 +31,7 @@ export default function TemplatesPanelDesktop() {
       </Typography>
 
       <TextField
-        label="Target page path"
+        label={t('templates.target_page_path')}
         placeholder="pages/my-new-page.md"
         value={targetPath}
         onChange={(e) => setTargetPath(e.target.value)}
@@ -66,7 +68,7 @@ export default function TemplatesPanelDesktop() {
           onClick={addVariableRow}
           sx={{ textTransform: 'none', fontSize: '0.75rem' }}
         >
-          Add variable
+          {t('templates.add_variable')}
         </Button>
       </Box>
 
@@ -113,7 +115,7 @@ export default function TemplatesPanelDesktop() {
         ))}
         {templates.length === 0 && (
           <Typography variant="body2" color="text.secondary">
-            No templates yet. Save a page as template to get started.
+            {t('templates.no_templates_yet_save_a_page_as_template_to_get_started')}
           </Typography>
         )}
       </Box>

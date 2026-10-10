@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import Popover from '@mui/material/Popover';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import BacklinkSnippetBody from './BacklinkSnippetBody';
 
 /**
@@ -46,6 +47,7 @@ export default function BacklinkSnippetPopup({
   onClose,
   onHoverChange,
 }: BacklinkSnippetPopupProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const ctrlHeldRef = useRef(false);
 
@@ -85,7 +87,7 @@ export default function BacklinkSnippetPopup({
       slotProps={{
         paper: {
           role: 'dialog',
-          'aria-label': `Snippet from: ${noteTitle || noteId || 'note'}`,
+          'aria-label': `${t('backlink_snippet_popup.snippet_from')} ${noteTitle || noteId || 'note'}`,
           'aria-busy': loading,
           onMouseEnter: () => onHoverChange?.(true),
           onMouseLeave: () => onHoverChange?.(false),

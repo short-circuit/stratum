@@ -4,6 +4,7 @@ import TextField from '@mui/material/TextField';
 import type { SyncStatusDto, CommitLogEntry } from '../../lib/types';
 import CommitLogPanel from './CommitLogPanel';
 import SyncControlsPanel from './SyncControlsPanel';
+import { useTranslation } from 'react-i18next';
 
 interface SyncTabProps {
   syncSettings: {
@@ -36,6 +37,7 @@ export default function SyncTab({
   onSyncNow,
   onStartScheduler,
 }: SyncTabProps) {
+  const { t } = useTranslation();
   return (
     <Box>
       <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>Sync</Typography>
@@ -47,7 +49,7 @@ export default function SyncTab({
             variant="caption"
             sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}
           >
-            Sync Mode
+            {t('settings.sync_mode')}
           </Typography>
           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
             {['manual', 'auto_commit', 'auto_sync', 'background'].map(mode => (
@@ -80,13 +82,13 @@ export default function SyncTab({
           </Box>
           <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.75 }}>
             {syncSettings.mode === 'manual' &&
-              'Sync only when you click the Sync button. No automatic commits.'}
+              t('settings.sync_only_when_you_click_the_sync_button_no_automatic_commit')}
             {syncSettings.mode === 'auto_commit' &&
               'Changes are automatically committed to git on a timer. Manual push/pull required.'}
             {syncSettings.mode === 'auto_sync' &&
-              'Automatic commits + periodic push/pull to remote.'}
+              t('settings.automatic_commits_periodic_push_pull_to_remote')}
             {syncSettings.mode === 'background' &&
-              'Full background sync — commits, push, and pull happen automatically.'}
+              t('settings.full_background_sync_commits_push_and_pull_happen_automatica')}
           </Typography>
         </Box>
 
@@ -96,7 +98,7 @@ export default function SyncTab({
             variant="caption"
             sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}
           >
-            Remote & Branch
+            {t('settings.remote_branch')}
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <TextField
@@ -128,7 +130,7 @@ export default function SyncTab({
             variant="caption"
             sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}
           >
-            SSH Key Path
+            {t('settings.ssh_key_path')}
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <TextField
@@ -159,7 +161,7 @@ export default function SyncTab({
             </Box>
           </Box>
           <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.25 }}>
-            Leave empty to use SSH agent.
+            {t('settings.leave_empty_to_use_ssh_agent')}
           </Typography>
         </Box>
 
@@ -170,10 +172,10 @@ export default function SyncTab({
               variant="caption"
               sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}
             >
-              Auto-Commit Settings
+              {t('settings.auto_commit_settings')}
             </Typography>
             <TextField
-              label="Commit Interval (seconds)"
+              label={t('settings.commit_interval_seconds')}
               type="number"
               value={syncSettings.auto_commit_interval_secs}
               onChange={e =>
@@ -184,7 +186,7 @@ export default function SyncTab({
               sx={{ width: 200, mb: 1.5 }}
             />
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-              Commit Message Template
+              {t('settings.commit_message_template')}
             </Typography>
             <TextField
               size="small"
@@ -249,7 +251,7 @@ export default function SyncTab({
                 color: 'text.disabled',
               }}
             >
-              Preview:{' '}
+              {t('settings.preview')}{' '}
               {syncSettings.commit_template
                 .replace('{datetime}', new Date().toISOString().slice(0, 19).replace('T', ' '))
                 .replace('{editedfiles}', '3')
@@ -267,10 +269,10 @@ export default function SyncTab({
               variant="caption"
               sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}
             >
-              Auto-Sync Settings
+              {t('settings.auto_sync_settings')}
             </Typography>
             <TextField
-              label="Pull/Push Interval (seconds)"
+              label={t('settings.pull_push_interval_seconds')}
               type="number"
               value={syncSettings.auto_sync_interval_secs}
               onChange={e =>

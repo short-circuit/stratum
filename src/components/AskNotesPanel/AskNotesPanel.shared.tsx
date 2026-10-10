@@ -15,6 +15,7 @@ import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 import * as api from '../../lib/commands';
 import { playAudio } from '../../lib/audio';
+import { useTranslation } from 'react-i18next';
 import type { RagQueryResultDto } from '../../lib/types';
 
 /* eslint-disable react-refresh/only-export-components -- shared hooks + components, per repo pattern */
@@ -96,12 +97,13 @@ export function AskNotesAnswer({
   result,
   onSpeak,
 }: AskNotesBodyProps & { onSpeak: () => void }) {
+  const { t } = useTranslation();
   if (loading) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 3 }}>
         <CircularProgress size={18} />
         <Typography variant="body2" color="text.secondary">
-          Searching your notes…
+          {t('ask_notes.searching_your_notes')}
         </Typography>
       </Box>
     );
@@ -118,7 +120,7 @@ export function AskNotesAnswer({
   if (speakError) {
     return (
       <Alert severity="warning" sx={{ mt: 2 }}>
-        Read-aloud failed: {speakError}
+        {t('aiformatting_toolbar.read_aloud_failed')} {speakError}
       </Alert>
     );
   }
@@ -140,7 +142,7 @@ export function AskNotesAnswer({
             {result.answer}
           </Typography>
           {result.answer.trim() && (
-            <Tooltip title={speaking ? 'Playing…' : 'Read aloud'}>
+            <Tooltip title={speaking ? t('ask_notes.playing') : t('editor.read_aloud')}>
               <IconButton size="small" onClick={onSpeak} disabled={speaking}>
                 {speaking ? <VolumeOffIcon fontSize="small" /> : <VolumeUpIcon fontSize="small" />}
               </IconButton>
@@ -151,7 +153,7 @@ export function AskNotesAnswer({
         {result.had_sources || result.citations.length > 0 ? (
           <Box sx={{ mt: 2 }}>
             <Typography variant="overline" color="text.secondary">
-              Sources
+              {t('ask_notes.sources')}
             </Typography>
             <List dense disablePadding>
               {result.citations.map((c, i) => (
@@ -172,7 +174,7 @@ export function AskNotesAnswer({
           </Box>
         ) : (
           <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-            No matching notes found — the answer is based on general knowledge.
+            {t('ask_notes.no_matching_notes_found_the_answer_is_based_on_general_knowl')}
           </Typography>
         )}
       </Paper>
@@ -191,6 +193,7 @@ export function AskNotesInput({
   onAsk: () => void;
   disabled: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
       <TextField
@@ -199,7 +202,7 @@ export function AskNotesInput({
         minRows={1}
         maxRows={4}
         size="small"
-        placeholder="Ask your notes… e.g. What did I decide about the homelab?"
+        placeholder={t('ask_notes.ask_your_notes_e_g_what_did_i_decide_about_the_h')}
         value={question}
         onChange={(e) => onQuestionChange(e.target.value)}
         onKeyDown={(e) => {
@@ -211,7 +214,7 @@ export function AskNotesInput({
         disabled={disabled}
       />
       <Button variant="contained" onClick={onAsk} disabled={disabled || !question.trim()}>
-        Ask
+        {t('ask_notes.ask')}
       </Button>
     </Box>
   );

@@ -13,6 +13,7 @@ import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
 import CloseIcon from '@mui/icons-material/Close';
 import MathSymbolPalette from './MathSymbolPalette';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   initialLatex: string;
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export default function MathEditorModal({ initialLatex, onSave, onCancel }: Props) {
+  const { t } = useTranslation();
   const [latex, setLatex] = useState(initialLatex);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -67,7 +69,7 @@ export default function MathEditorModal({ initialLatex, onSave, onCancel }: Prop
   return (
     <Dialog open maxWidth="md" fullWidth onClose={onCancel}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="body1" sx={{ fontWeight: 500 }}>Edit Equation</Typography>
+        <Typography variant="body1" sx={{ fontWeight: 500 }}>{t('math_editor_modal.edit_equation')}</Typography>
         <IconButton size="small" onClick={onCancel}>
           <CloseIcon fontSize="small" />
         </IconButton>
@@ -112,7 +114,7 @@ export default function MathEditorModal({ initialLatex, onSave, onCancel }: Prop
         )}
 
         <Typography variant="caption" color="text.disabled" sx={{ lineHeight: 1.6 }}>
-          Ctrl+Enter to save · Esc to cancel<br />
+          {t('math_editor_modal.ctrl_enter_to_save_esc_to_cancel')}<br />
           <Box
             component="a"
             href="https://katex.org/docs/supported.html"
@@ -120,7 +122,7 @@ export default function MathEditorModal({ initialLatex, onSave, onCancel }: Prop
             rel="noopener noreferrer"
             sx={{ color: 'primary.main', '&:hover': { textDecoration: 'underline' } }}
           >
-            KaTeX supported functions
+            {t('math_editor_modal.katex_supported_functions')}
           </Box>
         </Typography>
       </DialogContent>

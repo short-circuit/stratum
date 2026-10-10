@@ -2,6 +2,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { useState } from 'react';
 import type { PluginInfoDto } from '../../lib/types';
+import { useTranslation } from 'react-i18next';
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
   ready: { label: 'Ready', color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
@@ -10,6 +11,7 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string }> 
 };
 
 export function StatusChip({ plugin }: { plugin: PluginInfoDto }) {
+  const { t } = useTranslation();
   const meta = STATUS_META[plugin.status] ?? STATUS_META.error;
   const [full, setFull] = useState(false);
 
@@ -28,7 +30,7 @@ export function StatusChip({ plugin }: { plugin: PluginInfoDto }) {
           color: meta.color,
           bgcolor: meta.bg,
           cursor: plugin.status === 'error' && plugin.error ? 'pointer' : 'default',
-          title: plugin.status === 'error' && plugin.error ? 'Click for details' : undefined,
+          title: plugin.status === 'error' && plugin.error ? t('plugins.click_for_details') : undefined,
         }}
         onClick={() => {
           if (plugin.status === 'error' && plugin.error) setFull(v => !v);

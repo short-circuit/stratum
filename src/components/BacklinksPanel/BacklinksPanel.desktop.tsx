@@ -14,9 +14,11 @@ import { useBacklinksData, usePreview } from './BacklinksPanel.shared';
 import type { BacklinksPanelProps } from './BacklinksPanel.shared';
 import BacklinkSnippetPopup from '../BacklinkSnippetPopup';
 import { useBacklinkNavigation } from '../../lib/backlinkNavigation';
+import { useTranslation } from 'react-i18next';
 
 const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: BacklinksPanelProps) {
   const navigateBacklink = useBacklinkNavigation();
+  const { t } = useTranslation();
   const { backlinks, loading, linked, unlinked } = useBacklinksData(pagePath);
   const { preview, showPreview, dismissPreview } = usePreview();
   const ctrlHeld = useCtrlHeld();
@@ -54,7 +56,7 @@ const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: 
       <Accordion disableGutters square sx={{ boxShadow: 0, '&:before': { display: 'none' } }} slotProps={{ transition: { unmountOnExit: true } }}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
-            Backlinks ({backlinks.length})
+            {t('backlinks.backlinks')}{backlinks.length})
           </Typography>
         </AccordionSummary>
         <AccordionDetails sx={{ maxHeight: 200, overflow: 'auto', p: 1.5 }}>
@@ -63,7 +65,7 @@ const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: 
           {linked.length > 0 && (
             <Box sx={{ mb: 1.5 }}>
               <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 0.5 }}>
-                Linked References ({linked.length})
+                {t('backlinks.linked_references')}{linked.length})
               </Typography>
               <List dense disablePadding>
                 {linked.map((bl, i) => (
@@ -86,7 +88,7 @@ const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: 
           {unlinked.length > 0 && (
             <Box>
               <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 0.5 }}>
-                Unlinked Mentions ({unlinked.length})
+                {t('backlinks.unlinked_mentions')}{unlinked.length})
               </Typography>
               <List dense disablePadding>
                 {unlinked.map((bl, i) => (
@@ -107,7 +109,7 @@ const BacklinksPanelDesktop = memo(function BacklinksPanelDesktop({ pagePath }: 
           )}
 
           {!loading && backlinks.length === 0 && (
-            <Typography variant="caption" color="text.disabled">No backlinks found.</Typography>
+            <Typography variant="caption" color="text.disabled">{t('backlinks.no_backlinks_found')}</Typography>
           )}
         </AccordionDetails>
       </Accordion>

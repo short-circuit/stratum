@@ -2,6 +2,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import type { SyncStatusDto } from '../../lib/types';
+import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
 // SyncControlsPanel — sync status badge, sync-now / scheduler controls.
@@ -23,6 +24,7 @@ export default function SyncControlsPanel({
   onSyncNow: () => void;
   onStartScheduler: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   return (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.75 }}>
@@ -36,7 +38,7 @@ export default function SyncControlsPanel({
             '&:hover': { opacity: 0.85 },
           }}
         >
-          {syncing ? 'Syncing...' : 'Sync Now'}
+          {syncing ? t('settings.syncing') : t('settings.sync_now')}
         </Button>
         {syncStatus && (
           <Box
@@ -61,8 +63,8 @@ export default function SyncControlsPanel({
           >
             {syncStatus.status === 'ok' && 'OK'}
             {syncStatus.status === 'conflicts' &&
-              `Conflicts (${syncStatus.conflicts.length})`}
-            {syncStatus.status === 'no_repo' && 'No Repo'}
+              `${t('settings.conflicts')}${syncStatus.conflicts.length})`}
+            {syncStatus.status === 'no_repo' && t('settings.no_repo')}
             {syncStatus.status !== 'ok' &&
               syncStatus.status !== 'conflicts' &&
               syncStatus.status !== 'no_repo' &&
@@ -81,7 +83,7 @@ export default function SyncControlsPanel({
             onClick={onStartScheduler}
             sx={{ textTransform: 'none', fontSize: '0.75rem' }}
           >
-            Start Scheduler
+            {t('settings.start_scheduler')}
           </Button>
         )}
       </Box>
@@ -98,7 +100,7 @@ export default function SyncControlsPanel({
           )}
           {syncStatus.last_sync_time && (
             <Typography variant="caption" color="text.disabled">
-              Last sync: {new Date(syncStatus.last_sync_time).toLocaleString()}
+              {t('settings.last_sync')} {new Date(syncStatus.last_sync_time).toLocaleString()}
             </Typography>
           )}
         </Box>

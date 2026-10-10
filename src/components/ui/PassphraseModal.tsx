@@ -3,6 +3,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import { useTranslation } from 'react-i18next';
 
 interface PassphraseModalProps {
   onClose: () => void;
@@ -10,6 +11,7 @@ interface PassphraseModalProps {
 }
 
 export default function PassphraseModal({ onClose, onSubmit }: PassphraseModalProps) {
+  const { t } = useTranslation();
   const [value, setValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -41,14 +43,14 @@ export default function PassphraseModal({ onClose, onSubmit }: PassphraseModalPr
           boxShadow: 24,
         }}
       >
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>SSH Key Passphrase</Typography>
+        <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('common.ssh_key_passphrase')}</Typography>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-          Enter the passphrase for your SSH key to authenticate with the remote.
+          {t('common.enter_the_passphrase_for_your_ssh_key_to_authenticate_with_t')}
         </Typography>
         <TextField
           size="small"
           type="password"
-          placeholder="Enter passphrase..."
+          placeholder={t('common.enter_passphrase')}
           value={value}
           onChange={e => setValue(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
@@ -57,7 +59,7 @@ export default function PassphraseModal({ onClose, onSubmit }: PassphraseModalPr
         />
         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
           <Button variant="outlined" size="small" onClick={onClose} sx={{ textTransform: 'none' }}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             variant="contained"
@@ -66,7 +68,7 @@ export default function PassphraseModal({ onClose, onSubmit }: PassphraseModalPr
             disabled={submitting || !value}
             sx={{ textTransform: 'none', bgcolor: 'var(--primary-500)' }}
           >
-            {submitting ? 'Submitting...' : 'Submit'}
+            {submitting ? t('common.submitting') : t('common.submit')}
           </Button>
         </Box>
       </Box>

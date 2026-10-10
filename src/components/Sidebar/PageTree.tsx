@@ -13,6 +13,7 @@ import ArticleIcon from '@mui/icons-material/Article';
 import DeleteIcon from '@mui/icons-material/Delete';
 import type { PageDto } from '../../lib/types';
 import ConfirmDialog from '../ui/ConfirmDialog';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   pages: PageDto[];
@@ -43,6 +44,7 @@ const PageTree = memo(function PageTree({
   onNavigate,
   onNavigateHome,
 }: Props) {
+  const { t } = useTranslation();
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   if (collapsed) return null;
@@ -60,10 +62,10 @@ const PageTree = memo(function PageTree({
           >
             <ArticleIcon fontSize="inherit" sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
             <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase' }}>
-              Recent
+              {t('sidebar.recent')}
             </Typography>
           </Box>
-          <Tooltip title="New page" arrow>
+          <Tooltip title={t('sidebar.new_page')} arrow>
             <IconButton size="small" onClick={() => onShowNewChange(!showNew)} sx={{ color: 'text.secondary' }}>
               <AddIcon fontSize="small" />
             </IconButton>
@@ -74,7 +76,7 @@ const PageTree = memo(function PageTree({
           <Box sx={{ p: 1, mb: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
             <TextField
               size="small"
-              placeholder="Path (e.g., pages/my-note.md)"
+              placeholder={t('sidebar.path_e_g_pages_my_note_md')}
               value={newPath}
               onChange={e => onNewPathChange(e.target.value)}
               fullWidth
@@ -82,7 +84,7 @@ const PageTree = memo(function PageTree({
             />
             <TextField
               size="small"
-              placeholder="Title (optional)"
+              placeholder={t('sidebar.title_optional')}
               value={newTitle}
               onChange={e => onNewTitleChange(e.target.value)}
               fullWidth
@@ -90,10 +92,10 @@ const PageTree = memo(function PageTree({
             />
             <Box sx={{ display: 'flex', gap: 0.5 }}>
               <Button size="small" variant="contained" onClick={onCreatePage}>
-                Create
+                {t('sidebar.create')}
               </Button>
               <Button size="small" onClick={() => onShowNewChange(false)}>
-                Cancel
+                {t('sidebar.cancel')}
               </Button>
             </Box>
           </Box>
@@ -136,7 +138,7 @@ const PageTree = memo(function PageTree({
           ))}
           {recentPages.length === 0 && (
             <Typography variant="caption" color="text.disabled" sx={{ display: 'block', textAlign: 'center', py: 2 }}>
-              No pages yet.
+              {t('pages_home.no_pages_yet')}
             </Typography>
           )}
         </List>
@@ -144,9 +146,9 @@ const PageTree = memo(function PageTree({
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="Delete page"
-        message={`Delete ${deleteTarget ?? ''}? This cannot be undone.`}
-        confirmLabel="Delete"
+        title={t('sidebar.delete_page')}
+        message={`${t('editor.delete')} ${deleteTarget ?? ''}? ${t('common.this_cannot_be_undone')}`}
+        confirmLabel={t('editor.delete')}
         confirmColor="error"
         onConfirm={() => {
           if (deleteTarget) onDeletePage(deleteTarget);

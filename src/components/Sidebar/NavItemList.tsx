@@ -13,6 +13,7 @@ import DrawIcon from '@mui/icons-material/Draw';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import SettingsIcon from '@mui/icons-material/Settings';
+import { useTranslation } from 'react-i18next';
 
 const NAV_ITEMS = [
   { id: 'journal', label: 'Journal', path: '/journal', icon: <CalendarMonthIcon /> },
@@ -20,7 +21,7 @@ const NAV_ITEMS = [
   { id: 'kanban', label: 'Kanban', path: '/kanban', icon: <ChecklistIcon /> },
   { id: 'search', label: 'Search', path: '/search', icon: <SearchIcon /> },
   { id: 'query', label: 'Query', path: '/query', icon: <CodeIcon /> },
-  { id: 'asknotes', label: 'Ask Notes', path: '/ask-notes', icon: <AutoAwesomeIcon /> },
+  { id: 'asknotes', label: 'mobile_nav.ask_notes', path: '/ask-notes', icon: <AutoAwesomeIcon /> },
   { id: 'templates', label: 'Templates', path: '/templates', icon: <DescriptionIcon /> },
   { id: 'flashcards', label: 'Flashcards', path: '/flashcards', icon: <QuizIcon /> },
   { id: 'whiteboards', label: 'Whiteboards', path: '/whiteboards', icon: <DrawIcon /> },
@@ -37,6 +38,7 @@ interface Props {
 }
 
 const NavItemList = memo(function NavItemList({ collapsed, activeTab, onNavigate }: Props) {
+  const { t } = useTranslation();
   return (
     <>
       {NAV_ITEMS.map(item => (
@@ -62,7 +64,7 @@ const NavItemList = memo(function NavItemList({ collapsed, activeTab, onNavigate
             {item.icon}
           </ListItemIcon>
           {!collapsed && (
-            <ListItemText primary={item.label} slotProps={{ primary: { variant: 'body2', noWrap: true } }} />
+            <ListItemText primary={t(item.label)} slotProps={{ primary: { variant: 'body2', noWrap: true } }} />
           )}
         </ListItemButton>
       ))}

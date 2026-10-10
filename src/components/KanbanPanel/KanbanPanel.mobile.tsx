@@ -24,12 +24,14 @@ import { COLUMNS, COLUMN_CONFIG, type ColumnId } from './constants';
 import { useKanbanPanel } from './KanbanPanel.shared';
 import Section from './KanbanSection';
 import CardContextMenu from './CardContextMenu';
+import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
 // Mobile KanbanPanel
 // ---------------------------------------------------------------------------
 
 export default function KanbanPanelMobile() {
+  const { t } = useTranslation();
   const {
     blocks,
     loading,
@@ -144,7 +146,7 @@ export default function KanbanPanelMobile() {
         }}
       >
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
-          Kanban
+          {t('kanban.kanban')}
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
@@ -153,7 +155,7 @@ export default function KanbanPanelMobile() {
             onClick={openTodaysJournal}
             sx={{ textTransform: 'none', fontSize: '0.75rem' }}
           >
-            Today&apos;s Journal
+            {t('kanban.today_apos_s_journal')}
           </Button>
           <Button
             size="small"
@@ -161,7 +163,7 @@ export default function KanbanPanelMobile() {
             onClick={loadBlocks}
             sx={{ textTransform: 'none', fontSize: '0.75rem' }}
           >
-            Refresh
+            {t('kanban.refresh')}
           </Button>
         </Box>
       </Box>
@@ -188,7 +190,7 @@ export default function KanbanPanelMobile() {
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
           <TextField
             size="small"
-            placeholder="New task..."
+            placeholder={t('kanban.new_task')}
             value={addText}
             onChange={(e) => setAddText(e.target.value)}
             onKeyDown={(e) => {

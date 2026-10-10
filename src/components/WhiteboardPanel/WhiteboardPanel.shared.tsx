@@ -3,6 +3,7 @@ import { useTheme } from '@mui/material/styles';
 import { restore, restoreLibraryItems } from '@excalidraw/excalidraw';
 import type { SceneData, LibraryItems, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import * as api from '../../lib/commands';
+import i18n from '../../i18n';
 import { setLatestLibraryJson } from '../../lib/libraryStore';
 import { generateThumbnail } from './editorUtils';
 import type { Board } from './BoardGallery';
@@ -80,7 +81,7 @@ export function useWhiteboardPanel(): WhiteboardPanelState {
       await api.saveWhiteboard(activeBoard, JSON.stringify(data));
       setDirty(false);
     } catch (e) {
-      console.error('Failed to save whiteboard:', e);
+      console.error(i18n.t('whiteboard.failed_to_save_whiteboard'), e);
     }
   }, [activeBoard]);
 
@@ -132,7 +133,7 @@ export function useWhiteboardPanel(): WhiteboardPanelState {
       setActiveBoard(name);
       setDirty(false);
     } catch (e) {
-      console.error('Failed to load whiteboard:', e);
+      console.error(i18n.t('whiteboard.failed_to_load_whiteboard'), e);
     }
   }, []);
 
@@ -174,7 +175,7 @@ export function useWhiteboardPanel(): WhiteboardPanelState {
       const updated = await api.listWhiteboards();
       setBoards(updated);
     } catch (e) {
-      console.error('Failed to delete whiteboard:', e);
+      console.error(i18n.t('whiteboard.failed_to_delete_whiteboard'), e);
     }
   }
 
@@ -185,7 +186,7 @@ export function useWhiteboardPanel(): WhiteboardPanelState {
       const updated = await api.listWhiteboards();
       setBoards(updated);
     } catch (e) {
-      console.error('Failed to rename whiteboard:', e);
+      console.error(i18n.t('whiteboard.failed_to_rename_whiteboard'), e);
     }
   }
 
