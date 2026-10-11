@@ -1,20 +1,35 @@
+import { useState } from 'react';
 import Box from '@mui/material/Box';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
+import Button from '@mui/material/Button';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { usePagesHomeData } from './PagesHome.shared';
+import ImportDialog from '../ImportDialog';
 import { useTranslation } from 'react-i18next';
 
 export default function PagesHomeDesktop() {
   const { t } = useTranslation();
   const { pages, vault, navigateToPage } = usePagesHomeData();
+  const [importOpen, setImportOpen] = useState(false);
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Box sx={{ flex: 1, overflow: 'auto', p: 3, maxWidth: 600, mx: 'auto' }}>
-      <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>{t('pages_home.pages')}</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+        <Typography variant="h5" sx={{ fontWeight: 600 }}>{t('pages_home.pages')}</Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => setImportOpen(true)}
+          startIcon={<UploadFileIcon />}
+        >
+          {t('importers.import_notes')}
+        </Button>
+      </Box>
       {vault && (
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
           {vault.path} · {pages.length} page{pages.length !== 1 ? 's' : ''}
@@ -50,6 +65,7 @@ export default function PagesHomeDesktop() {
         </Box>
       )}
       </Box>
+      <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
     </Box>
   );
 }

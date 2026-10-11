@@ -1,19 +1,34 @@
+import { useState } from 'react';
 import Box from '@mui/material/Box';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
+import Button from '@mui/material/Button';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { usePagesHomeData } from './PagesHome.shared';
+import ImportDialog from '../ImportDialog';
 import { useTranslation } from 'react-i18next';
 
 export default function PagesHomeMobile() {
   const { t } = useTranslation();
   const { pages, vault, navigateToPage } = usePagesHomeData();
+  const [importOpen, setImportOpen] = useState(false);
 
   return (
     <Box sx={{ p: 2 }}>
-      <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>{t('mobile_layout.pages')}</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+        <Typography variant="h5" sx={{ fontWeight: 600 }}>{t('mobile_layout.pages')}</Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => setImportOpen(true)}
+          startIcon={<UploadFileIcon />}
+        >
+          {t('importers.import_notes')}
+        </Button>
+      </Box>
       {vault && (
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
           {vault.path} · {pages.length} page{pages.length !== 1 ? 's' : ''}
@@ -57,6 +72,7 @@ export default function PagesHomeMobile() {
           </Typography>
         </Box>
       )}
+      <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
     </Box>
   );
 }

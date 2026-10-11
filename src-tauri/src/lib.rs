@@ -306,6 +306,9 @@ pub fn run() {
             commands::page::repair_db_from_disk,
             commands::page::normalize_file,
             commands::page::normalize_all_files,
+            // Importers
+            commands::import::preview_import,
+            commands::import::import_vault,
             // Blocks
             commands::block::get_blocks,
             commands::block::build_markdown,

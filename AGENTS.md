@@ -63,6 +63,7 @@ stratum/
 │   ├── pkm-core/               # Core types, config, errors
 │   ├── pkm-dictation/          # Voice dictation: transcribe, summarize, render
 │   ├── pkm-index/              # Backlinks, graph, search (Tantivy)
+│   ├── pkm-import/             # One-click vault importers (Obsidian, Logseq, generic Markdown)
 │   ├── pkm-markdown/           # Block-based markdown parser + serializer
 │   ├── pkm-mcp/                # MCP server exposing the KB to external AI clients (stdio + Streamable HTTP)
 │   ├── pkm-mcp-security/       # Security controls for the MCP server (PAT hashing, scope, rate limit)
@@ -221,6 +222,7 @@ pkm-core       →  (standalone foundation)
 pkm-block      →  pkm-core
 pkm-markdown   →  pkm-core, pkm-block
 pkm-index      →  pkm-core, pkm-markdown, pkm-block
+pkm-import     →  pkm-core, pkm-markdown, pkm-block
 pkm-query      →  pkm-block
 pkm-sync       →  pkm-core, pkm-markdown
 pkm-watcher    →  pkm-core, pkm-markdown, pkm-index
@@ -307,6 +309,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `VaultPicker` | Landing page when no vault is configured |
 | `StratumIcon` | App icon SVG renderer |
 | `PagesHome` | Home route: page list with block counts |
+| `ImportDialog` | PagesHome | One-click vault import (Obsidian/Logseq/generic) with preview + report | `docs/guide/importers.md` |
 | `MobileLayout` | Root mobile wrapper with bottom navigation |
 | `MobileNav` | Bottom navigation bar for mobile |
 | `JournalCalendar` | Calendar popup for date navigation |
