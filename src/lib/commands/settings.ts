@@ -64,6 +64,13 @@ export async function getSettings(): Promise<{
     format: string;
     speed: number;
   };
+  tray: {
+    enabled: boolean;
+    close_to_tray: boolean;
+    quick_capture_shortcut: string;
+    capture_target: string;
+    inbox_path: string;
+  };
 }> {
   return invoke('get_settings');
 }
@@ -101,6 +108,13 @@ export async function saveSettings(settings: {
     voice: string;
     format: string;
     speed: number;
+  };
+  tray: {
+    enabled: boolean;
+    close_to_tray: boolean;
+    quick_capture_shortcut: string;
+    capture_target: string;
+    inbox_path: string;
   };
 }): Promise<void> {
   return invoke('save_settings', { settings });

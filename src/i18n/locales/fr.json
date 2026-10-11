@@ -610,7 +610,15 @@
     "voice": "Voix",
     "voice_dictation_stt": "Dictée vocale (STT)",
     "web_research_searxng": "Recherche web (SearXNG)",
-    "z_ai": "Z.AI"
+    "z_ai": "Z.AI",
+    "tray": "Zone de notification",
+    "tray_enabled": "Activer l'icône de la zone de notification",
+    "tray_close_to_tray": "Réduire dans la zone de notification à la fermeture",
+    "tray_shortcut": "Raccourci de capture rapide",
+    "tray_capture_target": "Cible de la capture rapide",
+    "tray_capture_target_journal": "Journal du jour",
+    "tray_capture_target_inbox": "Page Boîte de réception",
+    "tray_inbox_path": "Chemin de la page Boîte de réception"
   },
   "sidebar": {
     "ask_notes": "Interroger les notes",
@@ -688,5 +696,18 @@
     "unsaved": "Non enregistré",
     "whiteboard_name": "Nom du tableau blanc",
     "whiteboards": "Tableaux blancs"
+  },
+  "quickcapture": {
+    "title": "Capture rapide",
+    "placeholder": "Capturez une pensée…",
+    "hint_save": "Entrée pour enregistrer · Échap pour abandonner",
+    "saved": "Enregistré dans {{page}}",
+    "voice": "Capture vocale",
+    "recording": "Enregistrement…",
+    "stop": "Arrêter",
+    "voice_done": "Note vocale capturée",
+    "target_label": "Cible :",
+    "target_journal": "Journal du jour",
+    "target_inbox": "Boîte de réception"
   }
 }

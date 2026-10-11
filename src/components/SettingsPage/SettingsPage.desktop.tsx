@@ -9,6 +9,7 @@ import AITab from './AITab';
 import ResearchTab from './ResearchTab';
 import DeveloperTab from './DeveloperTab';
 import SyncTab from './SyncTab';
+import TrayTab from './TrayTab';
 import { useTranslation } from 'react-i18next';
 import { useSettingsPage, type SettingsTab } from './SettingsPage.shared';
 
@@ -43,6 +44,8 @@ export default function SettingsPageDesktop() {
     updateSync,
     updateStt,
     updateTts,
+    tray,
+    updateTray,
     handleSave,
     handleFetchModels,
     handleReindex,
@@ -86,6 +89,7 @@ export default function SettingsPageDesktop() {
           <Tab label={t('settings.research')} value="research" sx={{ minHeight: 40, textTransform: 'none' }} />
           <Tab label={t('settings.developer')} value="developer" sx={{ minHeight: 40, textTransform: 'none' }} />
           <Tab label={t('settings.sync')} value="sync" sx={{ minHeight: 40, textTransform: 'none' }} />
+          <Tab label={t('settings.tray')} value="tray" sx={{ minHeight: 40, textTransform: 'none' }} />
         </Tabs>
         <Box sx={{ flex: 1 }} />
         <Button
@@ -149,6 +153,9 @@ export default function SettingsPageDesktop() {
             onSyncNow={handleSyncNow}
             onStartScheduler={handleStartScheduler}
           />
+        )}
+        {tab === 'tray' && (
+          <TrayTab tray={tray} onTrayChange={updateTray} />
         )}
       </Box>
     </Box>

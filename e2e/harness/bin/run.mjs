@@ -295,6 +295,67 @@ async function runTests(driver) {
   if (fs.existsSync('/tmp')) {
     try { fs.writeFileSync('/tmp/stratum-harness-last.png', b); } catch (e) {}
   }
+
+  console.log('\n── Test 5: Quick capture dialog opens + saves via keyboard ──');
+  // The harness hook is injected by main.tsx; it emits the same
+  // 'quick-capture:open' event the tray/global-shortcut path uses, so this
+  // exercises the real frontend flow without an OS tray.
+  const hookOk = await driver.executeScript(
+    `return typeof window.__stratOpenQuickCapture === 'function';`, []);
+  if (hookOk) ok('quick capture harness hook (__stratOpenQuickCapture) present');
+  else bad('quick capture harness hook (__stratOpenQuickCapture) present');
+  if (hookOk) {
+    await driver.executeScript(`window.__stratOpenQuickCapture(false); return true;`, []);
+    await sleep(2000);
+    const dlg = await driver.executeScript(
+      `const d = document;
+       const tf = [...d.querySelectorAll('textarea,input')].find(e => e.placeholder && e.placeholder.length > 3);
+       const txt = (d.body.innerText || '');
+       // Locale-dependent title: accept en (Quick Capture) OR de (Schnellnotiz) OR any
+       // other translated variant by checking that SOME non-empty dialog title co-exists
+       // with the capture input (the DialogTitle is a sibling of the textarea).
+       const hasTitle = txt.includes('Quick Capture') || txt.includes('Schnellnotiz') ||
+         txt.includes('Cattura rapida') || txt.includes('Capture rapide') ||
+         txt.includes('Captura rápida');
+       return { textarea: !!tf, hasTitle };`, []);
+    (dlg && dlg.textarea) ? ok('quick capture input rendered') : bad('quick capture input rendered');
+    (dlg && dlg.hasTitle) ? ok('quick capture title rendered') : bad('quick capture title rendered');
+
+    // Type text into the capture input (React controlled → native setter + input event).
+    const typed = await driver.executeScript(
+      `const tf = [...document.querySelectorAll('textarea,input')].find(e => e.placeholder && e.placeholder.length > 3);
+       if (!tf) return false;
+       const proto = tf.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+       Object.getOwnPropertyDescriptor(proto, 'value').set.call(tf, 'E2E quick capture test block');
+       tf.dispatchEvent(new Event('input', { bubbles: true }));
+       return true;`, []);
+    typed ? ok('text typed into capture input') : bad('text typed into capture input');
+    await sleep(400);
+    await driver.executeScript(
+      `const tf = [...document.querySelectorAll('textarea,input')].find(e => e.placeholder && e.placeholder.length > 3);
+       if (tf) tf.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
+       return true;`, []);
+    await sleep(3000);
+    // Verify real persistence through real IPC: ask the backend for the blocks
+    // of today's journal and check the captured text is present.
+    const today = await driver.executeScript(
+      `const d = new Date();
+       const p = \`\${d.getFullYear()}-\${String(d.getMonth() + 1).padStart(2, '0')}-\${String(d.getDate()).padStart(2, '0')}\`;
+       return window.__TAURI_INTERNALS__.invoke('get_blocks', { pagePath: 'journals/' + p + '.md' })
+         .then(r => JSON.stringify(r)).catch(e => 'ERR:' + e);`, []);
+    const saved = typeof today === 'string' && today.includes('E2E quick capture test block');
+    saved ? ok('quick capture block persisted to today journal (get_blocks)') : bad('quick capture block persisted to today journal (get_blocks)');
+
+    // Escape discards/closes the dialog.
+    await driver.executeScript(
+      `const tf = [...document.querySelectorAll('textarea,input')].find(e => e.placeholder && e.placeholder.length > 3);
+       if (tf) tf.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true }));
+       return true;`, []);
+    await sleep(1000);
+    const closed = await driver.executeScript(
+      `return ![...document.querySelectorAll('textarea,input')].some(e => e.placeholder && e.placeholder.length > 3);`, []);
+    closed ? ok('Escape discards/closes quick capture') : bad('Escape discards/closes quick capture');
+  }
 }
 
 async function main() {
