@@ -99,7 +99,8 @@ pub fn apply_tray_state<R: Runtime>(app: &AppHandle<R>, tray: &pkm_core::TrayCon
         if let Some(tray_icon) = app.tray_by_id("main") {
             let _ = tray_icon.set_visible(tray.enabled);
         }
-        if let Some(shortcuts) = app.try_state::<tauri_plugin_global_shortcut::GlobalShortcut<R>>() {
+        if let Some(shortcuts) = app.try_state::<tauri_plugin_global_shortcut::GlobalShortcut<R>>()
+        {
             let _ = shortcuts.unregister_all();
             if tray.enabled {
                 register_shortcut(shortcuts.inner(), &tray.quick_capture_shortcut);
@@ -136,14 +137,23 @@ pub fn get_effective_close_to_tray(config: &pkm_core::TrayConfig, desktop: bool)
 fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::Menu<R>> {
     use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
     let open = MenuItem::with_id(app, "open", "Open Stratum", true, None::<&str>)?;
-    let quick_capture = MenuItem::with_id(app, "quick_capture", "Quick Capture", true, None::<&str>)?;
-    let voice_capture = MenuItem::with_id(app, "voice_capture", "Voice Capture", true, None::<&str>)?;
+    let quick_capture =
+        MenuItem::with_id(app, "quick_capture", "Quick Capture", true, None::<&str>)?;
+    let voice_capture =
+        MenuItem::with_id(app, "voice_capture", "Voice Capture", true, None::<&str>)?;
     let sync_now = MenuItem::with_id(app, "sync_now", "Sync Now", true, None::<&str>)?;
     let separator = PredefinedMenuItem::separator(app)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     Menu::with_items(
         app,
-        &[&open, &quick_capture, &voice_capture, &sync_now, &separator, &quit],
+        &[
+            &open,
+            &quick_capture,
+            &voice_capture,
+            &sync_now,
+            &separator,
+            &quit,
+        ],
     )
 }
 
@@ -307,9 +317,7 @@ fn ensure_target_page(
 
     if !full.exists() {
         let title = match config.tray.capture_target {
-            pkm_core::CaptureTarget::Journal => chrono::Local::now()
-                .format("%Y-%m-%d")
-                .to_string(),
+            pkm_core::CaptureTarget::Journal => chrono::Local::now().format("%Y-%m-%d").to_string(),
             pkm_core::CaptureTarget::Inbox => "Inbox".to_string(),
         };
         if let Some(parent) = full.parent() {
@@ -321,11 +329,9 @@ fn ensure_target_page(
 
     if config.tray.capture_target == pkm_core::CaptureTarget::Journal {
         let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-        crate::commands::page::ensure_today_journal_core(store, vault, &today)
-            .map(|_| ())
+        crate::commands::page::ensure_today_journal_core(store, vault, &today).map(|_| ())
     } else {
-        crate::commands::page::sync_page_from_disk(store, page_path, vault, None)
-            .map(|_| ())
+        crate::commands::page::sync_page_from_disk(store, page_path, vault, None).map(|_| ())
     }
 }
 
@@ -342,8 +348,7 @@ fn persist_blocks_to_disk(
         .map_err(|e| e.to_string())?;
     let body = pkm_markdown::block_parser::serialize_blocks(&blocks);
     let existing = std::fs::read_to_string(&full).unwrap_or_default();
-    let markdown =
-        pkm_markdown::block_parser::assemble_blocks_markdown(&existing, &body, None);
+    let markdown = pkm_markdown::block_parser::assemble_blocks_markdown(&existing, &body, None);
 
     if let Some(parent) = full.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;

@@ -281,11 +281,7 @@ fn test_config_with_tray_roundtrips_preserving_tray_section() {
     assert_eq!(loaded.tray.inbox_path, "pages/Inbox.md");
 
     // A config without a [tray] section loads with tray defaults (back-compat).
-    std::fs::write(
-        &config_path,
-        "[theme]\ndark_mode = false\n",
-    )
-    .unwrap();
+    std::fs::write(&config_path, "[theme]\ndark_mode = false\n").unwrap();
     let without_tray = Config::load(&config_path).unwrap();
     assert!(without_tray.tray.enabled);
     assert_eq!(without_tray.tray.capture_target, CaptureTarget::Journal);
