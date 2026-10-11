@@ -82,6 +82,7 @@ fn seed_config_with_key(tv: &common::TestVault, key: &str) {
 fn settings_body(tv: &common::TestVault, ai_key: serde_json::Value) -> serde_json::Value {
     json!({
         "vault_path": tv.vault_path,
+        "locale": "en",
         "theme": { "dark_mode": false, "primary_color": "#fff", "secondary_color": "#000", "font_size": 14 },
         "ai": {
             "provider": "custom-openai",

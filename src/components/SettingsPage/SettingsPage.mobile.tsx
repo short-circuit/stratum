@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import TextField from '@mui/material/TextField';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { useTranslation } from 'react-i18next';
 import { useSettingsPage } from './SettingsPage.shared';
 import MobileThemeSection from './MobileThemeSection';
@@ -11,6 +13,7 @@ import MobileAiAccordion from './MobileAiAccordion';
 import MobileSttTtsSection from './MobileSttTtsSection';
 import MobileDeveloperSection from './MobileDeveloperSection';
 import MobileSyncSection from './MobileSyncSection';
+import ImportDialog from '../ImportDialog';
 
 // ---------------------------------------------------------------------------
 // Mobile settings page.
@@ -22,6 +25,7 @@ import MobileSyncSection from './MobileSyncSection';
 
 export default function SettingsPageMobile() {
   const { t } = useTranslation();
+  const [importOpen, setImportOpen] = useState(false);
   const {
     settings,
     saving,
@@ -114,7 +118,17 @@ export default function SettingsPageMobile() {
           <Button variant="outlined" size="small" onClick={handlePickVaultDirectory}>
             {t('settings.browse')}
           </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            sx={{ ml: 1 }}
+            startIcon={<UploadFileIcon />}
+            onClick={() => setImportOpen(true)}
+          >
+            {t('importers.import_notes')}
+          </Button>
         </Box>
+        <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
 
         {/* ─── Theme Section ─── */}
         <MobileThemeSection theme={theme} updateTheme={updateTheme} locale={locale} onLocaleChange={onLocaleChange} />

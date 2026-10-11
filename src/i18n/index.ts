@@ -64,7 +64,7 @@ export async function initI18n(explicitLocale?: string): Promise<void> {
     defaultNS: 'translation',
     keySeparator: '.',
     nsSeparator: false,
-    interpolation: { escapeValue: false },
+    interpolation: { escapeValue: false, prefix: '{', suffix: '}' },
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
