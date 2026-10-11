@@ -610,7 +610,15 @@
     "voice": "Stimme",
     "voice_dictation_stt": "Sprachdiktat (STT)",
     "web_research_searxng": "Web-Recherche (SearXNG)",
-    "z_ai": "Z.AI"
+    "z_ai": "Z.AI",
+    "tray": "Tray",
+    "tray_enabled": "Tray-Symbol aktivieren",
+    "tray_close_to_tray": "Beim Schließen im Tray behalten",
+    "tray_shortcut": "Tastenkürzel Schnellnotiz",
+    "tray_capture_target": "Ziel der Schnellnotiz",
+    "tray_capture_target_journal": "Heutiges Journal",
+    "tray_capture_target_inbox": "Posteingangsseite",
+    "tray_inbox_path": "Pfad der Posteingangsseite"
   },
   "sidebar": {
     "ask_notes": "Notizen fragen",
@@ -688,5 +696,18 @@
     "unsaved": "Nicht gespeichert",
     "whiteboard_name": "Whiteboard-Name",
     "whiteboards": "Whiteboards"
+  },
+  "quickcapture": {
+    "title": "Schnellnotiz",
+    "placeholder": "Gedanke festhalten…",
+    "hint_save": "Enter speichern · Esc verwerfen",
+    "saved": "Gespeichert in {{page}}",
+    "voice": "Sprachaufnahme",
+    "recording": "Aufnahme…",
+    "stop": "Stopp",
+    "voice_done": "Sprachnotiz erfasst",
+    "target_label": "Ziel:",
+    "target_journal": "Heutiges Journal",
+    "target_inbox": "Posteingang"
   }
 }

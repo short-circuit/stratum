@@ -610,7 +610,15 @@
     "voice": "Voce",
     "voice_dictation_stt": "Dettatura vocale (STT)",
     "web_research_searxng": "Ricerca web (SearXNG)",
-    "z_ai": "Z.AI"
+    "z_ai": "Z.AI",
+    "tray": "Barra delle applicazioni",
+    "tray_enabled": "Abilita icona di sistema",
+    "tray_close_to_tray": "Riduci nella barra alla chiusura",
+    "tray_shortcut": "Scorciatoia cattura rapida",
+    "tray_capture_target": "Destinazione cattura rapida",
+    "tray_capture_target_journal": "Diario di oggi",
+    "tray_capture_target_inbox": "Pagina Posta in arrivo",
+    "tray_inbox_path": "Percorso pagina Posta in arrivo"
   },
   "sidebar": {
     "ask_notes": "Chiedi alle note",
@@ -688,5 +696,18 @@
     "unsaved": "Non salvato",
     "whiteboard_name": "Nome whiteboard",
     "whiteboards": "Whiteboard"
+  },
+  "quickcapture": {
+    "title": "Cattura rapida",
+    "placeholder": "Cattura un pensiero…",
+    "hint_save": "Invio salva · Esc annulla",
+    "saved": "Salvato in {{page}}",
+    "voice": "Cattura vocale",
+    "recording": "Registrazione…",
+    "stop": "Stop",
+    "voice_done": "Nota vocale catturata",
+    "target_label": "Destinazione:",
+    "target_journal": "Diario di oggi",
+    "target_inbox": "Posta in arrivo"
   }
 }

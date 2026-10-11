@@ -12,6 +12,8 @@ pub mod search;
 pub mod settings;
 pub mod sync;
 pub mod template;
+#[cfg(desktop)]
+pub mod tray;
 pub mod tts;
 pub mod vault;
 pub mod whiteboard;

@@ -146,6 +146,7 @@ const ALLOW_EXACT = new Set([
   'CANCELLED', 'T12:00:00', 'en-US', 'dictation:stage', '#root', '90%',
   'TypeScript', 'JavaScript', 'Python', 'Rust', 'java', 'c', 'cpp', 'go',
   'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GOOGLE_API_KEY',
+  'quick-capture:open', 'app:quit', 'CmdOrCtrl+Shift+Space',
   '[data-template-input]', '[data-mobile-template-input]', '[data-block-id]',
   '[OutlinerEditor] marker save failed:', '[OutlinerEditor] replaceBlocks failed:',
   '[OutlinerEditor] getBlocks failed:', '[OutlinerEditor] save failed:',

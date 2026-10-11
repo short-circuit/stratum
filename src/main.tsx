@@ -48,6 +48,10 @@ async function init() {
   // Initialize sync status on startup so it's available globally
   useSyncStore.getState().fetchSyncStatus();
 
+  // E2E harness hook: lets WebDriver open quick capture without the OS tray/shortcut.
+  (window as any).__stratOpenQuickCapture = (voice = false) =>
+    import('@tauri-apps/api/event').then(m => m.emit('quick-capture:open', { voice }));
+
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <BrowserRouter>

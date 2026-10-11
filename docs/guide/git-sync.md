@@ -16,6 +16,11 @@ Your vault is a Git repository. Stratum uses `git2` (libgit2 bindings) for Git o
 | **AutoCommit** | Stratum automatically commits changes on a timer |
 | **AutoSync** | Auto-commit + push/pull on a timer |
 
+!!! note "Tray Sync Now"
+    The **Sync Now** item in the system tray menu triggers the same sync flow as
+    the **Sync Now** button in the Settings → Sync tab. See
+    [Quick Capture → System Tray](quick-capture.md#system-tray).
+
 ## Setting Up Sync
 
 ### Via the CLI

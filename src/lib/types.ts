@@ -6,6 +6,15 @@ export interface VaultInfo {
   page_count: number;
 }
 
+/** Tray status as surfaced by `get_tray_status` (desktop; disabled on mobile). */
+export interface TrayStatusDto {
+  enabled: boolean;
+  close_to_tray: boolean;
+  shortcut: string;
+  capture_target: string;
+  inbox_path: string;
+}
+
 export interface PageDto {
   path: string;
   slug: string;
