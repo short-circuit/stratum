@@ -77,6 +77,22 @@ describe('AttachmentPanel (E9.F2)', () => {
     );
   });
 
+  it('tolerates a null asset-refs response and shows the empty state (no crash)', async () => {
+    mockGetPageAssetRefs.mockResolvedValue(null);
+    render(<AttachmentPanel pagePath="pages/test.md" />);
+    await waitFor(() =>
+      expect(screen.getByText('No attachments yet')).toBeInTheDocument(),
+    );
+  });
+
+  it('tolerates a rejected asset-refs request and shows the empty state', async () => {
+    mockGetPageAssetRefs.mockRejectedValue(new Error('backend down'));
+    render(<AttachmentPanel pagePath="pages/test.md" />);
+    await waitFor(() =>
+      expect(screen.getByText('No attachments yet')).toBeInTheDocument(),
+    );
+  });
+
   it('calls deleteAssetRef + openPage when the trash button is clicked', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     render(<AttachmentPanel pagePath="pages/test.md" />);
