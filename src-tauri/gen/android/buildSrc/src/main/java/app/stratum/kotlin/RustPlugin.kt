@@ -70,6 +70,10 @@ open class RustPlugin : Plugin<Project> {
                         group = TASK_GROUP
                         description = "Build dynamic library in $profile mode for $targetArch"
                         rootDirRel = config.rootDirRel
+                        // projectDir must be explicitly configured for Gradle 8.14
+                        // validation (BuildTask.projectDir is a required @Input in
+                        // some Tauri templates). Default to the app project dir.
+                        projectDir = project.projectDir.path
                         target = targetName
                         release = profile == "release"
                     }

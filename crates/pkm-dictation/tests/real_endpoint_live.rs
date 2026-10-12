@@ -51,10 +51,13 @@ where
 {
     let attempt = |n: u32| async move {
         match f().await {
-            Err(e) if n < 1 => Err(e),
+            Err(e) if n < 2 => Err(e),
             other => other,
         }
     };
+    // Single-backend LocalAI evicts/lazy-loads backends between calls; the
+    // resulting transient 5xx can persist through a model respawn (~10s), so
+    // retry with escalating backoff before giving up.
     match attempt(0).await {
         Err(PkmError::Ai(msg))
             if msg.contains("HTTP 500")
@@ -63,7 +66,12 @@ where
                 || msg.contains("connection refused") =>
         {
             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-            attempt(1).await
+            if let ok @ Ok(_) = attempt(1).await {
+                ok
+            } else {
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                attempt(2).await
+            }
         }
         other => other,
     }
@@ -197,8 +205,14 @@ async fn live_voice_embed_keeps_same_speaker_above_match_threshold() {
     let clip = write_fixture(dir.path());
 
     let v = VoiceIdClient::new(ep.clone(), "speechbrain-ecapa-tdnn");
-    let a = v.embed(&clip).await.expect("embed succeeds");
-    let b = v.embed(&clip).await.expect("embed succeeds (2)");
+    // Single-backend LocalAI evicts models under load; a transient HTTP 5xx
+    // (backend respawning) is environmental, so retry once like STT above.
+    let a = retry_transient(|| v.embed(&clip))
+        .await
+        .expect("embed succeeds");
+    let b = retry_transient(|| v.embed(&clip))
+        .await
+        .expect("embed succeeds (2)");
     let score = pkm_stt::cosine_similarity(&a, &b);
     assert!(
         score >= 0.5,

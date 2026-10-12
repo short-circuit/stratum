@@ -1,4 +1,5 @@
 import { exportToCanvas } from '@excalidraw/excalidraw';
+import i18n from '../../i18n';
 
 const THUMBNAIL_MAX = 300;
 
@@ -49,7 +50,7 @@ export async function generateThumbnail(
     });
     return { dataUrl: canvas.toDataURL('image/webp', 0.6), theme: isDark ? 'dark' : 'light' };
   } catch (e) {
-    console.warn('Failed to generate thumbnail:', e);
+    console.warn(i18n.t('whiteboard.failed_to_generate_thumbnail'), e);
     return null;
   }
 }

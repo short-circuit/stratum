@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import i18n from '../../i18n';
 import type {
   PluginHttpRequestDto,
   PluginHttpRequestParams,
@@ -36,29 +37,29 @@ export function isPluginBackendReady(): boolean {
 const MOCK_PLUGINS: PluginInfoDto[] = [
   {
     id: 'dev-dashboard',
-    name: 'Developer Dashboard',
+    name: 'lib_commands.developer_dashboard',
     version: '0.1.0',
     status: 'ready',
     enabled: true,
     permissions: ['file:read', 'network'],
     hooks: ['onSave'],
     author: 'stratum-team',
-    description: 'Collects development telemetry and posts it to a local endpoint.',
+    description: 'lib_commands.collects_development_telemetry_and_posts_it_to_a_local_endpo',
   },
   {
     id: 'daily-summary',
-    name: 'Daily Summary',
+    name: 'lib_commands.daily_summary',
     version: '0.2.1',
     status: 'disabled',
     enabled: false,
     permissions: ['file:read', 'file:write'],
     hooks: ['onOpen', 'onSave'],
     author: 'acme-lab',
-    description: 'Summarizes the day\u2019s notes into a single digest page.',
+    description: 'lib_commands.summarizes_the_day_s_notes_into_a_single_digest_page',
   },
   {
     id: 'broken-example',
-    name: 'Broken Example',
+    name: 'lib_commands.broken_example',
     version: '0.0.4',
     status: 'error',
     enabled: true,
@@ -180,14 +181,14 @@ export async function pluginsUninstall(id: string): Promise<PluginListResultDto>
  */
 export async function pluginsInstallFromFile(): Promise<PluginInfoDto | null> {
   if (!BACKEND_READY) {
-    const name = window.prompt?.('Plugin .wasm file name (mock install)') ?? null;
+    const name = window.prompt?.(i18n.t('lib_commands.plugin_wasm_file_name_mock_install')) ?? null;
     if (!name) return null;
     return pluginsInstall(name);
   }
   const { open } = await import('@tauri-apps/plugin-dialog');
   const selection = await open({
     multiple: false,
-    filters: [{ name: 'WASM plugin', extensions: ['wasm'] }],
+    filters: [{ name: i18n.t('lib_commands.wasm_plugin'), extensions: ['wasm'] }],
   });
   if (!selection) return null;
   const path = Array.isArray(selection) ? selection[0] : selection;

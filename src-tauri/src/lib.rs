@@ -30,6 +30,20 @@ pub fn run() {
     let _ = pkm_core::init_logging();
     let builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init());
 
+    // Single-instance must be registered before any other plugin that can open
+    // a second window (notably dialog). Empty crates on mobile — desktop only.
+    // On a second launch it shows + focuses the existing main window instead of
+    // starting a new process.
+    #[cfg(desktop)]
+    let builder = builder
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
+        }))
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build());
+
     #[cfg(target_os = "android")]
     let builder = builder.plugin(tauri_plugin_android_fs::init());
 
@@ -282,6 +296,15 @@ pub fn run() {
                         .build(),
                 )?;
             }
+
+            // ── System tray + global quick-capture shortcut (desktop) ─────
+            #[cfg(desktop)]
+            {
+                if let Err(e) = crate::commands::tray::init(app.handle(), &config.tray) {
+                    tracing::warn!("[stratum] Tray init failed: {}", e);
+                }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -306,6 +329,9 @@ pub fn run() {
             commands::page::repair_db_from_disk,
             commands::page::normalize_file,
             commands::page::normalize_all_files,
+            // Importers
+            commands::import::preview_import,
+            commands::import::import_vault,
             // Blocks
             commands::block::get_blocks,
             commands::block::build_markdown,
@@ -392,6 +418,11 @@ pub fn run() {
             commands::settings::save_settings,
             commands::settings::save_graph_settings,
             commands::settings::fetch_models,
+            // Tray / quick capture
+            #[cfg(desktop)]
+            commands::tray::get_tray_status,
+            #[cfg(desktop)]
+            commands::tray::quick_capture_save,
             // Plugins
             commands::plugins::plugins_list,
             commands::plugins::plugins_enable,

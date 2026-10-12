@@ -7,8 +7,10 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import AddIcon from '@mui/icons-material/Add';
 import { useTemplates } from './TemplatesPanel.shared';
+import { useTranslation } from 'react-i18next';
 
 export default function TemplatesPanelDesktop() {
+  const { t } = useTranslation();
   const {
     templates,
     targetPath,
@@ -25,11 +27,11 @@ export default function TemplatesPanelDesktop() {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Box sx={{ flex: 1, overflow: 'auto', p: 3, maxWidth: 600, mx: 'auto' }}>
       <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
-        Templates
+        {t('templates.templates')}
       </Typography>
 
       <TextField
-        label="Target page path"
+        label={t('templates.target_page_path')}
         placeholder="pages/my-new-page.md"
         value={targetPath}
         onChange={(e) => setTargetPath(e.target.value)}
@@ -40,7 +42,7 @@ export default function TemplatesPanelDesktop() {
 
       <Box sx={{ mb: 2 }}>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-          Variables
+          {t('templates.variables')}
         </Typography>
         {variables.map(([k, v], i) => (
           <Box key={i} sx={{ display: 'flex', gap: 0.5, mb: 0.5 }}>
@@ -66,7 +68,7 @@ export default function TemplatesPanelDesktop() {
           onClick={addVariableRow}
           sx={{ textTransform: 'none', fontSize: '0.75rem' }}
         >
-          Add variable
+          {t('templates.add_variable')}
         </Button>
       </Box>
 
@@ -77,9 +79,9 @@ export default function TemplatesPanelDesktop() {
       )}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        {templates.map((t) => (
+        {templates.map((tpl) => (
           <Card
-            key={t.name}
+            key={tpl.name}
             variant="outlined"
             sx={{ '&:hover': { borderColor: 'primary.light' } }}
           >
@@ -93,19 +95,19 @@ export default function TemplatesPanelDesktop() {
                 }}
               >
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  {t.name}
+                  {tpl.name}
                 </Typography>
                 <Button
                   size="small"
                   variant="contained"
-                  onClick={() => apply(t.name)}
+                  onClick={() => apply(tpl.name)}
                 >
-                  Apply
+                  {t('templates.apply')}
                 </Button>
               </Box>
-              {t.description && (
+              {tpl.description && (
                 <Typography variant="caption" color="text.secondary">
-                  {t.description}
+                  {tpl.description}
                 </Typography>
               )}
             </CardContent>
@@ -113,7 +115,7 @@ export default function TemplatesPanelDesktop() {
         ))}
         {templates.length === 0 && (
           <Typography variant="body2" color="text.secondary">
-            No templates yet. Save a page as template to get started.
+            {t('templates.no_templates_yet_save_a_page_as_template_to_get_started')}
           </Typography>
         )}
       </Box>

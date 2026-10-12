@@ -17,6 +17,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
+import { useTranslation } from 'react-i18next';
 
 export interface Board {
   name: string;
@@ -64,6 +65,7 @@ export default function BoardGallery({
   onDeleteBoards,
   onRename,
 }: BoardGalleryProps) {
+  const { t } = useTranslation();
   const [newName, setNewName] = useState('');
   const [selectedBoards, setSelectedBoards] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState<string | string[] | null>(null);
@@ -99,24 +101,24 @@ export default function BoardGallery({
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
-      <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>Whiteboards</Typography>
+      <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>{t('whiteboard.whiteboards')}</Typography>
 
       <Box sx={{ display: 'flex', gap: 1, mb: 3, alignItems: 'center' }}>
         <TextField
           size="small"
-          placeholder="Whiteboard name"
+          placeholder={t('whiteboard.whiteboard_name')}
           value={newName}
           onChange={e => setNewName(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') onCreateBoard(newName); }}
           sx={{ flexGrow: 1 }}
         />
         <Button variant="contained" onClick={() => onCreateBoard(newName)} sx={{ whiteSpace: 'nowrap' }}>
-          Create
+          {t('whiteboard.create')}
         </Button>
         {selectedBoards.size > 0 && (
           <>
             <Typography variant="body2" color="text.secondary" sx={{ mx: 0.5 }}>
-              {selectedBoards.size} selected
+              {t('whiteboard.selected_count', { count: selectedBoards.size })}
             </Typography>
             <Button
               variant="outlined"
@@ -125,7 +127,7 @@ export default function BoardGallery({
               startIcon={<DeleteIcon />}
               onClick={() => setConfirmDelete(Array.from(selectedBoards))}
             >
-              Delete
+              {t('whiteboard.delete')}
             </Button>
           </>
         )}
@@ -200,7 +202,7 @@ export default function BoardGallery({
                     </IconButton>
                   </Box>
                   {b.elementCount > 0 && (
-                    <Chip label={`${b.elementCount} elements`} size="small" variant="outlined" sx={{ mt: 0.5 }} />
+                    <Chip label={t('whiteboard.element_count', { count: b.elementCount })} size="small" variant="outlined" sx={{ mt: 0.5 }} />
                   )}
                 </CardContent>
               </CardActionArea>
@@ -211,36 +213,36 @@ export default function BoardGallery({
         {boardsWithMeta.length === 0 && (
           <Grid size={12}>
             <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 4 }}>
-              No whiteboards yet. Create one to get started.
+              {t('whiteboard.no_whiteboards_yet_create_one_to_get_started')}
             </Typography>
           </Grid>
         )}
       </Grid>
 
       <Dialog open={confirmDelete !== null} onClose={() => setConfirmDelete(null)}>
-        <DialogTitle>Delete whiteboard{Array.isArray(confirmDelete) && confirmDelete.length > 1 ? 's' : ''}?</DialogTitle>
+        <DialogTitle>{t('whiteboard.delete_whiteboard')}{Array.isArray(confirmDelete) && confirmDelete.length > 1 ? 's' : ''}?</DialogTitle>
         <DialogContent>
           <DialogContentText>
             {Array.isArray(confirmDelete)
-              ? `Delete ${confirmDelete.length} selected whiteboards? This cannot be undone.`
-              : `Delete "${confirmDelete}"? This cannot be undone.`}
+              ? `${t('whiteboard.delete')} ${confirmDelete.length} ${t('whiteboard.whiteboards')}? ${t('whiteboard.this_cannot_be_undone')}`
+              : `${t('page.delete')}"${confirmDelete}"? ${t('whiteboard.this_cannot_be_undone')}`}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmDelete(null)}>Cancel</Button>
+          <Button onClick={() => setConfirmDelete(null)}>{t('whiteboard.cancel')}</Button>
           <Button
             variant="contained"
             color="error"
             onClick={() => confirmDelete && handleDeleteBoards(confirmDelete)}
             autoFocus
           >
-            Delete
+            {t('whiteboard.delete')}
           </Button>
         </DialogActions>
       </Dialog>
 
       <Dialog open={renameTarget !== null} onClose={() => setRenameTarget(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Rename whiteboard</DialogTitle>
+        <DialogTitle>{t('whiteboard.rename_whiteboard')}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -253,12 +255,12 @@ export default function BoardGallery({
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRenameTarget(null)}>Cancel</Button>
+          <Button onClick={() => setRenameTarget(null)}>{t('whiteboard.cancel')}</Button>
           <Button
             variant="contained"
             onClick={() => renameTarget && handleRename(renameTarget, renameValue)}
           >
-            Rename
+            {t('whiteboard.rename')}
           </Button>
         </DialogActions>
       </Dialog>

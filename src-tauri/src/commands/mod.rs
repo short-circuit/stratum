@@ -4,6 +4,7 @@ pub mod dictation;
 pub mod export;
 pub mod flashcards;
 pub mod graph;
+pub mod import;
 pub mod kanban;
 pub mod page;
 pub mod plugins;
@@ -12,6 +13,8 @@ pub mod search;
 pub mod settings;
 pub mod sync;
 pub mod template;
+#[cfg(desktop)]
+pub mod tray;
 pub mod tts;
 pub mod vault;
 pub mod whiteboard;

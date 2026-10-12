@@ -18,15 +18,16 @@ import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import { listen } from '@tauri-apps/api/event';
 import * as api from '../lib/commands';
 import type { DictationResultDto } from '../lib/types';
+import { useTranslation } from 'react-i18next';
 
 type Stage = 'idle' | 'recording' | 'ready' | 'transcribing' | 'done' | 'error';
 
 const STAGE_LABELS: Record<string, string> = {
-  transcribing: 'Transcribing…',
-  diarizing: 'Separating speakers…',
-  identifying: 'Identifying voices…',
-  summarizing: 'Summarizing…',
-  linking: 'Linking notes & tags…',
+  transcribing: 'dictation.transcribing',
+  diarizing: 'dictation.separating_speakers',
+  identifying: 'dictation.identifying_voices',
+  summarizing: 'dictation.summarizing',
+  linking: 'dictation.linking_notes_tags',
 };
 
 function speakerLabel(id: string): string {
@@ -48,6 +49,7 @@ export default function DictationPanel({
   pagePath: string;
   onInserted?: (ids: string[]) => void;
 }) {
+  const { t } = useTranslation();
   const [stage, setStage] = useState<Stage>('idle');
   const [elapsed, setElapsed] = useState(0);
   const [recordingPath, setRecordingPath] = useState<string | null>(null);
@@ -170,10 +172,10 @@ export default function DictationPanel({
             onClick={start}
             sx={{ textTransform: 'none' }}
           >
-            Record voice memo
+            {t('dictation.record_voice_memo')}
           </Button>
           <Typography variant="caption" color="text.secondary">
-            Saves the clip and transcribes it into this note
+            {t('dictation.saves_the_clip_and_transcribes_it_into_this_note')}
           </Typography>
         </Box>
       )}
@@ -182,15 +184,15 @@ export default function DictationPanel({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Chip
             icon={<MicIcon />}
-            label={`Recording… ${fmt(elapsed)}`}
+            label={`${t('dictation.recording')} ${fmt(elapsed)}`}
             color="error"
             size="small"
             sx={{ '& .MuiChip-icon': { animation: 'pulse 1s infinite' } }}
           />
           <Button size="small" variant="contained" startIcon={<StopIcon />} onClick={stop} sx={{ textTransform: 'none' }}>
-            Stop & save
+            {t('dictation.stop_save')}
           </Button>
-          <IconButton size="small" onClick={cancel} title="Cancel recording">
+          <IconButton size="small" onClick={cancel} title={t('dictation.cancel_recording')}>
             <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
@@ -198,21 +200,21 @@ export default function DictationPanel({
 
       {stage === 'ready' && recordingPath && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-          <Chip icon={<VolumeUpIcon />} label="Clip saved" size="small" />
+          <Chip icon={<VolumeUpIcon />} label={t('dictation.clip_saved')} size="small" />
           <FormControlLabel
             control={<Checkbox size="small" checked={diarize} onChange={e => setDiarize(e.target.checked)} />}
-            label={<Typography variant="caption">Diarize speakers</Typography>}
+            label={<Typography variant="caption">{t('dictation.diarize_speakers')}</Typography>}
           />
           <FormControlLabel
             control={<Checkbox size="small" checked={summarize} onChange={e => setSummarize(e.target.checked)} />}
-            label={<Typography variant="caption">Summarize</Typography>}
+            label={<Typography variant="caption">{t('dictation.summarize')}</Typography>}
           />
           <FormControlLabel
             control={<Checkbox size="small" checked={identify} onChange={e => setIdentify(e.target.checked)} />}
-            label={<Typography variant="caption">Identify voices</Typography>}
+            label={<Typography variant="caption">{t('dictation.identify_voices')}</Typography>}
           />
           <Button size="small" variant="contained" startIcon={<GraphicEqIcon />} onClick={transcribe} sx={{ textTransform: 'none' }}>
-            Transcribe
+            {t('dictation.transcribe')}
           </Button>
         </Box>
       )}
@@ -220,7 +222,7 @@ export default function DictationPanel({
       {stage === 'transcribing' && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <CircularProgress size={18} />
-          <Typography variant="body2">{STAGE_LABELS[stageName] ?? 'Working…'}</Typography>
+          <Typography variant="body2">{STAGE_LABELS[stageName] ? t(STAGE_LABELS[stageName]) : t('dictation.working')}</Typography>
         </Box>
       )}
 
@@ -228,7 +230,7 @@ export default function DictationPanel({
       {stage === 'done' && result && (
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
-            <Chip size="small" color="success" label={`${result.num_speakers} speaker${result.num_speakers === 1 ? '' : 's'}${result.diarized ? ' (diarized)' : ''}`} />
+            <Chip size="small" color="success" label={`${result.num_speakers} speaker${result.num_speakers === 1 ? '' : 's'}${result.diarized ? ` ${t('dictation._diarized')}` : ''}`} />
             <Chip size="small" variant="outlined" label={`${fmt(result.duration_secs)} · ${result.clip_rel_path}`} />
             {result.tags.map(t => (
               <Chip key={t} size="small" variant="outlined" label={`#${t}`} />
@@ -249,7 +251,7 @@ export default function DictationPanel({
           {speakers.length > 0 && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 1 }}>
               <Typography variant="caption" color="text.secondary">
-                Assign names to voices (persisted for future recordings):
+                {t('dictation.assign_names_to_voices_persisted_for_future_recordings')}
               </Typography>
               {speakers.map(id => {
                 const known = names[id];
@@ -260,7 +262,7 @@ export default function DictationPanel({
                     </Typography>
                     <TextField
                       size="small"
-                      placeholder="Name…"
+                      placeholder={t('dictation.name')}
                       value={nameDraft[id] ?? ''}
                       onChange={e => setNameDraft(d => ({ ...d, [id]: e.target.value }))}
                       sx={{ width: 160 }}
@@ -272,7 +274,7 @@ export default function DictationPanel({
                       onClick={() => assign(id, false)}
                       sx={{ textTransform: 'none' }}
                     >
-                      Assign
+                      {t('dictation.assign')}
                     </Button>
                     <Button
                       size="small"
@@ -282,7 +284,7 @@ export default function DictationPanel({
                       onClick={() => assign(id, true)}
                       sx={{ textTransform: 'none' }}
                     >
-                      Assign + enroll voice
+                      {t('dictation.assign_enroll_voice')}
                     </Button>
                   </Box>
                 );
@@ -291,17 +293,17 @@ export default function DictationPanel({
           )}
 
           <Typography variant="caption" color="text.secondary">
-            Memo inserted at the end of the note.
+            {t('dictation.memo_inserted_at_the_end_of_the_note')}
           </Typography>
           <Button size="small" sx={{ ml: 2, textTransform: 'none' }} onClick={() => { setStage('idle'); setResult(null); setRecordingPath(null); }}>
-            New memo
+            {t('dictation.new_memo')}
           </Button>
         </Box>
       )}
 
       {stage === 'error' && (
         <Button size="small" onClick={() => setStage('idle')} sx={{ textTransform: 'none' }}>
-          Back
+          {t('common.back')}
         </Button>
       )}
     </Box>

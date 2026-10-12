@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SettingsDto {
     pub vault_path: String,
+    pub locale: String,
     pub theme: ThemeSettingsDto,
     pub ai: AiSettingsDto,
     pub research: ResearchSettingsDto,
@@ -13,6 +14,30 @@ pub struct SettingsDto {
     pub sync: SyncSettingsDto,
     pub stt: SttSettingsDto,
     pub tts: TtsSettingsDto,
+    #[serde(default)]
+    pub tray: TraySettingsDto,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TraySettingsDto {
+    pub enabled: bool,
+    pub close_to_tray: bool,
+    pub quick_capture_shortcut: String,
+    /// "journal" | "inbox"
+    pub capture_target: String,
+    pub inbox_path: String,
+}
+
+impl Default for TraySettingsDto {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            close_to_tray: true,
+            quick_capture_shortcut: "CmdOrCtrl+Shift+Space".to_string(),
+            capture_target: "journal".to_string(),
+            inbox_path: "Inbox.md".to_string(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -178,6 +203,7 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
 
     Ok(SettingsDto {
         vault_path: config.vault_path.to_string_lossy().to_string(),
+        locale: config.locale.clone(),
         theme: ThemeSettingsDto {
             dark_mode: config.theme.dark_mode,
             primary_color: config.theme.primary_color.clone(),
@@ -262,12 +288,23 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             speed: config.tts.speed,
             use_llm_gateway_and_auth: config.tts.use_llm_gateway_and_auth,
         },
+        tray: TraySettingsDto {
+            enabled: config.tray.enabled,
+            close_to_tray: config.tray.close_to_tray,
+            quick_capture_shortcut: config.tray.quick_capture_shortcut.clone(),
+            capture_target: match config.tray.capture_target {
+                pkm_core::CaptureTarget::Inbox => "inbox".into(),
+                pkm_core::CaptureTarget::Journal => "journal".into(),
+            },
+            inbox_path: config.tray.inbox_path.clone(),
+        },
     })
 }
 
 #[tauri::command]
-pub async fn save_settings(
+pub async fn save_settings<R: tauri::Runtime>(
     settings: SettingsDto,
+    app: tauri::AppHandle<R>,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
     let state = state.lock().map_err(|e| e.to_string())?;
@@ -311,8 +348,14 @@ pub async fn save_settings(
         _ => pkm_core::SyncMode::Manual,
     };
 
+    let capture_target = match settings.tray.capture_target.as_str() {
+        "inbox" => pkm_core::CaptureTarget::Inbox,
+        _ => pkm_core::CaptureTarget::Journal,
+    };
+
     let config = pkm_core::Config {
         vault_path: std::path::PathBuf::from(&settings.vault_path),
+        locale: settings.locale.clone(),
         theme: pkm_core::ThemeConfig {
             dark_mode: settings.theme.dark_mode,
             primary_color: settings.theme.primary_color.clone(),
@@ -420,10 +463,21 @@ pub async fn save_settings(
             speed: settings.tts.speed,
             use_llm_gateway_and_auth: settings.tts.use_llm_gateway_and_auth,
         },
+        tray: pkm_core::TrayConfig {
+            enabled: settings.tray.enabled,
+            close_to_tray: settings.tray.close_to_tray,
+            quick_capture_shortcut: settings.tray.quick_capture_shortcut,
+            capture_target,
+            inbox_path: settings.tray.inbox_path,
+        },
         ..pkm_core::Config::default()
     };
 
     config.save(&config_path).map_err(|e| e.to_string())?;
+    #[cfg(desktop)]
+    crate::commands::tray::apply_tray_state(&app, &config.tray);
+    #[cfg(not(desktop))]
+    let _ = &app;
     Ok(())
 }
 

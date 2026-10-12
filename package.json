@@ -38,9 +38,11 @@
     "@fontsource/inter": "^5.2.8",
     "@mui/icons-material": "^9.2.0",
     "@mui/material": "^9.2.0",
-    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/api": "^2.12.3",
     "@tauri-apps/plugin-dialog": "^2.0.0",
     "dompurify": "^3.4.12",
+    "i18next": "^26.4.3",
+    "i18next-browser-languagedetector": "^8.2.1",
     "katex": "^0.17.0",
     "mermaid": "^11.16.0",
     "prosemirror-model": "1.25.9",
@@ -50,6 +52,7 @@
     "react-dom": "^19.2.6",
     "react-force-graph-2d": "^1.29.1",
     "react-force-graph-3d": "^1.29.1",
+    "react-i18next": "^17.0.16",
     "react-router-dom": "^7.18.0",
     "shiki": "^4.3.1",
     "three-spritetext": "^1.10.0",
@@ -58,7 +61,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.62.0",
-    "@tauri-apps/cli": "^2.11.3",
+    "@tauri-apps/cli": "^2.12.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^24.12.3",
@@ -79,5 +82,8 @@
     "vite": "^8.0.12",
     "vitest": "^4.1.9",
     "webdriver": "^9.30.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
   }
 }

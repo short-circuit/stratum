@@ -9,9 +9,12 @@ import AITab from './AITab';
 import ResearchTab from './ResearchTab';
 import DeveloperTab from './DeveloperTab';
 import SyncTab from './SyncTab';
+import TrayTab from './TrayTab';
+import { useTranslation } from 'react-i18next';
 import { useSettingsPage, type SettingsTab } from './SettingsPage.shared';
 
 export default function SettingsPageDesktop() {
+  const { t } = useTranslation();
   const {
     settings,
     saving,
@@ -31,6 +34,8 @@ export default function SettingsPageDesktop() {
     syncSettings,
     stt,
     tts,
+    locale,
+    onLocaleChange,
     setMsg,
     updateAi,
     updateVault,
@@ -39,6 +44,8 @@ export default function SettingsPageDesktop() {
     updateSync,
     updateStt,
     updateTts,
+    tray,
+    updateTray,
     handleSave,
     handleFetchModels,
     handleReindex,
@@ -57,7 +64,7 @@ export default function SettingsPageDesktop() {
       <Box sx={{ p: 3 }}>
         {/* Intentionally minimal — no loading verbosity needed */}
         <Box sx={{ color: 'text.secondary', typography: 'body2' }}>
-          Loading settings...
+          {t('settings.loading_settings')}
         </Box>
       </Box>
     );
@@ -76,12 +83,13 @@ export default function SettingsPageDesktop() {
         }}
       >
         <Tabs value={tab} onChange={(_, v: SettingsTab) => setTab(v)} sx={{ minHeight: 40 }}>
-          <Tab label="Vault" value="vault" sx={{ minHeight: 40, textTransform: 'none' }} />
-          <Tab label="Theme" value="theme" sx={{ minHeight: 40, textTransform: 'none' }} />
-          <Tab label="AI" value="ai" sx={{ minHeight: 40, textTransform: 'none' }} />
-          <Tab label="Research" value="research" sx={{ minHeight: 40, textTransform: 'none' }} />
-          <Tab label="Developer" value="developer" sx={{ minHeight: 40, textTransform: 'none' }} />
-          <Tab label="Sync" value="sync" sx={{ minHeight: 40, textTransform: 'none' }} />
+          <Tab label={t('settings.vault')} value="vault" sx={{ minHeight: 40, textTransform: 'none' }} />
+          <Tab label={t('settings.theme')} value="theme" sx={{ minHeight: 40, textTransform: 'none' }} />
+          <Tab label={t('settings.ai')} value="ai" sx={{ minHeight: 40, textTransform: 'none' }} />
+          <Tab label={t('settings.research')} value="research" sx={{ minHeight: 40, textTransform: 'none' }} />
+          <Tab label={t('settings.developer')} value="developer" sx={{ minHeight: 40, textTransform: 'none' }} />
+          <Tab label={t('settings.sync')} value="sync" sx={{ minHeight: 40, textTransform: 'none' }} />
+          <Tab label={t('settings.tray')} value="tray" sx={{ minHeight: 40, textTransform: 'none' }} />
         </Tabs>
         <Box sx={{ flex: 1 }} />
         <Button
@@ -90,7 +98,7 @@ export default function SettingsPageDesktop() {
           disabled={saving}
           sx={{ mr: 2, textTransform: 'none' }}
         >
-          {saving ? 'Saving...' : 'Save'}
+          {saving ? t('settings.saving') : t('settings.save')}
         </Button>
       </Box>
 
@@ -110,7 +118,9 @@ export default function SettingsPageDesktop() {
             onBrowse={handlePickVaultDirectory}
           />
         )}
-        {tab === 'theme' && <ThemeTab theme={theme} onThemeChange={updateTheme} />}
+        {tab === 'theme' && (
+          <ThemeTab theme={theme} onThemeChange={updateTheme} locale={locale} onLocaleChange={onLocaleChange} />
+        )}
         {tab === 'ai' && (
           <AITab
             ai={ai}
@@ -143,6 +153,9 @@ export default function SettingsPageDesktop() {
             onSyncNow={handleSyncNow}
             onStartScheduler={handleStartScheduler}
           />
+        )}
+        {tab === 'tray' && (
+          <TrayTab tray={tray} onTrayChange={updateTray} />
         )}
       </Box>
     </Box>

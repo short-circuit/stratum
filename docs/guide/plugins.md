@@ -7,6 +7,14 @@ through the host functions they import (`pkm.note_read`, `pkm.note_write`,
 error codes, and the Tauri command surface — is the normative
 [Plugins API Specification](../advanced/plugins.md).
 
+Need a plugin? The community catalog lives in the
+[stratum-plugins repository](https://github.com/short-circuit/stratum-plugins) —
+a public repo hosting the plugin submission template, the
+`plugins/index.json` catalog that powers the in-app Plugin Directory, and the
+`hello-world` reference example. To publish your own plugin, follow
+[PLUGIN_TEMPLATE.md](https://github.com/short-circuit/stratum-plugins/blob/master/PLUGIN_TEMPLATE.md)
+and open a pull request.
+
 A plugin is a single file, `<vault>/.pkm/plugins/<id>/plugin.wasm`, with an
 embedded JSON manifest in the custom section named `stratum:manifest`. A legacy
 sidecar manifest (`plugin.wasm.manifest.json` beside the `.wasm`) is still

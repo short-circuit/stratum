@@ -6,6 +6,15 @@ export interface VaultInfo {
   page_count: number;
 }
 
+/** Tray status as surfaced by `get_tray_status` (desktop; disabled on mobile). */
+export interface TrayStatusDto {
+  enabled: boolean;
+  close_to_tray: boolean;
+  shortcut: string;
+  capture_target: string;
+  inbox_path: string;
+}
+
 export interface PageDto {
   path: string;
   slug: string;
@@ -381,4 +390,55 @@ export interface PluginHttpRequestDto {
   status: number;
   headers: [string, string][];
   body: string;
+}
+
+// --- One-click importers ---
+
+/** Source vault format for one-click import (mirrors `pkm_import::ImportFormat`). */
+export type ImportFormat = 'auto' | 'obsidian' | 'logseq' | 'generic';
+
+export interface ImportOptionsDto {
+  format?: ImportFormat;
+  subdir?: string | null;
+  dry_run?: boolean;
+}
+
+export interface ImportPreviewItem {
+  source_rel: string;
+  rel_path: string;
+  title: string;
+  status: string;
+  size_bytes: number;
+}
+
+export interface ImportAsset {
+  source_rel: string;
+  rel_path: string;
+  status: string;
+  size_bytes: number;
+}
+
+export interface ImportPreview {
+  source_path: string;
+  source_name: string;
+  format: ImportFormat;
+  pages: ImportPreviewItem[];
+  assets: ImportAsset[];
+  total_pages: number;
+  total_assets: number;
+  duplicates: string[];
+  conflicts: string[];
+}
+
+export interface ImportReport {
+  source_path: string;
+  source_name: string;
+  format: ImportFormat;
+  pages_imported: number;
+  assets_imported: number;
+  duplicates_skipped: number;
+  conflicts_skipped: number;
+  dry_run: boolean;
+  errors: string[];
+  imported_paths: string[];
 }

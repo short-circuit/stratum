@@ -2,8 +2,10 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import { useAskNotes, AskNotesInput, AskNotesAnswer } from './AskNotesPanel.shared';
+import { useTranslation } from 'react-i18next';
 
 export default function AskNotesPanelMobile() {
+  const { t } = useTranslation();
   const {
     question,
     setQuestion,
@@ -21,16 +23,16 @@ export default function AskNotesPanelMobile() {
     <Box sx={{ p: 1.5, width: '100%' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6" component="h1">
-          Ask your notes
+          {t('ask_notes.ask_your_notes')}
         </Typography>
         {result && (
           <Button size="small" onClick={reset}>
-            Clear
+            {t('ask_notes.clear')}
           </Button>
         )}
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 1.5 }}>
-        Get answers grounded in your vault, with cited sources.
+        {t('ask_notes.get_answers_grounded_in_your_vault_with_cited_sources')}
       </Typography>
 
       <AskNotesInput
