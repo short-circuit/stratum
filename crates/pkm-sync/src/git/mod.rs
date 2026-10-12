@@ -141,7 +141,6 @@ impl GitEngine {
             let meta = std::fs::metadata(&full_path)
                 .map_err(|e| PkmError::Git(format!("stat {p}: {e}")))?;
             if meta.is_dir() {
-                let rel_prefix = p.trim_end_matches('/').to_string();
                 let mut stack = vec![full_path.clone()];
                 while let Some(dir) = stack.pop() {
                     let entries = std::fs::read_dir(&dir)

@@ -248,7 +248,7 @@ fn t8_generic_is_byte_identical_and_preserves_subfolders() {
 
 #[test]
 fn t9_import_never_mutates_source() {
-    let dests = vec![
+    let dests = [
         tempfile::tempdir().unwrap(),
         tempfile::tempdir().unwrap(),
         tempfile::tempdir().unwrap(),
