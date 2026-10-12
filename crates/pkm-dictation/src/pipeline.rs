@@ -118,7 +118,6 @@ pub async fn run(p: Pipeline<'_>, opts: &PipelineOptions<'_>) -> PkmResult<Pipel
     let mut diarized = false;
     let turns: Vec<SpeakerTurn> = if opts.diarize {
         p.stage(Stage::Diarizing);
-        let diarizer = Diarizer::new(p.endpoint.clone());
         let diarize_once = || {
             let diarizer = Diarizer::new(p.endpoint.clone());
             async move {
