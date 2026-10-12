@@ -90,6 +90,27 @@ Use the journal to quickly capture thoughts, then process them into proper pages
 2. Later, extract sections into dedicated pages
 3. Link back from the new page to the journal entry
 
+### Voice Capture (One-Tap)
+
+On the journal panel you'll find a **voice-capture** control: a round microphone
+button (bottom-right on mobile) or a "Record voice memo" button in the header
+(desktop). It records straight into today's journal using the same dictation
+pipeline described in [Voice Dictation](voice-dictation.md):
+
+1. **Tap to record** — a timer shows the recording duration.
+2. **Tap again to stop & save** (or cancel to discard) — the memo is transcribed,
+   summarized, and inserted at the end of today's journal as a structured voice
+   memo.
+3. If transcription can't be reached, **the recording is never lost**: a
+   placeholder block referencing the saved clip is inserted and a **Retry
+   transcription** action is shown.
+4. If no transcription endpoint is configured, the recording is still saved and
+   a **Configure STT** prompt links you to **Settings → AI**.
+
+The one-tap button can be disabled (or re-enabled) under
+**Settings → AI → Voice-Capture Button** (or the Speech & Audio section on
+mobile).
+
 ## Journal File Format
 
 Journal pages follow the same format as all other pages — plain Markdown with optional frontmatter:

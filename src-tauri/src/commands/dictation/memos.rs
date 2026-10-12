@@ -133,3 +133,80 @@ pub fn refresh_page_index(state: &mut VaultState, page_path: &str) -> Result<(),
     crate::commands::graph::invalidate_graph_cache();
     Ok(())
 }
+
+// ---------------------------------------------------------------------------
+// Clip-reference fallback insertion (E9.F4 — data never lost)
+// ---------------------------------------------------------------------------
+
+/// Build the placeholder markdown for a clip whose transcription has not yet
+/// succeeded. The clip stays on disk and is referenced so the recording is
+/// never lost; the reader can retry transcription afterwards.
+pub fn build_clip_placeholder_markdown(clip_rel_path: &str, duration_secs: f64) -> String {
+    let dur = format_duration(duration_secs);
+    // `clip_rel_path` is vault-relative (e.g. `assets/recordings/….flac`), so
+    // an emoji "listen" link cannot be a plain markdown link without a URL.
+    // We emit it as a bare path-caption so the rendered block is honest about
+    // what was captured while staying a valid block.
+    format!(
+        "## 🎙️ Voice Memo\n\n> _transcription pending — retry_\n\n🔊 `{clip_rel_path}` · {dur}\n"
+    )
+}
+
+/// Format a duration in seconds as `m:ss` (matching the frontend timer).
+fn format_duration(secs: f64) -> String {
+    let s = secs.round().max(0.0) as u64;
+    let m = s / 60;
+    format!("{m}:{:02}", s % 60)
+}
+
+/// Insert a placeholder memo referencing a saved clip after transcription
+/// failed. Reuses the exact `insert_memo_blocks` atomic flow (including page
+/// reindex + graph cache invalidation) so the fallback path never diverges
+/// from the normal insert. Emits `dictation:done` so any listening UI settles.
+#[tauri::command]
+pub fn dictation_insert_clip_ref(
+    page_path: String,
+    clip_rel_path: String,
+    duration_secs: f64,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, crate::commands::vault::AppState>,
+) -> Result<Vec<String>, String> {
+    use tauri::Emitter;
+
+    let mut state = state.lock().map_err(|e| e.to_string())?;
+    // Normalize an absolute recording path to vault-relative for display, so
+    // the placeholder references a stable path (mirrors `transcribe`'s clip_rel).
+    let clip = std::path::PathBuf::from(&clip_rel_path);
+    let rel = clip
+        .strip_prefix(&state.vault_path)
+        .unwrap_or(&clip)
+        .to_string_lossy()
+        .to_string();
+    let markdown = build_clip_placeholder_markdown(&rel, duration_secs);
+    let ids = insert_memo_blocks(&mut state, &page_path, &markdown)?;
+    let _ = app.emit(
+        "dictation:done",
+        serde_json::json!({ "inserted": ids.len(), "fallback": true }),
+    );
+    Ok(ids)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_clip_placeholder_markdown;
+
+    #[test]
+    fn placeholder_includes_clip_and_duration() {
+        let md = build_clip_placeholder_markdown("assets/recordings/memo.flac", 65.4);
+        assert!(md.contains("🎙️ Voice Memo"));
+        assert!(md.contains("assets/recordings/memo.flac"));
+        assert!(md.contains("1:05"));
+        assert!(md.contains("transcription pending"));
+    }
+
+    #[test]
+    fn placeholder_zero_duration() {
+        let md = build_clip_placeholder_markdown("clip.flac", 0.0);
+        assert!(md.contains("0:00"));
+    }
+}

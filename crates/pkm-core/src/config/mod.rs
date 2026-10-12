@@ -24,6 +24,8 @@ pub struct Config {
     pub stt: SttConfig,
     /// Text-to-speech (TTS) configuration.
     pub tts: TtsConfig,
+    /// Voice-capture (one-tap dictation) feature configuration.
+    pub voice: VoiceCaptureConfig,
     /// Web research configuration (SearXNG).
     pub research: ResearchConfig,
     /// Plugin enable/disable.
@@ -61,6 +63,7 @@ impl Default for Config {
             ai: AiConfig::default(),
             stt: SttConfig::default(),
             tts: TtsConfig::default(),
+            voice: VoiceCaptureConfig::default(),
             research: ResearchConfig::default(),
             plugins: Vec::new(),
             network: NetworkConfig::default(),
@@ -428,6 +431,25 @@ impl Default for TtsConfig {
             format: "mp3".to_string(),
             speed: 1.0,
             use_llm_gateway_and_auth: false,
+        }
+    }
+}
+
+/// Voice-capture (one-tap dictation) feature configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct VoiceCaptureConfig {
+    /// Whether the one-tap voice-capture button is shown in the Journal.
+    pub enabled: bool,
+    /// Insertion target. Default "journal:today".
+    pub target: String,
+}
+
+impl Default for VoiceCaptureConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            target: "journal:today".to_string(),
         }
     }
 }
