@@ -306,6 +306,13 @@ pub fn run() {
             commands::page::repair_db_from_disk,
             commands::page::normalize_file,
             commands::page::normalize_all_files,
+            // Assets
+            commands::asset::import_asset_path,
+            commands::asset::import_asset_bytes,
+            commands::asset::read_asset,
+            commands::asset::delete_asset,
+            commands::asset::list_asset_refs,
+            commands::asset::get_page_asset_refs,
             // Blocks
             commands::block::get_blocks,
             commands::block::build_markdown,

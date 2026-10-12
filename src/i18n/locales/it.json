@@ -55,6 +55,17 @@
     "searching_your_notes": "Ricerca nelle tue note…",
     "sources": "Fonti"
   },
+  "asset": {
+    "attach": "Allega",
+    "attachments": "Allegati",
+    "compressing": "Compressione immagine…",
+    "count": "{{count}} allegati",
+    "delete": "Elimina",
+    "delete_confirm": "Eliminare questo allegato?",
+    "empty": "Nessun allegato",
+    "file_too_large": "File più grande di 8 MB",
+    "upload_failed": "Caricamento non riuscito"
+  },
   "autocomplete_popup": {
     "no_results": "Nessun risultato"
   },
