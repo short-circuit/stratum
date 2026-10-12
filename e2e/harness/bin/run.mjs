@@ -118,7 +118,14 @@ async function ensureXvfb() {
   void probe;
   // Check if :99 already has an X server
   const has99 = fs.existsSync(`/tmp/.X11-unix/X${DISPLAY}`);
-  if (has99) return;
+  if (has99) {
+    // The display socket exists — export DISPLAY for ALL children
+    // (dbus-activated services like xdg-desktop-portal-gtk inherit the
+    // PARENT env, not the spawn-specific env; without it they crash with
+    // 'cannot open display' and the WebDriver session never establishes).
+    process.env.DISPLAY = `:${DISPLAY}`;
+    return;
+  }
   xvfbPid = spawn('Xvfb', [`:${DISPLAY}`, '-screen', '0', '1280x800x24', '-nolisten', 'tcp'], {
     stdio: 'ignore',
     detached: false,
@@ -126,7 +133,14 @@ async function ensureXvfb() {
   // wait for the socket
   const deadline = Date.now() + 15000;
   while (Date.now() < deadline) {
-    if (fs.existsSync(`/tmp/.X11-unix/X${DISPLAY}`)) return;
+    if (fs.existsSync(`/tmp/.X11-unix/X${DISPLAY}`)) {
+      // Export DISPLAY for the whole process tree (see above). This is the
+      // fix for CI: the harness runs under dbus-run-session with no DISPLAY;
+      // portal/GTK services dying on 'cannot open display' previously stalled
+      // WebDriver session creation indefinitely.
+      process.env.DISPLAY = `:${DISPLAY}`;
+      return;
+    }
     await sleep(500);
   }
   throw new Error(`Xvfb :${DISPLAY} did not start`);
