@@ -35,6 +35,7 @@ export const MOCK_BLOCKS: Record<string, BlockDto[]> = {
     { id: 'blk-1', content: 'Welcome to your **knowledge base**!', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 1 },
     { id: 'blk-2', content: 'Check out [[Projects]] for ongoing work.', parent_id: null, left_id: 'blk-1', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
     { id: 'blk-3', content: 'See [[Meeting Notes]] for recent discussions.', parent_id: null, left_id: 'blk-2', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
+    { id: 'blk-4', content: '![[assets/foo-abc.png]]', parent_id: null, left_id: 'blk-3', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
   ],
   'Projects': [
     { id: 'blk-10', content: '## Active Projects', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 1 },
@@ -314,6 +315,12 @@ export interface MockConfig {
    * without fighting the localStorage init-script ordering.
    */
   graphSettings?: Record<string, unknown>;
+  /**
+   * Number of consecutive `dictation_transcribe` calls that should throw
+   * (for the voice-capture error/fallback path). After the given count the
+   * command succeeds normally.
+   */
+  dictationTranscribeFailures?: number;
 }
 
 /** Default: vault configured, no errors */
@@ -400,6 +407,31 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
       }
 
       // Command handler registry
+      const MOCK_BLOCKS_DATA = ${JSON.stringify(MOCK_BLOCKS)};
+      // Mutable block store so voice-capture inserts are reflected by get_blocks
+      // (the editor remounts after a memo is inserted and re-fetches blocks).
+      let blockStore = {};
+      for (var bk in MOCK_BLOCKS_DATA) blockStore[bk] = MOCK_BLOCKS_DATA[bk].map(function (b) { return Object.assign({}, b); });
+      function appendBlocks(pagePath, blocks) {
+        if (!blockStore[pagePath]) blockStore[pagePath] = [];
+        var anchor = blockStore[pagePath].length ? blockStore[pagePath][blockStore[pagePath].length - 1].id : null;
+        var ids = [];
+        for (var i = 0; i < blocks.length; i++) {
+          blocks[i].left_id = anchor;
+          blockStore[pagePath].push(blocks[i]);
+          ids.push(blocks[i].id);
+          anchor = blocks[i].id;
+        }
+        return ids;
+      }
+      // Voice-capture call counters, readable from the test via page.evaluate.
+      window.__mockVoice = { transcribeCalls: 0, clipCalls: 0, transcribeFailures: (config.dictationTranscribeFailures || 0) };
+      const memoBlocks = [
+        { id: 'blk-memo-1', content: '## Voice Memo', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 2 },
+        { id: 'blk-memo-2', content: 'Alice: hello there', parent_id: null, left_id: 'blk-memo-1', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
+        { id: 'blk-memo-3', content: 'Bob: how are you', parent_id: null, left_id: 'blk-memo-2', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
+      ];
+
       const handlers = {
         get_vault_info: () => {
           if (!config.hasVault) throw new Error('No vault configured');
@@ -409,14 +441,28 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
         init_vault: () => ({ path: '/mock/vault', block_count: 14, page_count: 5 }),
         init_default_vault: () => ({ path: '/mock/vault', block_count: 14, page_count: 5 }),
         pick_android_directory: () => { throw new Error('No directory selected'); },
-        list_pages: () => (${JSON.stringify({ pages: MOCK_PAGES })}),
+        list_pages: () => ({
+          pages: ${JSON.stringify(MOCK_PAGES)}.map(function (p) {
+            return Object.assign({}, p);
+          }).concat([{
+            path: 'journals/' + (function () {
+              var d = new Date();
+              var m = String(d.getMonth() + 1).padStart(2, '0');
+              var day = String(d.getDate()).padStart(2, '0');
+              return d.getFullYear() + '-' + m + '-' + day;
+            })() + '.md',
+            slug: 'journal-today',
+            title: 'Today',
+            block_count: 0,
+            modified_at: '${NOW}',
+          }]),
+        }),
         open_page: (args) => {
           const pagePath = args && args.path;
           const p = ${JSON.stringify(MOCK_PAGES)}.find(mp => mp.path === pagePath);
-          const blocks = ${JSON.stringify(MOCK_BLOCKS)};
           return {
             ...(p ?? { path: pagePath, slug: (pagePath || '').toLowerCase().replace(/\\s+/g, '-'), title: pagePath, block_count: 0, modified_at: '${NOW}' }),
-            blocks: blocks[pagePath] ?? [],
+            blocks: blockStore[pagePath] ?? [],
           };
         },
         save_page: () => {},
@@ -438,7 +484,7 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
         build_markdown: () => '# Mock markdown',
         save_blocks: () => {},
         get_blocks: (args) => {
-          const blocks = ${JSON.stringify(MOCK_BLOCKS)};
+          const blocks = blockStore;
           return { blocks: blocks[args && args.pagePath] ?? [] };
         },
         update_block: () => {},
@@ -454,6 +500,33 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
           collapsed: false,
           heading_level: null,
         }),
+        // --- Asset / attachment commands ---
+        get_page_asset_refs: () => ([
+          { vault_relative_path: 'assets/foo-abc.png', mime: 'image/png', size: 2048, sha256: 'aa' },
+          { vault_relative_path: 'assets/doc-123.pdf', mime: 'application/pdf', size: 4096, sha256: 'bb' },
+        ]),
+        list_asset_refs: () => ([
+          { vault_relative_path: 'assets/foo-abc.png', mime: 'image/png', size: 2048, sha256: 'aa' },
+          { vault_relative_path: 'assets/doc-123.pdf', mime: 'application/pdf', size: 4096, sha256: 'bb' },
+        ]),
+        read_asset: () => ({
+          data_base64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+          mime: 'image/png',
+          size: 78,
+        }),
+        import_asset_bytes: (args) => ({
+          vault_relative_path: 'assets/' + (args.originalName || 'paste.png'),
+          mime: args.mime || 'application/octet-stream',
+          size: 100,
+          sha256: 'cc',
+        }),
+        import_asset_path: (args) => ({
+          vault_relative_path: 'assets/' + (args.path || 'file.png'),
+          mime: 'image/png',
+          size: 100,
+          sha256: 'dd',
+        }),
+        delete_asset: () => {},
         search_blocks: (args) => {
           const q = (args && args.query || '').toLowerCase();
           const results = ${JSON.stringify(MOCK_SEARCH_RESULTS)};
@@ -572,7 +645,27 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
           duration_secs: 42,
         }),
         dictation_cancel: () => {},
-        dictation_transcribe: () => (${JSON.stringify(MOCK_DICTATION_RESULT)}),
+        dictation_transcribe: (args) => {
+          window.__mockVoice.transcribeCalls += 1;
+          if (window.__mockVoice.transcribeFailures > 0) {
+            window.__mockVoice.transcribeFailures -= 1;
+            throw new Error('mock transient transcription failure');
+          }
+          const page = args && args.pagePath;
+          if (page) appendBlocks(page, memoBlocks.map(function (b) { return Object.assign({}, b); }));
+          return ${JSON.stringify(MOCK_DICTATION_RESULT)};
+        },
+        dictation_insert_clip_ref: (args) => {
+          window.__mockVoice.clipCalls += 1;
+          const page = args && args.pagePath;
+          const clipBlock = [
+            { id: 'blk-clip-1', content: '## 🎙️ Voice Memo', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 2 },
+            { id: 'blk-clip-2', content: '> _transcription pending — retry_', parent_id: null, left_id: 'blk-clip-1', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
+          ];
+          return page ? appendBlocks(page, clipBlock) : [];
+        },
+        mic_permission_status: () => ({ granted: true, restricted: false }),
+        request_mic_permission: () => ({}),
         speaker_list: () => [],
         speaker_assign: (args) => ({
           name: args && args.name,

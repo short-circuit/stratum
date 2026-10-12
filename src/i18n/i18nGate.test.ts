@@ -95,6 +95,7 @@ const ALLOW_EXACT = new Set([
   'http://localhost:8888', 'http://localhost:9000', '~/.ssh/id_ed25519',
   'pyannote/speaker-diarization', 'whisper-1', 'gpt-4o', 'alloy', 'mp3', 'wav', 'flac',
   'main', 'master', 'pages/my-new-page.md', '#f97316', '#6b7280',
+  'journal:today', // voice-capture insertion target config token
   '1x', '2x', '1.5x', '0 0 80px', '0 0 120px', '0 0 160px', '0 0 auto',
   '1 1 auto', '1 1 45%', '50%!important', '56px !important', '20px !important',
   'underline dashed', 'pointer-events:none;transform-origin:0 0;',
@@ -102,7 +103,8 @@ const ALLOW_EXACT = new Set([
   'gap: 3px', 'user-select: none', 'vertical-align: middle', 'height: 18px',
   'letter-spacing: 0.02em', 'cursor: pointer', 'cursor: default', 'justify-content: center',
   'height: 14px', 'align-items: center', '-webkit-box', 'pre > code.language-mermaid',
-  'stratum:', 'stratum-tag:', 'a[data-inline-content-type="link"][href^="stratum:"]',
+  'stratum:', 'stratum-tag:', 'stratum-asset:', 'a[data-inline-content-type="link"][href^="stratum:"]',
+  '0 B',
   '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
   '.blocknote-editor-container, .bn-editor, .ProseMirror',
   '{datetime}', '{editedfiles}', '{newfiles}', '{deletedfiles}', '{count}',

@@ -9,6 +9,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import OutlinerEditor from '../OutlinerEditor';
 import JournalCalendar from '../JournalCalendar';
+import VoiceCaptureButton from '../VoiceCaptureButton';
 import { useJournalPanel, formatDisplayDate } from './JournalPanel.shared';
 import { useTranslation } from 'react-i18next';
 
@@ -29,6 +30,9 @@ export default function JournalPanelDesktop() {
     journalError,
     retryJournal,
     repairJournal,
+    editorNonce,
+    bumpEditorNonce,
+    loadPages,
     targetDate,
     allJournalDates,
     pastDates,
@@ -75,16 +79,25 @@ export default function JournalPanelDesktop() {
             <ChevronRightIcon />
           </IconButton>
         </Box>
-        <IconButton
-          size="small"
-          onClick={(e) => {
-            setCalendarAnchorEl(e.currentTarget);
-            setCalendarOpen((o) => !o);
-          }}
-          aria-label={t('journal_calendar.calendar')}
-        >
-          <CalendarMonthIcon fontSize="small" />
-        </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              setCalendarAnchorEl(e.currentTarget);
+              setCalendarOpen((o) => !o);
+            }}
+            aria-label={t('journal_calendar.calendar')}
+          >
+            <CalendarMonthIcon fontSize="small" />
+          </IconButton>
+          <VoiceCaptureButton
+            targetPath={todayPagePath}
+            onInserted={() => {
+              bumpEditorNonce();
+              loadPages();
+            }}
+          />
+        </Box>
       </Box>
 
       <JournalCalendar
@@ -116,7 +129,7 @@ export default function JournalPanelDesktop() {
         // content rather than stretching to the viewport height of the
         // scroll container (see fill-viewport fix).
         <Box>
-          <OutlinerEditor pagePath={todayPagePath} minHeight="0" />
+          <OutlinerEditor key={editorNonce} pagePath={todayPagePath} minHeight="0" />
         </Box>
       )}
 

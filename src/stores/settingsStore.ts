@@ -59,6 +59,11 @@ export interface TraySettings {
   inbox_path: string;
 }
 
+export interface VoiceSettings {
+  enabled: boolean;
+  target: string;
+}
+
 export interface AppSettings {
   vault_path: string;
   locale: string;
@@ -70,6 +75,7 @@ export interface AppSettings {
   stt: SttSettings;
   tts: TtsSettings;
   tray: TraySettings;
+  voice: VoiceSettings;
   [key: string]: unknown;
 }
 
@@ -87,6 +93,7 @@ export interface SettingsState {
   updateStt: (patch: Partial<SttSettings>) => void;
   updateTts: (patch: Partial<TtsSettings>) => void;
   updateTray: (patch: Partial<TraySettings>) => void;
+  updateVoice: (patch: Partial<VoiceSettings>) => void;
   updateLocale: (locale: string) => void;
   setSettings: (settings: AppSettings) => void;
 }
@@ -170,6 +177,12 @@ export const DEFAULT_TRAY: TraySettings = {
   inbox_path: 'Inbox.md',
 };
 
+/** Default voice-capture settings. Keep in sync with `VoiceCaptureConfig::default()`. */
+const DEFAULT_VOICE: VoiceSettings = {
+  enabled: true,
+  target: 'journal:today',
+};
+
 const DEFAULT_SETTINGS: AppSettings = {
   vault_path: '',
   locale: 'en',
@@ -181,6 +194,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   stt: DEFAULT_STT,
   tts: DEFAULT_TTS,
   tray: DEFAULT_TRAY,
+  voice: DEFAULT_VOICE,
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -206,6 +220,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           stt: result.stt ? { ...DEFAULT_STT, ...result.stt } : DEFAULT_STT,
           tts: result.tts ? { ...DEFAULT_TTS, ...result.tts } : DEFAULT_TTS,
           tray: { ...DEFAULT_TRAY, ...result.tray },
+          voice: result.voice ? { ...DEFAULT_VOICE, ...result.voice } : DEFAULT_VOICE,
         },
         loading: false,
       });
@@ -265,6 +280,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const s = get().settings;
     if (!s) return;
     set({ settings: { ...s, tray: { ...s.tray, ...patch } } });
+  },
+
+  updateVoice: (patch) => {
+    const s = get().settings;
+    if (!s) return;
+    set({ settings: { ...s, voice: { ...s.voice, ...patch } } });
   },
 
   updateLocale: (locale) => {

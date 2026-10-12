@@ -10,9 +10,12 @@ interface DeveloperTabProps {
   onRepair: () => Promise<void>;
   onNormalizeAll: () => Promise<void>;
   reindexProgress: { message: string; percent: number } | null;
+  onResetOnboarding: () => Promise<void>;
+  onInstallTemplates: () => Promise<void>;
+  installing: boolean;
 }
 
-export default function DeveloperTab({ fetching, onReindex, onRepair, onNormalizeAll, reindexProgress }: DeveloperTabProps) {
+export default function DeveloperTab({ fetching, onReindex, onRepair, onNormalizeAll, reindexProgress, onResetOnboarding, onInstallTemplates, installing }: DeveloperTabProps) {
   const { t } = useTranslation();
   return (
     <Box>
@@ -64,6 +67,32 @@ export default function DeveloperTab({ fetching, onReindex, onRepair, onNormaliz
           disabled={fetching}
         >
           {fetching ? t('settings.normalizing') : t('settings.normalize_all_files')}
+        </Button>
+      </Box>
+
+      <Box sx={{ maxWidth: 480, mt: 3 }}>
+        <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>
+          {t('settings.developer')}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+          {t('settings.reset_onboarding_help')}
+        </Typography>
+        <Button
+          variant="outlined"
+          onClick={onResetOnboarding}
+          disabled={installing}
+        >
+          {t('settings.reset_onboarding')}
+        </Button>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5, mt: 2 }}>
+          {t('settings.install_starter_templates_help')}
+        </Typography>
+        <Button
+          variant="outlined"
+          onClick={onInstallTemplates}
+          disabled={installing}
+        >
+          {installing ? t('onboarding.installing') : t('settings.install_starter_templates')}
         </Button>
       </Box>
     </Box>

@@ -334,6 +334,20 @@ export interface TtsSettings {
   speed: number;
 }
 
+// --- Voice capture (E9.F4) ---
+
+/** Voice-capture feature settings (mirrors `VoiceCaptureConfig` in pkm-core). */
+export interface VoiceSettings {
+  enabled: boolean;
+  target: string;
+}
+
+/** Result of `mic_permission_status`. */
+export interface MicPermissionDto {
+  granted: boolean;
+  restricted: boolean;
+}
+
 export interface SpeakerDto {
   name: string;
   clip: string | null;
@@ -441,4 +455,19 @@ export interface ImportReport {
   dry_run: boolean;
   errors: string[];
   imported_paths: string[];
+}
+
+// --- Assets / attachments ---
+
+export interface AssetRefDto {
+  vault_relative_path: string;
+  mime: string;
+  size: number;
+  sha256: string;
+}
+
+export interface AssetBytesDto {
+  data_base64: string;
+  mime: string;
+  size: number;
 }

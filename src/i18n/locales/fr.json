@@ -55,6 +55,17 @@
     "searching_your_notes": "Recherche dans vos notes…",
     "sources": "Sources"
   },
+  "asset": {
+    "attach": "Joindre",
+    "attachments": "Pièces jointes",
+    "compressing": "Compression de l’image…",
+    "count": "{{count}} pièce(s) jointe(s)",
+    "delete": "Supprimer",
+    "delete_confirm": "Supprimer cette pièce jointe ?",
+    "empty": "Aucune pièce jointe",
+    "file_too_large": "Fichier de plus de 8 Mo",
+    "upload_failed": "Échec de l’envoi"
+  },
   "autocomplete_popup": {
     "no_results": "Aucun résultat"
   },
@@ -644,7 +655,13 @@
     "tray_capture_target": "Cible de la capture rapide",
     "tray_capture_target_journal": "Journal du jour",
     "tray_capture_target_inbox": "Page Boîte de réception",
-    "tray_inbox_path": "Chemin de la page Boîte de réception"
+    "tray_inbox_path": "Chemin de la page Boîte de réception",
+    "reset_onboarding": "Réinitialiser l'onboarding",
+    "reset_onboarding_help": "Afficher l'assistant au prochain lancement.",
+    "install_starter_templates": "Installer les modèles de démarrage",
+    "install_starter_templates_help": "Ajouter les modèles de démarrage inclus à ce coffre.",
+    "onboarding_reset_done": "L'onboarding réapparaîtra au prochain lancement.",
+    "templates_installed": "{{count}} modèle(s) de démarrage installé(s)."
   },
   "sidebar": {
     "ask_notes": "Interroger les notes",
@@ -735,5 +752,39 @@
     "target_label": "Cible :",
     "target_journal": "Journal du jour",
     "target_inbox": "Boîte de réception"
+  },
+  "onboarding": {
+    "welcome_title": "Bienvenue sur Stratum",
+    "welcome_subtitle": "Configurez votre premier coffre et commencez à capturer des idées.",
+    "choose_vault_folder": "Choisir le dossier du coffre",
+    "next": "Suivant",
+    "back": "Retour",
+    "start_with_templates": "Commencer avec des modèles",
+    "templates_hint": "Installez un ensemble organisé de pages de démarrage dans votre coffre.",
+    "sample_vault": "Créer un coffre d'exemple",
+    "sample_vault_hint": "Ajoutez quelques notes d'exemple liées montrant les rétroliens et le graphique.",
+    "finish": "Commencer",
+    "finish_title": "Tout est prêt",
+    "finish_hint": "Votre coffre est prêt. Ouvrez le guide de démarrage rapide pour explorer.",
+    "open_quick_start": "Ouvrir le guide de démarrage rapide",
+    "installing": "Installation...",
+    "error": "Une erreur s'est produite : {{message}}",
+    "step": "Étape {{current}} sur {{total}}"
+  },
+  "voice_capture": {
+    "cancel": "Annuler",
+    "configure_stt": "Configurer STT",
+    "configure_stt_prompt": "La transcription n'est pas configurée. L'enregistrement a été sauvegardé comme espace réservé.",
+    "denied_banner": "Le permission du micro est refusée. Activez-la dans les Paramètres.",
+    "enable": "Activer la capture vocale",
+    "error_fallback_inserted": "Transcription impossible — l'enregistrement a été sauvegardé comme espace réservé du memo.",
+    "error_retry": "Une erreur s'est produite.",
+    "memo_inserted": "Memo vocal inséré",
+    "record": "Enregistrer un memo vocal",
+    "recording": "Enregistrement…",
+    "retry_transcription": "Réessayer la transcription",
+    "settings_target_today": "Les captures sont insérées dans le journal du jour.",
+    "settings_toggle_label": "Bouton de capture vocale",
+    "stop_save": "Arrêter et sauvegarder"
   }
 }

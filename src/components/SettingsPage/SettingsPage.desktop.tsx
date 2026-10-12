@@ -34,6 +34,7 @@ export default function SettingsPageDesktop() {
     syncSettings,
     stt,
     tts,
+    voice,
     locale,
     onLocaleChange,
     setMsg,
@@ -46,6 +47,7 @@ export default function SettingsPageDesktop() {
     updateTts,
     tray,
     updateTray,
+    updateVoice,
     handleSave,
     handleFetchModels,
     handleReindex,
@@ -57,6 +59,9 @@ export default function SettingsPageDesktop() {
     handleToggleCommits,
     handleStartScheduler,
     handlePickVaultDirectory,
+    handleResetOnboarding,
+    handleInstallStarterTemplates,
+    installing,
   } = useSettingsPage();
 
   if (!settings) {
@@ -133,13 +138,24 @@ export default function SettingsPageDesktop() {
             onSttChange={updateStt}
             tts={tts}
             onTtsChange={updateTts}
+            voice={voice}
+            onVoiceChange={updateVoice}
           />
         )}
         {tab === 'research' && (
           <ResearchTab research={research} onResearchChange={updateResearch} />
         )}
         {tab === 'developer' && (
-          <DeveloperTab fetching={fetching} onReindex={handleReindex} onRepair={handleRepair} onNormalizeAll={handleNormalizeAll} reindexProgress={reindexProgress} />
+          <DeveloperTab
+            fetching={fetching}
+            onReindex={handleReindex}
+            onRepair={handleRepair}
+            onNormalizeAll={handleNormalizeAll}
+            reindexProgress={reindexProgress}
+            onResetOnboarding={handleResetOnboarding}
+            onInstallTemplates={handleInstallStarterTemplates}
+            installing={installing}
+          />
         )}
         {tab === 'sync' && (
           <SyncTab

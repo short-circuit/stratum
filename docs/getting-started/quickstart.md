@@ -4,13 +4,21 @@ Get up and running with Stratum in 5 minutes.
 
 ## First Launch
 
-When you start Stratum for the first time, you'll see the **Vault Picker** screen:
+On the first run of a brand-new vault, Stratum shows an **onboarding wizard** that walks you
+through setting up a working vault in under a minute:
 
-<!-- SCREENSHOT: [vault-picker] Welcome screen showing the "Choose Vault Folder" button and onboarding text -->
+<!-- SCREENSHOT: [onboarding] Onboarding welcome step with "Choose Vault Folder" button -->
 
-1. Click **Choose Vault Folder**
-2. Select an empty directory (or a new folder) — this will be your **vault**
-3. Stratum creates a `.pkm/` cache directory inside the vault and loads the interface
+1. **Welcome** — Choose a vault folder (or use the vault that was already created).
+2. **Templates** — Optionally install a curated set of **starter templates** into your vault's
+   `templates/` directory (daily note, meeting notes, reading list, project tracker, and more).
+3. **Sample vault** — Optionally seed a few linked example notes that demonstrate backlinks and
+   the knowledge graph (only if the vault is empty).
+4. **Finish** — Open the Quick Start guide to explore your new vault.
+
+The wizard only appears once per vault. You can re-run it any time from
+**Settings → Developer → Reset onboarding**. See the
+[Templates guide](../guide/templates.md) for details on the bundled starter set.
 
 !!! info "What's a vault?"
     A vault is simply a directory of Markdown files. All your notes live here as plain `.md` files.

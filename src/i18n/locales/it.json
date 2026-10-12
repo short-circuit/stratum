@@ -55,6 +55,17 @@
     "searching_your_notes": "Ricerca nelle tue note…",
     "sources": "Fonti"
   },
+  "asset": {
+    "attach": "Allega",
+    "attachments": "Allegati",
+    "compressing": "Compressione immagine…",
+    "count": "{{count}} allegati",
+    "delete": "Elimina",
+    "delete_confirm": "Eliminare questo allegato?",
+    "empty": "Nessun allegato",
+    "file_too_large": "File più grande di 8 MB",
+    "upload_failed": "Caricamento non riuscito"
+  },
   "autocomplete_popup": {
     "no_results": "Nessun risultato"
   },
@@ -644,7 +655,13 @@
     "tray_capture_target": "Destinazione cattura rapida",
     "tray_capture_target_journal": "Diario di oggi",
     "tray_capture_target_inbox": "Pagina Posta in arrivo",
-    "tray_inbox_path": "Percorso pagina Posta in arrivo"
+    "tray_inbox_path": "Percorso pagina Posta in arrivo",
+    "reset_onboarding": "Reimposta onboarding",
+    "reset_onboarding_help": "Mostra di nuovo la procedura guidata al prossimo avvio.",
+    "install_starter_templates": "Installa modelli iniziali",
+    "install_starter_templates_help": "Aggiungi i modelli iniziali inclusi a questo vault.",
+    "onboarding_reset_done": "L'onboarding apparirà di nuovo al prossimo avvio.",
+    "templates_installed": "Installati {{count}} modelli iniziali."
   },
   "sidebar": {
     "ask_notes": "Chiedi alle note",
@@ -735,5 +752,39 @@
     "target_label": "Destinazione:",
     "target_journal": "Diario di oggi",
     "target_inbox": "Posta in arrivo"
+  },
+  "onboarding": {
+    "welcome_title": "Benvenuto su Stratum",
+    "welcome_subtitle": "Configura il tuo primo vault e inizia a catturare idee.",
+    "choose_vault_folder": "Scegli la cartella del vault",
+    "next": "Avanti",
+    "back": "Indietro",
+    "start_with_templates": "Inizia con i modelli",
+    "templates_hint": "Installa un set curato di pagine iniziali nel tuo vault.",
+    "sample_vault": "Crea un vault di esempio",
+    "sample_vault_hint": "Aggiungi alcune note di esempio collegate che mostrano backlink e grafo.",
+    "finish": "Inizia",
+    "finish_title": "Tutto pronto",
+    "finish_hint": "Il tuo vault è pronto. Apri la guida rapida per esplorare.",
+    "open_quick_start": "Apri la guida rapida",
+    "installing": "Installazione...",
+    "error": "Qualcosa è andato storto: {{message}}",
+    "step": "Passaggio {{current}} di {{total}}"
+  },
+  "voice_capture": {
+    "cancel": "Annulla",
+    "configure_stt": "Configura STT",
+    "configure_stt_prompt": "La trascrizione non è configurata. La registrazione è stata salvata come segnaposto.",
+    "denied_banner": "Il permesso del microfono è negato. Abilitalo nelle Impostazioni.",
+    "enable": "Abilita acquisizione vocale",
+    "error_fallback_inserted": "Trascrizione non riuscita – la registrazione è stata salvata come segnaposto nel memo.",
+    "error_retry": "Qualcosa è andato storto.",
+    "memo_inserted": "Memo vocale inserito",
+    "record": "Registra memo vocale",
+    "recording": "Registrazione…",
+    "retry_transcription": "Riprova trascrizione",
+    "settings_target_today": "Le acquisizioni vengono inserite nel journal di oggi.",
+    "settings_toggle_label": "Pulsante acquisizione vocale",
+    "stop_save": "Ferma e salva"
   }
 }
