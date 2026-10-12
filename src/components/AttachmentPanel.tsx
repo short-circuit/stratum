@@ -44,9 +44,11 @@ export default function AttachmentPanel({ pagePath }: Props) {
 
   const refresh = useCallback(async () => {
     try {
-      setRefs(await api.getPageAssetRefs(pagePath));
+      const refs = await api.getPageAssetRefs(pagePath);
+      setRefs(Array.isArray(refs) ? refs : []);
     } catch (e) {
       console.error(t('asset.upload_failed'), e);
+      setRefs([]);
     }
   }, [pagePath, t]);
 

@@ -117,6 +117,7 @@ async function mockJournalApp(page: Page): Promise<void> {
               title: String(args?.path), block_count: 0, modified_at: now, blocks: [],
             }),
             get_blocks: () => ({ blocks: blocksByPath[String(args?.pagePath)] ?? [] }),
+            get_page_asset_refs: () => [],
             get_page_backlinks: () => [],
             get_backlink_snippet: () => ({ context: '', snippet: '' }),
             suggest_connections: () => [],
