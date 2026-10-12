@@ -57,6 +57,8 @@ export interface TraySettings {
   quick_capture_shortcut: string;
   capture_target: string;
   inbox_path: string;
+}
+
 export interface VoiceSettings {
   enabled: boolean;
   target: string;
@@ -173,6 +175,8 @@ export const DEFAULT_TRAY: TraySettings = {
   quick_capture_shortcut: 'CmdOrCtrl+Shift+Space',
   capture_target: 'journal',
   inbox_path: 'Inbox.md',
+};
+
 /** Default voice-capture settings. Keep in sync with `VoiceCaptureConfig::default()`. */
 const DEFAULT_VOICE: VoiceSettings = {
   enabled: true,
@@ -276,6 +280,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const s = get().settings;
     if (!s) return;
     set({ settings: { ...s, tray: { ...s.tray, ...patch } } });
+  },
+
   updateVoice: (patch) => {
     const s = get().settings;
     if (!s) return;
