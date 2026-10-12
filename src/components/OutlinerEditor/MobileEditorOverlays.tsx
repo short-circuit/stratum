@@ -18,8 +18,12 @@
 import { useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import Fab from '@mui/material/Fab';
+import IconButton from '@mui/material/IconButton';
+import Menu from '@mui/material/Menu';
+import Divider from '@mui/material/Divider';
 import AddIcon from '@mui/icons-material/Add';
 import FlagIcon from '@mui/icons-material/Flag';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import LinkPreviewPopup from '../LinkPreviewPopup';
 import MathEditorModal from '../MathEditorModal';
 import { MobileInsertMenu } from './MobileInsertMenu';
@@ -27,6 +31,8 @@ import { MobileMarkerMenu } from './MobileMarkerMenu';
 import { MobileBlockActionsMenu } from './MobileBlockActionsMenu';
 import { DeadLinkCreatePopup } from './DeadLinkCreatePopup';
 import { useMobileBlockContextMenu } from './useMobileBlockContextMenu';
+import { InsertMenuItems, MarkerMenuItems } from './editorActionMenuItems';
+import { MARKER_OPTIONS } from './markerOptions';
 import { useTranslation } from 'react-i18next';
 import type {
   MathEditState,
@@ -49,6 +55,17 @@ export interface MobileEditorOverlaysProps {
   onInsert: (type: string, level?: number) => void;
   onInsertMath: () => void;
   onApplyMarker: (marker: string) => void;
+  /**
+   * "Row mode" for journal-list rows: the editor is rendered inside a
+   * content-sized row (not a full-page viewport), so the two bottom-anchored
+   * FABs would overflow the container and overlap the row above / the text.
+   * When true, this component renders a SINGLE inconspicuous action IconButton
+   * pinned inside a reserved top-right region (container min-height + content
+   * right padding) instead, opening one combined Insert + Marker menu.
+   * All other capabilities (long-press menu, preview, dead link, math modal)
+   * are unaffected. Default false (full-page editor keeps the FABs).
+   */
+  rowActions?: boolean;
 }
 
 export default function MobileEditorOverlays({
@@ -65,6 +82,7 @@ export default function MobileEditorOverlays({
   onInsert,
   onInsertMath,
   onApplyMarker,
+  rowActions = false,
 }: MobileEditorOverlaysProps) {
   const { t } = useTranslation();
   // -----------------------------------------------------------------------
@@ -76,6 +94,11 @@ export default function MobileEditorOverlays({
   // Marker menu state
   // -----------------------------------------------------------------------
   const [markerAnchor, setMarkerAnchor] = useState<HTMLElement | null>(null);
+
+  // -----------------------------------------------------------------------
+  // Row-mode combined actions menu state (journal list rows)
+  // -----------------------------------------------------------------------
+  const [rowMenuAnchor, setRowMenuAnchor] = useState<HTMLElement | null>(null);
 
   // -----------------------------------------------------------------------
   // Long-press context menu
@@ -106,11 +129,19 @@ export default function MobileEditorOverlays({
 
   return (
     <>
-      {/* Editor container — uses long-press for context menu */}
+      {/* Editor container — uses long-press for context menu.
+          Row mode: the container reserves a top-right action region
+          (min-height + right padding) so the single action button can NEVER
+          overlap the row content or overflow into adjacent rows. */}
       <div
         ref={containerRef}
         className="blocknote-editor-container"
-        style={{ flex: 1, minHeight: 0, position: 'relative' }}
+        style={{
+          flex: 1,
+          minHeight: rowActions ? 64 : 0,
+          paddingRight: rowActions ? 56 : 0,
+          position: 'relative',
+        }}
         // Mobile touch events for long-press on blocks
         onTouchStart={longPressHandlers.onTouchStart}
         onTouchEnd={longPressHandlers.onTouchEnd}
@@ -122,7 +153,31 @@ export default function MobileEditorOverlays({
       >
         {children}
 
-        {/* Floating + insert button */}
+        {rowActions ? (
+          /* Single inconspicuous row action button (journal list rows).
+             40px touch target; the container's reserved region keeps it from
+             overlapping text or neighbouring rows. Opens ONE combined menu
+             (insert + markers) — replaces the two FABs whose bottom-anchored
+             absolute positioning overflowed the content-sized row (bug
+             t_1100de53). */
+          <IconButton
+            aria-label={t('editor.row_actions')}
+            onClick={(e) => setRowMenuAnchor(e.currentTarget)}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              width: 40,
+              height: 40,
+              zIndex: 1200,
+              color: 'text.secondary',
+            }}
+          >
+            <MoreHorizIcon />
+          </IconButton>
+        ) : (
+          <>
+            {/* Floating + insert button (full-page editor only) */}
         <Fab
           color="primary"
           size="medium"
@@ -168,6 +223,23 @@ export default function MobileEditorOverlays({
           onClose={() => setMarkerAnchor(null)}
           onApplyMarker={onApplyMarker}
         />
+          </>
+        )}
+
+        {rowActions && (
+          <Menu
+            open={Boolean(rowMenuAnchor)}
+            anchorEl={rowMenuAnchor}
+            onClose={() => setRowMenuAnchor(null)}
+            anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+            transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            slotProps={{ paper: { sx: { minWidth: 180, maxHeight: '60vh', overflow: 'auto' } } }}
+          >
+            <InsertMenuItems onInsert={onInsert} onInsertMath={onInsertMath} />
+            <Divider />
+            <MarkerMenuItems markers={MARKER_OPTIONS} onApplyMarker={onApplyMarker} />
+          </Menu>
+        )}
 
         <MobileBlockActionsMenu
           menu={contextMenu}

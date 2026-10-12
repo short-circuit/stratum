@@ -17,6 +17,8 @@ Journal is fully available on mobile (Android/iOS and small browser viewports). 
 - **Previous/Next day arrows** at the top of the panel work exactly as on desktop.
 - The **date header** opens the calendar. On mobile the calendar renders as a **full-screen dialog** (rather than the desktop popup) to provide larger touch targets and focused navigation — this is an intentional, documented deviation; the calendar logic is shared.
 - The entry stack scrolls inside the panel; older entries load as you scroll, matching desktop behavior.
+- **Row actions**: each journal row (the in-place editors for today and past days) shows a single **⋮ action button** pinned in the row's top-right corner (invisible except on the row itself; 40px touch target). It opens one menu with **Insert** (paragraph / heading 1–3 / code / mermaid / math) and **Marker** (TODO/DOING/DONE/NOW/LATER/WAITING/CANCELLED) options. The full-page editor (opened from a page, e.g. via search) keeps its two floating +/flag buttons instead — the journal intentionally uses the per-row button because floating FABs overflow the compact journal rows and overlap the date headers/text (bug fix t_1100de53).
+- Long-press a block to open the context menu (cut / copy / read aloud / delete), same as on desktop.
 
 Parity screenshots: [after (mobile)](../assets/images/journal-after-mobile.png), [before (mobile)](../assets/images/journal-before-mobile.png), [after (desktop)](../assets/images/journal-after-desktop.png), [before (desktop)](../assets/images/journal-before-desktop.png).
 

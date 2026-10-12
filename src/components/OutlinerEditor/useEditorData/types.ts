@@ -19,6 +19,13 @@ export interface Props {
   highlightBlockId?: string;
   /** When set, focuses this block (start of content) once the editor mounts (prose→edit jump). */
   focusBlockId?: string;
+  /**
+   * Journal-list "row mode": the editor is rendered inside a content-sized
+   * row, so the mobile variant replaces its two bottom-anchored FABs with a
+   * single reserved-region action button that cannot overflow/overlap
+   * (bug t_1100de53). Ignored by the desktop variant.
+   */
+  rowActions?: boolean;
 }
 
 export type MathEditState = { latex: string; pos: number } | null;
