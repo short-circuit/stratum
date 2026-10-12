@@ -35,6 +35,7 @@ export const MOCK_BLOCKS: Record<string, BlockDto[]> = {
     { id: 'blk-1', content: 'Welcome to your **knowledge base**!', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 1 },
     { id: 'blk-2', content: 'Check out [[Projects]] for ongoing work.', parent_id: null, left_id: 'blk-1', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
     { id: 'blk-3', content: 'See [[Meeting Notes]] for recent discussions.', parent_id: null, left_id: 'blk-2', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
+    { id: 'blk-4', content: '![[assets/foo-abc.png]]', parent_id: null, left_id: 'blk-3', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
   ],
   'Projects': [
     { id: 'blk-10', content: '## Active Projects', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 1 },
@@ -454,6 +455,33 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
           collapsed: false,
           heading_level: null,
         }),
+        // --- Asset / attachment commands ---
+        get_page_asset_refs: () => ([
+          { vault_relative_path: 'assets/foo-abc.png', mime: 'image/png', size: 2048, sha256: 'aa' },
+          { vault_relative_path: 'assets/doc-123.pdf', mime: 'application/pdf', size: 4096, sha256: 'bb' },
+        ]),
+        list_asset_refs: () => ([
+          { vault_relative_path: 'assets/foo-abc.png', mime: 'image/png', size: 2048, sha256: 'aa' },
+          { vault_relative_path: 'assets/doc-123.pdf', mime: 'application/pdf', size: 4096, sha256: 'bb' },
+        ]),
+        read_asset: () => ({
+          data_base64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+          mime: 'image/png',
+          size: 78,
+        }),
+        import_asset_bytes: (args) => ({
+          vault_relative_path: 'assets/' + (args.originalName || 'paste.png'),
+          mime: args.mime || 'application/octet-stream',
+          size: 100,
+          sha256: 'cc',
+        }),
+        import_asset_path: (args) => ({
+          vault_relative_path: 'assets/' + (args.path || 'file.png'),
+          mime: 'image/png',
+          size: 100,
+          sha256: 'dd',
+        }),
+        delete_asset: () => {},
         search_blocks: (args) => {
           const q = (args && args.query || '').toLowerCase();
           const results = ${JSON.stringify(MOCK_SEARCH_RESULTS)};

@@ -138,6 +138,7 @@ stratum/
 │   │   ├── MarkerBadge.tsx
 │   │   ├── StratumIcon.tsx
 │   │   ├── SuggestedConnectionsPanel.tsx
+│   │   ├── AttachmentPanel.tsx
 │   │   ├── KanbanEditDialog.tsx
 │   │   ├── MobileLayout.tsx
 │   │   ├── MobileNav.tsx
@@ -285,6 +286,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `BacklinkSnippetBody` | `BacklinksPanel` | Renders backlinked block snippet (title, context, anchor highlight, loading/error) |
 | `BacklinkSnippetPopup` | `BacklinksPanel` (desktop) | Viewport-clamped popup for the backlink snippet (Ctrl+hover) |
 | `SuggestedConnectionsPanel` | `PageView` | AI-suggested wiki-link connections |
+| `AttachmentPanel` | `PageView` | Lists page attachments (`assets/…` refs), attach/upload with compression, delete; page metadata chip |
 | `MermaidBlock` | `OutlinerEditor` | Custom BlockNote block for Mermaid diagrams |
 | `AISlashMenu` | `OutlinerEditor` | Slash menu with AI actions (rewrite, summarize, etc.) |
 | `AIFormattingToolbar` | `OutlinerEditor` | Formatting toolbar with AI buttons |

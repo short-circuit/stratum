@@ -382,3 +382,18 @@ export interface PluginHttpRequestDto {
   headers: [string, string][];
   body: string;
 }
+
+// --- Assets / attachments ---
+
+export interface AssetRefDto {
+  vault_relative_path: string;
+  mime: string;
+  size: number;
+  sha256: string;
+}
+
+export interface AssetBytesDto {
+  data_base64: string;
+  mime: string;
+  size: number;
+}

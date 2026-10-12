@@ -6,9 +6,11 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MicNoneIcon from '@mui/icons-material/MicNone';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 import OutlinerEditor from '../OutlinerEditor';
 import BacklinksPanel from '../BacklinksPanel';
 import DictationPanel from '../DictationPanel';
+import AttachmentPanel, { FILE_INPUT_ID } from '../AttachmentPanel';
 import { usePageView } from './shared';
 import { useStore } from '../../stores/appStore';
 import { useState } from 'react';
@@ -57,6 +59,14 @@ export default function PageViewMobile() {
           <MicNoneIcon fontSize="small" />
         </IconButton>
 
+        <IconButton
+          size="small"
+          onClick={() => document.getElementById(FILE_INPUT_ID)?.click()}
+          title={t('asset.attach')}
+        >
+          <AttachFileIcon fontSize="small" />
+        </IconButton>
+
         <IconButton size="small" onClick={handleReindex} disabled={reindexing} title={t('page.reindex')}>
           <RefreshIcon fontSize="small" />
         </IconButton>
@@ -80,6 +90,7 @@ export default function PageViewMobile() {
         <OutlinerEditor key={editorKey} pagePath={currentPage.path} />
       </Box>
 
+      <AttachmentPanel pagePath={currentPage.path} />
       <BacklinksPanel pagePath={currentPage.path} />
     </Box>
   );

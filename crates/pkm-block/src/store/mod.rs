@@ -15,7 +15,10 @@ mod pages;
 mod queries;
 
 pub struct BlockStore {
-    conn: Connection,
+    /// The underlying SQLite connection. `pub(crate)` so crate-root modules such as
+    /// `assets` (which build on `BlockStore`) can issue their own queries while keeping
+    /// the field out of the public API.
+    pub(crate) conn: Connection,
 }
 
 impl BlockStore {
@@ -90,6 +93,18 @@ impl BlockStore {
             CREATE INDEX IF NOT EXISTS idx_links_source ON links(source_block);
             CREATE INDEX IF NOT EXISTS idx_links_target_page ON links(target_page);
             CREATE INDEX IF NOT EXISTS idx_links_target_block ON links(target_block);
+
+            CREATE TABLE IF NOT EXISTS assets (
+                id TEXT PRIMARY KEY,
+                ref_path TEXT NOT NULL UNIQUE,
+                mime TEXT NOT NULL,
+                size INTEGER NOT NULL,
+                sha256 TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                modified_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_assets_sha256 ON assets(sha256);
             ",
             )
             .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
