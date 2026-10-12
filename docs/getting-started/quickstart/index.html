@@ -787,6 +787,8 @@
       
         
       
+        
+      
     
     
     
@@ -905,6 +907,34 @@
     
   
     Links and Backlinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/attachments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Attachments
   
 
     
@@ -2389,14 +2419,21 @@
 <h1 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h1>
 <p>Get up and running with Stratum in 5 minutes.</p>
 <h2 id="first-launch">First Launch<a class="headerlink" href="#first-launch" title="Permanent link">&para;</a></h2>
-<p>When you start Stratum for the first time, you'll see the <strong>Vault Picker</strong> screen:</p>
-<!-- SCREENSHOT: [vault-picker] Welcome screen showing the "Choose Vault Folder" button and onboarding text -->
+<p>On the first run of a brand-new vault, Stratum shows an <strong>onboarding wizard</strong> that walks you
+through setting up a working vault in under a minute:</p>
+<!-- SCREENSHOT: [onboarding] Onboarding welcome step with "Choose Vault Folder" button -->
 
 <ol>
-<li>Click <strong>Choose Vault Folder</strong></li>
-<li>Select an empty directory (or a new folder) — this will be your <strong>vault</strong></li>
-<li>Stratum creates a <code>.pkm/</code> cache directory inside the vault and loads the interface</li>
+<li><strong>Welcome</strong> — Choose a vault folder (or use the vault that was already created).</li>
+<li><strong>Templates</strong> — Optionally install a curated set of <strong>starter templates</strong> into your vault's
+   <code>templates/</code> directory (daily note, meeting notes, reading list, project tracker, and more).</li>
+<li><strong>Sample vault</strong> — Optionally seed a few linked example notes that demonstrate backlinks and
+   the knowledge graph (only if the vault is empty).</li>
+<li><strong>Finish</strong> — Open the Quick Start guide to explore your new vault.</li>
 </ol>
+<p>The wizard only appears once per vault. You can re-run it any time from
+<strong>Settings → Developer → Reset onboarding</strong>. See the
+<a href="../../guide/templates/">Templates guide</a> for details on the bundled starter set.</p>
 <div class="admonition info">
 <p class="admonition-title">What's a vault?</p>
 <p>A vault is simply a directory of Markdown files. All your notes live here as plain <code>.md</code> files.

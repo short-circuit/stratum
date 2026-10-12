@@ -656,6 +656,8 @@
       
         
       
+        
+      
     
     
     
@@ -775,6 +777,34 @@
     
   
     Links and Backlinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../attachments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Attachments
   
 
     
@@ -1094,6 +1124,17 @@
     <span class="md-ellipsis">
       
         Capture and Process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#voice-capture-one-tap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Voice Capture (One-Tap)
       
     </span>
   </a>
@@ -2439,6 +2480,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#voice-capture-one-tap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Voice Capture (One-Tap)
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2555,6 +2607,25 @@
 <li>Later, extract sections into dedicated pages</li>
 <li>Link back from the new page to the journal entry</li>
 </ol>
+<h3 id="voice-capture-one-tap">Voice Capture (One-Tap)<a class="headerlink" href="#voice-capture-one-tap" title="Permanent link">&para;</a></h3>
+<p>On the journal panel you'll find a <strong>voice-capture</strong> control: a round microphone
+button (bottom-right on mobile) or a "Record voice memo" button in the header
+(desktop). It records straight into today's journal using the same dictation
+pipeline described in <a href="../voice-dictation/">Voice Dictation</a>:</p>
+<ol>
+<li><strong>Tap to record</strong> — a timer shows the recording duration.</li>
+<li><strong>Tap again to stop &amp; save</strong> (or cancel to discard) — the memo is transcribed,
+   summarized, and inserted at the end of today's journal as a structured voice
+   memo.</li>
+<li>If transcription can't be reached, <strong>the recording is never lost</strong>: a
+   placeholder block referencing the saved clip is inserted and a <strong>Retry
+   transcription</strong> action is shown.</li>
+<li>If no transcription endpoint is configured, the recording is still saved and
+   a <strong>Configure STT</strong> prompt links you to <strong>Settings → AI</strong>.</li>
+</ol>
+<p>The one-tap button can be disabled (or re-enabled) under
+<strong>Settings → AI → Voice-Capture Button</strong> (or the Speech &amp; Audio section on
+mobile).</p>
 <h2 id="journal-file-format">Journal File Format<a class="headerlink" href="#journal-file-format" title="Permanent link">&para;</a></h2>
 <p>Journal pages follow the same format as all other pages — plain Markdown with optional frontmatter:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>---

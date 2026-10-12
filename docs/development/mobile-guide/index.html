@@ -654,6 +654,8 @@
       
         
       
+        
+      
     
     
     
@@ -772,6 +774,34 @@
     
   
     Links and Backlinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/attachments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Attachments
   
 
     
@@ -2138,6 +2168,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#microphone-permission-android" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Microphone Permission (Android)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ios-microphone-usage-description" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        iOS Microphone Usage Description
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3099,6 +3151,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#microphone-permission-android" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Microphone Permission (Android)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ios-microphone-usage-description" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        iOS Microphone Usage Description
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3854,6 +3928,30 @@
 <a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a><span class="p">}</span>
 </code></pre></div>
 <p>The safe area injection reads the system-bar + display-cutout insets and sets <code>--safe-area-inset-top</code> / <code>--safe-area-inset-bottom</code> (in CSS pixels) on the webview document so the frontend can account for status bars, notches, and navigation bars. See <a href="#safe-area-handling">Safe Area Handling</a> for the full implementation and consumption.</p>
+<h3 id="microphone-permission-android">Microphone Permission (Android)<a class="headerlink" href="#microphone-permission-android" title="Permanent link">&para;</a></h3>
+<p>The E9.F4 one-tap voice-capture feature needs the <code>RECORD_AUDIO</code> permission on
+Android. Tauri v2 does not forward <code>onRequestPermissionsResult</code> to Rust, so the
+permission dialog is driven entirely from the patched <code>MainActivity.kt</code>:</p>
+<ol>
+<li><code>src-tauri/android-patches/app/src/main/AndroidManifest.xml</code> declares
+   <code>&lt;uses-permission android:name="android.permission.RECORD_AUDIO" /&gt;</code>.</li>
+<li><code>MainActivity.kt</code> registers an <code>ActivityResultLauncher&lt;String&gt;</code> with
+   <code>ActivityResultContracts.RequestPermission()</code> and, once the WebView exists
+   (same 100/500/1500/5000 ms retry loop as the safe-area injection), injects a
+   <code>StratumMic</code> JS bridge via <code>addJavascriptInterface</code> exposing
+   <code>isMicGranted()</code> and <code>requestMicPermission()</code>.</li>
+<li>The frontend (<code>src/components/VoiceCaptureButton.shared.tsx</code>) calls
+   <code>window.StratumMic</code> on Android. <code>requestMicPermission()</code> launches the system
+   dialog; the Kotlin result handler writes the outcome back by calling
+   <code>window.__stratumMicPermissionResolve(granted)</code>, resolving the awaiting
+   promise. On desktop/iOS the permission is treated as granted.</li>
+</ol>
+<h3 id="ios-microphone-usage-description">iOS Microphone Usage Description<a class="headerlink" href="#ios-microphone-usage-description" title="Permanent link">&para;</a></h3>
+<p>iOS requires <code>NSMicrophoneUsageDescription</code> in <code>Info.plist</code>, which lives in the
+generated <code>src-tauri/gen/apple</code> project (created by <code>tauri ios init</code>, not
+checked in). The CI workflow inserts the key after init via <code>PlistBuddy</code>. See
+<code>.github/workflows/ci.yml</code> — the <code>ios build</code> job runs the patch step after the
+init step. Without this key the app would crash on the first audio stream.</p>
 <h2 id="known-issues">Known Issues<a class="headerlink" href="#known-issues" title="Permanent link">&para;</a></h2>
 <h3 id="android_2">Android<a class="headerlink" href="#android_2" title="Permanent link">&para;</a></h3>
 <table>

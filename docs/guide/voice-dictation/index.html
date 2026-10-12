@@ -656,6 +656,8 @@
       
         
       
+        
+      
     
     
     
@@ -775,6 +777,34 @@
     
   
     Links and Backlinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../attachments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Attachments
   
 
     
@@ -1242,6 +1272,56 @@
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#one-tap-capture-into-todays-journal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One-Tap Capture into Today's Journal
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="One-Tap Capture into Today&#39;s Journal">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#permissions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Permissions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#error-fallback-data-never-lost" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error fallback (data never lost)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enabling-disabling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enabling / disabling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2310,6 +2390,56 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#one-tap-capture-into-todays-journal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One-Tap Capture into Today's Journal
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="One-Tap Capture into Today&#39;s Journal">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#permissions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Permissions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#error-fallback-data-never-lost" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error fallback (data never lost)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enabling-disabling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enabling / disabling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2453,6 +2583,39 @@ into the server's models directory, install the sherpa-onnx backend
 (<code>/local-ai backends install sherpa-onnx</code>) and restart.</p>
 <p>The summary/links/tags steps reuse the main AI provider; if it is not
 configured those steps are skipped and you get the plain transcript.</p>
+<h2 id="one-tap-capture-into-todays-journal">One-Tap Capture into Today's Journal<a class="headerlink" href="#one-tap-capture-into-todays-journal" title="Permanent link">&para;</a></h2>
+<p>In addition to the full dictation panel (used on an individual note), the
+Journal offers a <strong>one-tap voice-capture</strong> button that records straight into
+today's journal:</p>
+<ul>
+<li><strong>Mobile</strong> — a fixed microphone FAB (bottom-right). Tap to record, tap the
+  stop button to save &amp; transcribe, or use the cancel button to discard.</li>
+<li><strong>Desktop</strong> — a "Record voice memo" button in the journal header.</li>
+</ul>
+<p>The flow reuses the exact same transcription pipeline and memo rendering as the
+dictation panel — nothing is reimplemented. After a successful transcription the
+journal editor reloads automatically so the inserted memo is visible
+immediately. The button then returns to the idle "record" state after a short
+success indicator, so you can record another memo without leaving the journal
+(one-tap flow is repeatable).</p>
+<h3 id="permissions">Permissions<a class="headerlink" href="#permissions" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Desktop</strong> — the microphone is trivially available; no prompt is shown.</li>
+<li><strong>Android</strong> — a system microphone-permission dialog is requested the first
+  time you record. If you deny it, a banner appears with an <strong>Enable</strong> action.</li>
+<li><strong>iOS</strong> — the system permission prompt appears on the first audio stream
+  (<code>NSMicrophoneUsageDescription</code> is declared by the build).</li>
+</ul>
+<h3 id="error-fallback-data-never-lost">Error fallback (data never lost)<a class="headerlink" href="#error-fallback-data-never-lost" title="Permanent link">&para;</a></h3>
+<p>If the transcription endpoint is unreachable or fails, the saved clip is not
+discarded: a <strong>placeholder memo</strong> referencing the recording is inserted into
+the journal and a <strong>Retry transcription</strong> action is shown. If no transcription
+endpoint is configured at all, the recording is still saved and a <strong>Configure
+STT</strong> prompt links you to <strong>Settings → AI</strong>.</p>
+<h3 id="enabling-disabling">Enabling / disabling<a class="headerlink" href="#enabling-disabling" title="Permanent link">&para;</a></h3>
+<p>The one-tap button can be toggled under <strong>Settings → AI → Voice-Capture
+Button</strong>. When disabled, the button is hidden — the full dictation panel is
+still available on any individual note.</p>
 
 
 
