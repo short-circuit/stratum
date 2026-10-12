@@ -20,3 +20,6 @@ export type {
 
 export { useRecentsStore } from './recentsStore';
 export type { RecentsState } from './recentsStore';
+
+export { useOnboardingStore, STARTER_TEMPLATE_NAMES } from './onboardingStore';
+export type { OnboardingState } from './onboardingStore';

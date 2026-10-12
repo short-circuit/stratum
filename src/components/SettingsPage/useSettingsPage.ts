@@ -38,6 +38,7 @@ export function useSettingsPage() {
   const syncing = useSyncStore(s => s.syncing);
   const setSyncing = useSyncStore(s => s.setSyncing);
   const [commitsOpen, setCommitsOpen] = useState(false);
+  const [installing, setInstalling] = useState(false);
 
   const syncModal = useSyncModalStore();
 
@@ -328,6 +329,33 @@ export function useSettingsPage() {
     }
   };
 
+  const handleResetOnboarding = async () => {
+    setMsg('');
+    setMsgSeverity('success');
+    try {
+      await api.setOnboardingPending(true);
+      setMsg(i18n.t('settings.onboarding_reset_done'));
+    } catch (e) {
+      setMsg(`${i18n.t('settings.reset_onboarding_help')} ${e}`);
+      setMsgSeverity('error');
+    }
+  };
+
+  const handleInstallStarterTemplates = async () => {
+    setInstalling(true);
+    setMsg('');
+    setMsgSeverity('success');
+    try {
+      const names = await api.installStarterTemplates();
+      setMsg(i18n.t('settings.templates_installed', { count: names.length }));
+    } catch (e) {
+      setMsg(`${i18n.t('settings.install_starter_templates')} ${e}`);
+      setMsgSeverity('error');
+    } finally {
+      setInstalling(false);
+    }
+  };
+
   const handlePassphraseSubmit = async (passphrase: string) => {
     try {
       const result = await useSyncStore.getState().doSyncWithPassphrase(passphrase);
@@ -423,5 +451,8 @@ export function useSettingsPage() {
     handleStartScheduler,
     handlePassphraseSubmit,
     handlePickVaultDirectory,
+    handleResetOnboarding,
+    handleInstallStarterTemplates,
+    installing,
   };
 }
