@@ -89,8 +89,16 @@ pub fn reconcile_page_links(
     for block in blocks {
         let links = pkm_markdown::linker::extract_links(&block.content);
         for link in links {
+            // Asset targets (`assets/...`) become `asset_ref` rows so the graph
+            // (which filters on `link_type = 'page_ref'`) never treats them as notes,
+            // while everything else stays a `page_ref` wiki-link.
+            let link_type = if pkm_markdown::linker::is_asset_link_target(&link.target) {
+                "asset_ref"
+            } else {
+                "page_ref"
+            };
             store
-                .insert_link(block.id, "page_ref", Some(&link.target), None)
+                .insert_link(block.id, link_type, Some(&link.target), None)
                 .map_err(|e| e.to_string())?;
         }
     }

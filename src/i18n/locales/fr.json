@@ -55,6 +55,17 @@
     "searching_your_notes": "Recherche dans vos notes…",
     "sources": "Sources"
   },
+  "asset": {
+    "attach": "Joindre",
+    "attachments": "Pièces jointes",
+    "compressing": "Compression de l’image…",
+    "count": "{{count}} pièce(s) jointe(s)",
+    "delete": "Supprimer",
+    "delete_confirm": "Supprimer cette pièce jointe ?",
+    "empty": "Aucune pièce jointe",
+    "file_too_large": "Fichier de plus de 8 Mo",
+    "upload_failed": "Échec de l’envoi"
+  },
   "autocomplete_popup": {
     "no_results": "Aucun résultat"
   },

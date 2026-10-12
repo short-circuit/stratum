@@ -96,6 +96,28 @@ pub fn resolve_links(links: &mut [Link], known_slugs: &std::collections::HashSet
     }
 }
 
+/// Whether a `[[...]]` target points at an asset rather than a note.
+///
+/// Asset targets begin with `assets/` (case-insensitive), matching both the inline
+/// embed form `![[assets/...]]` and the file-link form `[[assets/...]]`.
+pub fn is_asset_link_target(target: &str) -> bool {
+    target.trim().to_lowercase().starts_with("assets/")
+}
+
+/// Extract the targets of every asset link (`![[assets/...]]` or `[[assets/...]]`) in text.
+///
+/// Reuses the existing [`extract_links`] scanner to find all `[[...]]` occurrences, then
+/// keeps only those whose target starts with `assets/`. Plain `[[Note]]` links are
+/// ignored. The leading `!` of an embed is outside the `[[` so it does not affect
+/// extraction; both forms are captured identically.
+pub fn extract_asset_links(text: &str) -> Vec<String> {
+    extract_links(text)
+        .into_iter()
+        .filter(|l| is_asset_link_target(&l.target))
+        .map(|l| l.target)
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -221,5 +243,42 @@ mod tests {
         assert_eq!(links.len(), 1);
         assert_eq!(links[0].target, "Target");
         assert_eq!(links[0].display_text, Some("Display|Text".to_string()));
+    }
+
+    #[test]
+    fn test_is_asset_link_target() {
+        assert!(is_asset_link_target("assets/foo.png"));
+        assert!(is_asset_link_target("Assets/Foo.PNG"));
+        assert!(!is_asset_link_target("pages/foo.png"));
+        assert!(!is_asset_link_target("Note"));
+        assert!(!is_asset_link_target("asset"));
+    }
+
+    #[test]
+    fn test_extract_asset_links_embed() {
+        let links = extract_asset_links("![[assets/foo.png]]");
+        assert_eq!(links, vec!["assets/foo.png".to_string()]);
+    }
+
+    #[test]
+    fn test_extract_asset_links_plain_link() {
+        let links = extract_asset_links("[[assets/bar.pdf]]");
+        assert_eq!(links, vec!["assets/bar.pdf".to_string()]);
+    }
+
+    #[test]
+    fn test_extract_asset_links_mixed_ignores_notes() {
+        let body = "See [[Note]] and ![[assets/foo.png]] and [[assets/x.pdf]]";
+        let links = extract_asset_links(body);
+        assert_eq!(
+            links,
+            vec!["assets/foo.png".to_string(), "assets/x.pdf".to_string()]
+        );
+    }
+
+    #[test]
+    fn test_extract_asset_links_no_assets() {
+        let links = extract_asset_links("Just [[Note]] here");
+        assert!(links.is_empty());
     }
 }

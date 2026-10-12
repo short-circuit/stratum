@@ -86,6 +86,7 @@ nav:
     - guide/vault-management.md
     - guide/block-editor.md
     - guide/linking-and-backlinks.md
+    - guide/attachments.md
     - guide/tags.md
     - guide/tasks.md
     - guide/graph-view.md
