@@ -23,6 +23,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ── Repo hygiene (runs on every push/PR, no deps, fast) ─────────────
+  # Fails if a transient agent artifact (plan/QA report/evidence/…) is
+  # tracked. Prevents the .hermes/-outside-the-ignored-dirs recurrence.
+  repo-hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check tracked transient artifacts
+        run: ./scripts/check-transient-artifacts.sh
+
   # ── CI (runs on every push/PR) ─────────────────────────────────────
   test:
     if: github.event_name == 'push' || github.event_name == 'pull_request'
