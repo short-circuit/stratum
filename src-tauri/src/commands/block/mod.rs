@@ -1,9 +1,5 @@
 //! Block management commands.
 
-mod markers;
-
-pub use markers::*;
-
 use crate::commands::vault::AppState;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
