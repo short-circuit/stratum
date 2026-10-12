@@ -113,3 +113,15 @@ export async function saveGraphSettings(graph: GraphSettings): Promise<void> {
 export async function fetchModels(): Promise<string[]> {
   return invoke('fetch_models');
 }
+
+export async function getOnboardingState(): Promise<boolean> {
+  return invoke('get_onboarding_state');
+}
+
+export async function markOnboardingDone(): Promise<void> {
+  return invoke('mark_onboarding_done');
+}
+
+export async function setOnboardingPending(pending: boolean): Promise<void> {
+  return invoke('set_onboarding_pending', { pending });
+}

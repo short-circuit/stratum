@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useResponsive } from './lib/hooks/useResponsive';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
@@ -27,6 +27,7 @@ import PluginsPanel from './components/PluginsPanel';
 import SettingsPage from './components/SettingsPage';
 import MobileLayout from './components/MobileLayout';
 import VaultPicker from './components/VaultPicker';
+import Onboarding from './components/Onboarding';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import ConflictModal from './components/ui/ConflictModal';
 import PassphraseModal from './components/ui/PassphraseModal';
@@ -65,6 +66,27 @@ function AppContent() {
   const { isMobile } = useResponsive();
   const syncModal = useSyncModalStore();
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // First-run onboarding gate. Queried once on mount; a brand-new empty vault
+  // (or a vault where the user reset onboarding from Settings) renders the
+  // wizard instead of the main layout. Populated vaults resolve `false` and
+  // render the layout untouched, keeping the e2e harness flow intact.
+  const [onboardingPending, setOnboardingPending] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getOnboardingState()
+      .then((v) => {
+        if (!cancelled) setOnboardingPending(v);
+      })
+      .catch(() => {
+        if (!cancelled) setOnboardingPending(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Poll sync status periodically to detect conflicts from auto-sync scheduler
   useEffect(() => {
@@ -148,6 +170,12 @@ function AppContent() {
 
   if (!vault) {
     return <VaultPicker />;
+  }
+
+  // First-run onboarding gate: render the wizard in place of the main layout
+  // until the user finishes (which sets pending=false and re-queries/clears).
+  if (onboardingPending === true) {
+    return <Onboarding onDone={() => setOnboardingPending(false)} />;
   }
 
   if (isMobile) {

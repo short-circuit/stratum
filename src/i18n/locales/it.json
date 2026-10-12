@@ -610,7 +610,13 @@
     "voice": "Voce",
     "voice_dictation_stt": "Dettatura vocale (STT)",
     "web_research_searxng": "Ricerca web (SearXNG)",
-    "z_ai": "Z.AI"
+    "z_ai": "Z.AI",
+    "reset_onboarding": "Reimposta onboarding",
+    "reset_onboarding_help": "Mostra di nuovo la procedura guidata al prossimo avvio.",
+    "install_starter_templates": "Installa modelli iniziali",
+    "install_starter_templates_help": "Aggiungi i modelli iniziali inclusi a questo vault.",
+    "onboarding_reset_done": "L'onboarding apparirà di nuovo al prossimo avvio.",
+    "templates_installed": "Installati {{count}} modelli iniziali."
   },
   "sidebar": {
     "ask_notes": "Chiedi alle note",
@@ -688,5 +694,23 @@
     "unsaved": "Non salvato",
     "whiteboard_name": "Nome whiteboard",
     "whiteboards": "Whiteboard"
+  },
+  "onboarding": {
+    "welcome_title": "Benvenuto su Stratum",
+    "welcome_subtitle": "Configura il tuo primo vault e inizia a catturare idee.",
+    "choose_vault_folder": "Scegli la cartella del vault",
+    "next": "Avanti",
+    "back": "Indietro",
+    "start_with_templates": "Inizia con i modelli",
+    "templates_hint": "Installa un set curato di pagine iniziali nel tuo vault.",
+    "sample_vault": "Crea un vault di esempio",
+    "sample_vault_hint": "Aggiungi alcune note di esempio collegate che mostrano backlink e grafo.",
+    "finish": "Inizia",
+    "finish_title": "Tutto pronto",
+    "finish_hint": "Il tuo vault è pronto. Apri la guida rapida per esplorare.",
+    "open_quick_start": "Apri la guida rapida",
+    "installing": "Installazione...",
+    "error": "Qualcosa è andato storto: {{message}}",
+    "step": "Passaggio {{current}} di {{total}}"
   }
 }

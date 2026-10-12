@@ -63,6 +63,9 @@ export default function SettingsPageMobile() {
     commitsOpen,
     handleToggleCommits,
     handleStartScheduler,
+    handleResetOnboarding,
+    handleInstallStarterTemplates,
+    installing,
   } = useSettingsPage();
 
   if (!settings) {
@@ -179,6 +182,9 @@ export default function SettingsPageMobile() {
           onRepair={handleRepair}
           onNormalizeAll={handleNormalizeAll}
           reindexProgress={reindexProgress}
+          onResetOnboarding={handleResetOnboarding}
+          onInstallTemplates={handleInstallStarterTemplates}
+          installing={installing}
         />
 
         {/* ─── Sync Section ─── */}

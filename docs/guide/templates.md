@@ -126,6 +126,31 @@ status: {{status}}
 ## Timeline
 ```
 
+## Starter Templates
+
+Stratum ships with a curated set of **bundled starter templates** that give a new vault a
+useful starting point. They are installed from the first-run onboarding wizard (the
+"Start with templates" step) or from **Settings → Developer → Install starter templates**.
+They live in your vault at `templates/` alongside any you create yourself.
+
+The bundled starter set includes:
+
+- `daily-note.md` — Daily journal template with focus/log/notes sections
+- `meeting-notes.md` — Attendees, agenda, decisions, and action items
+- `reading-list.md` — Reading list table with statuses
+- `book-notes.md` — Summary, key takeaways, and quotes
+- `project-tracker.md` — Goal, milestones, status, and risks
+- `research-notes.md` — Question, sources, findings, and follow-ups
+- `flashcards-starter.md` — Sample flashcards with `.question::` / `.answer::` properties
+- `kanban-starter.md` — Sample kanban board with TODO / DOING / DONE / CANCELLED markers
+- `whiteboard-starter.md` — Starting point for the Whiteboards panel
+- `habit-tracker.md` — Weekly habit grid with checkboxes
+- `quick-notes.md` — Scratch / inbox note
+- `demo-graph.md` — Linked demo note showing backlinks and the graph
+
+Installing templates is **idempotent**: existing files are never overwritten, so your own
+edits are preserved. Templates are also directly editable Markdown files.
+
 ## Tips
 
 - Create templates for recurring note types: meeting notes, book reviews, project plans, daily logs

@@ -212,6 +212,45 @@ fn test_graph_config_serde_round_trip() {
 }
 
 #[test]
+fn test_onboarding_pending_defaults_to_false_on_old_config() {
+    // A config written before the `onboarding_pending` field existed (or that
+    // simply omits it) must load with `false` — the safe "onboarding done"
+    // default — never fail to deserialize.
+    let dir = TempDir::new().unwrap();
+    let config_path = dir.path().join("config.toml");
+    std::fs::write(&config_path, "[theme]\ndark_mode = true\n").unwrap();
+
+    let loaded = Config::load(&config_path).unwrap();
+    assert!(!loaded.onboarding_pending);
+}
+
+#[test]
+fn test_onboarding_pending_roundtrip() {
+    let dir = TempDir::new().unwrap();
+    let config_path = dir.path().join("config.toml");
+
+    let cfg = Config {
+        onboarding_pending: true,
+        ..Default::default()
+    };
+    cfg.save(&config_path).unwrap();
+
+    let loaded = Config::load(&config_path).unwrap();
+    assert!(loaded.onboarding_pending);
+
+    // Clearing the flag round-trips back to false.
+    let mut cleared = loaded;
+    cleared.onboarding_pending = false;
+    cleared.save(&config_path).unwrap();
+    assert!(!Config::load(&config_path).unwrap().onboarding_pending);
+}
+
+#[test]
+fn test_default_config_onboarding_pending_false() {
+    assert!(!Config::default().onboarding_pending);
+}
+
+#[test]
 fn test_config_with_plugins() {
     let cfg = Config {
         plugins: vec![PluginConfig {
