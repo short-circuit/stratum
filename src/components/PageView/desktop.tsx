@@ -10,10 +10,12 @@ import Divider from '@mui/material/Divider';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import IconButton from '@mui/material/IconButton';
 import MicNoneIcon from '@mui/icons-material/MicNone';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 import OutlinerEditor from '../OutlinerEditor';
 import BacklinksPanel from '../BacklinksPanel';
 import SuggestedConnectionsPanel from '../SuggestedConnectionsPanel';
 import DictationPanel from '../DictationPanel';
+import AttachmentPanel, { FILE_INPUT_ID } from '../AttachmentPanel';
 import { usePageView } from './shared';
 import * as api from '../../lib/commands';
 import { useStore } from '../../stores/appStore';
@@ -68,6 +70,14 @@ export default function PageViewDesktop() {
         >
           <MicNoneIcon fontSize="small" />
         </IconButton>
+        <IconButton
+          size="small"
+          onClick={() => document.getElementById(FILE_INPUT_ID)?.click()}
+          title={t('asset.attach')}
+          color="default"
+        >
+          <AttachFileIcon fontSize="small" />
+        </IconButton>
         <Button
           size="small"
           variant="outlined"
@@ -105,6 +115,7 @@ export default function PageViewDesktop() {
         <OutlinerEditor key={editorKey} pagePath={currentPage.path} />
       </Box>
 
+      <AttachmentPanel pagePath={currentPage.path} />
       <BacklinksPanel pagePath={currentPage.path} />
       <SuggestedConnectionsPanel pagePath={currentPage.path} />
     </Box>

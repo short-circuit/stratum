@@ -99,7 +99,8 @@ fn settings_body(tv: &common::TestVault, ai_key: serde_json::Value) -> serde_jso
         "sync": { "mode": "manual", "branch": "master", "auto_commit_interval_secs": 300, "auto_sync_interval_secs": 3600, "commit_template": "{{message}}" },
         "stt": { "endpoint": "http://localhost:9001", "model": "whisper-1", "diarize_model": "", "language": null, "diarize": false, "auto_summarize": false, "auto_identify": false },
         "tts": { "endpoint": "", "voice": "alloy", "format": "mp3", "speed": 1.0 },
-        "tray": { "enabled": true, "close_to_tray": true, "quick_capture_shortcut": "CmdOrCtrl+Shift+Space", "capture_target": "journal", "inbox_path": "Inbox.md" }
+        "tray": { "enabled": true, "close_to_tray": true, "quick_capture_shortcut": "CmdOrCtrl+Shift+Space", "capture_target": "journal", "inbox_path": "Inbox.md" },
+        "voice": { "enabled": true, "target": "journal:today" }
     })
 }
 

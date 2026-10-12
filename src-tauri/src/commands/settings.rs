@@ -1,6 +1,6 @@
 //! Settings and AI configuration commands.
 
-use crate::commands::vault::AppState;
+use crate::commands::vault::{AppState, VaultState};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -16,6 +16,8 @@ pub struct SettingsDto {
     pub tts: TtsSettingsDto,
     #[serde(default)]
     pub tray: TraySettingsDto,
+    #[serde(default)]
+    pub voice: VoiceSettingsDto,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -36,6 +38,26 @@ impl Default for TraySettingsDto {
             quick_capture_shortcut: "CmdOrCtrl+Shift+Space".to_string(),
             capture_target: "journal".to_string(),
             inbox_path: "Inbox.md".to_string(),
+        }
+    }
+}
+
+/// One-tap voice-capture (E9.F4) feature settings, mirroring
+/// `pkm_core::VoiceCaptureConfig`.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct VoiceSettingsDto {
+    /// Whether the one-tap voice-capture button is shown in the Journal.
+    pub enabled: bool,
+    /// Insertion target, e.g. "journal:today".
+    pub target: String,
+}
+
+impl Default for VoiceSettingsDto {
+    fn default() -> Self {
+        // Keep in sync with `VoiceCaptureConfig::default()` in pkm-core.
+        Self {
+            enabled: true,
+            target: "journal:today".to_string(),
         }
     }
 }
@@ -288,6 +310,10 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             speed: config.tts.speed,
             use_llm_gateway_and_auth: config.tts.use_llm_gateway_and_auth,
         },
+        voice: VoiceSettingsDto {
+            enabled: config.voice.enabled,
+            target: config.voice.target.clone(),
+        },
         tray: TraySettingsDto {
             enabled: config.tray.enabled,
             close_to_tray: config.tray.close_to_tray,
@@ -463,6 +489,10 @@ pub async fn save_settings<R: tauri::Runtime>(
             speed: settings.tts.speed,
             use_llm_gateway_and_auth: settings.tts.use_llm_gateway_and_auth,
         },
+        voice: pkm_core::VoiceCaptureConfig {
+            enabled: settings.voice.enabled,
+            target: settings.voice.target,
+        },
         tray: pkm_core::TrayConfig {
             enabled: settings.tray.enabled,
             close_to_tray: settings.tray.close_to_tray,
@@ -585,4 +615,84 @@ pub async fn fetch_models(state: tauri::State<'_, AppState>) -> Result<Vec<Strin
     };
 
     Ok(models)
+}
+
+/// Report whether the first-run onboarding wizard should be shown.
+///
+/// Deterministic detection that keeps the existing e2e harness green:
+///
+/// - If `<vault>/.pkm/config.toml` exists, return the persisted
+///   `onboarding_pending` flag (default `false` for configs that predate it,
+///   so a populated vault never re-shows the wizard).
+/// - If no config exists, a brand-new empty vault (no pages) is treated as
+///   onboarding-pending; a vault that already has pages (CI harness, CLI-created
+///   vaults) is not. On any store error the command returns `false` (safe).
+///
+/// Completion persists `pending=false` via [`mark_onboarding_done`], so the
+/// wizard never reappears for that vault. "Reset onboarding" re-arms it via
+/// [`set_onboarding_pending`].
+#[tauri::command]
+pub async fn get_onboarding_state(
+    state: tauri::State<'_, AppState>,
+) -> Result<bool, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let config_path = state.vault_path.join(".pkm").join("config.toml");
+
+    if config_path.exists() {
+        let config = pkm_core::Config::load(&config_path).map_err(|e| e.to_string())?;
+        return Ok(config.onboarding_pending);
+    }
+
+    match state.get_store() {
+        Ok(store) => match store.page_count() {
+            Ok(n) => Ok(n == 0),
+            Err(_) => Ok(false),
+        },
+        Err(_) => Ok(false),
+    }
+}
+
+/// Persist that the onboarding wizard has been completed for this vault.
+///
+/// Loads the existing config (or creates one with defaults) and sets
+/// `onboarding_pending = false`, then saves it to `<vault>/.pkm/config.toml`.
+#[tauri::command]
+pub async fn mark_onboarding_done(state: tauri::State<'_, AppState>) -> Result<(), String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let config_path = state.vault_path.join(".pkm").join("config.toml");
+    let mut config = load_or_default_config(&state, &config_path)?;
+    config.onboarding_pending = false;
+    config.save(&config_path).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Set whether the onboarding wizard should be shown on the next launch.
+///
+/// Used by the Settings "Reset onboarding" action to re-arm the wizard.
+#[tauri::command]
+pub async fn set_onboarding_pending(
+    pending: bool,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let config_path = state.vault_path.join(".pkm").join("config.toml");
+    let mut config = load_or_default_config(&state, &config_path)?;
+    config.onboarding_pending = pending;
+    config.save(&config_path).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Load the vault config, or start from defaults when none exists yet.
+fn load_or_default_config(
+    state: &VaultState,
+    config_path: &std::path::Path,
+) -> Result<pkm_core::Config, String> {
+    if config_path.exists() {
+        pkm_core::Config::load(config_path).map_err(|e| e.to_string())
+    } else {
+        Ok(pkm_core::Config {
+            vault_path: state.vault_path.clone(),
+            ..Default::default()
+        })
+    }
 }

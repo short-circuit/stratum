@@ -19,9 +19,9 @@ import {
   normalizeContent,
   isWikiLinkHref,
   extractWikiLinkTarget,
-  isTagHref,
-  extractTagTarget,
 } from '../../../lib/wikiLinks';
+import { createAssetEditorOptions } from '../../../lib/assetUpload';
+import { buildEditorLinks } from './editorLinks';
 import { useCtrlHeld } from '../../../lib/useCtrlHeld';
 import { useMathInline, setupMathDblClick } from '../../../lib/useMathInline';
 import { dtoToBlockNote, blockNoteToDto } from '../dtoConverters';
@@ -103,42 +103,12 @@ export function useEditorData(
 
   const editor = useCreateBlockNote({
     schema,
-    links: {
-      isValidLink: (href: string) => {
-        if (href.startsWith('stratum:') || href.startsWith('stratum-tag:')) return true;
-        if (!href) return true;
-        return /^(?:https?|ftp|ftps|mailto|tel|callto|sms|cid|xmpp):/i.test(href);
-      },
-      onClick: (event) => {
-        const a = (event.target as HTMLElement).closest?.('a');
-        if (!a) return false;
-        const href = a.getAttribute('href');
-        if (!href) return false;
-        if (isTagHref(href)) {
-          if (!event.ctrlKey && !event.metaKey) return true;
-          const tagName = extractTagTarget(href);
-          navigateRef.current('/search?q=' + encodeURIComponent('#' + tagName));
-          return true;
-        }
-        if (isWikiLinkHref(href)) {
-          const rect = a.getBoundingClientRect();
-          const pos = { x: rect.left, y: rect.bottom };
-          let target = extractWikiLinkTarget(href);
-          target = target.replace(/[[\]]/g, '').trim().toLowerCase();
-          api.resolveLinkTarget(target).then((resolved) => {
-            if (resolved.page_path) {
-              navigateRef.current(
-                '/page/' + encodeURIComponent(resolved.page_path),
-              );
-            } else {
-              setDeadLinkPopup({ target, position: pos });
-            }
-          });
-          return true;
-        }
-        return false;
-      },
-    },
+    links: buildEditorLinks({
+      onNavigate: navigate,
+      onDeadLink: (target: string, pos: { x: number; y: number }) =>
+        setDeadLinkPopup({ target, position: pos }),
+    }),
+    ...createAssetEditorOptions(),
   });
 
   // -----------------------------------------------------------------------

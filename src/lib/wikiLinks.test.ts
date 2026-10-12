@@ -5,6 +5,8 @@ import {
   normalizeContent,
   isWikiLinkHref,
   extractWikiLinkTarget,
+  isAssetHref,
+  extractAssetRefPath,
 } from './wikiLinks';
 import type { InlineItem } from './wikiLinks';
 
@@ -169,5 +171,52 @@ describe('wiki-link autocomplete insert contract (E7.F1)', () => {
     const serialized = inlineItemsToContent(items);
     expect(serialized).toBe('[[alpha-project]]');
     expect(roundTrip(serialized)).toBe(serialized);
+  });
+});
+
+describe('asset link handling (E9.F2)', () => {
+  it('parses `![[assets/foo.png]]` into a stratum-asset: link item', () => {
+    const items = parseContentToInlineItems('![[assets/foo.png]]');
+    const link = items.find(i => i.type === 'link') as Extract<InlineItem, { type: 'link' }>;
+    expect(link).toMatchObject({ type: 'link', href: 'stratum-asset:assets/foo.png' });
+    expect(link.content?.[0]?.text).toBe('assets/foo.png');
+  });
+
+  it('parses `[[assets/bar.pdf]]` into a stratum-asset: link item (plain link to asset)', () => {
+    const items = parseContentToInlineItems('[[assets/bar.pdf]]');
+    const link = items.find(i => i.type === 'link') as Extract<InlineItem, { type: 'link' }>;
+    expect(link).toMatchObject({ type: 'link', href: 'stratum-asset:assets/bar.pdf' });
+    expect(link.content?.[0]?.text).toBe('assets/bar.pdf');
+  });
+
+  it('leaves a plain `[[Note]]` wiki-link unchanged', () => {
+    const items = parseContentToInlineItems('[[Note]]');
+    const link = items.find(i => i.type === 'link') as Extract<InlineItem, { type: 'link' }>;
+    expect(link).toMatchObject({ type: 'link', href: 'stratum:Note' });
+  });
+
+  it('round-trips the bang asset form byte-identically', () => {
+    expect(roundTrip('![[assets/foo.png]]')).toBe('![[assets/foo.png]]');
+  });
+
+  it('round-trips the plain asset form to the bang form (assets are embedded)', () => {
+    expect(roundTrip('[[assets/bar.pdf]]')).toBe('![[assets/bar.pdf]]');
+  });
+
+  it('serializes an asset link with display via the display pipe', () => {
+    const items: InlineItem[] = [
+      {
+        type: 'link',
+        href: 'stratum-asset:assets/foo.png',
+        content: [{ type: 'text', text: 'My chart', styles: {} }],
+      },
+    ];
+    expect(inlineItemsToContent(items)).toBe('![[assets/foo.png|My chart]]');
+  });
+
+  it('does not classify an asset href as a wiki-link href', () => {
+    expect(isWikiLinkHref('stratum-asset:assets/foo.png')).toBe(false);
+    expect(isAssetHref('stratum-asset:assets/foo.png')).toBe(true);
+    expect(extractAssetRefPath('stratum-asset:assets/foo.png')).toBe('assets/foo.png');
   });
 });
