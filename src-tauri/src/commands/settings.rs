@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SettingsDto {
     pub vault_path: String,
+    pub locale: String,
     pub theme: ThemeSettingsDto,
     pub ai: AiSettingsDto,
     pub research: ResearchSettingsDto,
@@ -178,6 +179,7 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
 
     Ok(SettingsDto {
         vault_path: config.vault_path.to_string_lossy().to_string(),
+        locale: config.locale.clone(),
         theme: ThemeSettingsDto {
             dark_mode: config.theme.dark_mode,
             primary_color: config.theme.primary_color.clone(),
@@ -313,6 +315,7 @@ pub async fn save_settings(
 
     let config = pkm_core::Config {
         vault_path: std::path::PathBuf::from(&settings.vault_path),
+        locale: settings.locale.clone(),
         theme: pkm_core::ThemeConfig {
             dark_mode: settings.theme.dark_mode,
             primary_color: settings.theme.primary_color.clone(),

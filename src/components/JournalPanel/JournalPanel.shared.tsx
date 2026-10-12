@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '../../stores/appStore';
 import * as api from '../../lib/commands';
+import { useTranslation } from 'react-i18next';
 
 /** Format a Date as YYYY-MM-DD for journal paths. */
 export function formatDate(d: Date): string {
@@ -42,6 +43,7 @@ export function isJournalDateKey(value: string | null): value is string {
 
 /** Shared hook for journal panel state and logic used by both desktop and mobile variants. */
 export function useJournalPanel() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { pages, loadPages } = useStore(useShallow(
@@ -270,15 +272,15 @@ export function useJournalPanel() {
           await api.createPage(journalPath(date), date);
           await loadPages();
         } catch (err) {
-          if (!String(err).includes('already exists')) {
-            console.error('Failed to create journal:', err);
+          if (!String(err).includes(t('editor.already_exists'))) {
+            console.error(t('journal.failed_to_create_journal'), err);
             return;
           }
         }
       }
       navigate(`/journal?date=${date}`);
     },
-    [allJournalDates, loadPages, navigate],
+    [allJournalDates, loadPages, navigate, t],
   );
 
   /** Navigate to the previous (-1) or next (+1) day relative to the current target (or today).

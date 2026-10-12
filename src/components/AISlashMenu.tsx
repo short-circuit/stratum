@@ -11,6 +11,7 @@ import type { AiAction, AiTransformResult, ResearchResult } from '../lib/types';
 import { createMermaidBlock } from '../lib/mermaidBlock';
 import AILoadingOverlay from './ui/AILoadingOverlay';
 import MathEditorModal from './MathEditorModal';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   pagePath: string;
@@ -21,6 +22,7 @@ function isJournal(path: string) {
 }
 
 export default function AISlashMenu({ pagePath }: Props) {
+  const { t } = useTranslation();
   const editor = useBlockNoteEditor();
   const [loading, setLoading] = useState<string | null>(null);
   const [mathModal, setMathModal] = useState<{
@@ -111,20 +113,20 @@ export default function AISlashMenu({ pagePath }: Props) {
 
     if (capturedText.trim()) {
       aiItems.push(
-        makeItem('Rewrite', 'Improve clarity and flow', 'rewrite', 'selection'),
-        makeItem('Format Selection', 'Clean up formatting', 'format', 'selection'),
-        makeItem('Summarize', 'Condense into key points', 'summarize', 'selection'),
+        makeItem(t('aislash_menu.rewrite'), t('aislash_menu.improve_clarity_and_flow'), 'rewrite', 'selection'),
+        makeItem(t('aislash_menu.format_selection'), t('aislash_menu.clean_up_formatting'), 'format', 'selection'),
+        makeItem(t('aislash_menu.summarize'), t('aislash_menu.condense_into_key_points'), 'summarize', 'selection'),
       );
     }
 
     aiItems.push({
-      title: 'Research with Web',
-      subtext: 'Search the web and write research notes',
+      title: t('aislash_menu.research_with_web'),
+      subtext: t('aislash_menu.search_the_web_and_write_research_notes'),
       aliases: ['research', 'search', 'web'],
       group: 'AI',
       icon: <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>🌐</span>,
       onItemClick: async () => {
-        setLoading('Researching...');
+        setLoading(t('aislash_menu.researching'));
         try {
           const doc = editor.document;
           const allText = (doc as unknown[])
@@ -154,18 +156,18 @@ export default function AISlashMenu({ pagePath }: Props) {
 
     if (isJournal(pagePath)) {
       aiItems.push(
-        makeItem('Structure Journal', 'Organize daily notes into sections', 'structure', 'page'),
-        makeItem('Format Notes', 'Clean up formatting and markdown', 'format', 'page'),
+        makeItem(t('aislash_menu.structure_journal'), t('aislash_menu.organize_daily_notes_into_sections'), 'structure', 'page'),
+        makeItem(t('aislash_menu.format_notes'), t('aislash_menu.clean_up_formatting_and_markdown'), 'format', 'page'),
       );
       // Custom interlink item that searches vault for existing notes
       aiItems.push({
-        title: 'Interlink Notes',
-        subtext: 'Search vault and add [[wiki-links]] to related notes',
+        title: t('aislash_menu.interlink_notes'),
+        subtext: t('aislash_menu.search_vault_and_add_wiki_links_to_related_notes'),
         aliases: ['interlink', 'wikilinks', 'connect'],
         group: 'AI',
         icon: <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>🔗</span>,
         onItemClick: async () => {
-          setLoading('Interlinking...');
+          setLoading(t('aislash_menu.interlinking'));
           try {
             const md = editor.blocksToMarkdownLossy();
             if (!md.trim()) return;
@@ -187,17 +189,17 @@ export default function AISlashMenu({ pagePath }: Props) {
       });
     } else {
       aiItems.push(
-        makeItem('Format & Structure', 'Organize and clean up the page', 'structure', 'page'),
-        makeItem('Summarize Page', 'Create a concise page summary', 'summarize', 'page'),
+        makeItem(t('aislash_menu.format_structure'), t('aislash_menu.organize_and_clean_up_the_page'), 'structure', 'page'),
+        makeItem(t('aislash_menu.summarize_page'), t('aislash_menu.create_a_concise_page_summary'), 'summarize', 'page'),
       );
       aiItems.push({
-        title: 'Interlink Notes',
-        subtext: 'Search vault and add [[wiki-links]] to related notes',
+        title: t('aislash_menu.interlink_notes'),
+        subtext: t('aislash_menu.search_vault_and_add_wiki_links_to_related_notes'),
         aliases: ['interlink', 'wikilinks', 'connect'],
         group: 'AI',
         icon: <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>🔗</span>,
         onItemClick: async () => {
-          setLoading('Interlinking...');
+          setLoading(t('aislash_menu.interlinking'));
           try {
             const md = editor.blocksToMarkdownLossy();
             if (!md.trim()) return;
@@ -221,8 +223,8 @@ export default function AISlashMenu({ pagePath }: Props) {
 
     // Math equation item (always available)
     aiItems.push({
-      title: 'Math Equation',
-      subtext: 'Insert a LaTeX math equation',
+      title: t('editor.math_equation_label'),
+      subtext: t('aislash_menu.insert_a_latex_math_equation'),
       aliases: ['math', 'equation', 'latex', 'formula'],
       group: 'Blocks',
       icon: <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>Σ</span>,
@@ -241,13 +243,13 @@ export default function AISlashMenu({ pagePath }: Props) {
 
     // Mermaid generation item (always available)
     aiItems.push({
-      title: 'Generate Mermaid Diagram',
-      subtext: 'Create a diagram from a description',
+      title: t('aislash_menu.generate_mermaid_diagram'),
+      subtext: t('aislash_menu.create_a_diagram_from_a_description'),
       aliases: ['mermaid', 'diagram', 'chart'],
       group: 'AI',
       icon: <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>📊</span>,
       onItemClick: async () => {
-        setLoading('Generating Mermaid...');
+        setLoading(t('aislash_menu.generating_mermaid'));
         try {
           const prompt = capturedRef.current || extractText(editor.document as unknown);
           capturedRef.current = '';
@@ -275,7 +277,7 @@ export default function AISlashMenu({ pagePath }: Props) {
       [...aiItems, ...defaultItems.filter((i) => !customGroups.has(i.group))],
       query,
     );
-  }, [editor, pagePath, abortableInvoke]);
+  }, [editor, pagePath, abortableInvoke, t]);
 
   return (
     <>

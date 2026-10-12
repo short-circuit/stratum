@@ -3,6 +3,7 @@ import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import TextField from '@mui/material/TextField';
 import type { SyncStatusDto, CommitLogEntry } from '../../lib/types';
+import { useTranslation } from 'react-i18next';
 import CommitLogPanel from './CommitLogPanel';
 import SyncControlsPanel from './SyncControlsPanel';
 
@@ -36,11 +37,11 @@ export interface MobileSyncSectionProps {
 
 const MODES = ['manual', 'auto_commit', 'auto_sync', 'background'] as const;
 
-const MODE_HELP: Record<string, string> = {
-  manual: 'Sync only when you click the Sync button. No automatic commits.',
-  auto_commit: 'Changes are automatically committed to git on a timer. Manual push/pull required.',
-  auto_sync: 'Automatic commits + periodic push/pull to remote.',
-  background: 'Full background sync — commits, push, and pull happen automatically.',
+const MODE_HELP_KEYS: Record<string, string> = {
+  manual: 'settings.sync_only_when_you_click_the_sync_button_no_automatic_commit',
+  auto_commit: 'settings.auto_commit_mode_help',
+  auto_sync: 'settings.automatic_commits_periodic_push_pull_to_remote',
+  background: 'settings.full_background_sync_commits_push_and_pull_happen_automatica',
 };
 
 const TEMPLATE_PLACEHOLDERS = [
@@ -58,6 +59,7 @@ export default function MobileSyncSection({
   commitsOpen,
   onToggleCommits,
 }: MobileSyncSectionProps) {
+  const { t } = useTranslation();
   const insertPlaceholder = (placeholder: string) => {
     // Insert the placeholder at the current cursor of the template field via a
     // data attribute lookup (mirrors SyncTab behavior but on the mobile field).
@@ -92,13 +94,13 @@ export default function MobileSyncSection({
   return (
     <Box sx={{ px: 2, pt: 3, pb: 3 }}>
       <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-        Sync
+        {t('settings.sync')}
       </Typography>
       <Divider sx={{ mb: 1.5 }} />
 
       {/* Sync mode selector */}
       <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}>
-        Sync Mode
+        {t('settings.sync_mode')}
       </Typography>
       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 0.5 }}>
         {MODES.map(mode => (
@@ -120,17 +122,17 @@ export default function MobileSyncSection({
               '&:hover': { opacity: 0.85 },
             }}
           >
-            {mode === 'auto_commit' ? 'Auto-Commit' : mode === 'auto_sync' ? 'Auto-Sync' : mode}
+            {mode === 'auto_commit' ? t('settings.auto_commit') : mode === 'auto_sync' ? t('settings.auto_sync') : mode}
           </Box>
         ))}
       </Box>
       <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 2 }}>
-        {MODE_HELP[syncSettings.mode] || MODE_HELP.manual}
+        {t(MODE_HELP_KEYS[syncSettings.mode] || MODE_HELP_KEYS.manual)}
       </Typography>
 
       {/* Remote & branch */}
       <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}>
-        Remote &amp; Branch
+        {t('settings.remote_amp_branch')}
       </Typography>
       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
         <TextField
@@ -157,7 +159,7 @@ export default function MobileSyncSection({
 
       {/* SSH key path */}
       <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}>
-        SSH Key Path
+        {t('settings.ssh_key_path')}
       </Typography>
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 0.25 }}>
         <TextField
@@ -184,21 +186,21 @@ export default function MobileSyncSection({
             flexShrink: 0,
           }}
         >
-          {syncSettings.ssh_key_path ? 'Set' : 'Agent'}
+          {syncSettings.ssh_key_path ? t('settings.set') : t('settings.agent')}
         </Box>
       </Box>
       <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 2 }}>
-        Leave empty to use SSH agent.
+        {t('settings.leave_empty_to_use_ssh_agent')}
       </Typography>
 
       {/* Auto-commit settings (conditional) */}
       {['auto_commit', 'auto_sync', 'background'].includes(syncSettings.mode) && (
         <Box sx={{ mb: 2 }}>
           <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}>
-            Auto-Commit Settings
+            {t('settings.auto_commit_settings')}
           </Typography>
           <TextField
-            label="Commit Interval (seconds)"
+            label={t('settings.commit_interval_seconds')}
             type="number"
             value={syncSettings.auto_commit_interval_secs}
             onChange={e =>
@@ -210,7 +212,7 @@ export default function MobileSyncSection({
             sx={{ mb: 1.5 }}
           />
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-            Commit Message Template
+            {t('settings.commit_message_template')}
           </Typography>
           <TextField
             size="small"
@@ -258,7 +260,7 @@ export default function MobileSyncSection({
               color: 'text.disabled',
             }}
           >
-            Preview: {templatePreview}
+            {t('settings.preview')} {templatePreview}
           </Box>
         </Box>
       )}
@@ -267,10 +269,10 @@ export default function MobileSyncSection({
       {['auto_sync', 'background'].includes(syncSettings.mode) && (
         <Box sx={{ mb: 2 }}>
           <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}>
-            Auto-Sync Settings
+            {t('settings.auto_sync_settings')}
           </Typography>
           <TextField
-            label="Pull/Push Interval (seconds)"
+            label={t('settings.pull_push_interval_seconds')}
             type="number"
             value={syncSettings.auto_sync_interval_secs}
             onChange={e =>

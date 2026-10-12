@@ -7,6 +7,7 @@ import ListItemText from '@mui/material/ListItemText';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
+import { useTranslation } from 'react-i18next';
 import type { AutocompleteItem } from '../lib/types';
 
 interface AutocompletePopupProps {
@@ -51,6 +52,7 @@ const AutocompletePopup = memo(function AutocompletePopup({
   onSelect,
   onClose,
 }: AutocompletePopupProps) {
+  const { t } = useTranslation();
   const virtualElement = useMemo(() => {
     if (!anchorPosition) return null;
     const rect = {
@@ -100,7 +102,7 @@ const AutocompletePopup = memo(function AutocompletePopup({
             color="text.secondary"
             sx={{ p: 2, textAlign: 'center' }}
           >
-            No results
+            {t('autocomplete_popup.no_results')}
           </Typography>
         ) : (
           <List dense disablePadding>

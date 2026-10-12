@@ -1,4 +1,5 @@
 import { ttsSpeak } from './commands/features';
+import i18n from '../i18n';
 
 /**
  * Recursively extract plain text from a BlockNote block's inline content.
@@ -61,7 +62,7 @@ export async function playAudio(audioB64: string, mime: string): Promise<void> {
       };
       audio.onerror = () => {
         URL.revokeObjectURL(url);
-        reject(new Error('Failed to play audio'));
+        reject(new Error(i18n.t('lib.failed_to_play_audio')));
       };
       void audio.play().catch(reject);
     });

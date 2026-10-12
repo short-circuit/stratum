@@ -1,4 +1,5 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react';
+import i18n from '../i18n';
 
 interface Props {
   children: ReactNode;
@@ -25,7 +26,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return this.props.fallback ?? (
         <div style={{ padding: 24, color: '#ef4444' }}>
-          <h2>Something went wrong</h2>
+          <h2>{i18n.t('error_boundary.something_went_wrong')}</h2>
           <pre style={{ fontSize: 12 }}>{this.state.error?.message}</pre>
         </div>
       );

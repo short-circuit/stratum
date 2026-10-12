@@ -5,6 +5,7 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
+import { useTranslation } from 'react-i18next';
 import type { GraphNodeDto, GraphDataDto, GraphSettings } from '../../lib/types';
 
 export interface GraphNode extends GraphNodeDto {
@@ -82,6 +83,7 @@ export default function GraphCanvas2D({
   graphSettings,
   graphRef,
 }: GraphCanvas2DProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
@@ -89,7 +91,7 @@ export default function GraphCanvas2D({
       {loading && (
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(0,0,0,0.03)', zIndex: 10 }}>
           <CircularProgress size={20} sx={{ mr: 1 }} />
-          <Typography variant="body2" color="text.secondary">Building graph...</Typography>
+          <Typography variant="body2" color="text.secondary">{t('graph.building_graph')}</Typography>
         </Box>
       )}
 
@@ -104,7 +106,7 @@ export default function GraphCanvas2D({
           {graphData && graphData.node_count > 0 && graphData.edge_count === 0 && (
             <Alert severity="warning" icon={false} sx={{ position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 10, boxShadow: 3 }}>
               <Typography variant="caption">
-                Pages found but no wiki-links yet. Add <Box component="code" sx={{ bgcolor: 'warning.light', px: 0.5, borderRadius: 0.5, fontSize: '0.7rem' }}>[[Page Name]]</Box> in your notes to create connections.
+                {t('graph.pages_found_but_no_wiki_links_yet_add')} <Box component="code" sx={{ bgcolor: 'warning.light', px: 0.5, borderRadius: 0.5, fontSize: '0.7rem' }}>{t('graph._page_name')}</Box> {t('graph.in_your_notes_to_create_connections')}
               </Typography>
             </Alert>
           )}
@@ -174,23 +176,23 @@ export default function GraphCanvas2D({
       {!loading && !error && nodes.length === 0 && (
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Box sx={{ textAlign: 'center', maxWidth: 320 }}>
-            <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>No graph data yet</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>{t('graph.no_graph_data_yet')}</Typography>
             {graphData ? (
               <>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-                  Vault at <Box component="code" sx={{ bgcolor: 'grey.200', px: 0.5, borderRadius: 0.5 }}>{graphData.vault_path}</Box> has
-                  {' '}0 .md files. Create pages first, then add{' '}
-                  <Box component="code" sx={{ bgcolor: 'grey.200', px: 0.5, borderRadius: 0.5 }}>[[wiki-links]]</Box>{' '}
-                  between them to build the graph.
+                  {t('graph.vault_at')} <Box component="code" sx={{ bgcolor: 'grey.200', px: 0.5, borderRadius: 0.5 }}>{graphData.vault_path}</Box> has
+                  {' '}{t('graph.0_md_files_create_pages_first_then_add')}{' '}
+                  <Box component="code" sx={{ bgcolor: 'grey.200', px: 0.5, borderRadius: 0.5 }}>{t('graph._wiki_links')}</Box>{' '}
+                  {t('graph.between_them_to_build_the_graph')}
                 </Typography>
               </>
             ) : (
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-                Could not load graph data. Check that your vault has .md files with wiki-links.
+                {t('graph.could_not_load_graph_data_check_that_your_vault_has_md_files')}
               </Typography>
             )}
             <Button variant="outlined" size="small" onClick={() => navigate('/')}>
-              Go to Pages
+              {t('graph.go_to_pages')}
             </Button>
           </Box>
         </Box>

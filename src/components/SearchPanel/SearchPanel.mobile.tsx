@@ -9,10 +9,12 @@ import ListItemButton from '@mui/material/ListItemButton';
 import IconButton from '@mui/material/IconButton';
 import SearchIcon from '@mui/icons-material/Search';
 import SettingsIcon from '@mui/icons-material/Settings';
+import { useTranslation } from 'react-i18next';
 import { useSearchPanel } from './SearchPanel.shared';
 
 const SearchPanelMobile = memo(function SearchPanelMobile() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { query, setQuery, results, searching, indexing, indexMsg, handleSearch, doReindex } = useSearchPanel();
 
   return (
@@ -20,7 +22,7 @@ const SearchPanelMobile = memo(function SearchPanelMobile() {
       <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
         <TextField
           size="small"
-          placeholder="Search blocks..."
+          placeholder={t('search.search_blocks')}
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
@@ -29,7 +31,7 @@ const SearchPanelMobile = memo(function SearchPanelMobile() {
           slotProps={{ input: { startAdornment: <SearchIcon fontSize="small" sx={{ mr: 0.5, color: 'text.disabled' }} /> } }}
         />
         <Button variant="contained" onClick={handleSearch} disabled={searching} sx={{ whiteSpace: 'nowrap', minWidth: 64 }}>
-          {searching ? '...' : 'Search'}
+          {searching ? '...' : t('common.search')}
         </Button>
       </Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
@@ -47,13 +49,13 @@ const SearchPanelMobile = memo(function SearchPanelMobile() {
             sx={{ borderRadius: 0.5, mb: 0.5, border: 1, borderColor: 'divider', flexDirection: 'column', alignItems: 'flex-start', py: 0.75 }}
           >
             <Typography variant="caption" color="text.secondary" sx={{ mb: 0.25 }}>
-              {r.page_path} · score: {r.score.toFixed(2)}
+              {r.page_path} {t('search._score')} {r.score.toFixed(2)}
             </Typography>
             <Typography variant="body2">{r.snippet}</Typography>
           </ListItemButton>
         ))}
         {results.length === 0 && query && !searching && (
-          <Typography variant="body2" color="text.secondary">No results found.</Typography>
+          <Typography variant="body2" color="text.secondary">{t('search.no_results_found')}</Typography>
         )}
       </List>
     </Box>

@@ -10,6 +10,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import OutlinerEditor from '../OutlinerEditor';
 import JournalCalendar from '../JournalCalendar';
 import { useJournalPanel, formatDisplayDate } from './JournalPanel.shared';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Mobile journal panel.
@@ -23,6 +24,7 @@ import { useJournalPanel, formatDisplayDate } from './JournalPanel.shared';
  *  - Prev/Next day arrows are rendered large enough for touch (audit 2.3).
  */
 export default function JournalPanelMobile() {
+  const { t } = useTranslation();
   const {
     today,
     todayPagePath,
@@ -53,21 +55,21 @@ export default function JournalPanelMobile() {
   return (
     <Box ref={scrollRootRef as React.Ref<HTMLDivElement>} sx={{ height: '100%', overflow: 'auto', pb: 'var(--safe-area-bottom)' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, pt: 0.5, pb: 1 }}>
-        <IconButton size="small" onClick={() => createNewDay(-1)} aria-label="Previous day">
+        <IconButton size="small" onClick={() => createNewDay(-1)} aria-label={t('journal.previous_day')}>
           <ChevronLeftIcon />
         </IconButton>
         <IconButton
           size="small"
           sx={{ borderRadius: 1 }}
           onClick={() => setCalendarOpen(true)}
-          aria-label="Open calendar"
+          aria-label={t('journal.open_calendar')}
         >
           <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', mr: 0.5 }}>
             {formatDisplayDate(targetDate && targetDate !== today ? targetDate : today)}
           </Typography>
           <CalendarMonthIcon fontSize="small" />
         </IconButton>
-        <IconButton size="small" onClick={() => createNewDay(1)} aria-label="Next day">
+        <IconButton size="small" onClick={() => createNewDay(1)} aria-label={t('journal.next_day')}>
           <ChevronRightIcon />
         </IconButton>
       </Box>
@@ -78,10 +80,10 @@ export default function JournalPanelMobile() {
             {journalError}
           </Alert>
           <Button variant="outlined" size="small" onClick={retryJournal}>
-            Retry
+            {t('common.retry')}
           </Button>
           <Button variant="outlined" size="small" onClick={repairJournal} sx={{ ml: 1 }}>
-            Repair database
+            {t('journal.repair_database')}
           </Button>
         </Box>
       ) : journalLoading || !todayExists ? (

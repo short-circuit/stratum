@@ -7,6 +7,13 @@ import Slider from '@mui/material/Slider';
 import TextField from '@mui/material/TextField';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import ToggleButton from '@mui/material/ToggleButton';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import { useTranslation } from 'react-i18next';
+
+const LOCALES = ['en', 'de', 'it', 'fr', 'es', 'zh', 'ja', 'el'];
 
 // ---------------------------------------------------------------------------
 // Mobile theme settings section.
@@ -36,6 +43,8 @@ export interface MobileThemeSectionProps {
     font_size: number;
   };
   updateTheme: (patch: any) => void;
+  locale: string;
+  onLocaleChange: (locale: string) => void;
 }
 
 function CustomColorRow({
@@ -71,13 +80,28 @@ function CustomColorRow({
   );
 }
 
-export default function MobileThemeSection({ theme, updateTheme }: MobileThemeSectionProps) {
+export default function MobileThemeSection({ theme, updateTheme, locale, onLocaleChange }: MobileThemeSectionProps) {
+  const { t } = useTranslation();
   return (
     <Box sx={{ px: 2, pt: 3 }}>
       <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-        Theme
+        {t('settings.theme')}
       </Typography>
       <Divider sx={{ mb: 1.5 }} />
+      <FormControl size="small" fullWidth sx={{ mb: 1.5 }}>
+        <InputLabel>{t('settings.language_label')}</InputLabel>
+        <Select
+          label={t('settings.language_label')}
+          value={locale}
+          onChange={e => onLocaleChange(e.target.value as string)}
+        >
+          {LOCALES.map(code => (
+            <MenuItem key={code} value={code}>
+              {t(`settings.langs.${code}`)}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
       <FormControlLabel
         control={
           <Switch
@@ -85,11 +109,11 @@ export default function MobileThemeSection({ theme, updateTheme }: MobileThemeSe
             onChange={e => updateTheme({ dark_mode: e.target.checked })}
           />
         }
-        label="Dark mode"
+        label={t('settings.dark_mode')}
         sx={{ mb: 1.5 }}
       />
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-        Primary (buttons, accents)
+        {t('settings.primary_buttons_accents')}
       </Typography>
       <ToggleButtonGroup
         value={theme.primary_color}
@@ -116,7 +140,7 @@ export default function MobileThemeSection({ theme, updateTheme }: MobileThemeSe
         onChange={v => updateTheme({ primary_color: v })}
       />
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-        Secondary (backgrounds, borders)
+        {t('settings.secondary_backgrounds_borders')}
       </Typography>
       <ToggleButtonGroup
         value={theme.secondary_color}
@@ -143,7 +167,7 @@ export default function MobileThemeSection({ theme, updateTheme }: MobileThemeSe
         onChange={v => updateTheme({ secondary_color: v })}
       />
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-        Font Size: {theme.font_size || 16}px
+        {t('settings.font_size')} {theme.font_size || 16}px
       </Typography>
       <Slider
         value={theme.font_size || 16}

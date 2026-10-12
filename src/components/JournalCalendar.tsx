@@ -10,6 +10,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CloseIcon from '@mui/icons-material/Close';
 import { useResponsive } from '../lib/hooks/useResponsive';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   open: boolean;
@@ -60,19 +61,20 @@ function CalendarGrid({
   onNextMonth,
   touch,
 }: GridProps) {
+  const { t } = useTranslation();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
 
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-        <IconButton size={touch ? 'medium' : 'small'} onClick={onPrevMonth} aria-label="Previous month">
+        <IconButton size={touch ? 'medium' : 'small'} onClick={onPrevMonth} aria-label={t('journal_calendar.previous_month')}>
           <ChevronLeftIcon />
         </IconButton>
         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
           {MONTHS[viewMonth]} {viewYear}
         </Typography>
-        <IconButton size={touch ? 'medium' : 'small'} onClick={onNextMonth} aria-label="Next month">
+        <IconButton size={touch ? 'medium' : 'small'} onClick={onNextMonth} aria-label={t('journal_calendar.next_month')}>
           <ChevronRightIcon />
         </IconButton>
       </Box>
@@ -132,6 +134,7 @@ export default function JournalCalendar({
   journalDates = new Set(),
   today: todayProp,
 }: Props) {
+  const { t } = useTranslation();
   const { isMobile } = useResponsive();
   const now = new Date();
   const today = todayProp ?? formatDate(now);
@@ -168,10 +171,10 @@ export default function JournalCalendar({
 
   if (isMobile) {
     return (
-      <Dialog fullScreen open={open} onClose={onClose} aria-label="Journal calendar">
+      <Dialog fullScreen open={open} onClose={onClose} aria-label={t('journal_calendar.journal_calendar')}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Calendar</Typography>
-          <IconButton size="small" onClick={onClose} aria-label="Close calendar">
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t('journal_calendar.calendar')}</Typography>
+          <IconButton size="small" onClick={onClose} aria-label={t('journal_calendar.close_calendar')}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>

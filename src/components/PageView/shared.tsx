@@ -10,6 +10,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useStore, type AppState } from '../../stores/appStore';
 import * as api from '../../lib/commands';
 import { useRestoreSourceScroll } from '../../lib/backlinkNavigation';
+import i18n from '../../i18n';
 
 export interface PageViewState {
   /** Decoded page path from URL params, or null on the landing route */
@@ -60,12 +61,12 @@ export function usePageView(): PageViewState {
       setEditorKey(k => k + 1);
       await loadPages();
       if (result.succeeded > 0) {
-        useStore.getState().showError(`Reindexed page — ${result.succeeded} block(s)`, { autoDismissMs: 2000 });
+        useStore.getState().showError(`${i18n.t('page.reindexed_page')} ${result.succeeded} block(s)`, { autoDismissMs: 2000 });
       } else if (result.failed > 0) {
-        useStore.getState().showError(`Reindex failed: ${result.errors.join(', ')}`);
+        useStore.getState().showError(`${i18n.t('page.reindex_failed')} ${result.errors.join(', ')}`);
       }
     } catch (e) {
-      console.error('Reindex failed:', e);
+      console.error(i18n.t('page.reindex_failed'), e);
       useStore.getState().showError(String(e));
     } finally {
       setReindexing(false);
@@ -74,11 +75,11 @@ export function usePageView(): PageViewState {
 
   const handleDelete = useCallback(async () => {
     if (!currentPage) return;
-    if (!confirm(`Delete "${currentPage.title || currentPage.slug}"?`)) return;
+    if (!confirm(`${i18n.t('page.delete')}${currentPage.title || currentPage.slug}"?`)) return;
     try {
       await deletePage(currentPage.path);
     } catch (e) {
-      console.error('Delete failed:', e);
+      console.error(i18n.t('page.delete_failed'), e);
     }
   }, [currentPage, deletePage]);
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, startTransition } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import * as api from '../../lib/commands';
+import i18n from '../../i18n';
 import type { SearchResultDto } from '../../lib/types';
 
 export function useSearchPanel() {
@@ -49,7 +50,7 @@ export function useSearchPanel() {
       const msg = await api.rebuildSearchIndex();
       setIndexMsg(msg);
     } catch (e) {
-      setIndexMsg(`Failed: ${e}`);
+      setIndexMsg(`${i18n.t('search.failed')} ${e}`);
     } finally {
       setIndexing(false);
     }

@@ -2,6 +2,7 @@ import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Typography from '@mui/material/Typography';
 import type { PluginInfoDto } from '../../lib/types';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Renders a plugin's manifest display metadata (spec §2): description, author,
@@ -9,6 +10,7 @@ import type { PluginInfoDto } from '../../lib/types';
  * none of these so plugin cards with absent metadata stay compact.
  */
 export function PluginManifestMeta({ plugin }: { plugin: PluginInfoDto }) {
+  const { t } = useTranslation();
   const hooks = plugin.hooks ?? [];
   const hasManifest = Boolean(plugin.description || plugin.author || hooks.length > 0);
   if (!hasManifest) return null;
@@ -17,7 +19,7 @@ export function PluginManifestMeta({ plugin }: { plugin: PluginInfoDto }) {
     <Box sx={{ mt: 1 }}>
       {plugin.description && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-          {plugin.description}
+          {t(plugin.description)}
         </Typography>
       )}
       {plugin.author && (
@@ -27,7 +29,7 @@ export function PluginManifestMeta({ plugin }: { plugin: PluginInfoDto }) {
       )}
       {hooks.length > 0 && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
-          <Typography variant="caption" color="text.disabled">Hooks:</Typography>
+          <Typography variant="caption" color="text.disabled">{t('plugins.hooks')}</Typography>
           {hooks.map(hook => (
             <Chip key={hook} label={hook} size="small" variant="outlined" sx={{ height: 18, fontSize: '0.62rem' }} />
           ))}

@@ -1,6 +1,7 @@
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Shared body for the backlink snippet popup.
@@ -38,6 +39,7 @@ export default function BacklinkSnippetBody({
   onNavigate,
   maxHeight,
 }: BacklinkSnippetBodyProps) {
+  const { t } = useTranslation();
   if (loading) {
     return (
       <Box sx={{ p: 1.5, display: 'flex', justifyContent: 'center' }}>
@@ -50,10 +52,10 @@ export default function BacklinkSnippetBody({
     return (
       <Box sx={{ maxWidth: 280, p: 1.5 }}>
         <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-          {noteTitle || 'Backlinked note'}
+          {noteTitle || t('backlink_snippet_body.backlinked_note')}
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          Could not load the backlinked snippet.
+          {t('backlink_snippet_body.could_not_load_the_backlinked_snippet')}
         </Typography>
       </Box>
     );
@@ -92,7 +94,7 @@ export default function BacklinkSnippetBody({
       >
         {blocks.length === 0 ? (
           <Typography variant="caption" color="text.disabled">
-            (no content)
+            {t('backlink_snippet_body._no_content')}
           </Typography>
         ) : (
           blocks.map((block, i) => {
@@ -123,7 +125,7 @@ export default function BacklinkSnippetBody({
         )}
       </Box>
       <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>
-        Ctrl+click to navigate
+        {t('backlink_snippet_body.ctrl_click_to_navigate')}
       </Typography>
     </Box>
   );

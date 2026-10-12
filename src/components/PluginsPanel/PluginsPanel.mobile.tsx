@@ -14,6 +14,7 @@ import { usePluginsPanel } from './PluginsPanel.shared';
 import { StatusChip } from './StatusChip';
 import { PluginManifestMeta } from './PluginManifestMeta';
 import EmptyState from '../ui/EmptyState';
+import { useTranslation } from 'react-i18next';
 
 export default function PluginsPanelMobile() {
   const {
@@ -34,16 +35,17 @@ export default function PluginsPanelMobile() {
     clearTestResult,
     clearError,
   } = usePluginsPanel();
+  const { t } = useTranslation();
 
   const installing = busyId === '__install__';
 
   return (
     <Box sx={{ height: '100%', overflow: 'auto', p: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>Plugins</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>{t('mobile_layout.plugins')}</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button size="small" startIcon={<RefreshIcon />} onClick={() => void refresh()} disabled={loading || installing} sx={{ textTransform: 'none' }}>
-            Refresh
+            {t('common.refresh')}
           </Button>
           <Button
             size="small"
@@ -58,26 +60,26 @@ export default function PluginsPanelMobile() {
         </Box>
       </Box>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-        WASM plugins from ~/.pkm/plugins.
-        {!backendReady && ' Backend not wired yet — showing mock data.'}
+        {t('plugins.wasm_plugins_from_pkm_plugins')}
+        {!backendReady && ` ${t('plugins.backend_not_wired_yet_showing_mock_data')}`}
       </Typography>
 
       {error && (
         <Typography variant="body2" color="error" sx={{ mb: 1.5, cursor: 'pointer' }} onClick={clearError}>
-          {error} (tap to dismiss)
+          {error} ({t('plugins._tap_to_dismiss')})
         </Typography>
       )}
 
       {loading ? (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 4, justifyContent: 'center' }}>
           <CircularProgress size={18} />
-          <Typography variant="body2" color="text.secondary">Loading plugins...</Typography>
+          <Typography variant="body2" color="text.secondary">{t('plugins.loading_plugins')}</Typography>
         </Box>
       ) : plugins.length === 0 ? (
         <EmptyState
           icon={<ExtensionIcon sx={{ fontSize: 40 }} />}
-          message="No plugins installed"
-          description="Install a plugin.wasm, or drop one into ~/.pkm/plugins/ then Refresh."
+          message={t('plugins.no_plugins_installed')}
+          description={t('plugins.install_a_plugin_wasm_or_drop_one_into_pkm_plugi')}
           actionLabel="Install"
           onAction={() => void installFromFile()}
         />
@@ -92,7 +94,7 @@ export default function PluginsPanelMobile() {
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
                     <Box sx={{ minWidth: 0 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{plugin.name}</Typography>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t(plugin.name)}</Typography>
                         <Chip label={`v${plugin.version}`} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.68rem' }} />
                       </Box>
                       <Typography variant="caption" color="text.disabled" sx={{ fontFamily: 'monospace', display: 'block', mb: 1 }}>
@@ -132,7 +134,7 @@ export default function PluginsPanelMobile() {
                       onClick={() => void uninstall(plugin.id)}
                       sx={{ textTransform: 'none', flex: '1 1 45%' }}
                     >
-                      {busy ? '…' : 'Uninstall'}
+                      {busy ? '…' : t('plugins.uninstall')}
                     </Button>
                   </Box>
 
@@ -151,7 +153,7 @@ export default function PluginsPanelMobile() {
                       sx={{ display: 'block', mt: 0.5, cursor: 'pointer', userSelect: 'none' }}
                       onClick={() => clearTestResult(plugin.id)}
                     >
-                      {test.label}: {test.ok ? 'ok' : 'failed'} — {test.detail} (tap to dismiss)
+                      {test.label}: {test.ok ? 'ok' : 'failed'} — {test.detail} ({t('plugins._tap_to_dismiss')})
                     </Typography>
                   )}
                 </CardContent>

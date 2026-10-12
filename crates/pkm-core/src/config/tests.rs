@@ -8,6 +8,29 @@ fn test_config_defaults() {
     assert!(cfg.theme.dark_mode);
     assert_eq!(cfg.theme.font_size, 16);
     assert_eq!(cfg.watcher.debounce_ms, 500);
+    assert_eq!(cfg.locale, "en");
+}
+
+#[test]
+fn test_config_locale_roundtrip() {
+    let dir = TempDir::new().unwrap();
+    let config_path = dir.path().join("config.toml");
+
+    let cfg = Config {
+        locale: "de".to_string(),
+        ..Default::default()
+    };
+    cfg.save(&config_path).unwrap();
+
+    let loaded = Config::load(&config_path).unwrap();
+    assert_eq!(loaded.locale, "de");
+
+    // Unknown/unset locales are tolerated at load time (frontend falls back to en).
+    let mut without_locale = cfg.clone();
+    without_locale.locale = "fr".to_string();
+    without_locale.save(&config_path).unwrap();
+    let loaded_fr = Config::load(&config_path).unwrap();
+    assert_eq!(loaded_fr.locale, "fr");
 }
 
 #[test]
