@@ -38,6 +38,7 @@ export function useSettingsPage() {
   const syncing = useSyncStore(s => s.syncing);
   const setSyncing = useSyncStore(s => s.setSyncing);
   const [commitsOpen, setCommitsOpen] = useState(false);
+  const [installing, setInstalling] = useState(false);
 
   const syncModal = useSyncModalStore();
 
@@ -147,6 +148,7 @@ export function useSettingsPage() {
     capture_target: 'journal',
     inbox_path: 'Inbox.md',
   };
+  const voice = settings?.voice || { enabled: true, target: 'journal:today' };
 
   const updateAi = (patch: any) => setSettings({ ...settings, ai: { ...ai, ...patch } });
   const updateVault = (patch: any) => setSettings({ ...settings, ...patch });
@@ -171,6 +173,8 @@ export function useSettingsPage() {
     setSettings({ ...settings, tts: { ...(settings.tts || {}), ...patch } });
   const updateTray = (patch: any) =>
     setSettings({ ...settings, tray: { ...(settings.tray || {}), ...patch } });
+  const updateVoice = (patch: any) =>
+    setSettings({ ...settings, voice: { ...(settings.voice || {}), ...patch } });
   const locale = settings?.locale ?? 'en';
   const onLocaleChange = (loc: string) => {
     setSettings({ ...settings, locale: loc });
@@ -328,6 +332,33 @@ export function useSettingsPage() {
     }
   };
 
+  const handleResetOnboarding = async () => {
+    setMsg('');
+    setMsgSeverity('success');
+    try {
+      await api.setOnboardingPending(true);
+      setMsg(i18n.t('settings.onboarding_reset_done'));
+    } catch (e) {
+      setMsg(`${i18n.t('settings.reset_onboarding_help')} ${e}`);
+      setMsgSeverity('error');
+    }
+  };
+
+  const handleInstallStarterTemplates = async () => {
+    setInstalling(true);
+    setMsg('');
+    setMsgSeverity('success');
+    try {
+      const names = await api.installStarterTemplates();
+      setMsg(i18n.t('settings.templates_installed', { count: names.length }));
+    } catch (e) {
+      setMsg(`${i18n.t('settings.install_starter_templates')} ${e}`);
+      setMsgSeverity('error');
+    } finally {
+      setInstalling(false);
+    }
+  };
+
   const handlePassphraseSubmit = async (passphrase: string) => {
     try {
       const result = await useSyncStore.getState().doSyncWithPassphrase(passphrase);
@@ -395,6 +426,7 @@ export function useSettingsPage() {
     stt: settings?.stt,
     tts,
     tray,
+    voice,
     locale,
     onLocaleChange,
 
@@ -410,6 +442,7 @@ export function useSettingsPage() {
     updateStt,
     updateTts,
     updateTray,
+    updateVoice,
     handleSave,
     handleFetchModels,
     handleReindex,
@@ -423,5 +456,8 @@ export function useSettingsPage() {
     handleStartScheduler,
     handlePassphraseSubmit,
     handlePickVaultDirectory,
+    handleResetOnboarding,
+    handleInstallStarterTemplates,
+    installing,
   };
 }

@@ -332,6 +332,13 @@ pub fn run() {
             // Importers
             commands::import::preview_import,
             commands::import::import_vault,
+            // Assets
+            commands::asset::import_asset_path,
+            commands::asset::import_asset_bytes,
+            commands::asset::read_asset,
+            commands::asset::delete_asset,
+            commands::asset::list_asset_refs,
+            commands::asset::get_page_asset_refs,
             // Blocks
             commands::block::get_blocks,
             commands::block::build_markdown,
@@ -376,6 +383,8 @@ pub fn run() {
             commands::template::list_templates,
             commands::template::save_template,
             commands::template::apply_template,
+            commands::template::install_starter_templates,
+            commands::template::install_starter_sample,
             // Export
             commands::export::export_html,
             commands::export::export_json,
@@ -406,6 +415,9 @@ pub fn run() {
             commands::dictation::dictation_stop,
             commands::dictation::dictation_cancel,
             commands::dictation::dictation_transcribe,
+            commands::dictation::dictation_insert_clip_ref,
+            commands::dictation::mic_permission_status,
+            commands::dictation::request_mic_permission,
             commands::dictation::speaker_list,
             commands::dictation::speaker_assign,
             commands::dictation::speaker_delete,
@@ -423,6 +435,10 @@ pub fn run() {
             commands::tray::get_tray_status,
             #[cfg(desktop)]
             commands::tray::quick_capture_save,
+            // Onboarding
+            commands::settings::get_onboarding_state,
+            commands::settings::mark_onboarding_done,
+            commands::settings::set_onboarding_pending,
             // Plugins
             commands::plugins::plugins_list,
             commands::plugins::plugins_enable,

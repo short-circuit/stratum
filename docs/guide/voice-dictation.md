@@ -138,3 +138,42 @@ into the server's models directory, install the sherpa-onnx backend
 
 The summary/links/tags steps reuse the main AI provider; if it is not
 configured those steps are skipped and you get the plain transcript.
+
+## One-Tap Capture into Today's Journal
+
+In addition to the full dictation panel (used on an individual note), the
+Journal offers a **one-tap voice-capture** button that records straight into
+today's journal:
+
+- **Mobile** — a fixed microphone FAB (bottom-right). Tap to record, tap the
+  stop button to save & transcribe, or use the cancel button to discard.
+- **Desktop** — a "Record voice memo" button in the journal header.
+
+The flow reuses the exact same transcription pipeline and memo rendering as the
+dictation panel — nothing is reimplemented. After a successful transcription the
+journal editor reloads automatically so the inserted memo is visible
+immediately. The button then returns to the idle "record" state after a short
+success indicator, so you can record another memo without leaving the journal
+(one-tap flow is repeatable).
+
+### Permissions
+
+- **Desktop** — the microphone is trivially available; no prompt is shown.
+- **Android** — a system microphone-permission dialog is requested the first
+  time you record. If you deny it, a banner appears with an **Enable** action.
+- **iOS** — the system permission prompt appears on the first audio stream
+  (`NSMicrophoneUsageDescription` is declared by the build).
+
+### Error fallback (data never lost)
+
+If the transcription endpoint is unreachable or fails, the saved clip is not
+discarded: a **placeholder memo** referencing the recording is inserted into
+the journal and a **Retry transcription** action is shown. If no transcription
+endpoint is configured at all, the recording is still saved and a **Configure
+STT** prompt links you to **Settings → AI**.
+
+### Enabling / disabling
+
+The one-tap button can be toggled under **Settings → AI → Voice-Capture
+Button**. When disabled, the button is hidden — the full dictation panel is
+still available on any individual note.

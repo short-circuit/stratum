@@ -24,6 +24,8 @@ pub struct Config {
     pub stt: SttConfig,
     /// Text-to-speech (TTS) configuration.
     pub tts: TtsConfig,
+    /// Voice-capture (one-tap dictation) feature configuration.
+    pub voice: VoiceCaptureConfig,
     /// Web research configuration (SearXNG).
     pub research: ResearchConfig,
     /// Plugin enable/disable.
@@ -36,6 +38,17 @@ pub struct Config {
     pub graph: GraphConfig,
     /// System tray + quick capture configuration (desktop only; ignored on mobile).
     pub tray: TrayConfig,
+    /// Whether the first-run onboarding wizard has not yet been completed.
+    ///
+    /// Defaults to `false` (onboarding already done / never shown). The
+    /// `set_onboarding_pending` command sets this to `true` when a user resets
+    /// onboarding from Settings; `mark_onboarding_done` clears it. Because the
+    /// struct is `#[serde(default)]` and this field carries its own
+    /// `#[serde(default)]`, configs written before this field existed (or that
+    /// omit it) load with `false`, which is the safe "do not show onboarding"
+    /// default for any populated vault.
+    #[serde(default)]
+    pub onboarding_pending: bool,
 }
 
 impl Default for Config {
@@ -50,12 +63,14 @@ impl Default for Config {
             ai: AiConfig::default(),
             stt: SttConfig::default(),
             tts: TtsConfig::default(),
+            voice: VoiceCaptureConfig::default(),
             research: ResearchConfig::default(),
             plugins: Vec::new(),
             network: NetworkConfig::default(),
             watcher: WatcherConfig::default(),
             graph: GraphConfig::default(),
             tray: TrayConfig::default(),
+            onboarding_pending: false,
         }
     }
 }
@@ -416,6 +431,25 @@ impl Default for TtsConfig {
             format: "mp3".to_string(),
             speed: 1.0,
             use_llm_gateway_and_auth: false,
+        }
+    }
+}
+
+/// Voice-capture (one-tap dictation) feature configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct VoiceCaptureConfig {
+    /// Whether the one-tap voice-capture button is shown in the Journal.
+    pub enabled: bool,
+    /// Insertion target. Default "journal:today".
+    pub target: String,
+}
+
+impl Default for VoiceCaptureConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            target: "journal:today".to_string(),
         }
     }
 }

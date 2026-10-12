@@ -60,6 +60,8 @@ export default function SettingsPageMobile() {
     tts,
     updateStt,
     updateTts,
+    voice,
+    updateVoice,
     // Sync
     syncSettings,
     updateSync,
@@ -67,6 +69,9 @@ export default function SettingsPageMobile() {
     commitsOpen,
     handleToggleCommits,
     handleStartScheduler,
+    handleResetOnboarding,
+    handleInstallStarterTemplates,
+    installing,
   } = useSettingsPage();
 
   if (!settings) {
@@ -149,6 +154,8 @@ export default function SettingsPageMobile() {
           updateStt={updateStt}
           tts={tts}
           updateTts={updateTts}
+          voice={voice}
+          updateVoice={updateVoice}
         />
 
         {/* ─── Research Section ─── */}
@@ -193,6 +200,9 @@ export default function SettingsPageMobile() {
           onRepair={handleRepair}
           onNormalizeAll={handleNormalizeAll}
           reindexProgress={reindexProgress}
+          onResetOnboarding={handleResetOnboarding}
+          onInstallTemplates={handleInstallStarterTemplates}
+          installing={installing}
         />
 
         {/* ─── Sync Section ─── */}

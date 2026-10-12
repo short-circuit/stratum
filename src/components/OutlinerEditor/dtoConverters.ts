@@ -1,5 +1,13 @@
 import type { BlockDto } from '../../lib/types';
-import { parseContentToInlineItems, inlineItemsToContent } from '../../lib/wikiLinks';
+import {
+  parseContentToInlineItems,
+  inlineItemsToContent,
+  isAssetHref,
+  extractAssetRefPath,
+} from '../../lib/wikiLinks';
+
+const ASSET_PREFIX = 'stratum-asset:';
+const IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'svg', 'bmp', 'ico'];
 
 export interface BlockMeta {
   marker: string | null;
@@ -57,6 +65,37 @@ export function dtoToBlockNote(dtos: BlockDto[], metaMap: Map<string, BlockMeta>
         children: children.map(convert),
       };
     }
+    // eslint-disable-next-line no-useless-escape -- brackets must be excluded literally
+    const embedMatch = contentStr.match(/^!\[\[([^\[\]]+)\]\]$/);
+    if (embedMatch) {
+      const target = embedMatch[1].trim();
+      if (target.startsWith('assets/')) {
+        const ext = target.split('.').pop()?.toLowerCase() || '';
+        metaMap.set(dto.id, {
+          marker: dto.marker,
+          priority: dto.priority,
+          properties: dto.properties,
+        });
+        if (IMAGE_EXTS.includes(ext)) {
+          return {
+            type: 'image',
+            props: { url: ASSET_PREFIX + target, name: target, caption: '' },
+            content: [],
+            children: children.map(convert),
+          };
+        }
+        return {
+          type: 'file',
+          props: {
+            url: ASSET_PREFIX + target,
+            name: target.split('/').pop() || target,
+            caption: '',
+          },
+          content: [],
+          children: children.map(convert),
+        };
+      }
+    }
     let type = 'paragraph';
     const props: Record<string, any> = {};
     if (dto.heading_level) { type = 'heading'; props.level = dto.heading_level; }
@@ -102,6 +141,17 @@ export function blockNoteToDto(blockNoteBlocks: any[], metaMap: Map<string, Bloc
           content = '```' + lang + '\n' + code + '\n```';
         } else {
           content = '```\n' + code + '\n```';
+        }
+      } else if (b.type === 'image' || b.type === 'file' || b.type === 'video' || b.type === 'audio') {
+        const url = typeof b.props?.url === 'string' ? b.props.url : '';
+        const name = typeof b.props?.name === 'string' ? b.props.name : '';
+        if (isAssetHref(url)) {
+          const ref = extractAssetRefPath(url);
+          content = b.type === 'image' ? `![[${ref}]]` : `[[${ref}]]`;
+        } else if (b.type === 'image') {
+          content = `![${name}](${url})`;
+        } else {
+          content = `[${name}](${url})`;
         }
       } else if (b.content) {
         if (typeof b.content === 'string') content = b.content;

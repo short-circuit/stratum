@@ -171,6 +171,47 @@ fn test_old_config_without_stt_section_loads() {
 }
 
 #[test]
+fn test_voice_capture_config_defaults() {
+    let cfg = Config::default();
+    assert!(cfg.voice.enabled);
+    assert_eq!(cfg.voice.target, "journal:today");
+}
+
+#[test]
+fn test_voice_capture_config_roundtrip() {
+    let dir = TempDir::new().unwrap();
+    let config_path = dir.path().join("config.toml");
+
+    let cfg = Config {
+        voice: VoiceCaptureConfig {
+            enabled: false,
+            target: "journal:today".into(),
+        },
+        ..Default::default()
+    };
+    cfg.save(&config_path).unwrap();
+
+    let loaded = Config::load(&config_path).unwrap();
+    assert!(!loaded.voice.enabled);
+    assert_eq!(loaded.voice.target, "journal:today");
+}
+
+#[test]
+fn test_old_config_without_voice_section_loads() {
+    let dir = TempDir::new().unwrap();
+    let config_path = dir.path().join("config.toml");
+    // Config TOML predating the [voice] section must still parse.
+    std::fs::write(
+        &config_path,
+        "[theme]\ndark_mode = false\n\n[ai]\nmodel = \"llama3.2\"\n",
+    )
+    .unwrap();
+    let loaded = Config::load(&config_path).unwrap();
+    assert!(loaded.voice.enabled);
+    assert_eq!(loaded.voice.target, "journal:today");
+}
+
+#[test]
 fn test_vault_layout_recordings_dir_default() {
     assert_eq!(VaultLayout::default().recordings_dir, "assets/recordings");
 }
@@ -209,6 +250,45 @@ fn test_graph_config_serde_round_trip() {
     let json = serde_json::to_string(&cfg).unwrap();
     let deserialized: GraphConfig = serde_json::from_str(&json).unwrap();
     assert_eq!(deserialized.link_curvature, 0.3);
+}
+
+#[test]
+fn test_onboarding_pending_defaults_to_false_on_old_config() {
+    // A config written before the `onboarding_pending` field existed (or that
+    // simply omits it) must load with `false` — the safe "onboarding done"
+    // default — never fail to deserialize.
+    let dir = TempDir::new().unwrap();
+    let config_path = dir.path().join("config.toml");
+    std::fs::write(&config_path, "[theme]\ndark_mode = true\n").unwrap();
+
+    let loaded = Config::load(&config_path).unwrap();
+    assert!(!loaded.onboarding_pending);
+}
+
+#[test]
+fn test_onboarding_pending_roundtrip() {
+    let dir = TempDir::new().unwrap();
+    let config_path = dir.path().join("config.toml");
+
+    let cfg = Config {
+        onboarding_pending: true,
+        ..Default::default()
+    };
+    cfg.save(&config_path).unwrap();
+
+    let loaded = Config::load(&config_path).unwrap();
+    assert!(loaded.onboarding_pending);
+
+    // Clearing the flag round-trips back to false.
+    let mut cleared = loaded;
+    cleared.onboarding_pending = false;
+    cleared.save(&config_path).unwrap();
+    assert!(!Config::load(&config_path).unwrap().onboarding_pending);
+}
+
+#[test]
+fn test_default_config_onboarding_pending_false() {
+    assert!(!Config::default().onboarding_pending);
 }
 
 #[test]
