@@ -66,6 +66,14 @@ export async function applyTemplate(
   return invoke('apply_template', { templateName, targetPage, variables });
 }
 
+export async function installStarterTemplates(names?: string[]): Promise<string[]> {
+  return invoke('install_starter_templates', { names: names ?? null });
+}
+
+export async function installStarterSample(): Promise<string[]> {
+  return invoke('install_starter_sample');
+}
+
 // --- Export ---
 
 export async function exportHtml(outputDir: string): Promise<{

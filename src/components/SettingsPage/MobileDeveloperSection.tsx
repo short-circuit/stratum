@@ -18,6 +18,9 @@ export interface MobileDeveloperSectionProps {
   onRepair: () => void;
   onNormalizeAll: () => void;
   reindexProgress: { message: string; percent: number } | null;
+  onResetOnboarding: () => void;
+  onInstallTemplates: () => void;
+  installing: boolean;
 }
 
 export default function MobileDeveloperSection({
@@ -26,6 +29,9 @@ export default function MobileDeveloperSection({
   onRepair,
   onNormalizeAll,
   reindexProgress,
+  onResetOnboarding,
+  onInstallTemplates,
+  installing,
 }: MobileDeveloperSectionProps) {
   const { t } = useTranslation();
   return (
@@ -84,6 +90,35 @@ export default function MobileDeveloperSection({
       >
         {fetching ? t('settings.normalizing') : t('settings.normalize_all_files')}
       </Button>
+
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+          {t('settings.reset_onboarding_help')}
+        </Typography>
+        <Button
+          variant="outlined"
+          onClick={onResetOnboarding}
+          disabled={installing}
+          size="small"
+          sx={{ textTransform: 'none' }}
+        >
+          {t('settings.reset_onboarding')}
+        </Button>
+      </Box>
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+          {t('settings.install_starter_templates_help')}
+        </Typography>
+        <Button
+          variant="outlined"
+          onClick={onInstallTemplates}
+          disabled={installing}
+          size="small"
+          sx={{ textTransform: 'none' }}
+        >
+          {installing ? t('onboarding.installing') : t('settings.install_starter_templates')}
+        </Button>
+      </Box>
     </Box>
   );
 }

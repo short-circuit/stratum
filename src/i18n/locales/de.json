@@ -610,7 +610,13 @@
     "voice": "Stimme",
     "voice_dictation_stt": "Sprachdiktat (STT)",
     "web_research_searxng": "Web-Recherche (SearXNG)",
-    "z_ai": "Z.AI"
+    "z_ai": "Z.AI",
+    "reset_onboarding": "Onboarding zurücksetzen",
+    "reset_onboarding_help": "Zeige den Einrichtungsassistenten beim nächsten Start erneut.",
+    "install_starter_templates": "Startvorlagen installieren",
+    "install_starter_templates_help": "Füge die gebündelten Startvorlagen zu diesem Vault hinzu.",
+    "onboarding_reset_done": "Das Onboarding wird beim nächsten Start erneut angezeigt.",
+    "templates_installed": "{{count}} Startvorlage(n) installiert."
   },
   "sidebar": {
     "ask_notes": "Notizen fragen",
@@ -688,5 +694,23 @@
     "unsaved": "Nicht gespeichert",
     "whiteboard_name": "Whiteboard-Name",
     "whiteboards": "Whiteboards"
+  },
+  "onboarding": {
+    "welcome_title": "Willkommen bei Stratum",
+    "welcome_subtitle": "Richte dein erstes Vault ein und beginne, Ideen festzuhalten.",
+    "choose_vault_folder": "Vault-Ordner wählen",
+    "next": "Weiter",
+    "back": "Zurück",
+    "start_with_templates": "Mit Vorlagen starten",
+    "templates_hint": "Installiere eine kuratierte Sammlung von Startseiten in dein Vault.",
+    "sample_vault": "Beispiel-Vault erstellen",
+    "sample_vault_hint": "Füge einige verknüpfte Beispielnotizen hinzu, die Backlinks und den Graphen zeigen.",
+    "finish": "Loslegen",
+    "finish_title": "Alles bereit",
+    "finish_hint": "Dein Vault ist bereit. Öffne den Quick-Start-Leitfaden, um loszulegen.",
+    "open_quick_start": "Quick-Start-Leitfaden öffnen",
+    "installing": "Wird installiert...",
+    "error": "Etwas ist schiefgelaufen: {{message}}",
+    "step": "Schritt {{current}} von {{total}}"
   }
 }

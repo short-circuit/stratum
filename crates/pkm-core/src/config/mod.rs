@@ -34,6 +34,17 @@ pub struct Config {
     pub watcher: WatcherConfig,
     /// Graph visualization settings.
     pub graph: GraphConfig,
+    /// Whether the first-run onboarding wizard has not yet been completed.
+    ///
+    /// Defaults to `false` (onboarding already done / never shown). The
+    /// `set_onboarding_pending` command sets this to `true` when a user resets
+    /// onboarding from Settings; `mark_onboarding_done` clears it. Because the
+    /// struct is `#[serde(default)]` and this field carries its own
+    /// `#[serde(default)]`, configs written before this field existed (or that
+    /// omit it) load with `false`, which is the safe "do not show onboarding"
+    /// default for any populated vault.
+    #[serde(default)]
+    pub onboarding_pending: bool,
 }
 
 impl Default for Config {
@@ -53,6 +64,7 @@ impl Default for Config {
             network: NetworkConfig::default(),
             watcher: WatcherConfig::default(),
             graph: GraphConfig::default(),
+            onboarding_pending: false,
         }
     }
 }
