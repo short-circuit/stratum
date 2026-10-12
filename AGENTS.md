@@ -490,6 +490,26 @@ When in doubt, flag the dependency for review before adding it.
 | Memory (10k notes, desktop) | < 200MB |
 | Bundle size (desktop, compressed) | < 20MB |
 
+## Repo Hygiene — what gets committed
+
+**Every agent/contributor MUST follow this. The repo contains only shipped, necessary code and user-facing docs — never implementation aids.**
+
+| Path | Purpose | Committed? |
+|------|---------|------------|
+| `crates/`, `src/`, `src-tauri/`, `e2e/`, `scripts/`, `nix/`, `deploy/`, `*` config | Real code, tests, tooling | ✅ yes |
+| `docs/` only `docs/guide/`, `docs/development/`, `docs/getting-started/`, `docs/advanced/`, `docs/cli/`, `docs/development/adr/`, `docs/index.md`, `docs/contributing.md`, `docs/assets/`, `docs/landing/` | Shipped user/dev reference docs (each must be in a mkdocs nav entry or referenced by another shipped doc) | ✅ yes |
+| `verification/cdp_probe.mjs` | Reusable live-probe reference (cited by `docs/development/mobile-guide.md`) | ✅ yes (only file under `verification/`) |
+| `.hermes/` (plans, reports), `.omo/`, `.opencode/`, `.sisyphus/`, `.worktrees/`, `.screenshots/`, `e2e/**/.evidence/`, `verification/` (except cdp_probe), `docs/qa/`, `test-results/`, `dist/`, `target/`, `node_modules/` | Plans, QA reports, findings, audits, repros, evidence, screenshots, build output | ❌ never |
+
+**Rules:**
+1. **Plans, QA reports, findings, audits, repros, and evidence go to `.hermes/`** (already gitignored). Never to repo root, `docs/`, or `verification/`.
+2. **Never commit an implementation aid** — no `*-plan.md`, `*-REPORT-*.md`, `*FINDINGS.md` at repo root; no `docs/fc-*.md`, `docs/audit-*.md`, `docs/qa/`; no `docs/acceptance-*.md`.
+3. **`docs/` = shipped docs only.** If a doc is not reachable in the mkdocs nav and not referenced by another shipped doc, it does not belong in `docs/` — move it to `.hermes/`.
+4. If a QA/report artifact is genuinely worth keeping as a shipped reference, it must be linked from the mkdocs nav (or another shipped doc) and live under `docs/development/` or `development/adr/` — otherwise it stays transient.
+5. CI (`repo-hygiene` job, `scripts/check-transient-artifacts.sh`) fails if any transient artifact is tracked. If you need one tracked, add an explicit exception in that script and justify it with a comment.
+
+**Canonical location for agent working files:** `.hermes/` — plans, task reports, evidence, scratch. `.hermes/` is gitignored so anything there is safe to write freely.
+
 ## Documentation Sync Rules
 
 **These rules are MANDATORY for every code change.** Every agent and contributor must follow them:
@@ -545,3 +565,8 @@ See `.sisyphus/refactoring-plan.md` for the full phased plan covering:
 1. **Frontend**: Shared hooks → UI primitives → decompose 6 monolithic components → store decomposition → mobile patterns
 2. **Rust**: Comment audit → eliminate critical duplication → error type unification → test expansion → cross-crate cleanup → fix stub implementations
 3. **Docs**: AGENTS.md accuracy → development guides → component architecture docs → screenshot gaps
+
+## Screenshot PII Gate (mandatory before commit)
+Any screenshot/render/evidence image committed to this repo must have NO personal information:
+names, emails, phones, addresses, API tokens, real usernames, IPs, `/home/<user>` paths,
+`user@host` strings, hostnames. Redact (solid matching-color box) first; verify before commit.

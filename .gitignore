@@ -65,3 +65,19 @@ Developer
 # === Hermes ===
 .hermes.md
 test-results/
+
+# === Transient agent artifacts — never commit ===
+# Plans / QA reports / findings / audits / repros / evidence.
+# Home for these is .hermes/ (ignored above); these patterns are a safety
+# net for any that get written outside it.
+/qa-*-plan.md
+/QA-*-REPORT-*.md
+/ERROR_STATE_*.md
+/docs/fc-*.md
+/docs/audit-*.md
+/docs/qa/
+/verification/*
+!/verification/cdp_probe.mjs
+/.screenshots/
+**/.evidence/
+/.worktrees/
