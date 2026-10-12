@@ -1,0 +1,14 @@
+# Supply-chain audit baseline (see .github/workflows/ci.yml security-audit job).
+# cargo audit fails on NEW advisories; accepted/known entries are pinned here.
+# Format: cargo-audit >= 0.20 (ignore = advisory id list).
+
+[advisories]
+ignore = [
+  # wasmtime-wasi 36.x (transitive, via pkm-plugin) — see RUSTSEC entries
+  "RUSTSEC-2026-0323",  # fd_readdir copies uninitialized struct padding into guest memory
+  "RUSTSEC-2026-0322",  # excessive host memory when guests lack stdio
+  "RUSTSEC-2026-0321",  # poll_oneoff circumvents fuel consumption
+  # known-unmaintained transitive deps (no patched release / not upgrade-worthy)
+  "RUSTSEC-2025-0057",  # fxhash — no longer maintained
+  "RUSTSEC-2024-0384",  # instant — unmaintained
+]
