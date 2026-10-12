@@ -140,6 +140,13 @@ export function useSettingsPage() {
     speed: 1.0,
     use_llm_gateway_and_auth: false,
   };
+  const tray = settings?.tray || {
+    enabled: true,
+    close_to_tray: true,
+    quick_capture_shortcut: 'CmdOrCtrl+Shift+Space',
+    capture_target: 'journal',
+    inbox_path: 'Inbox.md',
+  };
 
   const updateAi = (patch: any) => setSettings({ ...settings, ai: { ...ai, ...patch } });
   const updateVault = (patch: any) => setSettings({ ...settings, ...patch });
@@ -162,6 +169,8 @@ export function useSettingsPage() {
     setSettings({ ...settings, stt: { ...(settings.stt || {}), ...patch } });
   const updateTts = (patch: any) =>
     setSettings({ ...settings, tts: { ...(settings.tts || {}), ...patch } });
+  const updateTray = (patch: any) =>
+    setSettings({ ...settings, tray: { ...(settings.tray || {}), ...patch } });
   const locale = settings?.locale ?? 'en';
   const onLocaleChange = (loc: string) => {
     setSettings({ ...settings, locale: loc });
@@ -385,6 +394,7 @@ export function useSettingsPage() {
     syncSettings,
     stt: settings?.stt,
     tts,
+    tray,
     locale,
     onLocaleChange,
 
@@ -399,6 +409,7 @@ export function useSettingsPage() {
     updateSync,
     updateStt,
     updateTts,
+    updateTray,
     handleSave,
     handleFetchModels,
     handleReindex,

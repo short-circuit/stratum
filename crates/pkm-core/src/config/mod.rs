@@ -34,6 +34,8 @@ pub struct Config {
     pub watcher: WatcherConfig,
     /// Graph visualization settings.
     pub graph: GraphConfig,
+    /// System tray + quick capture configuration (desktop only; ignored on mobile).
+    pub tray: TrayConfig,
 }
 
 impl Default for Config {
@@ -53,6 +55,7 @@ impl Default for Config {
             network: NetworkConfig::default(),
             watcher: WatcherConfig::default(),
             graph: GraphConfig::default(),
+            tray: TrayConfig::default(),
         }
     }
 }
@@ -455,6 +458,44 @@ impl Default for GraphConfig {
             use_3d: false,
         }
     }
+}
+
+/// System tray + quick capture configuration (desktop only).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct TrayConfig {
+    /// Show a system tray icon (desktop only). Default: true.
+    pub enabled: bool,
+    /// Window close button hides the window to tray instead of quitting. Default: true.
+    pub close_to_tray: bool,
+    /// Global shortcut that opens Quick Capture (tauri-plugin-global-shortcut syntax,
+    /// e.g. "CmdOrCtrl+Shift+Space"). Default: "CmdOrCtrl+Shift+Space".
+    pub quick_capture_shortcut: String,
+    /// Where quick-captured blocks are written. Default: journal.
+    pub capture_target: CaptureTarget,
+    /// Vault-relative path of the inbox page (when capture_target = inbox). Default: "Inbox.md".
+    pub inbox_path: String,
+}
+
+impl Default for TrayConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            close_to_tray: true,
+            quick_capture_shortcut: "CmdOrCtrl+Shift+Space".to_string(),
+            capture_target: CaptureTarget::default(),
+            inbox_path: "Inbox.md".to_string(),
+        }
+    }
+}
+
+/// Where quick-captured blocks are written.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum CaptureTarget {
+    #[default]
+    Journal,
+    Inbox,
 }
 
 /// Configuration for web research (SearXNG).

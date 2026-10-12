@@ -164,7 +164,8 @@ stratum/
 │   │       ├── whiteboard.rs   # Excalidraw whiteboards + library
 │   │       ├── settings.rs     # App settings + AI model fetch
 │   │       ├── ai.rs           # AI transform + research + interlink
-│   │       └── kanban.rs       # Kanban block queries
+│   │       ├── kanban.rs       # Kanban block queries
+│   │       └── tray.rs         # System tray + global-shortcut Quick Capture (desktop)
 │   └── capabilities/
 ├── docs/
 │   ├── index.md                # MkDocs home page
@@ -310,6 +311,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `MobileLayout` | Root mobile wrapper with bottom navigation |
 | `MobileNav` | Bottom navigation bar for mobile |
 | `JournalCalendar` | Calendar popup for date navigation |
+| `QuickCapture` | Quick capture dialog for tray/global-shortcut captures (desktop) |
 
 ### UI Primitives (`src/components/ui/`)
 
