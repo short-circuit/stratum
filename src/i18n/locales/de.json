@@ -55,6 +55,17 @@
     "searching_your_notes": "Ihre Notizen werden durchsucht …",
     "sources": "Quellen"
   },
+  "asset": {
+    "attach": "Anhängen",
+    "attachments": "Anhänge",
+    "compressing": "Bild wird komprimiert…",
+    "count": "{{count}} Anhänge",
+    "delete": "Löschen",
+    "delete_confirm": "Diesen Anhang löschen?",
+    "empty": "Noch keine Anhänge",
+    "file_too_large": "Datei größer als 8 MB",
+    "upload_failed": "Upload fehlgeschlagen"
+  },
   "autocomplete_popup": {
     "no_results": "Keine Ergebnisse"
   },

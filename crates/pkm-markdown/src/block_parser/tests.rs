@@ -431,3 +431,33 @@ fn test_assemble_blocks_markdown_no_frontmatter() {
         "---\ntitle: T\n---\n\n- b\n"
     );
 }
+
+#[test]
+fn test_asset_link_embed_round_trip() {
+    // A block whose content embeds `![[assets/foo.png]]` must survive serialize ->
+    // parse unchanged.
+    let id1 = Uuid::new_v4();
+    let block1 = Block::new(id1, "![[assets/foo.png]]".into());
+    let serialized = serialize_blocks(&vec![block1]);
+    assert!(serialized.contains("![[assets/foo.png]]"));
+    let (_fm, _body, reparsed) = parse_document(&serialized);
+    assert_eq!(reparsed.len(), 1);
+    assert_eq!(reparsed[0].content, "![[assets/foo.png]]");
+
+    // Likewise for a plain file link `[[assets/bar.pdf]]`.
+    let id2 = Uuid::new_v4();
+    let block2 = Block::new(id2, "[[assets/bar.pdf]]".into());
+    let serialized2 = serialize_blocks(&vec![block2]);
+    assert!(serialized2.contains("[[assets/bar.pdf]]"));
+    let (_fm2, _body2, reparsed2) = parse_document(&serialized2);
+    assert_eq!(reparsed2[0].content, "[[assets/bar.pdf]]");
+}
+
+#[test]
+fn test_parse_asset_link_line() {
+    // A `- ![[assets/a.png]]` line parses to a single block with that content.
+    let (fm, _body, blocks) = parse_document("- ![[assets/a.png]]\n");
+    assert_eq!(fm.title, None);
+    assert_eq!(blocks.len(), 1);
+    assert_eq!(blocks[0].content, "![[assets/a.png]]");
+}

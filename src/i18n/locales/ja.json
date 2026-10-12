@@ -55,6 +55,17 @@
     "searching_your_notes": "Searching your notes…",
     "sources": "Sources"
   },
+  "asset": {
+    "attach": "Attach",
+    "attachments": "Attachments",
+    "compressing": "Compressing image…",
+    "count": "{{count}} attachment(s)",
+    "delete": "Delete",
+    "delete_confirm": "Delete this attachment?",
+    "empty": "No attachments yet",
+    "file_too_large": "File larger than 8 MB",
+    "upload_failed": "Upload failed"
+  },
   "autocomplete_popup": {
     "no_results": "No results"
   },

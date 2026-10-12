@@ -332,6 +332,13 @@ pub fn run() {
             // Importers
             commands::import::preview_import,
             commands::import::import_vault,
+            // Assets
+            commands::asset::import_asset_path,
+            commands::asset::import_asset_bytes,
+            commands::asset::read_asset,
+            commands::asset::delete_asset,
+            commands::asset::list_asset_refs,
+            commands::asset::get_page_asset_refs,
             // Blocks
             commands::block::get_blocks,
             commands::block::build_markdown,

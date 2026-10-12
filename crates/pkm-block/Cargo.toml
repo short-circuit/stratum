@@ -11,6 +11,8 @@ serde_yaml.workspace = true
 chrono.workspace = true
 uuid.workspace = true
 rusqlite = { version = "0.32", features = ["bundled", "serde_json"] }
+sha2.workspace = true
+base64.workspace = true
 
 # pkm-core for shared types (config, error, types)
 pkm-core = { path = "../pkm-core" }

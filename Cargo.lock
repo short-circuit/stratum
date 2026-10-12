@@ -5413,12 +5413,14 @@ dependencies = [
 name = "pkm-block"
 version = "0.7.1"
 dependencies = [
+ "base64 0.22.1",
  "chrono",
  "pkm-core",
  "rusqlite",
  "serde",
  "serde_json",
  "serde_yaml",
+ "sha2",
  "tempfile",
  "uuid",
 ]
