@@ -243,12 +243,8 @@ pub fn mime_from_extension(ext: &str) -> Option<&'static str> {
         "woff2" => Some("font/woff2"),
         "ttf" => Some("font/ttf"),
         "otf" => Some("font/otf"),
-        "xlsx" => Some(
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        ),
-        "docx" => Some(
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ),
+        "xlsx" => Some("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        "docx" => Some("application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
         _ => None,
     }
 }
@@ -311,7 +307,7 @@ pub fn register_asset_bytes(
     let hash = compute_sha256_hex(bytes);
     let hash12 = &hash[..12];
 
-    let name_source = dest_name.as_deref().unwrap_or(original_name);
+    let name_source = dest_name.unwrap_or(original_name);
     let (raw_stem, raw_ext) = split_name(name_source);
     // Never allow an empty stem - ".png" style dest names fall back to "asset".
     let stem = {
@@ -332,9 +328,8 @@ pub fn register_asset_bytes(
     };
 
     let assets_dir = vault_path.join("assets");
-    std::fs::create_dir_all(&assets_dir).map_err(|e| {
-        PkmError::Internal(format!("create assets directory: {e}"))
-    })?;
+    std::fs::create_dir_all(&assets_dir)
+        .map_err(|e| PkmError::Internal(format!("create assets directory: {e}")))?;
 
     // Resolve collisions / dedupe by inspecting an existing file at the candidate path.
     let mut candidate_path = assets_dir.join(&final_name);
@@ -348,7 +343,7 @@ pub fn register_asset_bytes(
         if compute_sha256_hex(&existing) == hash {
             // Identical content already present - dedupe to the existing asset.
             let ref_path = format!("assets/{final_name}");
-            return Ok(existing_ref(store, &ref_path, mime, bytes.len(), &hash)?);
+            return existing_ref(store, &ref_path, mime, bytes.len(), &hash);
         }
         // Different content at this name (hash-prefix clash): bump `-2`, `-3`, …
         final_name = format!("{stem}-{hash12}-{n}{}", ext_suffix(&ext));
@@ -393,8 +388,8 @@ pub fn register_asset_path(
     mime: Option<&str>,
     dest_name: Option<&str>,
 ) -> StoreResult<AssetRef> {
-    let bytes = std::fs::read(abs_path)
-        .map_err(|e| PkmError::Internal(format!("read asset file: {e}")))?;
+    let bytes =
+        std::fs::read(abs_path).map_err(|e| PkmError::Internal(format!("read asset file: {e}")))?;
     let original_name = abs_path
         .file_name()
         .and_then(|s| s.to_str())
@@ -693,7 +688,8 @@ mod tests {
     #[test]
     fn test_delete_asset() {
         let (_tmp, store, vault) = setup();
-        let asset = register_asset_bytes(&store, &vault, b"delete me", "d.png", None, None).unwrap();
+        let asset =
+            register_asset_bytes(&store, &vault, b"delete me", "d.png", None, None).unwrap();
         assert!(vault.join(&asset.vault_relative_path).exists());
         delete_asset(&store, &vault, &asset.vault_relative_path).unwrap();
         assert!(!vault.join(&asset.vault_relative_path).exists());
