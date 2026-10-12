@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as api from '../../lib/commands';
+import i18n from '../../i18n';
 
 export interface CardData {
   id: string;
@@ -40,14 +41,14 @@ export function useFlashcardReview() {
     if (current >= cards.length) return;
     try {
       await api.reviewCard(cards[current].id, quality, cards[current].page_path);
-      setMessage(quality >= 3 ? 'Correct!' : 'Review again soon');
+      setMessage(quality >= 3 ? i18n.t('flashcards.correct') : i18n.t('flashcards.review_again_soon'));
       setTimeout(() => {
         setShowBack(false);
         setMessage('');
         setCurrent(c => c + 1);
       }, 800);
     } catch (e) {
-      setMessage(`Error: ${e}`);
+      setMessage(`${i18n.t('flashcards.error')} ${e}`);
     }
   }, [current, cards]);
 

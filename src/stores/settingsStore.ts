@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { GraphSettings, SyncSettings } from '../lib/types';
 import * as api from '../lib/commands';
+import { setLocale } from '../i18n';
 
 // --- Types ---
 export interface AiConfig {
@@ -50,8 +51,17 @@ export interface TtsSettings {
   use_llm_gateway_and_auth: boolean;
 }
 
+export interface TraySettings {
+  enabled: boolean;
+  close_to_tray: boolean;
+  quick_capture_shortcut: string;
+  capture_target: string;
+  inbox_path: string;
+}
+
 export interface AppSettings {
   vault_path: string;
+  locale: string;
   theme: ThemeSettings;
   ai: AiConfig;
   graph: GraphSettings;
@@ -59,6 +69,7 @@ export interface AppSettings {
   research: ResearchSettings;
   stt: SttSettings;
   tts: TtsSettings;
+  tray: TraySettings;
   [key: string]: unknown;
 }
 
@@ -75,6 +86,8 @@ export interface SettingsState {
   updateResearch: (patch: Partial<ResearchSettings>) => void;
   updateStt: (patch: Partial<SttSettings>) => void;
   updateTts: (patch: Partial<TtsSettings>) => void;
+  updateTray: (patch: Partial<TraySettings>) => void;
+  updateLocale: (locale: string) => void;
   setSettings: (settings: AppSettings) => void;
 }
 
@@ -149,8 +162,17 @@ const DEFAULT_TTS: TtsSettings = {
   use_llm_gateway_and_auth: false,
 };
 
+export const DEFAULT_TRAY: TraySettings = {
+  enabled: true,
+  close_to_tray: true,
+  quick_capture_shortcut: 'CmdOrCtrl+Shift+Space',
+  capture_target: 'journal',
+  inbox_path: 'Inbox.md',
+};
+
 const DEFAULT_SETTINGS: AppSettings = {
   vault_path: '',
+  locale: 'en',
   theme: DEFAULT_THEME,
   ai: DEFAULT_AI,
   graph: DEFAULT_GRAPH,
@@ -158,6 +180,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   research: DEFAULT_RESEARCH,
   stt: DEFAULT_STT,
   tts: DEFAULT_TTS,
+  tray: DEFAULT_TRAY,
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -173,6 +196,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         settings: {
           ...DEFAULT_SETTINGS,
           ...result,
+          locale: result.locale ?? 'en',
           theme: { ...DEFAULT_THEME, ...result.theme },
           ai: { ...DEFAULT_AI, ...result.ai },
           graph: { ...DEFAULT_GRAPH, ...result.graph },
@@ -181,6 +205,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           research: result.research ? { ...DEFAULT_RESEARCH, ...result.research } : DEFAULT_RESEARCH,
           stt: result.stt ? { ...DEFAULT_STT, ...result.stt } : DEFAULT_STT,
           tts: result.tts ? { ...DEFAULT_TTS, ...result.tts } : DEFAULT_TTS,
+          tray: { ...DEFAULT_TRAY, ...result.tray },
         },
         loading: false,
       });
@@ -234,6 +259,19 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const s = get().settings;
     if (!s) return;
     set({ settings: { ...s, tts: { ...s.tts, ...patch } } });
+  },
+
+  updateTray: (patch) => {
+    const s = get().settings;
+    if (!s) return;
+    set({ settings: { ...s, tray: { ...s.tray, ...patch } } });
+  },
+
+  updateLocale: (locale) => {
+    const s = get().settings;
+    if (!s) return;
+    set({ settings: { ...s, locale } });
+    void setLocale(locale);
   },
 
   setSettings: (settings) => set({ settings }),

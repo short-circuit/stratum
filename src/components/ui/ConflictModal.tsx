@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
+import { useTranslation } from 'react-i18next';
 
 interface ConflictModalProps {
   files: string[];
@@ -11,6 +12,7 @@ interface ConflictModalProps {
 }
 
 export default function ConflictModal({ files, onResolve, onResolveAll, onAbort }: ConflictModalProps) {
+  const { t } = useTranslation();
   const [resolving, setResolving] = useState<string | null>(null);
 
   return (
@@ -35,9 +37,9 @@ export default function ConflictModal({ files, onResolve, onResolveAll, onAbort 
           boxShadow: 24,
         }}
       >
-        <Typography variant="subtitle2" sx={{ mb: 1.5, color: '#ef4444' }}>Sync Conflicts Detected</Typography>
+        <Typography variant="subtitle2" sx={{ mb: 1.5, color: '#ef4444' }}>{t('common.sync_conflicts_detected')}</Typography>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-          The following files have merge conflicts. Resolve each file or abort the merge.
+          {t('common.the_following_files_have_merge_conflicts_resolve_each_file_o')}
         </Typography>
         <Box sx={{ maxHeight: 240, overflow: 'auto', mb: 2 }}>
           {files.map(file => (
@@ -69,7 +71,7 @@ export default function ConflictModal({ files, onResolve, onResolveAll, onAbort 
             onClick={onAbort}
             sx={{ textTransform: 'none' }}
           >
-            Abort Merge
+            {t('common.abort_merge')}
           </Button>
           <Button
             variant="contained"
@@ -77,7 +79,7 @@ export default function ConflictModal({ files, onResolve, onResolveAll, onAbort 
             onClick={onResolveAll}
             sx={{ textTransform: 'none', bgcolor: 'var(--primary-500)' }}
           >
-            Resolve All
+            {t('common.resolve_all')}
           </Button>
         </Box>
       </Box>

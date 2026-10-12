@@ -1,18 +1,25 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import ToggleButton from '@mui/material/ToggleButton';
 
+interface SymbolDef {
+  char: string;
+  charKey?: string;
+  latex: string;
+}
+
 interface Category {
-  label: string;
-  symbols: { char: string; latex: string }[];
+  labelKey: string;
+  symbols: SymbolDef[];
 }
 
 const CATEGORIES: Category[] = [
   {
-    label: 'Greek',
+    labelKey: 'math_symbol_palette.greek',
     symbols: [
       { char: 'α', latex: '\\alpha' },
       { char: 'β', latex: '\\beta' },
@@ -41,7 +48,7 @@ const CATEGORIES: Category[] = [
     ],
   },
   {
-    label: 'Capital Gk',
+    labelKey: 'math_symbol_palette.capital_gk',
     symbols: [
       { char: 'Α', latex: '\\Alpha' },
       { char: 'Β', latex: '\\Beta' },
@@ -70,7 +77,7 @@ const CATEGORIES: Category[] = [
     ],
   },
   {
-    label: 'Operators',
+    labelKey: 'math_symbol_palette.operators',
     symbols: [
       { char: '∑', latex: '\\sum' },
       { char: '∏', latex: '\\prod' },
@@ -84,7 +91,7 @@ const CATEGORIES: Category[] = [
     ],
   },
   {
-    label: 'Relations',
+    labelKey: 'math_symbol_palette.relations',
     symbols: [
       { char: '≤', latex: '\\leq' },
       { char: '≥', latex: '\\geq' },
@@ -99,7 +106,7 @@ const CATEGORIES: Category[] = [
     ],
   },
   {
-    label: 'Arrows',
+    labelKey: 'math_symbol_palette.arrows',
     symbols: [
       { char: '→', latex: '\\rightarrow' },
       { char: '←', latex: '\\leftarrow' },
@@ -116,7 +123,7 @@ const CATEGORIES: Category[] = [
     ],
   },
   {
-    label: 'Sets',
+    labelKey: 'math_symbol_palette.sets',
     symbols: [
       { char: '∈', latex: '\\in' },
       { char: '∉', latex: '\\notin' },
@@ -130,9 +137,9 @@ const CATEGORIES: Category[] = [
     ],
   },
   {
-    label: 'Templates',
+    labelKey: 'math_symbol_palette.templates',
     symbols: [
-      { char: 'a\n─\nb', latex: '\\frac{}{}' },
+      { char: '', charKey: 'math_symbol_palette.a_b', latex: '\\frac{}{}' },
       { char: '√', latex: '\\sqrt{}' },
       { char: 'ⁿ√', latex: '\\sqrt[]{}' },
       { char: '∑', latex: '\\sum_{}^{}' },
@@ -151,7 +158,9 @@ interface Props {
 }
 
 export default function MathSymbolPalette({ onInsert }: Props) {
+  const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState(0);
+  const isTemplates = CATEGORIES[activeCategory].labelKey === 'math_symbol_palette.templates';
 
   return (
     <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
@@ -162,7 +171,7 @@ export default function MathSymbolPalette({ onInsert }: Props) {
         scrollButtons="auto"
         sx={{ minHeight: 36, '& .MuiTab-root': { minHeight: 36, py: 0, fontSize: '0.7rem', textTransform: 'none' } }}
       >
-        {CATEGORIES.map(cat => <Tab key={cat.label} label={cat.label} />)}
+        {CATEGORIES.map(cat => <Tab key={cat.labelKey} label={t(cat.labelKey)} />)}
       </Tabs>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.25, p: 0.75 }}>
         <ToggleButtonGroup size="small">
@@ -175,12 +184,12 @@ export default function MathSymbolPalette({ onInsert }: Props) {
               title={sym.latex}
               sx={{
                 p: 0.25, minWidth: 28, height: 28, borderRadius: '4px!important',
-                fontSize: CATEGORIES[activeCategory].label === 'Templates' ? '0.65rem' : '0.8rem',
-                whiteSpace: CATEGORIES[activeCategory].label === 'Templates' ? 'pre-line' : undefined,
-                lineHeight: CATEGORIES[activeCategory].label === 'Templates' ? 1.1 : undefined,
+                fontSize: isTemplates ? '0.65rem' : '0.8rem',
+                whiteSpace: isTemplates ? 'pre-line' : undefined,
+                lineHeight: isTemplates ? 1.1 : undefined,
               }}
             >
-              {sym.char}
+              {sym.charKey ? t(sym.charKey) : sym.char}
             </ToggleButton>
           ))}
         </ToggleButtonGroup>

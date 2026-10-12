@@ -11,6 +11,7 @@ import { useStore } from './stores/appStore';
 import { useRecentsStore } from './stores/recentsStore';
 import { useSyncModalStore } from './stores/syncModalStore';
 import { createMuiTheme } from './lib/muiTheme';
+import { useTranslation } from 'react-i18next';
 import Sidebar from './components/Sidebar';
 import PageView from './components/PageView';
 import JournalPanel from './components/JournalPanel';
@@ -29,6 +30,7 @@ import VaultPicker from './components/VaultPicker';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import ConflictModal from './components/ui/ConflictModal';
 import PassphraseModal from './components/ui/PassphraseModal';
+import QuickCapture from './components/QuickCapture';
 import { getCurrentWindow, type CloseRequestedEvent } from '@tauri-apps/api/window';
 import { getLatestLibraryJson } from './lib/libraryStore';
 import { subscribePagesChanged } from './lib/recentsEvents';
@@ -49,11 +51,17 @@ getCurrentWindow().onCloseRequested(async (event: CloseRequestedEvent) => {
       console.error('[library] failed to save on app close:', e);
     }
   }
-  // Manually close after save completes
-  getCurrentWindow().destroy();
+  // Honor the "close to tray" preference: hide the window instead of quitting.
+  const st = await api.getTrayStatus().catch(() => null);
+  if (st?.close_to_tray) {
+    await getCurrentWindow().hide();
+  } else {
+    getCurrentWindow().destroy();
+  }
 });
 
 function AppContent() {
+  const { t } = useTranslation();
   const vault = useStore(s => s.vault);
   const loading = useStore(s => s.loading);
   const error = useStore(s => s.error);
@@ -139,7 +147,7 @@ function AppContent() {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100vw', bgcolor: 'background.default' }}>
         <CircularProgress size={20} sx={{ mr: 1.5 }} />
-        <Typography variant="body2" color="text.secondary">Loading vault...</Typography>
+        <Typography variant="body2" color="text.secondary">{t('app.loading_vault')}</Typography>
       </Box>
     );
   }
@@ -232,6 +240,7 @@ function AppContent() {
           onSubmit={syncModal.submitPassphrase}
         />
       )}
+      <QuickCapture />
     </Box>
   );
 }

@@ -17,6 +17,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Excalidraw, MainMenu } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import { useWhiteboardPanel } from './WhiteboardPanel.shared';
+import { useTranslation } from 'react-i18next';
 
 function parseBoardPreview(content: string) {
   let elementCount = 0;
@@ -38,6 +39,7 @@ function parseBoardPreview(content: string) {
 }
 
 export default function WhiteboardPanelMobile() {
+  const { t } = useTranslation();
   const {
     boards,
     activeBoard,
@@ -97,7 +99,7 @@ export default function WhiteboardPanelMobile() {
           </IconButton>
           <Typography variant="body2" noWrap sx={{ fontWeight: 500, flexGrow: 1 }}>{activeBoard}</Typography>
           {dirty && (
-            <Chip label="Unsaved" size="small" color="warning" variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+            <Chip label={t('whiteboard.unsaved')} size="small" color="warning" variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
           )}
         </Box>
         <Box sx={{ flex: 1, position: 'relative', minHeight: 0, height: '100%' }}>
@@ -127,14 +129,14 @@ export default function WhiteboardPanelMobile() {
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1 }}>Whiteboards</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1 }}>{t('mobile_layout.whiteboards')}</Typography>
         <Button
           variant="contained"
           size="small"
           startIcon={<AddIcon />}
           onClick={() => setCreateOpen(true)}
         >
-          New
+          {t('common.new')}
         </Button>
       </Box>
 
@@ -199,7 +201,7 @@ export default function WhiteboardPanelMobile() {
         </Box>
         {boardsWithMeta.length === 0 && (
           <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 6 }}>
-            No whiteboards yet. Create one to get started.
+            {t('whiteboard.no_whiteboards_yet_create_one_to_get_started')}
           </Typography>
         )}
       </Box>
@@ -213,19 +215,19 @@ export default function WhiteboardPanelMobile() {
         slotProps={{ paper: { sx: { borderTopLeftRadius: 16, borderTopRightRadius: 16, px: 2.5, pb: 3, pt: 2 } } }}
       >
         <Box sx={{ width: 40, height: 4, bgcolor: 'grey.300', borderRadius: 2, mx: 'auto', mb: 2 }} />
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>New Whiteboard</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>{t('whiteboard.new_whiteboard')}</Typography>
         <TextField
           autoFocus
           fullWidth
           size="small"
-          placeholder="Whiteboard name"
+          placeholder={t('whiteboard.whiteboard_name')}
           value={newName}
           onChange={e => setNewName(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleCreateSubmit(); }}
           sx={{ mb: 1.5 }}
         />
         <Button variant="contained" fullWidth onClick={handleCreateSubmit}>
-          Create
+          {t('common.create')}
         </Button>
       </SwipeableDrawer>
 
@@ -238,19 +240,19 @@ export default function WhiteboardPanelMobile() {
         slotProps={{ paper: { sx: { borderTopLeftRadius: 16, borderTopRightRadius: 16, px: 2.5, pb: 3, pt: 2 } } }}
       >
         <Box sx={{ width: 40, height: 4, bgcolor: 'grey.300', borderRadius: 2, mx: 'auto', mb: 2 }} />
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>Rename Whiteboard</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>{t('whiteboard.rename_whiteboard_label')}</Typography>
         <TextField
           autoFocus
           fullWidth
           size="small"
-          placeholder="New name"
+          placeholder={t('whiteboard.new_name')}
           value={renameValue}
           onChange={e => setRenameValue(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleRenameSubmit(); }}
           sx={{ mb: 1.5 }}
         />
         <Button variant="contained" fullWidth onClick={handleRenameSubmit}>
-          Rename
+          {t('common.rename')}
         </Button>
       </SwipeableDrawer>
 
@@ -264,17 +266,17 @@ export default function WhiteboardPanelMobile() {
       >
         <Box sx={{ width: 40, height: 4, bgcolor: 'grey.300', borderRadius: 2, mx: 'auto', mb: 2 }} />
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-          Delete &quot;{deleteTarget}&quot;?
+          {t('whiteboard.delete_quot')}{deleteTarget}{t('whiteboard._quot')}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          This cannot be undone.
+          {t('whiteboard.this_cannot_be_undone')}
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button variant="outlined" fullWidth onClick={() => setDeleteTarget(null)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button variant="contained" color="error" fullWidth onClick={handleDeleteConfirm}>
-            Delete
+            {t('common.delete')}
           </Button>
         </Box>
       </SwipeableDrawer>

@@ -41,8 +41,12 @@ export async function createSession(appBinary, opts = {}) {
     protocol: 'http',
     // Fail fast instead of hanging ~2min on a stalled session negotiation;
     // callers surface tauri-driver app stderr for diagnosis (see run.mjs).
-    connectionRetryTimeout: opts.connectionRetryTimeout ?? 30000,
-    connectionRetryCount: opts.connectionRetryCount ?? 1,
+    // CI runners (shared, cold-start webkit under xvfb, first app launch)
+    // routinely exceed the 30s default: observed WebDriver session timeouts
+    // on GitHub Actions while the same session establishes locally in ~2s.
+    // 120s/2 retries is the CI-safe budget; genuine stalls still fail.
+    connectionRetryTimeout: opts.connectionRetryTimeout ?? 120000,
+    connectionRetryCount: opts.connectionRetryCount ?? 2,
     capabilities: {
       alwaysMatch: {
         browserName: 'wry',

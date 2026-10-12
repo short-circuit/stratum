@@ -4,6 +4,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import KanbanCard from './KanbanCard';
 import { COLUMN_CONFIG, type ColumnId } from './constants';
+import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
 // Section — a single marker group rendered as a vertical list (droppable).
@@ -21,6 +22,7 @@ export default function Section({
   onCardClick?: (block: any) => void;
   onCardContextMenu?: (block: any, e: React.MouseEvent) => void;
 }) {
+  const { t } = useTranslation();
   const config = COLUMN_CONFIG[columnId];
   const { setNodeRef, isOver } = useDroppable({ id: columnId });
 
@@ -87,7 +89,7 @@ export default function Section({
             color="text.disabled"
             sx={{ textAlign: 'center', py: 2 }}
           >
-            No tasks
+            {t('kanban.no_tasks')}
           </Typography>
         )}
       </Box>

@@ -118,7 +118,14 @@ async function ensureXvfb() {
   void probe;
   // Check if :99 already has an X server
   const has99 = fs.existsSync(`/tmp/.X11-unix/X${DISPLAY}`);
-  if (has99) return;
+  if (has99) {
+    // The display socket exists — export DISPLAY for ALL children
+    // (dbus-activated services like xdg-desktop-portal-gtk inherit the
+    // PARENT env, not the spawn-specific env; without it they crash with
+    // 'cannot open display' and the WebDriver session never establishes).
+    process.env.DISPLAY = `:${DISPLAY}`;
+    return;
+  }
   xvfbPid = spawn('Xvfb', [`:${DISPLAY}`, '-screen', '0', '1280x800x24', '-nolisten', 'tcp'], {
     stdio: 'ignore',
     detached: false,
@@ -126,7 +133,14 @@ async function ensureXvfb() {
   // wait for the socket
   const deadline = Date.now() + 15000;
   while (Date.now() < deadline) {
-    if (fs.existsSync(`/tmp/.X11-unix/X${DISPLAY}`)) return;
+    if (fs.existsSync(`/tmp/.X11-unix/X${DISPLAY}`)) {
+      // Export DISPLAY for the whole process tree (see above). This is the
+      // fix for CI: the harness runs under dbus-run-session with no DISPLAY;
+      // portal/GTK services dying on 'cannot open display' previously stalled
+      // WebDriver session creation indefinitely.
+      process.env.DISPLAY = `:${DISPLAY}`;
+      return;
+    }
     await sleep(500);
   }
   throw new Error(`Xvfb :${DISPLAY} did not start`);
@@ -198,6 +212,86 @@ async function runTests(driver) {
     bad(`page body has rendered text (got ${ui?.bodyText})`);
   }
 
+  console.log('\n── Test 2b: i18n locale switch (any booted locale → de renders translated UI) ──');
+  // WebKitGTK persist localStorage across harness runs, so the app may boot en
+  // or de. The flow must work regardless: adapt to the booted locale labels.
+  const boot = await driver.executeScript(
+    `return { hasSettings: (document.body.innerText||'').includes('Settings'),
+              hasEinstellungen: (document.body.innerText||'').includes('Einstellungen') };`,
+    [],
+  );
+  console.log(`   booted UI: ${boot && boot.hasEinstellungen ? 'de' : boot && boot.hasSettings ? 'en' : 'unknown'}`);
+  // Click Settings (en) or Einstellungen (de) — then Theme (en) or Design (de).
+  await driver.executeScript(
+    `var s=[...document.querySelectorAll('[role="button"],button,a,li')].find(function(e){var t=e.textContent.trim(); return t==='Settings'||t==='Einstellungen';}); if(s){s.click();} return !!s;`,
+    [],
+  );
+  await sleep(3000);
+  await driver.executeScript(
+    `var t=[...document.querySelectorAll('[role="tab"]')].find(function(e){var x=e.textContent.trim(); return x==='Theme'||x==='Design';}); if(t){t.click();} return !!t;`,
+    [],
+  );
+  await sleep(2500);
+  // The Theme tab has exactly one combobox (the locale selector), rendering the
+  // current locale's endonym ("English", "Deutsch", …). Open it directly.
+  const openOk = await driver.executeScript(
+    `var cb=document.querySelector('[role="combobox"]');
+     if(!cb) return false;
+     cb.dispatchEvent(new MouseEvent('mousedown',{bubbles:true}));
+     cb.dispatchEvent(new MouseEvent('mouseup',{bubbles:true}));
+     cb.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+     return true;`,
+    [],
+  );
+  if (openOk) ok('language dropdown opened'); else bad('language dropdown opened');
+  await sleep(1500);
+  const pickOk = await driver.executeScript(
+    `var d=[...document.querySelectorAll('[role="option"],.MuiMenuItem-root,[role="menuitem"]')].find(function(e){return e.textContent.trim()==='Deutsch';});
+     if(!d) return false;
+     d.dispatchEvent(new MouseEvent('mousedown',{bubbles:true}));
+     d.dispatchEvent(new MouseEvent('mouseup',{bubbles:true}));
+     d.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+     return true;`,
+    [],
+  );
+  if (pickOk) ok('Deutsch option selected'); else bad('Deutsch option selected');
+  await sleep(3500);
+  const de = await driver.executeScript(
+    `const t = document.body.innerText || '';
+     return {
+       hasGermanSettings: t.includes('Einstellungen'),
+       hasGermanSearch: t.includes('Suche'),
+       hasEnglishSettings: t.includes('Settings'),
+       persisted: localStorage.getItem('stratum-locale'),
+       bodyLen: t.length,
+     };`,
+    [],
+  );
+  if (de && de.hasGermanSettings) {
+    ok('locale switch to de rendered German UI (Settings = "Einstellungen")');
+  } else {
+    bad(`locale switch to de rendered German UI (settings label not found; body ${de?.bodyLen} chars)`);
+  }
+  if (de && de.hasGermanSearch) {
+    ok('German search label rendered (Suche)');
+  } else {
+    bad('German search label rendered (Suche)');
+  }
+  if (de && de.hasEnglishSettings) {
+    bad('English-only string still visible in de UI ("Settings" found)');
+  } else {
+    ok('no English string remains in de UI ("Settings" gone)');
+  }
+  if (de && de.persisted === 'de') {
+    ok('locale persisted (stratum-locale=de)');
+  } else {
+    bad(`locale persisted (got ${de?.persisted})`);
+  }
+  // Restore en for the remaining tests.
+  await driver.executeScript(`localStorage.setItem('stratum-locale', 'en'); return true;`, []);
+  await driver.executeScript(`location.reload(); return true;`, []);
+  await waitForApp(driver, { url: 'tauri://localhost' });
+
   console.log('\n── Test 3: IPC round-trip (query real app state) ──');
   const info = await driver.executeScript(
     `const d = document;
@@ -214,6 +308,119 @@ async function runTests(driver) {
   if (b.length > 1000) ok(`screenshot captured (${b.length} bytes)`); else bad(`screenshot captured (${b.length} bytes)`);
   if (fs.existsSync('/tmp')) {
     try { fs.writeFileSync('/tmp/stratum-harness-last.png', b); } catch (e) {}
+  }
+
+  console.log('\n── Test 5: Quick capture dialog opens + saves via keyboard ──');
+  // The harness hook is injected by main.tsx; it emits the same
+  // 'quick-capture:open' event the tray/global-shortcut path uses, so this
+  // exercises the real frontend flow without an OS tray.
+  const hookOk = await driver.executeScript(
+    `return typeof window.__stratOpenQuickCapture === 'function';`, []);
+  if (hookOk) ok('quick capture harness hook (__stratOpenQuickCapture) present');
+  else bad('quick capture harness hook (__stratOpenQuickCapture) present');
+  if (hookOk) {
+    await driver.executeScript(`window.__stratOpenQuickCapture(false); return true;`, []);
+    await sleep(2000);
+    const dlg = await driver.executeScript(
+      `const d = document;
+       const tf = [...d.querySelectorAll('textarea,input')].find(e => e.placeholder && e.placeholder.length > 3);
+       const txt = (d.body.innerText || '');
+       // Locale-dependent title: accept en (Quick Capture) OR de (Schnellnotiz) OR any
+       // other translated variant by checking that SOME non-empty dialog title co-exists
+       // with the capture input (the DialogTitle is a sibling of the textarea).
+       const hasTitle = txt.includes('Quick Capture') || txt.includes('Schnellnotiz') ||
+         txt.includes('Cattura rapida') || txt.includes('Capture rapide') ||
+         txt.includes('Captura rápida');
+       return { textarea: !!tf, hasTitle };`, []);
+    (dlg && dlg.textarea) ? ok('quick capture input rendered') : bad('quick capture input rendered');
+    (dlg && dlg.hasTitle) ? ok('quick capture title rendered') : bad('quick capture title rendered');
+
+    // Type text into the capture input (React controlled → native setter + input event).
+    const typed = await driver.executeScript(
+      `const tf = [...document.querySelectorAll('textarea,input')].find(e => e.placeholder && e.placeholder.length > 3);
+       if (!tf) return false;
+       const proto = tf.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+       Object.getOwnPropertyDescriptor(proto, 'value').set.call(tf, 'E2E quick capture test block');
+       tf.dispatchEvent(new Event('input', { bubbles: true }));
+       return true;`, []);
+    typed ? ok('text typed into capture input') : bad('text typed into capture input');
+    await sleep(400);
+    await driver.executeScript(
+      `const tf = [...document.querySelectorAll('textarea,input')].find(e => e.placeholder && e.placeholder.length > 3);
+       if (tf) tf.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
+       return true;`, []);
+    await sleep(3000);
+    // Verify real persistence through real IPC: ask the backend for the blocks
+    // of today's journal and check the captured text is present.
+    const today = await driver.executeScript(
+      `const d = new Date();
+       const p = \`\${d.getFullYear()}-\${String(d.getMonth() + 1).padStart(2, '0')}-\${String(d.getDate()).padStart(2, '0')}\`;
+       return window.__TAURI_INTERNALS__.invoke('get_blocks', { pagePath: 'journals/' + p + '.md' })
+         .then(r => JSON.stringify(r)).catch(e => 'ERR:' + e);`, []);
+    const saved = typeof today === 'string' && today.includes('E2E quick capture test block');
+    saved ? ok('quick capture block persisted to today journal (get_blocks)') : bad('quick capture block persisted to today journal (get_blocks)');
+
+    // Escape discards/closes the dialog.
+    await driver.executeScript(
+      `const tf = [...document.querySelectorAll('textarea,input')].find(e => e.placeholder && e.placeholder.length > 3);
+       if (tf) tf.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true }));
+       return true;`, []);
+    await sleep(1000);
+    const closed = await driver.executeScript(
+      `return ![...document.querySelectorAll('textarea,input')].some(e => e.placeholder && e.placeholder.length > 3);`, []);
+    closed ? ok('Escape discards/closes quick capture') : bad('Escape discards/closes quick capture');
+  }
+  console.log('\n── Test 5: 1-Click Importers ──');
+  // Real IPC through the real app: import the committed Obsidian sample vault.
+  // This targets the ACTIVE vault (the default ~/StratumVault), so the outcome
+  // is idempotent and must be interpreted as a disjunction:
+  //   first run  → 3 pages imported, 1 asset, 0 duplicates
+  //   re-run     → 0 pages imported, 0 assets, 3 duplicates
+  const FIXTURE = path.join(REPO_ROOT, 'crates/pkm-import/tests/fixtures/obsidian-sample');
+  const impRes = await driver.executeScript(
+    `return window.__TAURI_INTERNALS__.invoke('import_vault',
+       { path: ${JSON.stringify(FIXTURE)}, opts: { format: 'auto', dry_run: false } });`,
+    [],
+  );
+  if (impRes && typeof impRes.pages_imported === 'number') {
+    const firstRun =
+      impRes.pages_imported === 3 && impRes.assets_imported === 1 && impRes.duplicates_skipped === 0;
+    const rerun =
+      impRes.pages_imported === 0 && impRes.assets_imported === 0 && impRes.duplicates_skipped === 3;
+    if (firstRun || rerun) {
+      ok(`import_vault counts (pages=${impRes.pages_imported} assets=${impRes.assets_imported} duplicates=${impRes.duplicates_skipped})`);
+    } else {
+      bad('import_vault counts (3 then 0 / 3 duplicates)', JSON.stringify(impRes));
+    }
+  } else {
+    bad('import_vault returned a usable report', JSON.stringify(impRes));
+  }
+
+  // The imported pages must be registered in the vault page list.
+  const pages = await driver.executeScript(
+    `return window.__TAURI_INTERNALS__.invoke('list_pages');`,
+    [],
+  );
+  const listPaths = (pages && Array.isArray(pages.pages) ? pages.pages : []).map((p) => String(p.path));
+  if (listPaths.some((p) => p.startsWith('imported/obsidian-sample/'))) {
+    ok('list_pages includes imported pages under imported/obsidian-sample/');
+  } else {
+    bad('list_pages includes imported pages', JSON.stringify(listPaths.slice(0, 10)));
+  }
+
+  // The imported content must render in the UI. Open the imported Welcome page
+  // and confirm its title appears in the rendered body text.
+  await driver.executeScript(
+    `location.href = location.origin + '/page/' + encodeURIComponent('imported/obsidian-sample/Welcome.md'); return true;`,
+    [],
+  );
+  await waitForApp(driver, { url: 'tauri://localhost' });
+  await sleep(1500);
+  const impBody = await driver.executeScript(`return (document.body && document.body.innerText) || '';`, []);
+  if (impBody.includes('Welcome')) {
+    ok('imported page title rendered in the UI (Welcome)');
+  } else {
+    bad('imported page title rendered in the UI (Welcome)', impBody.slice(0, 200));
   }
 }
 

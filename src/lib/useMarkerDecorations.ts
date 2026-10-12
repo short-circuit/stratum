@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Plugin, PluginKey, type EditorState } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 import type { Node } from 'prosemirror-model';
+import i18n from '../i18n';
 
 const MARKER_COLORS: Record<string, { bg: string; text: string }> = {
   TODO: { bg: '#f59e0b', text: '#fff' },
@@ -63,7 +64,7 @@ function createMarkerWidget(
       'letter-spacing: 0.02em',
       'cursor: pointer',
     ].join('; ');
-    badge.title = 'Click to cycle marker state';
+    badge.title = i18n.t('lib.click_to_cycle_marker_state');
     wrapper.appendChild(badge);
 
     const clearBtn = document.createElement('span');
@@ -82,7 +83,7 @@ function createMarkerWidget(
       'border-radius: 50%',
       'margin-left: 1px',
     ].join('; ');
-    clearBtn.title = 'Remove marker';
+    clearBtn.title = i18n.t('lib.remove_marker');
     wrapper.appendChild(clearBtn);
 
     badge.addEventListener('mousedown', (e) => {
@@ -131,7 +132,7 @@ function createMarkerWidget(
       'border-radius: 50%',
       'margin-left: 1px',
     ].join('; ');
-    clearBtn.title = 'Remove priority';
+    clearBtn.title = i18n.t('lib.remove_priority');
     wrapper.appendChild(clearBtn);
 
     clearBtn.addEventListener('mousedown', (e) => {

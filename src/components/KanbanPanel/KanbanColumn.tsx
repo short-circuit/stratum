@@ -13,6 +13,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import KanbanCard from './KanbanCard';
 import { COLUMN_CONFIG, type ColumnId } from './constants';
+import { useTranslation } from 'react-i18next';
 import type { KanbanBlockDto } from '../../lib/types';
 
 interface KanbanColumnProps {
@@ -46,6 +47,7 @@ export default function KanbanColumn({
   onCardContextMenu,
   onCardClick,
 }: KanbanColumnProps) {
+  const { t } = useTranslation();
   const config = COLUMN_CONFIG[columnId];
   const { setNodeRef } = useDroppable({ id: columnId });
 
@@ -123,7 +125,7 @@ export default function KanbanColumn({
 
           {blocks.length === 0 && !newCardActive && (
             <Typography variant="caption" color="text.disabled" sx={{ textAlign: 'center', py: 2 }}>
-              No tasks yet
+              {t('kanban.no_tasks_yet')}
             </Typography>
           )}
 
@@ -132,7 +134,7 @@ export default function KanbanColumn({
             <Box sx={{ mt: 1 }}>
               <TextField
                 size="small"
-                placeholder="Task description..."
+                placeholder={t('kanban.task_description')}
                 value={newCardText}
                 onChange={(e) => onNewCardTextChange(e.target.value)}
                 onKeyDown={(e) => {
@@ -155,10 +157,10 @@ export default function KanbanColumn({
                   onClick={onAddCard}
                   disabled={!newCardText.trim()}
                 >
-                  Add
+                  {t('kanban.add')}
                 </Button>
                 <Button size="small" onClick={onCancelNewCard}>
-                  Cancel
+                  {t('kanban.cancel')}
                 </Button>
               </Box>
             </Box>
@@ -169,7 +171,7 @@ export default function KanbanColumn({
               onClick={onStartNewCard}
               sx={{ mt: 0.5, textTransform: 'none', fontSize: '0.75rem', alignSelf: 'flex-start' }}
             >
-              Add Card
+              {t('kanban.add_card')}
             </Button>
           )}
         </Box>

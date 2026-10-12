@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCreateBlockNote } from '@blocknote/react';
 import { useNavigate } from 'react-router-dom';
+import i18n from '../../../i18n';
 import * as api from '../../../lib/commands';
 import {
   normalizeContent,
@@ -390,7 +391,7 @@ export function useEditorData(
             return;
           }
           setPreview({
-            content: ctx?.content || '(empty)',
+            content: ctx?.content || i18n.t('editor._empty'),
             pageTitle:
               ctx?.page_title || resolved.title || resolved.slug || target,
             pagePath: resolved.page_path,

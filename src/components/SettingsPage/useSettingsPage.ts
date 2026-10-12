@@ -9,6 +9,7 @@ import { useSyncModalStore } from '../../stores/syncModalStore';
 import { useSyncStore } from '../../stores/syncStore';
 import * as api from '../../lib/commands';
 import { applyTheme } from '../../lib/theme';
+import i18n, { setLocale } from '../../i18n';
 import type { SettingsTab } from './settingsTypes';
 
 export type { SettingsTab, SettingsData } from './settingsTypes';
@@ -66,7 +67,7 @@ export function useSettingsPage() {
         }
       })
       .catch(err => {
-        setMsg(`Load failed: ${err}`);
+        setMsg(`${i18n.t('settings.load_failed')} ${err}`);
         setMsgSeverity('error');
       });
 
@@ -139,6 +140,13 @@ export function useSettingsPage() {
     speed: 1.0,
     use_llm_gateway_and_auth: false,
   };
+  const tray = settings?.tray || {
+    enabled: true,
+    close_to_tray: true,
+    quick_capture_shortcut: 'CmdOrCtrl+Shift+Space',
+    capture_target: 'journal',
+    inbox_path: 'Inbox.md',
+  };
 
   const updateAi = (patch: any) => setSettings({ ...settings, ai: { ...ai, ...patch } });
   const updateVault = (patch: any) => setSettings({ ...settings, ...patch });
@@ -161,6 +169,14 @@ export function useSettingsPage() {
     setSettings({ ...settings, stt: { ...(settings.stt || {}), ...patch } });
   const updateTts = (patch: any) =>
     setSettings({ ...settings, tts: { ...(settings.tts || {}), ...patch } });
+  const updateTray = (patch: any) =>
+    setSettings({ ...settings, tray: { ...(settings.tray || {}), ...patch } });
+  const locale = settings?.locale ?? 'en';
+  const onLocaleChange = (loc: string) => {
+    setSettings({ ...settings, locale: loc });
+    void setLocale(loc);
+    api.saveSettings({ ...settings, locale: loc }).catch(() => {});
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -174,10 +190,10 @@ export function useSettingsPage() {
       savedThemeRef.current = { primary: p, secondary: sec, dark: d, fontSize: f };
       if (muiSyncTimer.current) clearTimeout(muiSyncTimer.current);
       setThemeConfig({ primaryHex: p, secondaryHex: sec, dark: d, fontSize: f });
-      setMsg('Saved.');
+      setMsg(i18n.t('settings.saved'));
       setMsgSeverity('success');
     } catch (e) {
-      setMsg(`Save failed: ${e}`);
+      setMsg(`${i18n.t('settings.save_failed')} ${e}`);
       setMsgSeverity('error');
     } finally {
       setSaving(false);
@@ -190,10 +206,10 @@ export function useSettingsPage() {
     try {
       const models = await api.fetchModels();
       setAvailableModels(models);
-      setMsg(`Found ${models.length} models`);
+      setMsg(i18n.t('settings.found_models', { count: models.length }));
       setMsgSeverity('success');
     } catch (e) {
-      setMsg(`Fetch failed: ${e}`);
+      setMsg(`${i18n.t('settings.fetch_failed')} ${e}`);
       setMsgSeverity('error');
     } finally {
       setFetching(false);
@@ -207,14 +223,14 @@ export function useSettingsPage() {
     try {
       const result = await api.reindexVault();
       if (result.failed > 0) {
-        setMsg(`Reindexed: ${result.succeeded} ok, ${result.failed} failed out of ${result.processed}`);
+        setMsg(`${i18n.t('settings.reindexed')} ${result.succeeded} ok, ${result.failed} failed out of ${result.processed}`);
         setMsgSeverity('error');
       } else {
-        setMsg(`Reindexed ${result.succeeded} pages.`);
+        setMsg(i18n.t('settings.reindexed_count', { count: result.succeeded }));
       }
       await loadPages();
     } catch (e) {
-      setMsg(`Reindex failed: ${e}`);
+      setMsg(`${i18n.t('page.reindex_failed')} ${e}`);
       setMsgSeverity('error');
     } finally {
       setFetching(false);
@@ -228,14 +244,14 @@ export function useSettingsPage() {
     try {
       const result = await api.repairDbFromDisk();
       if (result.failed > 0) {
-        setMsg(`Repaired: ${result.succeeded} ok, ${result.failed} failed out of ${result.processed}`);
+        setMsg(`${i18n.t('settings.repaired')} ${result.succeeded} ok, ${result.failed} failed out of ${result.processed}`);
         setMsgSeverity('error');
       } else {
-        setMsg(`Repaired ${result.succeeded} pages.`);
+        setMsg(i18n.t('settings.repaired_count', { count: result.succeeded }));
       }
       await loadPages();
     } catch (e) {
-      setMsg(`Repair failed: ${e}`);
+      setMsg(`${i18n.t('settings.repair_failed')} ${e}`);
       setMsgSeverity('error');
     } finally {
       setFetching(false);
@@ -248,9 +264,9 @@ export function useSettingsPage() {
     setMsgSeverity('success');
     try {
       const count = await api.normalizeAllFiles();
-      setMsg(`Normalized ${count} files.`);
+      setMsg(i18n.t('settings.normalized_count', { count }));
     } catch (e) {
-      setMsg(`Normalize failed: ${e}`);
+      setMsg(`${i18n.t('page.normalize_failed')} ${e}`);
       setMsgSeverity('error');
     } finally {
       setFetching(false);
@@ -266,17 +282,17 @@ export function useSettingsPage() {
       }
       setMsg(
         result.status === 'ok'
-          ? 'Sync completed.'
+          ? i18n.t('settings.sync_completed')
           : result.status === 'conflicts'
-            ? `Conflicts in ${result.conflicts.length} file(s).`
-            : 'Sync had errors.'
+            ? `${i18n.t('settings.conflicts_in')} ${result.conflicts.length} file(s).`
+            : i18n.t('settings.sync_had_errors')
       );
     } catch (e) {
       const errStr = String(e);
       if (errStr.includes('NeedsPassphrase') || errStr.includes('passphrase')) {
         syncModal.showPassphraseModal();
       } else {
-        setMsg(`Sync failed: ${e}`);
+        setMsg(`${i18n.t('settings.sync_failed')} ${e}`);
       }
     }
   };
@@ -304,10 +320,10 @@ export function useSettingsPage() {
   const handleStartScheduler = async () => {
     try {
       await api.startSyncScheduler();
-      setMsg('Scheduler started.');
+      setMsg(i18n.t('settings.scheduler_started'));
       setMsgSeverity('success');
     } catch (e) {
-      setMsg(`Scheduler error: ${e}`);
+      setMsg(`${i18n.t('settings.scheduler_error')} ${e}`);
       setMsgSeverity('error');
     }
   };
@@ -321,13 +337,13 @@ export function useSettingsPage() {
       }
       setMsg(
         result.status === 'ok'
-          ? 'Sync completed.'
+          ? i18n.t('settings.sync_completed')
           : result.status === 'conflicts'
-            ? `Conflicts in ${result.conflicts.length} file(s).`
-            : 'Sync had errors.'
+            ? `${i18n.t('settings.conflicts_in')} ${result.conflicts.length} file(s).`
+            : i18n.t('settings.sync_had_errors')
       );
     } catch (e) {
-      setMsg(`Sync failed: ${e}`);
+      setMsg(`${i18n.t('settings.sync_failed')} ${e}`);
     }
   };
 
@@ -378,6 +394,9 @@ export function useSettingsPage() {
     syncSettings,
     stt: settings?.stt,
     tts,
+    tray,
+    locale,
+    onLocaleChange,
 
     // Actions
     setMsg,
@@ -390,6 +409,7 @@ export function useSettingsPage() {
     updateSync,
     updateStt,
     updateTts,
+    updateTray,
     handleSave,
     handleFetchModels,
     handleReindex,

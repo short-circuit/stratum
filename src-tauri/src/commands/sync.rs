@@ -146,18 +146,30 @@ pub async fn get_sync_status(state: tauri::State<'_, AppState>) -> Result<SyncSt
 pub async fn sync_vault(state: tauri::State<'_, AppState>) -> Result<SyncStatusDto, String> {
     let vault_path = state.lock().map_err(|e| e.to_string())?.vault_path.clone();
     let passphrase = state.lock().map_err(|e| e.to_string())?.passphrase.clone();
+    sync_vault_core(&vault_path, passphrase.as_deref())
+}
 
-    let config = read_config(&vault_path)?;
+/// Run the full sync pipeline (stage, commit, pull, push) for a vault.
+///
+/// Extracted from the [`sync_vault`] command so tray "Sync Now" and the command
+/// share one implementation. Performs git add, conflict detection, commit of
+/// pending changes with the configured template, then pull/push against the
+/// remote (when configured). Returns a [`SyncStatusDto`] describing the outcome.
+pub fn sync_vault_core(
+    vault_path: &std::path::Path,
+    passphrase: Option<&str>,
+) -> Result<SyncStatusDto, String> {
+    let config = read_config(vault_path)?;
 
-    let mut engine = pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
+    let mut engine = pkm_sync::git::GitEngine::init(vault_path).map_err(|e| e.to_string())?;
 
     // Set SSH key path from config
     if let Some(ref key_path) = config.sync.ssh_key_path {
         engine.set_ssh_key_path(Some(std::path::PathBuf::from(key_path)));
     }
     // Set passphrase if cached
-    if let Some(ref pp) = passphrase {
-        engine.set_passphrase(Some(pp.clone()));
+    if let Some(pp) = passphrase {
+        engine.set_passphrase(Some(pp.to_string()));
     }
 
     // Stage all
@@ -172,7 +184,7 @@ pub async fn sync_vault(state: tauri::State<'_, AppState>) -> Result<SyncStatusD
         .collect();
 
     if !conflicts.is_empty() {
-        write_sync_state(&vault_path, false);
+        write_sync_state(vault_path, false);
         return Ok(SyncStatusDto {
             status: "conflicts".into(),
             branch: engine.get_current_branch(),
@@ -254,7 +266,7 @@ pub async fn sync_vault(state: tauri::State<'_, AppState>) -> Result<SyncStatusD
             .map(|(p, _)| p.clone())
             .collect();
         if !conflicts.is_empty() {
-            write_sync_state(&vault_path, false);
+            write_sync_state(vault_path, false);
             return Ok(SyncStatusDto {
                 status: "conflicts".into(),
                 branch: engine.get_current_branch(),
@@ -279,7 +291,7 @@ pub async fn sync_vault(state: tauri::State<'_, AppState>) -> Result<SyncStatusD
         .collect();
     let conflicts_ok = final_conflicts.is_empty();
 
-    write_sync_state(&vault_path, conflicts_ok);
+    write_sync_state(vault_path, conflicts_ok);
 
     Ok(SyncStatusDto {
         status: if conflicts_ok {

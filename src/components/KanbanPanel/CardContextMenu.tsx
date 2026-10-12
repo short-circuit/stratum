@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
 // CardContextMenu — mobile bottom-sheet context menu for a kanban card.
@@ -15,6 +16,7 @@ export default function CardContextMenu({
   onDelete: () => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Box
       sx={{
@@ -35,21 +37,21 @@ export default function CardContextMenu({
         sx={{ textTransform: 'none', py: 1.5, borderBottom: 1, borderColor: 'divider' }}
         onClick={onEdit}
       >
-        Edit
+        {t('kanban.edit')}
       </Button>
       <Button
         fullWidth
         sx={{ textTransform: 'none', py: 1.5, color: 'error.main' }}
         onClick={onDelete}
       >
-        Delete
+        {t('common.delete')}
       </Button>
       <Button
         fullWidth
         sx={{ textTransform: 'none', py: 1 }}
         onClick={onClose}
       >
-        Cancel
+        {t('common.cancel')}
       </Button>
     </Box>
   );

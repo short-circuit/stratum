@@ -1,15 +1,19 @@
+import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import TextField from '@mui/material/TextField';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import { useTranslation } from 'react-i18next';
 import { useSettingsPage } from './SettingsPage.shared';
 import MobileThemeSection from './MobileThemeSection';
 import MobileAiAccordion from './MobileAiAccordion';
 import MobileSttTtsSection from './MobileSttTtsSection';
 import MobileDeveloperSection from './MobileDeveloperSection';
 import MobileSyncSection from './MobileSyncSection';
+import ImportDialog from '../ImportDialog';
 
 // ---------------------------------------------------------------------------
 // Mobile settings page.
@@ -20,6 +24,8 @@ import MobileSyncSection from './MobileSyncSection';
 // ---------------------------------------------------------------------------
 
 export default function SettingsPageMobile() {
+  const { t } = useTranslation();
+  const [importOpen, setImportOpen] = useState(false);
   const {
     settings,
     saving,
@@ -30,6 +36,8 @@ export default function SettingsPageMobile() {
     syncStatus,
     theme,
     updateTheme,
+    locale,
+    onLocaleChange,
     ai,
     updateAi,
     research,
@@ -65,7 +73,7 @@ export default function SettingsPageMobile() {
     return (
       <Box sx={{ p: 2 }}>
         <Typography variant="body2" color="text.secondary">
-          Loading settings...
+          {t('settings.loading_settings')}
         </Typography>
       </Box>
     );
@@ -82,7 +90,7 @@ export default function SettingsPageMobile() {
           fullWidth
           sx={{ textTransform: 'none', mb: 1 }}
         >
-          {saving ? 'Saving...' : 'Save'}
+          {saving ? t('settings.saving') : 'Save'}
         </Button>
         {msg && (
           <Alert severity={msgSeverity} onClose={() => setMsg('')} sx={{ mb: 1 }}>
@@ -96,11 +104,11 @@ export default function SettingsPageMobile() {
         {/* ─── Vault Section ─── */}
         <Box sx={{ px: 2, pt: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-            Vault
+            {t('settings.vault')}
           </Typography>
           <Divider sx={{ mb: 1.5 }} />
           <TextField
-            label="Vault Path"
+            label={t('settings.vault_path')}
             value={settings.vault_path || ''}
             onChange={e => updateVault({ vault_path: e.target.value })}
             fullWidth
@@ -108,12 +116,22 @@ export default function SettingsPageMobile() {
             sx={{ mb: 1, '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.8rem' } }}
           />
           <Button variant="outlined" size="small" onClick={handlePickVaultDirectory}>
-            Browse
+            {t('settings.browse')}
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            sx={{ ml: 1 }}
+            startIcon={<UploadFileIcon />}
+            onClick={() => setImportOpen(true)}
+          >
+            {t('importers.import_notes')}
           </Button>
         </Box>
+        <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
 
         {/* ─── Theme Section ─── */}
-        <MobileThemeSection theme={theme} updateTheme={updateTheme} />
+        <MobileThemeSection theme={theme} updateTheme={updateTheme} locale={locale} onLocaleChange={onLocaleChange} />
 
         {/* ─── AI Section (collapsible) ─── */}
         <MobileAiAccordion
@@ -136,21 +154,21 @@ export default function SettingsPageMobile() {
         {/* ─── Research Section ─── */}
         <Box sx={{ px: 2, pt: 3 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-            Research
+            {t('settings.research')}
           </Typography>
           <Divider sx={{ mb: 1.5 }} />
           <TextField
-            label="SearXNG Endpoint"
+            label={t('settings.searxng_endpoint')}
             placeholder="http://localhost:8888"
             value={research.searxng_endpoint}
             onChange={e => updateResearch({ searxng_endpoint: e.target.value })}
             fullWidth
             size="small"
-            helperText="URL of your SearXNG instance"
+            helperText={t('settings.url_of_your_searxng_instance')}
           />
           <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
             <TextField
-              label="Max Results"
+              label={t('settings.max_results')}
               type="number"
               value={research.max_results}
               onChange={e => updateResearch({ max_results: parseInt(e.target.value) || 3 })}
@@ -158,7 +176,7 @@ export default function SettingsPageMobile() {
               slotProps={{ htmlInput: { min: 1, max: 10 } }}
             />
             <TextField
-              label="Research Depth"
+              label={t('settings.research_depth')}
               type="number"
               value={research.max_depth}
               onChange={e => updateResearch({ max_depth: parseInt(e.target.value) || 2 })}

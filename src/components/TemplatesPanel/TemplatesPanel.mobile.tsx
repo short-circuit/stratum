@@ -15,8 +15,10 @@ import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import { useTemplates, type TemplateDto } from './TemplatesPanel.shared';
+import { useTranslation } from 'react-i18next';
 
 export default function TemplatesPanelMobile() {
+  const { t: tr } = useTranslation();
   const {
     templates,
     targetPath,
@@ -57,7 +59,7 @@ export default function TemplatesPanelMobile() {
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-        Templates
+        {tr('templates.templates')}
       </Typography>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -87,7 +89,7 @@ export default function TemplatesPanelMobile() {
         ))}
         {templates.length === 0 && (
           <Typography variant="body2" color="text.secondary">
-            No templates yet. Save a page as template to get started.
+            {tr('templates.no_templates_yet_save_a_page_as_template_to_get_started')}
           </Typography>
         )}
       </Box>
@@ -114,7 +116,7 @@ export default function TemplatesPanelMobile() {
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            Apply: {activeTemplate?.name ?? ''}
+            {tr('templates.apply_label')} {activeTemplate?.name ?? ''}
           </Typography>
           <IconButton size="small" onClick={handleClose}>
             <CloseIcon />
@@ -123,7 +125,7 @@ export default function TemplatesPanelMobile() {
 
         <DialogContent sx={{ pb: 1 }}>
           <TextField
-            label="Target page path"
+            label={tr('templates.target_page_path')}
             placeholder="pages/my-new-page.md"
             value={targetPath}
             onChange={(e) => setTargetPath(e.target.value)}
@@ -134,7 +136,7 @@ export default function TemplatesPanelMobile() {
           />
 
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-            Variables
+            {tr('templates.variables')}
           </Typography>
           {variables.map(([k, v], i) => (
             <Box key={i} sx={{ display: 'flex', gap: 0.5, mb: 0.5 }}>
@@ -160,7 +162,7 @@ export default function TemplatesPanelMobile() {
             onClick={addVariableRow}
             sx={{ textTransform: 'none', fontSize: '0.75rem' }}
           >
-            Add variable
+            {tr('templates.add_variable')}
           </Button>
 
           {message && (
@@ -172,7 +174,7 @@ export default function TemplatesPanelMobile() {
 
         <DialogActions sx={{ px: 3, pb: 3 }}>
           <Button onClick={handleClose} color="inherit" sx={{ textTransform: 'none' }}>
-            Cancel
+            {tr('templates.cancel')}
           </Button>
           <Button
             onClick={handleApply}
@@ -180,7 +182,7 @@ export default function TemplatesPanelMobile() {
             disabled={!targetPath}
             sx={{ textTransform: 'none' }}
           >
-            Apply
+            {tr('templates.apply')}
           </Button>
         </DialogActions>
       </Dialog>

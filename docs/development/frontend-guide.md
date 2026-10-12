@@ -589,6 +589,68 @@ function BacklinksPanel() {
 
 ---
 
+## Internationalization (i18n)
+
+All user-facing strings MUST go through `t()` (`useTranslation` from
+`react-i18next`) — never hardcode English copy. The i18n layer is initialized in
+`src/main.tsx` via `initI18n()` (best-effort — a failure never blocks boot) and
+re-targeted at runtime with `setLocale()` when the user changes the language in
+Settings → Appearance. The active locale is persisted through the normal
+settings pipeline (`getSettings`/`saveSettings` → `config.locale`).
+
+Resources live in `src/i18n/locales/<lang>.json`:
+`en` is the source of truth; `de`/`it`/`fr`/`es` are fully translated;
+`zh`/`ja`/`el` are placeholders mirroring `en`.
+
+**Rules:**
+
+- Wrap every user-facing literal: `t('common.save')`, never `"Save"`.
+- Key names use snake_case under a component/feature section (e.g.
+  `graph.refresh_graph`), mirroring the section structure of `en.json`.
+- Dynamic values use interpolation: `t('graph.showing', { count, total, cap })`.
+- Never add a key to one locale file only — add it to **all 8** files in the
+  same commit (or the `localeParity` gate fails).
+- Use the `Intl` helpers from `src/i18n` (`formatDate`, `formatNumber`,
+  `localizedMonthNames`, `localizedDayHeaders`) instead of ad-hoc formatting so
+  dates/numbers follow the active locale.
+
+Two automated gates protect this in the test suite (`npm run test`):
+
+1. `src/i18n/i18nGate.test.ts` — static AST scan over `src/` that FAILS if a
+   user-facing string is hardcoded as JSX text or a `label`/`placeholder`/
+   `title`/`aria-label` literal outside `t()`. Allowlist covers only non-UI
+   literals (CSS, imports, enum tokens, units). See
+   `docs/guide/localization.md` for details.
+2. `src/i18n/localeParity.test.ts` — verifies identical flattened key sets
+   across all 8 locales, no extra keys, placeholders mirror `en`, and full
+   locales contain no untranslated English beyond the reviewed allowlist.
+
+---
+
+## Accessibility
+
+Accessibility was swept in tandem with the i18n work (same component-touch
+scope). Every component touched by the string sweep must remain reachable and
+labeled:
+
+- **aria-labels**: interactive elements without visible text (icon-only
+  buttons, `IconButton`) MUST have an `aria-label` — always through `t()`.
+- **Focus management**: modals/dialogs move focus on open and restore it on
+  close; `ConfirmDialog`, `PassphraseModal`, `ConflictModal`, and the
+  `ResponsiveDialog` variants follow this pattern.
+- **Keyboard reachability**: all actions available via mouse must also be
+  reachable via keyboard (MUI `ListItemButton`/`IconButton`/`ToggleButton`
+  provide this; custom clickable divs must add `role="button"` +
+  `tabIndex` + key handling).
+- **Contrast**: text meets WCAG AA against its background; `text.secondary`
+  and disabled states were checked in the theme sweep.
+
+When adding a new component, include the same three checks (label, focus,
+keyboard) in the same PR — the i18n gate flags missing `aria-label` literals as
+hardcoded strings, so an unlabeled icon button will fail `npm run test`.
+
+---
+
 ## Component Sizing Rules
 
 These rules are **enforced by convention** — no file or component should grow past these limits:

@@ -2,7 +2,7 @@
 //! Extracted from SettingsPage.shared.tsx during the E6 sizing-gate refactor so
 //! the hook module stays small and types can be reused across sub-components.
 
-export type SettingsTab = 'vault' | 'theme' | 'ai' | 'research' | 'developer' | 'sync';
+export type SettingsTab = 'vault' | 'theme' | 'ai' | 'research' | 'developer' | 'sync' | 'tray';
 
 export interface SettingsData {
   vault_path?: string;

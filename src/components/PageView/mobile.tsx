@@ -12,8 +12,10 @@ import DictationPanel from '../DictationPanel';
 import { usePageView } from './shared';
 import { useStore } from '../../stores/appStore';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function PageViewMobile() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { pagePath, currentPage, editorKey, reindexing, handleReindex, handleDelete } = usePageView();
   const [dictationOpen, setDictationOpen] = useState(false);
@@ -23,7 +25,7 @@ export default function PageViewMobile() {
   }
 
   if (!currentPage) {
-    return <Box sx={{ p: 2 }}><Typography variant="body2" color="text.secondary">Loading...</Typography></Box>;
+    return <Box sx={{ p: 2 }}><Typography variant="body2" color="text.secondary">{t('common.loading')}</Typography></Box>;
   }
 
   return (
@@ -51,15 +53,15 @@ export default function PageViewMobile() {
           {currentPage.title || currentPage.slug}
         </Typography>
 
-        <IconButton size="small" onClick={() => setDictationOpen(o => !o)} title="Voice memo">
+        <IconButton size="small" onClick={() => setDictationOpen(o => !o)} title={t('page.voice_memo')}>
           <MicNoneIcon fontSize="small" />
         </IconButton>
 
-        <IconButton size="small" onClick={handleReindex} disabled={reindexing} title="Reindex">
+        <IconButton size="small" onClick={handleReindex} disabled={reindexing} title={t('page.reindex')}>
           <RefreshIcon fontSize="small" />
         </IconButton>
 
-        <IconButton size="small" onClick={handleDelete} color="error" title="Delete page">
+        <IconButton size="small" onClick={handleDelete} color="error" title={t('sidebar.delete_page')}>
           <DeleteIcon fontSize="small" />
         </IconButton>
       </Box>

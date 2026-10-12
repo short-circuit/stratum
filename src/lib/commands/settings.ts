@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import i18n from '../../i18n';
 import { getPlatform } from '../platform';
 import type { VaultInfo, GraphSettings, SyncSettings } from '../types';
 
@@ -20,12 +21,13 @@ export async function pickVaultDirectory(): Promise<VaultInfo> {
   }
   const { open } = await import('@tauri-apps/plugin-dialog');
   const selected = await open({ directory: true, multiple: false });
-  if (!selected) throw new Error('No directory selected');
+  if (!selected) throw new Error(i18n.t('lib_commands.no_directory_selected'));
   return invoke('init_vault', { path: selected });
 }
 
 export async function getSettings(): Promise<{
   vault_path: string;
+  locale: string;
   theme: { dark_mode: boolean; primary_color: string; secondary_color: string; font_size: number };
   ai: {
     provider: string;
@@ -62,12 +64,20 @@ export async function getSettings(): Promise<{
     format: string;
     speed: number;
   };
+  tray: {
+    enabled: boolean;
+    close_to_tray: boolean;
+    quick_capture_shortcut: string;
+    capture_target: string;
+    inbox_path: string;
+  };
 }> {
   return invoke('get_settings');
 }
 
 export async function saveSettings(settings: {
   vault_path: string;
+  locale: string;
   theme: { dark_mode: boolean; primary_color: string; secondary_color: string; font_size: number };
   ai: {
     provider: string;
@@ -98,6 +108,13 @@ export async function saveSettings(settings: {
     voice: string;
     format: string;
     speed: number;
+  };
+  tray: {
+    enabled: boolean;
+    close_to_tray: boolean;
+    quick_capture_shortcut: string;
+    capture_target: string;
+    inbox_path: string;
   };
 }): Promise<void> {
   return invoke('save_settings', { settings });

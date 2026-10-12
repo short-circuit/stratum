@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import { useTranslation } from 'react-i18next';
 import type { CommitLogEntry } from '../../lib/types';
 
 // ---------------------------------------------------------------------------
@@ -16,6 +17,7 @@ export default function CommitLogPanel({
   commitsOpen: boolean;
   onToggleCommits: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Box>
       <Box
@@ -36,14 +38,14 @@ export default function CommitLogPanel({
         }}
       >
         <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-          {commitsOpen ? '▼' : '▶'} Recent Commits
+          {commitsOpen ? '▼' : '▶'} {t('settings.recent_commits')}
         </Typography>
       </Box>
       {commitsOpen && (
         <Box sx={{ mt: 0.75, overflow: 'auto' }}>
           {commits.length === 0 ? (
             <Typography variant="caption" color="text.disabled">
-              No commits yet.
+              {t('settings.no_commits_yet')}
             </Typography>
           ) : (
             <Box sx={{ minWidth: 500 }}>

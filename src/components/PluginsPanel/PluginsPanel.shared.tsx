@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import * as api from '../../lib/commands';
 import { isPluginBackendReady } from '../../lib/commands/plugins';
 import type { PluginHttpRequestParams, PluginInfoDto } from '../../lib/types';
+import { useTranslation } from 'react-i18next';
 
 export interface PluginTestResult {
   label: string;
@@ -29,6 +30,7 @@ export interface PluginsPanelState {
 }
 
 export function usePluginsPanel(): PluginsPanelState {
+  const { t } = useTranslation();
   const [plugins, setPlugins] = useState<PluginInfoDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,12 +67,12 @@ export function usePluginsPanel(): PluginsPanelState {
           return [...prev, updated];
         });
       } catch (e) {
-        setError(`Failed on ${id}: ${String(e)}`);
+        setError(`${t('plugins.failed_on')} ${id}: ${String(e)}`);
       } finally {
         setBusyId(null);
       }
     },
-    [],
+    [t],
   );
 
   const enable = useCallback((id: string) => runAction(id, api.pluginsEnable), [runAction]);
@@ -90,11 +92,11 @@ export function usePluginsPanel(): PluginsPanelState {
         );
       }
     } catch (e) {
-      setError(`Install failed: ${String(e)}`);
+      setError(`${t('plugins.install_failed')} ${String(e)}`);
     } finally {
       setBusyId(null);
     }
-  }, []);
+  }, [t]);
 
   const uninstall = useCallback(
     async (id: string) => {
@@ -104,12 +106,12 @@ export function usePluginsPanel(): PluginsPanelState {
         const result = await api.pluginsUninstall(id);
         setPlugins(result.plugins);
       } catch (e) {
-        setError(`Uninstall failed on ${id}: ${String(e)}`);
+        setError(`${t('plugins.uninstall_failed_on')} ${id}: ${String(e)}`);
       } finally {
         setBusyId(null);
       }
     },
-    [],
+    [t],
   );
 
   const runNoteReadTest = useCallback(async (id: string) => {
