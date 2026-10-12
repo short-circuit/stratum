@@ -1,8 +1,13 @@
 const PREFIX = 'stratum:';
 const TAG_PREFIX = 'stratum-tag:';
+const ASSET_PREFIX = 'stratum-asset:';
 
 export function isWikiLinkHref(href: string): boolean {
-  return href.startsWith(PREFIX) && !href.startsWith(TAG_PREFIX);
+  return (
+    href.startsWith(PREFIX) &&
+    !href.startsWith(TAG_PREFIX) &&
+    !href.startsWith(ASSET_PREFIX)
+  );
 }
 
 export function extractWikiLinkTarget(href: string): string {
@@ -15,6 +20,14 @@ export function isTagHref(href: string): boolean {
 
 export function extractTagTarget(href: string): string {
   return href.slice(TAG_PREFIX.length);
+}
+
+export function isAssetHref(href: string): boolean {
+  return href.startsWith(ASSET_PREFIX);
+}
+
+export function extractAssetRefPath(href: string): string {
+  return href.slice(ASSET_PREFIX.length);
 }
 
 export interface TextItem {
@@ -94,7 +107,7 @@ export function parseContentToInlineItems(text: string): InlineItem[] {
   // Note: `\[`/`\]` inside the character class are intentionally kept — they
   // exclude literal brackets from the wiki-link target capture (see above).
   // eslint-disable-next-line no-useless-escape -- brackets must be excluded literally
-  const RE = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(~~(.+?)~~)|(`(.+?)`)|(\[\[([^\[\]]+?)(?:\|([^\[\]]*))?\]\])|(#([a-zA-Z][a-zA-Z0-9_\-/]*))/g;
+  const RE = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(~~(.+?)~~)|(`(.+?)`)|(!?)(\[\[([^\[\]]+?)(?:\|([^\[\]]*))?\]\])|(#([a-zA-Z][a-zA-Z0-9_\-/]*))/g;
   let m: RegExpExecArray | null;
   while ((m = RE.exec(text)) !== null) {
     if (m.index > pos) {
@@ -108,27 +121,28 @@ export function parseContentToInlineItems(text: string): InlineItem[] {
       items.push({ type: 'text', text: m[6], styles: { strike: true } });
     } else if (m[8] !== undefined) {
       items.push({ type: 'text', text: m[8], styles: { code: true } });
-    } else if (m[9] !== undefined) {
-      const target = (m[10] ?? m[9]).trim();
-      const display = (m[11] || m[10] || m[9]).trim();
+    } else if (m[10] !== undefined) {
+      const target = (m[11] ?? m[10]).trim();
+      const display = (m[12] || m[11] || m[10]).trim();
+      const isEmbed = m[9] === '!' || target.startsWith('assets/');
       items.push({
         type: 'link',
-        href: PREFIX + target,
+        href: (isEmbed ? ASSET_PREFIX : PREFIX) + target,
         content: [{ type: 'text', text: display, styles: {} }],
       });
-    } else if (m[12] !== undefined) {
+    } else if (m[13] !== undefined) {
       // Validate #tag is at a word boundary (preceded by whitespace, (, or start of string)
       const prevChar = m.index > 0 ? text[m.index - 1] : null;
       if (prevChar && !/\s/.test(prevChar) && prevChar !== '(') {
-        items.push({ type: 'text', text: m[12], styles: {} });
+        items.push({ type: 'text', text: m[13], styles: {} });
         pos = RE.lastIndex;
         continue;
       }
-      const tagName = m[13];
+      const tagName = m[14];
       items.push({
         type: 'link',
         href: TAG_PREFIX + tagName,
-        content: [{ type: 'text', text: m[12], styles: {} }],
+        content: [{ type: 'text', text: m[13], styles: {} }],
       });
     }
     pos = RE.lastIndex;
@@ -147,6 +161,14 @@ export function inlineItemsToContent(items: InlineItem[]): string {
       if (isTagHref(item.href || '')) {
         const text = item.content?.map((c: TextItem) => c?.text || '').join('') || '';
         out += text;
+      } else if (isAssetHref(item.href || '')) {
+        const target = extractAssetRefPath(item.href).replace(/^\/\//, '');
+        const display = item.content?.map((c: TextItem) => c?.text || '').join('') || '';
+        if (display && display !== target) {
+          out += `![[${target}|${display}]]`;
+        } else {
+          out += `![[${target}]]`;
+        }
       } else if (isWikiLinkHref(item.href || '')) {
         // Guard against legacy corrupted hrefs that carry stray brackets
         // ([[Target]] wrapped into the target) — strip them so the serializer

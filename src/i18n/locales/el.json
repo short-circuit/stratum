@@ -55,6 +55,17 @@
     "searching_your_notes": "Searching your notes…",
     "sources": "Sources"
   },
+  "asset": {
+    "attach": "Attach",
+    "attachments": "Attachments",
+    "compressing": "Compressing image…",
+    "count": "{{count}} attachment(s)",
+    "delete": "Delete",
+    "delete_confirm": "Delete this attachment?",
+    "empty": "No attachments yet",
+    "file_too_large": "File larger than 8 MB",
+    "upload_failed": "Upload failed"
+  },
   "autocomplete_popup": {
     "no_results": "No results"
   },
@@ -644,7 +655,13 @@
     "tray_capture_target": "Quick capture target",
     "tray_capture_target_journal": "Today's journal",
     "tray_capture_target_inbox": "Inbox page",
-    "tray_inbox_path": "Inbox page path"
+    "tray_inbox_path": "Inbox page path",
+    "reset_onboarding": "Reset onboarding",
+    "reset_onboarding_help": "Show the first-run wizard again on next launch.",
+    "install_starter_templates": "Install starter templates",
+    "install_starter_templates_help": "Add the bundled starter templates to this vault.",
+    "onboarding_reset_done": "Onboarding will show again on next launch.",
+    "templates_installed": "Installed {{count}} starter template(s)."
   },
   "sidebar": {
     "ask_notes": "Ask Notes",
@@ -735,5 +752,39 @@
     "target_label": "Target:",
     "target_journal": "Today's journal",
     "target_inbox": "Inbox"
+  },
+  "onboarding": {
+    "welcome_title": "Welcome to Stratum",
+    "welcome_subtitle": "Set up your first vault and start capturing ideas.",
+    "choose_vault_folder": "Choose Vault Folder",
+    "next": "Next",
+    "back": "Back",
+    "start_with_templates": "Start with templates",
+    "templates_hint": "Install a curated set of starter pages into your vault.",
+    "sample_vault": "Create a sample vault",
+    "sample_vault_hint": "Add a few linked example notes showing backlinks and the graph.",
+    "finish": "Get Started",
+    "finish_title": "You're all set",
+    "finish_hint": "Your vault is ready. Open the Quick Start guide to explore.",
+    "open_quick_start": "Open the Quick Start guide",
+    "installing": "Installing...",
+    "error": "Something went wrong: {{message}}",
+    "step": "Step {{current}} of {{total}}"
+  },
+  "voice_capture": {
+    "cancel": "Cancel",
+    "configure_stt": "Configure STT",
+    "configure_stt_prompt": "Transcription isn't configured. The recording was saved as a placeholder.",
+    "denied_banner": "Microphone permission is denied. Enable it in Settings.",
+    "enable": "Enable voice capture",
+    "error_fallback_inserted": "Couldn't transcribe — the recording was saved as a memo placeholder.",
+    "error_retry": "Something went wrong.",
+    "memo_inserted": "Voice memo inserted",
+    "record": "Record voice memo",
+    "recording": "Recording…",
+    "retry_transcription": "Retry transcription",
+    "settings_target_today": "Captures are inserted into today's journal.",
+    "settings_toggle_label": "Voice-Capture Button",
+    "stop_save": "Stop & save"
   }
 }

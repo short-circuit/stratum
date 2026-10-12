@@ -55,6 +55,17 @@
     "searching_your_notes": "Ihre Notizen werden durchsucht …",
     "sources": "Quellen"
   },
+  "asset": {
+    "attach": "Anhängen",
+    "attachments": "Anhänge",
+    "compressing": "Bild wird komprimiert…",
+    "count": "{{count}} Anhänge",
+    "delete": "Löschen",
+    "delete_confirm": "Diesen Anhang löschen?",
+    "empty": "Noch keine Anhänge",
+    "file_too_large": "Datei größer als 8 MB",
+    "upload_failed": "Upload fehlgeschlagen"
+  },
   "autocomplete_popup": {
     "no_results": "Keine Ergebnisse"
   },
@@ -644,7 +655,13 @@
     "tray_capture_target": "Ziel der Schnellnotiz",
     "tray_capture_target_journal": "Heutiges Journal",
     "tray_capture_target_inbox": "Posteingangsseite",
-    "tray_inbox_path": "Pfad der Posteingangsseite"
+    "tray_inbox_path": "Pfad der Posteingangsseite",
+    "reset_onboarding": "Onboarding zurücksetzen",
+    "reset_onboarding_help": "Zeige den Einrichtungsassistenten beim nächsten Start erneut.",
+    "install_starter_templates": "Startvorlagen installieren",
+    "install_starter_templates_help": "Füge die gebündelten Startvorlagen zu diesem Vault hinzu.",
+    "onboarding_reset_done": "Das Onboarding wird beim nächsten Start erneut angezeigt.",
+    "templates_installed": "{{count}} Startvorlage(n) installiert."
   },
   "sidebar": {
     "ask_notes": "Notizen fragen",
@@ -735,5 +752,39 @@
     "target_label": "Ziel:",
     "target_journal": "Heutiges Journal",
     "target_inbox": "Posteingang"
+  },
+  "onboarding": {
+    "welcome_title": "Willkommen bei Stratum",
+    "welcome_subtitle": "Richte dein erstes Vault ein und beginne, Ideen festzuhalten.",
+    "choose_vault_folder": "Vault-Ordner wählen",
+    "next": "Weiter",
+    "back": "Zurück",
+    "start_with_templates": "Mit Vorlagen starten",
+    "templates_hint": "Installiere eine kuratierte Sammlung von Startseiten in dein Vault.",
+    "sample_vault": "Beispiel-Vault erstellen",
+    "sample_vault_hint": "Füge einige verknüpfte Beispielnotizen hinzu, die Backlinks und den Graphen zeigen.",
+    "finish": "Loslegen",
+    "finish_title": "Alles bereit",
+    "finish_hint": "Dein Vault ist bereit. Öffne den Quick-Start-Leitfaden, um loszulegen.",
+    "open_quick_start": "Quick-Start-Leitfaden öffnen",
+    "installing": "Wird installiert...",
+    "error": "Etwas ist schiefgelaufen: {{message}}",
+    "step": "Schritt {{current}} von {{total}}"
+  },
+  "voice_capture": {
+    "cancel": "Abbrechen",
+    "configure_stt": "STT konfigurieren",
+    "configure_stt_prompt": "Die Transkription ist nicht eingerichtet. Die Aufnahme wurde als Platzhalter gespeichert.",
+    "denied_banner": "Die Mikrofonberechtigung ist verweigert. Aktiviere sie in den Einstellungen.",
+    "enable": "Sprachaufnahme aktivieren",
+    "error_fallback_inserted": "Transkription fehlgeschlagen – die Aufnahme wurde als Memo-Platzhalter gespeichert.",
+    "error_retry": "Etwas ist schiefgelaufen.",
+    "memo_inserted": "Sprachnotiz eingefügt",
+    "record": "Sprachnotiz aufnehmen",
+    "recording": "Aufnahme…",
+    "retry_transcription": "Transkription erneut versuchen",
+    "settings_target_today": "Aufnahmen werden in das heutige Journal eingefügt.",
+    "settings_toggle_label": "Sprachaufnahme-Button",
+    "stop_save": "Stoppen & speichern"
   }
 }

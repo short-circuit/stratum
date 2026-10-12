@@ -139,10 +139,15 @@ stratum/
 │   │   ├── MarkerBadge.tsx
 │   │   ├── StratumIcon.tsx
 │   │   ├── SuggestedConnectionsPanel.tsx
+│   │   ├── AttachmentPanel.tsx
 │   │   ├── KanbanEditDialog.tsx
 │   │   ├── MobileLayout.tsx
 │   │   ├── MobileNav.tsx
 │   │   ├── JournalCalendar.tsx
+│   │   ├── VoiceCaptureButton.tsx
+│   │   ├── VoiceCaptureButton.desktop.tsx
+│   │   ├── VoiceCaptureButton.mobile.tsx
+│   │   ├── VoiceCaptureButton.shared.tsx
 │   │   └── VaultPicker.tsx
 │   └── test/
 ├── src-tauri/                  # Tauri v2 shell
@@ -258,6 +263,7 @@ React app uses **Zustand** for state. Domain-specific stores in `src/stores/`:
 - **graphStore** — graph data, connected components, orphans, graph settings
 - **syncStore** — sync status, commit log, conflict state
 - **navigationStore** — modifier-click navigation state (source-editor scroll restore on return; session-scoped)
+- **onboardingStore** — first-run wizard state (step, template/sample toggles, install orchestration)
 
 All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rust command → crate logic.
 
@@ -267,6 +273,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 
 | Component | Route | Purpose | Guide |
 |-----------|-------|---------|-------|
+| `Onboarding` | (first-run gate — no route) | First-run wizard (create vault, templates, sample) | `docs/getting-started/quickstart.md` |
 | `PagesHome` | `/` | Page list with block counts | — |
 | `JournalPanel` | `/journal` | Calendar + daily journal creation | `docs/guide/journal.md` |
 | `PageView` | `/page/:pagePath` | Block editor + backlinks + connections | `docs/guide/block-editor.md` |
@@ -288,6 +295,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `BacklinkSnippetBody` | `BacklinksPanel` | Renders backlinked block snippet (title, context, anchor highlight, loading/error) |
 | `BacklinkSnippetPopup` | `BacklinksPanel` (desktop) | Viewport-clamped popup for the backlink snippet (Ctrl+hover) |
 | `SuggestedConnectionsPanel` | `PageView` | AI-suggested wiki-link connections |
+| `AttachmentPanel` | `PageView` | Lists page attachments (`assets/…` refs), attach/upload with compression, delete; page metadata chip |
 | `MermaidBlock` | `OutlinerEditor` | Custom BlockNote block for Mermaid diagrams |
 | `AISlashMenu` | `OutlinerEditor` | Slash menu with AI actions (rewrite, summarize, etc.) |
 | `AIFormattingToolbar` | `OutlinerEditor` | Formatting toolbar with AI buttons |
@@ -315,6 +323,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `MobileNav` | Bottom navigation bar for mobile |
 | `JournalCalendar` | Calendar popup for date navigation |
 | `QuickCapture` | Quick capture dialog for tray/global-shortcut captures (desktop) |
+| `VoiceCaptureButton` (`index`/`.desktop`/`.mobile`/`.shared`) | One-tap voice-capture into today's journal (mobile FAB / desktop header button) |
 
 ### UI Primitives (`src/components/ui/`)
 
@@ -343,6 +352,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `useMathInline` | ProseMirror plugin for inline KaTeX | OutlinerEditor |
 | `useLongPress` | Detect long-press gestures | MobileNav, MobileLayout |
 | `useMarkerDecorations` | ProseMirror decorations for inline marker/priority badges | OutlinerEditor |
+| `useOnboarding` | First-run wizard step/install orchestration (in `Onboarding.shared.tsx`) | Onboarding desktop/mobile |
 
 ### Component Sizing Rules
 

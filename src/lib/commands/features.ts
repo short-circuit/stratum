@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { getPlatform } from '../platform';
 import type {
   AiAction,
   AiTransformResult,
@@ -10,6 +11,7 @@ import type {
   DictationStopDto,
   DictationOptsDto,
   DictationResultDto,
+  MicPermissionDto,
   SpeakerDto,
   SpeakerAssignDto,
   SttTestDto,
@@ -64,6 +66,14 @@ export async function applyTemplate(
   variables: [string, string][],
 ): Promise<string> {
   return invoke('apply_template', { templateName, targetPage, variables });
+}
+
+export async function installStarterTemplates(names?: string[]): Promise<string[]> {
+  return invoke('install_starter_templates', { names: names ?? null });
+}
+
+export async function installStarterSample(): Promise<string[]> {
+  return invoke('install_starter_sample');
 }
 
 // --- Export ---
@@ -186,6 +196,60 @@ export async function speakerDelete(name: string): Promise<void> {
 
 export async function sttTestConnection(): Promise<SttTestDto> {
   return invoke('stt_test_connection');
+}
+
+// --- Voice capture (E9.F4) ---
+
+/**
+ * Report microphone permission status.
+ *
+ * Desktop/iOS always report granted. On Android the authoritative state lives
+ * in the injected `StratumMic` JS bridge (see MainActivity.kt), so we overlay
+ * the command result with the bridge's `isMicGranted()` when present.
+ */
+export async function micPermissionStatus(): Promise<MicPermissionDto> {
+  const dto = await invoke<MicPermissionDto>('mic_permission_status');
+  const os = getPlatform().os;
+  const bridge = (window as any).StratumMic;
+  if (os === 'android' && bridge && typeof bridge.isMicGranted === 'function') {
+    return { ...dto, granted: !!bridge.isMicGranted() };
+  }
+  return dto;
+}
+
+/**
+ * Request microphone permission, resolving to `granted` when the flow ends.
+ *
+ * Desktop and iOS return `true` immediately. On Android the system dialog is
+ * launched via the `StratumMic` bridge; the Kotlin launcher writes the result
+ * back by calling `window.__stratumMicPermissionResolve(granted)`, which
+ * resolves the returned promise so the UI never hangs if the dialog is shown.
+ */
+export async function requestMicPermission(): Promise<boolean> {
+  const os = getPlatform().os;
+  if (os !== 'android' && os !== 'ios') return true;
+  const bridge = (window as any).StratumMic;
+  if (os === 'android' && bridge && typeof bridge.requestMicPermission === 'function') {
+    return new Promise((resolve) => {
+      (window as any).__stratumMicPermissionResolve = (g: boolean) => resolve(!!g);
+      bridge.requestMicPermission();
+    });
+  }
+  // iOS: AVAudioSession prompts on first stream; treat as granted.
+  return true;
+}
+
+/** Insert a placeholder memo referencing a saved clip (transcription fallback). */
+export async function dictationInsertClipRef(
+  pagePath: string,
+  clipRelPath: string,
+  durationSecs: number,
+): Promise<string[]> {
+  return invoke('dictation_insert_clip_ref', {
+    pagePath,
+    clipRelPath,
+    durationSecs,
+  });
 }
 
 // --- Text-to-speech ---
