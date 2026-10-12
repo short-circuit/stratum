@@ -102,7 +102,10 @@ nav:
     - guide/web-research.md
     - guide/git-sync.md
     - guide/export.md
+    - guide/importers.md
     - guide/plugins.md
+    - guide/localization.md
+    - guide/quick-capture.md
     - guide/mcp-server.md
   - CLI Reference:
     - cli/command-reference.md

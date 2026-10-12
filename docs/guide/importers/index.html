@@ -10,27 +10,31 @@
       
       
       
-        <link rel="canonical" href="https://short-circuit.github.io/stratum/docs/fc-root-cause-t_5622c342/">
+        <link rel="canonical" href="https://short-circuit.github.io/stratum/docs/guide/importers/">
       
       
+        <link rel="prev" href="../export/">
+      
+      
+        <link rel="next" href="../plugins/">
       
       
         
       
       
-      <link rel="icon" href="../assets/images/icon.svg">
+      <link rel="icon" href="../../assets/images/icon.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>STRATUM FLASHCARD FAILURE — ROOT-CAUSE & VERIFICATION REPORT - Stratum</title>
+        <title>Importers - Stratum</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -49,7 +53,7 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -74,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#stratum-flashcard-failure-root-cause-verification-report" class="md-skip">
+        <a href="#importers" class="md-skip">
           Skip to content
         </a>
       
@@ -88,9 +92,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="Stratum" class="md-header__button md-logo" aria-label="Stratum" data-md-component="logo">
+    <a href="../.." title="Stratum" class="md-header__button md-logo" aria-label="Stratum" data-md-component="logo">
       
-  <img src="../assets/images/icon.svg" alt="logo">
+  <img src="../../assets/images/icon.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -107,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              STRATUM FLASHCARD FAILURE — ROOT-CAUSE &amp; VERIFICATION REPORT
+              Importers
             
           </span>
         </div>
@@ -225,7 +229,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -246,7 +250,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../getting-started/installation/" class="md-tabs__link">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
           
   
   
@@ -264,11 +268,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../guide/vault-management/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../vault-management/" class="md-tabs__link">
           
   
   
@@ -290,7 +296,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../cli/command-reference/" class="md-tabs__link">
+        <a href="../../cli/command-reference/" class="md-tabs__link">
           
   
   
@@ -312,7 +318,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../advanced/file-format/" class="md-tabs__link">
+        <a href="../../advanced/file-format/" class="md-tabs__link">
           
   
   
@@ -332,7 +338,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../contributing/" class="md-tabs__link">
+      <a href="../../contributing/" class="md-tabs__link">
         
   
   
@@ -353,7 +359,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../development/frontend-guide/" class="md-tabs__link">
+        <a href="../../development/frontend-guide/" class="md-tabs__link">
           
   
   
@@ -389,9 +395,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Stratum" class="md-nav__button md-logo" aria-label="Stratum" data-md-component="logo">
+    <a href="../.." title="Stratum" class="md-nav__button md-logo" aria-label="Stratum" data-md-component="logo">
       
-  <img src="../assets/images/icon.svg" alt="logo">
+  <img src="../../assets/images/icon.svg" alt="logo">
 
     </a>
     Stratum
@@ -418,7 +424,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -507,7 +513,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/installation/" class="md-nav__link">
+      <a href="../../getting-started/installation/" class="md-nav__link">
         
   
   
@@ -535,7 +541,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/quickstart/" class="md-nav__link">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
         
   
   
@@ -563,7 +569,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/configuration/" class="md-nav__link">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
         
   
   
@@ -595,8 +601,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -642,25 +650,32 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -678,7 +693,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -696,7 +711,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/vault-management/" class="md-nav__link">
+      <a href="../vault-management/" class="md-nav__link">
         
   
   
@@ -724,7 +739,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/block-editor/" class="md-nav__link">
+      <a href="../block-editor/" class="md-nav__link">
         
   
   
@@ -752,7 +767,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/linking-and-backlinks/" class="md-nav__link">
+      <a href="../linking-and-backlinks/" class="md-nav__link">
         
   
   
@@ -780,7 +795,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/tags/" class="md-nav__link">
+      <a href="../tags/" class="md-nav__link">
         
   
   
@@ -808,7 +823,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/tasks/" class="md-nav__link">
+      <a href="../tasks/" class="md-nav__link">
         
   
   
@@ -836,7 +851,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/graph-view/" class="md-nav__link">
+      <a href="../graph-view/" class="md-nav__link">
         
   
   
@@ -864,7 +879,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/search/" class="md-nav__link">
+      <a href="../search/" class="md-nav__link">
         
   
   
@@ -892,7 +907,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/datalog-queries/" class="md-nav__link">
+      <a href="../datalog-queries/" class="md-nav__link">
         
   
   
@@ -920,7 +935,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/journal/" class="md-nav__link">
+      <a href="../journal/" class="md-nav__link">
         
   
   
@@ -948,7 +963,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/templates/" class="md-nav__link">
+      <a href="../templates/" class="md-nav__link">
         
   
   
@@ -976,7 +991,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/flashcards/" class="md-nav__link">
+      <a href="../flashcards/" class="md-nav__link">
         
   
   
@@ -1004,7 +1019,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/whiteboards/" class="md-nav__link">
+      <a href="../whiteboards/" class="md-nav__link">
         
   
   
@@ -1032,7 +1047,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/math-equations/" class="md-nav__link">
+      <a href="../math-equations/" class="md-nav__link">
         
   
   
@@ -1060,7 +1075,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/diagrams/" class="md-nav__link">
+      <a href="../diagrams/" class="md-nav__link">
         
   
   
@@ -1088,7 +1103,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/ai-features/" class="md-nav__link">
+      <a href="../ai-features/" class="md-nav__link">
         
   
   
@@ -1116,7 +1131,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/voice-dictation/" class="md-nav__link">
+      <a href="../voice-dictation/" class="md-nav__link">
         
   
   
@@ -1144,7 +1159,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/web-research/" class="md-nav__link">
+      <a href="../web-research/" class="md-nav__link">
         
   
   
@@ -1172,7 +1187,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/git-sync/" class="md-nav__link">
+      <a href="../git-sync/" class="md-nav__link">
         
   
   
@@ -1200,7 +1215,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/export/" class="md-nav__link">
+      <a href="../export/" class="md-nav__link">
         
   
   
@@ -1225,10 +1240,151 @@
                 
   
   
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importers
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting Started
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-files-land" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where Files Land
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#preview-dry-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preview &amp; Dry-run
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#duplicates-conflicts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Duplicates &amp; Conflicts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#undo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Undo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#per-format-conversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-Format Conversion
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
   
   
     <li class="md-nav__item">
-      <a href="../guide/plugins/" class="md-nav__link">
+      <a href="../plugins/" class="md-nav__link">
         
   
   
@@ -1256,7 +1412,63 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/mcp-server/" class="md-nav__link">
+      <a href="../localization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Localization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quick-capture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Capture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mcp-server/" class="md-nav__link">
         
   
   
@@ -1349,7 +1561,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cli/command-reference/" class="md-nav__link">
+      <a href="../../cli/command-reference/" class="md-nav__link">
         
   
   
@@ -1446,7 +1658,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../advanced/file-format/" class="md-nav__link">
+      <a href="../../advanced/file-format/" class="md-nav__link">
         
   
   
@@ -1474,7 +1686,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../advanced/plugins/" class="md-nav__link">
+      <a href="../../advanced/plugins/" class="md-nav__link">
         
   
   
@@ -1502,7 +1714,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../advanced/mcp-deployment/" class="md-nav__link">
+      <a href="../../advanced/mcp-deployment/" class="md-nav__link">
         
   
   
@@ -1537,7 +1749,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../contributing/" class="md-nav__link">
+      <a href="../../contributing/" class="md-nav__link">
         
   
   
@@ -1634,7 +1846,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/frontend-guide/" class="md-nav__link">
+      <a href="../../development/frontend-guide/" class="md-nav__link">
         
   
   
@@ -1662,7 +1874,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/rust-guide/" class="md-nav__link">
+      <a href="../../development/rust-guide/" class="md-nav__link">
         
   
   
@@ -1690,7 +1902,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/mobile-guide/" class="md-nav__link">
+      <a href="../../development/mobile-guide/" class="md-nav__link">
         
   
   
@@ -1718,7 +1930,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/branch-policy/" class="md-nav__link">
+      <a href="../../development/branch-policy/" class="md-nav__link">
         
   
   
@@ -1804,7 +2016,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/adr/0004-wasm-plugin-abi/" class="md-nav__link">
+      <a href="../../development/adr/0004-wasm-plugin-abi/" class="md-nav__link">
         
   
   
@@ -1898,7 +2110,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/adr/0005-mcp-server-contract/" class="md-nav__link">
+      <a href="../../development/adr/0005-mcp-server-contract/" class="md-nav__link">
         
   
   
@@ -1992,7 +2204,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/adr/0006-mcp-threat-model/" class="md-nav__link">
+      <a href="../../development/adr/0006-mcp-threat-model/" class="md-nav__link">
         
   
   
@@ -2055,10 +2267,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-executive-summary" class="md-nav__link">
+  <a href="#getting-started" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. EXECUTIVE SUMMARY
+        Getting Started
       
     </span>
   </a>
@@ -2066,10 +2278,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-affected-files-functions" class="md-nav__link">
+  <a href="#where-files-land" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. AFFECTED FILES / FUNCTIONS
+        Where Files Land
       
     </span>
   </a>
@@ -2077,10 +2289,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-how-the-wipe-happened-pre-fix-reconstruction" class="md-nav__link">
+  <a href="#preview-dry-run" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. HOW THE WIPE HAPPENED (pre-fix reconstruction)
+        Preview &amp; Dry-run
       
     </span>
   </a>
@@ -2088,10 +2300,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-the-fix-commit-1eb778d-merged-at-head" class="md-nav__link">
+  <a href="#duplicates-conflicts" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. THE FIX (commit 1eb778d, merged at HEAD)
+        Duplicates &amp; Conflicts
       
     </span>
   </a>
@@ -2099,10 +2311,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-verification-evidence-run-against-this-worktree-head-b73ac55" class="md-nav__link">
+  <a href="#undo" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5. VERIFICATION EVIDENCE (run against this worktree, HEAD b73ac55)
+        Undo
       
     </span>
   </a>
@@ -2110,21 +2322,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-residual-findings-gaps-not-blocking-separate-from-the-persistence-defect" class="md-nav__link">
+  <a href="#per-format-conversion" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6. RESIDUAL FINDINGS / GAPS (not blocking, separate from the persistence defect)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#7-conclusion" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        7. CONCLUSION
+        Per-Format Conversion
       
     </span>
   </a>
@@ -2151,158 +2352,140 @@
   
 
 
-<h1 id="stratum-flashcard-failure-root-cause-verification-report">STRATUM FLASHCARD FAILURE — ROOT-CAUSE &amp; VERIFICATION REPORT<a class="headerlink" href="#stratum-flashcard-failure-root-cause-verification-report" title="Permanent link">&para;</a></h1>
-<p>Task:        t_5622c342 — Reproduce and root-cause flashcard failure
-Assignee:    qa-engineer
-Branch:      wt/t_5622c342   (worktree .worktrees/t_5622c342)
-HEAD:        b73ac55 "docs(branch-policy): record protected branches and 2026-09-22 cleanup history (#193)"
-Date:        2026-09-23
-Status:      VERIFIED — defect fixed in HEAD; this report documents root cause,
-             reproduction, and the empirical evidence that persistence now works.</p>
-<hr />
-<h2 id="1-executive-summary">1. EXECUTIVE SUMMARY<a class="headerlink" href="#1-executive-summary" title="Permanent link">&para;</a></h2>
-<p>The reported flashcard failure ("flashcards never worked until now") had TWO
-root causes, both of which were fixed and verified before this task ran:</p>
-<p>ROOT CAUSE A — SM-2 schedule persisted to SQLite ONLY (wiped on restart).
-    review_card computed the SM-2 schedule (ease / interval / reps / next_review),
-    wrote it only into the SQLite BlockStore (store.insert_block), and NEVER
-    refreshed the owning .md file. On the next app launch,
-    src-tauri/src/lib.rs calls commands::page::sync_filesystem_to_db at boot,
-    which rebuilds SQLite from the on-disk .md files. Because the schedule was
-    DB-only, it was silently overwritten and lost — exactly the reported
-    "schedule wiped on restart" behavior.</p>
-<p>ROOT CAUSE B — flashcard front corrupted by property-value substitution.
-    generate_flashcards (and the old review_card) used the <code>question</code> property
-    VALUE ("true") as the card front instead of the block CONTENT. Combined with
-    the <code>.question:: true</code> parser bug (see below), the panel rendered
-    <code>Question: : true</code>. Fixed so the front is always block.content.</p>
-<p>The task's direct ask — "Confirm whether review_card writes only to SQLite and
-loses state on restart" — is answered: it did, and a fix
-(write_page_to_disk + reindex, commit 1eb778d) is already merged at this
-worktree's HEAD. Verification below shows the fix works end-to-end.</p>
-<hr />
-<h2 id="2-affected-files-functions">2. AFFECTED FILES / FUNCTIONS<a class="headerlink" href="#2-affected-files-functions" title="Permanent link">&para;</a></h2>
-<p>Backend (src-tauri/src/commands/flashcards.rs):
-  - review_card          : SM-2 scheduler. Was DB-only (root cause A).
-  - generate_flashcards  : card generator. Was property-value-as-front (B).
-  - generate_cards_from_page : separate Q:/A: parser (ephemeral cards, no SM-2
-                           persistence by design; see §6 residual).
-  - write_page_to_disk   : NEW in fix 1eb778d — serializes the whole page block
-                           set back to the .md, preserving frontmatter.</p>
-<p>Parser (crates/pkm-markdown/src/block_parser.rs):
-  - parse_property       : normalizes the <code>.key:: value</code> form (FC-01/ED-04).
-  - serialize_blocks     : writes block.properties (incl. schedule) to .md.
-  - assemble_blocks_markdown : preserves existing frontmatter on rewrite.</p>
-<p>Boot path (src-tauri/src/commands/page.rs):
-  - sync_filesystem_to_db : SQLite-from-disk rebuild at startup; only re-syncs
-                           pages with zero blocks in DB (get_blocks_by_page empty)
-                           or missing from DB.</p>
-<p>Frontend:
-  - src/components/FlashcardsPanel/FlashcardsPanel.shared.tsx : review flow
-    (RATINGS 0/2/3/5 -&gt; reviewCard -&gt; local advance; reloads via generateFlashcards).
-  - src/lib/commands/features.ts : generateFlashcards / reviewCard wrappers.</p>
-<p>Tests (committed with the fix):
-  - src-tauri/tests/feature_commands.rs:
-      command_flashcard_generate_and_review_uses_real_content
-      command_review_card_persists_schedule_to_disk
-  - crates/pkm-tests/tests/journal_templates_flashcards_kanban.rs:
-      flashcard_block_properties_roundtrip_through_serializer
-  - crates/pkm-markdown/src/block_parser.rs unit tests:
-      test_parse_property_double_colon_flashcard (documented in docs/acceptance-defects.md)</p>
-<hr />
-<h2 id="3-how-the-wipe-happened-pre-fix-reconstruction">3. HOW THE WIPE HAPPENED (pre-fix reconstruction)<a class="headerlink" href="#3-how-the-wipe-happened-pre-fix-reconstruction" title="Permanent link">&para;</a></h2>
-<p>Baseline for comparison: f28120d (feature-branch origin of the flashcard code).
-  store.insert_block(&amp;block, "")        // DB only, page computed as "" 
-  Ok(FlashcardDto { page_path: String::new(), ... })</p>
-<p>Then, when the bug report was made, review_card was at a state where it
-persisted ONLY via store.insert_block(&amp;block, &amp;page_path) — no disk write.</p>
-<p>App boot (src-tauri/src/lib.rs:42):
-  sync_filesystem_to_db(&amp;vault_path, &amp;db_path)
-    -&gt; for each .md file on disk:
-         if DB page missing OR DB page has zero blocks:
-           sync_page_from_disk(...)   // rebuild blocks from the .md
-  Thus any schedule the DB held for a page that was re-synced was overwritten
-  from the .md, which had no schedule -&gt; schedule lost.</p>
-<p>Reproduction (pre-fix):
-  1. Create a note with a flashcard block:
-       - What is a monad?
-         .question: true
-         .answer: A design pattern.
-  2. Boot the app. Flashcards panel shows the card (front was "true" / ": true").
-  3. Rate "Good" (q=3). review_card writes ease/interval/reps/next_review ONLY
-     to SQLite. Review queue/progression works in-session.
-  4. Restart the app. Boot sync rebuilds the page's blocks from the .md;
-     the schedule is gone. Queue returns to "new card" state (interval 0d,
-     ease 2.5, no next_review).</p>
-<hr />
-<h2 id="4-the-fix-commit-1eb778d-merged-at-head">4. THE FIX (commit 1eb778d, merged at HEAD)<a class="headerlink" href="#4-the-fix-commit-1eb778d-merged-at-head" title="Permanent link">&para;</a></h2>
-<p>review_card now, after the DB update:
-  - write_page_to_disk(&amp;state, &amp;store, &amp;page_path)   // serializes schedule to .md
-  - state.record_change(&amp;page_path)                  // auto-commit engine hook
-  - block_index.index_block(...) .flush()            // search index in sync
-  - ensure_index().refresh_page(...)                 // IndexEngine in sync
-This closes the wipe: the schedule now exists in the .md BEFORE any boot-time
-sync_filesystem_to_db rebuild can re-import it.</p>
-<p>FC-01 residual fix (commit ad52c86, also on HEAD):
-  front: block.content.clone() in BOTH generate_flashcards and review_card,
-  plus the parser .question:: true normalization (parse_property).</p>
-<hr />
-<h2 id="5-verification-evidence-run-against-this-worktree-head-b73ac55">5. VERIFICATION EVIDENCE (run against this worktree, HEAD b73ac55)<a class="headerlink" href="#5-verification-evidence-run-against-this-worktree-head-b73ac55" title="Permanent link">&para;</a></h2>
-<p>[1] cargo test -p stratum-tauri --test feature_commands
-    -&gt; 12 passed; 0 failed
-       incl. command_review_card_persists_schedule_to_disk  ......... ok
-       incl. command_flashcard_generate_and_review_uses_real_content . ok
-    (real Tauri IPC dispatcher, real temp vault on disk, no mocks.)</p>
-<p>[2] cargo test -p pkm-tests --test journal_templates_flashcards_kanban
-    -&gt; 8 passed; 0 failed
-       incl. flashcard_block_properties_roundtrip_through_serializer . ok</p>
-<p>[3] Serializer round-trip confirmed in code (crates/pkm-markdown/src/block_parser.rs):
-       serialize_blocks writes .properties verbatim (ease/interval/reps/next_review)
-       parse_document restores them; frontmatter preserved by assemble_blocks_markdown.
-    The persistence test command_review_card_persists_schedule_to_disk asserts the
-    .md contains ".interval: 1", ".reps: 1", "title: fc-note" preserved, and that a
-    fresh parse of the written file recovers interval="1" — i.e. restart converges
-    to the persisted schedule, not a loss.</p>
-<p>[4] docs/guide/flashcards.md matches actual behaviour (§Card Properties: block
-    CONTENT is the question; .question:: true is a boolean marker; .answer:: value
-    is the answer). SM-2 ease/interval semantics in docs match the implementation.</p>
-<p>No source files were modified for this verification; the only working-tree delta
-is the pre-existing uncommitted Cargo.lock (test dev-deps wat + wiremock, required
-by the committed test targets; added by 1eb778d).</p>
-<hr />
-<h2 id="6-residual-findings-gaps-not-blocking-separate-from-the-persistence-defect">6. RESIDUAL FINDINGS / GAPS (not blocking, separate from the persistence defect)<a class="headerlink" href="#6-residual-findings-gaps-not-blocking-separate-from-the-persistence-defect" title="Permanent link">&para;</a></h2>
+<h1 id="importers">Importers<a class="headerlink" href="#importers" title="Permanent link">&para;</a></h1>
+<p>Stratum can import notes from other PKM tools in one click — from an
+<strong>Obsidian</strong>, <strong>Logseq</strong>, or a generic <strong>Markdown</strong> folder. The import is
+designed to be safe and reversible: it only ever <strong>adds</strong> files, never modifies
+or deletes anything, and never touches your source vault.</p>
+<!-- SCREENSHOT: [import-dialog] The one-click import dialog -->
+
+<h2 id="getting-started">Getting Started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h2>
 <ol>
-<li>
-<p>generate_cards_from_page (src-tauri/src/commands/flashcards.rs:121) is
-   REGISTERED in lib.rs:345 but has NO frontend wrapper — the FlashcardsPanel
-   only uses generate_flashcards. The Q:/A: parser path is backend-dead code
-   whose generated cards use Uuid::new_v4() ids with no backing block, so they
-   cannot be SM-2 persisted. If product wants the "Q:/A: in a single note"
-   workflow, it needs a frontend binding and a real (block-backed) id.</p>
-</li>
-<li>
-<p>review_card does not verify the block belongs to page_path (get_block by id
-   only; the page_path argument is used for the disk rewrite and insert). A
-   stale/mismatched page_path could rewrite the wrong file. Low impact given
-   the UI always passes the block's own page_path.</p>
-</li>
-<li>
-<p>The ease floor is 1.3 and q&lt;=2 resets interval to 1 day — matches SM-2 as
-   documented; "Again" (q=2 in the RATINGS, i.e. &lt;3) resets reps=0 and interval
-   to 1 day, so failed-card progression is preserved on disk identically to the
-   success path (covered by the same write_page_to_disk path).</p>
-</li>
+<li>Open the <strong>Import notes</strong> button from the Pages home screen.</li>
+<li><strong>Browse…</strong> to select the folder you want to import from.</li>
+<li>Optionally choose the <strong>Format</strong>. The default is <strong>Auto-detect</strong>, which
+   inspects the folder's structure:</li>
+<li>A <code>.obsidian/</code> directory → <strong>Obsidian</strong></li>
+<li>Top-level <code>pages</code> <strong>and</strong> <code>journals</code> directories → <strong>Logseq</strong></li>
+<li>Anything else → <strong>Generic Markdown</strong></li>
+<li>Click <strong>Preview</strong> to see exactly what would be imported.</li>
+<li>Click <strong>Import</strong> to copy the notes into your vault.</li>
 </ol>
-<hr />
-<h2 id="7-conclusion">7. CONCLUSION<a class="headerlink" href="#7-conclusion" title="Permanent link">&para;</a></h2>
-<p>The flashcard failure is reproduced and root-caused. The schedule-persistence
-defect (SRS state in SQLite only, wiped by the boot-time disk sync) is FIXED at
-HEAD via write_page_to_disk + index refresh (1eb778d), and the front-corruption
-defect is fixed via block.content fronting + parser normalization (ad52c86 /
-parse_property). Persistence is verified by passing command-layer and crate
-regression suites (12 + 8 tests) and by the serializer round-trip guarantees.
-Acceptance for t_5622c342 (written root-cause summary + reproduction steps +
-affected code paths) is met by this document.</p>
+<h2 id="where-files-land">Where Files Land<a class="headerlink" href="#where-files-land" title="Permanent link">&para;</a></h2>
+<p>All imported content is placed under a single subdirectory in your vault:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>imported/&lt;source-name&gt;/
+</code></pre></div>
+<p>For example, importing an Obsidian vault named <code>my-vault</code> creates files under
+<code>imported/my-vault/</code>. Attachments are copied to <code>imported/&lt;source-name&gt;/assets/</code>.
+You can override the destination subdirectory in the import options.</p>
+<h2 id="preview-dry-run">Preview &amp; Dry-run<a class="headerlink" href="#preview-dry-run" title="Permanent link">&para;</a></h2>
+<p>The <strong>Preview</strong> step never writes anything. It shows:</p>
+<ul>
+<li>The number of pages and assets that would be imported,</li>
+<li>Any <strong>duplicates</strong> — pages that already exist in your vault with identical
+  content (these are skipped),</li>
+<li>Any <strong>conflicts</strong> — destination files that already exist with <strong>different</strong>
+  content (these are skipped and never overwritten).</li>
+</ul>
+<h2 id="duplicates-conflicts">Duplicates &amp; Conflicts<a class="headerlink" href="#duplicates-conflicts" title="Permanent link">&para;</a></h2>
+<p>Import is <strong>idempotent</strong>. Re-importing the same source folder creates no
+duplicate notes:</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Meaning</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>New</td>
+<td>The destination file does not exist.</td>
+<td>Imported</td>
+</tr>
+<tr>
+<td>Duplicate</td>
+<td>The destination already has byte-identical content.</td>
+<td>Skipped</td>
+</tr>
+<tr>
+<td>Conflict</td>
+<td>The destination exists with <strong>different</strong> content.</td>
+<td>Skipped, listed</td>
+</tr>
+</tbody>
+</table>
+<p>Imported notes are never merged or edited — only new files are written, so
+conflicts are never destructive.</p>
+<h2 id="undo">Undo<a class="headerlink" href="#undo" title="Permanent link">&para;</a></h2>
+<p>Because import only ever adds new files under <code>imported/&lt;name&gt;/</code>, nothing is
+modified or deleted. To undo an import, simply delete that folder. Your source
+folder is never modified by the import.</p>
+<h2 id="per-format-conversion">Per-Format Conversion<a class="headerlink" href="#per-format-conversion" title="Permanent link">&para;</a></h2>
+<p>Each format is converted to Stratum's block-based Markdown format on import:</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Obsidian</th>
+<th>Logseq</th>
+<th>Generic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Frontmatter</td>
+<td>Preserved (title, tags, aliases, extras)</td>
+<td>Preserved; inline <code>#tag</code>s and <code>tags::</code>/<code>file::</code> values folded into frontmatter tags</td>
+<td>Copied verbatim</td>
+</tr>
+<tr>
+<td>Wiki-links <code>[[…]]</code></td>
+<td><code>[[path/to/Note]]</code> resolved to the <code>Note</code> slug</td>
+<td>Kept as-is</td>
+<td>Kept as-is</td>
+</tr>
+<tr>
+<td>Embeds <code>![[…]]</code></td>
+<td>Rewritten to <code>imported/&lt;name&gt;/assets/…</code></td>
+<td>Rewritten to the assets path</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Block refs <code>((…))</code></td>
+<td>Kept as-is</td>
+<td>Kept as-is</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Callouts <code>&gt; [!…]</code></td>
+<td>Converted to a block with a <code>callout</code> property</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Task markers</td>
+<td><code>- [ ]</code> → TODO, <code>- [x]</code> → DONE</td>
+<td><code>- TODO</code>/<code>- NOW</code>/… → matching marker</td>
+<td>Kept as-is</td>
+</tr>
+<tr>
+<td>Logseq properties</td>
+<td>—</td>
+<td><code>key:: value</code> → <code>.key: value</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>Hierarchy</td>
+<td>Preserved via indentation</td>
+<td>Preserved via indentation</td>
+<td>Copied verbatim</td>
+</tr>
+</tbody>
+</table>
+<p>The Generic importer copies <code>.md</code> files <strong>byte-for-byte</strong> with no
+transformation, which is the safe fallback for any folder.</p>
 
 
 
@@ -2375,10 +2558,10 @@ affected code paths) is met by this document.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.tabs.link", "content.admonition"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.tabs.link", "content.admonition"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

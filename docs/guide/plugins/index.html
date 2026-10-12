@@ -13,10 +13,10 @@
         <link rel="canonical" href="https://short-circuit.github.io/stratum/docs/guide/plugins/">
       
       
-        <link rel="prev" href="../export/">
+        <link rel="prev" href="../importers/">
       
       
-        <link rel="next" href="../mcp-server/">
+        <link rel="next" href="../localization/">
       
       
         
@@ -650,6 +650,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -1234,6 +1240,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../importers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1576,6 +1610,62 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../localization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Localization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quick-capture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Capture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -2689,6 +2779,13 @@ through the host functions they import (<code>pkm.note_read</code>, <code>pkm.no
 <code>pkm.http_request</code>, <code>pkm.log</code>). The full contract — manifest schema, host ABI,
 error codes, and the Tauri command surface — is the normative
 <a href="../../advanced/plugins/">Plugins API Specification</a>.</p>
+<p>Need a plugin? The community catalog lives in the
+<a href="https://github.com/short-circuit/stratum-plugins">stratum-plugins repository</a> —
+a public repo hosting the plugin submission template, the
+<code>plugins/index.json</code> catalog that powers the in-app Plugin Directory, and the
+<code>hello-world</code> reference example. To publish your own plugin, follow
+<a href="https://github.com/short-circuit/stratum-plugins/blob/master/PLUGIN_TEMPLATE.md">PLUGIN_TEMPLATE.md</a>
+and open a pull request.</p>
 <p>A plugin is a single file, <code>&lt;vault&gt;/.pkm/plugins/&lt;id&gt;/plugin.wasm</code>, with an
 embedded JSON manifest in the custom section named <code>stratum:manifest</code>. A legacy
 sidecar manifest (<code>plugin.wasm.manifest.json</code> beside the <code>.wasm</code>) is still

@@ -648,6 +648,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -1234,6 +1240,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guide/importers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guide/plugins/" class="md-nav__link">
         
   
@@ -1242,6 +1276,62 @@
     
   
     Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/localization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Localization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/quick-capture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Capture
   
 
     
@@ -2060,6 +2150,28 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#internationalization-i18n" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internationalization (i18n)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#accessibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Accessibility
+      
+    </span>
+  </a>
   
 </li>
       
@@ -3136,6 +3248,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#internationalization-i18n" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internationalization (i18n)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#accessibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Accessibility
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#component-sizing-rules" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4138,6 +4272,61 @@ not expose a stable scroll element.</p>
 <a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a><span class="w">  </span><span class="o">&lt;</span><span class="err">/ListItemButton&gt;;</span>
 <a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a><span class="p">}</span>
 </code></pre></div>
+<hr />
+<h2 id="internationalization-i18n">Internationalization (i18n)<a class="headerlink" href="#internationalization-i18n" title="Permanent link">&para;</a></h2>
+<p>All user-facing strings MUST go through <code>t()</code> (<code>useTranslation</code> from
+<code>react-i18next</code>) — never hardcode English copy. The i18n layer is initialized in
+<code>src/main.tsx</code> via <code>initI18n()</code> (best-effort — a failure never blocks boot) and
+re-targeted at runtime with <code>setLocale()</code> when the user changes the language in
+Settings → Appearance. The active locale is persisted through the normal
+settings pipeline (<code>getSettings</code>/<code>saveSettings</code> → <code>config.locale</code>).</p>
+<p>Resources live in <code>src/i18n/locales/&lt;lang&gt;.json</code>:
+<code>en</code> is the source of truth; <code>de</code>/<code>it</code>/<code>fr</code>/<code>es</code> are fully translated;
+<code>zh</code>/<code>ja</code>/<code>el</code> are placeholders mirroring <code>en</code>.</p>
+<p><strong>Rules:</strong></p>
+<ul>
+<li>Wrap every user-facing literal: <code>t('common.save')</code>, never <code>"Save"</code>.</li>
+<li>Key names use snake_case under a component/feature section (e.g.
+  <code>graph.refresh_graph</code>), mirroring the section structure of <code>en.json</code>.</li>
+<li>Dynamic values use interpolation: <code>t('graph.showing', { count, total, cap })</code>.</li>
+<li>Never add a key to one locale file only — add it to <strong>all 8</strong> files in the
+  same commit (or the <code>localeParity</code> gate fails).</li>
+<li>Use the <code>Intl</code> helpers from <code>src/i18n</code> (<code>formatDate</code>, <code>formatNumber</code>,
+  <code>localizedMonthNames</code>, <code>localizedDayHeaders</code>) instead of ad-hoc formatting so
+  dates/numbers follow the active locale.</li>
+</ul>
+<p>Two automated gates protect this in the test suite (<code>npm run test</code>):</p>
+<ol>
+<li><code>src/i18n/i18nGate.test.ts</code> — static AST scan over <code>src/</code> that FAILS if a
+   user-facing string is hardcoded as JSX text or a <code>label</code>/<code>placeholder</code>/
+   <code>title</code>/<code>aria-label</code> literal outside <code>t()</code>. Allowlist covers only non-UI
+   literals (CSS, imports, enum tokens, units). See
+   <code>docs/guide/localization.md</code> for details.</li>
+<li><code>src/i18n/localeParity.test.ts</code> — verifies identical flattened key sets
+   across all 8 locales, no extra keys, placeholders mirror <code>en</code>, and full
+   locales contain no untranslated English beyond the reviewed allowlist.</li>
+</ol>
+<hr />
+<h2 id="accessibility">Accessibility<a class="headerlink" href="#accessibility" title="Permanent link">&para;</a></h2>
+<p>Accessibility was swept in tandem with the i18n work (same component-touch
+scope). Every component touched by the string sweep must remain reachable and
+labeled:</p>
+<ul>
+<li><strong>aria-labels</strong>: interactive elements without visible text (icon-only
+  buttons, <code>IconButton</code>) MUST have an <code>aria-label</code> — always through <code>t()</code>.</li>
+<li><strong>Focus management</strong>: modals/dialogs move focus on open and restore it on
+  close; <code>ConfirmDialog</code>, <code>PassphraseModal</code>, <code>ConflictModal</code>, and the
+  <code>ResponsiveDialog</code> variants follow this pattern.</li>
+<li><strong>Keyboard reachability</strong>: all actions available via mouse must also be
+  reachable via keyboard (MUI <code>ListItemButton</code>/<code>IconButton</code>/<code>ToggleButton</code>
+  provide this; custom clickable divs must add <code>role="button"</code> +
+  <code>tabIndex</code> + key handling).</li>
+<li><strong>Contrast</strong>: text meets WCAG AA against its background; <code>text.secondary</code>
+  and disabled states were checked in the theme sweep.</li>
+</ul>
+<p>When adding a new component, include the same three checks (label, focus,
+keyboard) in the same PR — the i18n gate flags missing <code>aria-label</code> literals as
+hardcoded strings, so an unlabeled icon button will fail <code>npm run test</code>.</p>
 <hr />
 <h2 id="component-sizing-rules">Component Sizing Rules<a class="headerlink" href="#component-sizing-rules" title="Permanent link">&para;</a></h2>
 <p>These rules are <strong>enforced by convention</strong> — no file or component should grow past these limits:</p>
