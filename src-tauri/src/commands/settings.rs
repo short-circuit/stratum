@@ -14,6 +14,27 @@ pub struct SettingsDto {
     pub sync: SyncSettingsDto,
     pub stt: SttSettingsDto,
     pub tts: TtsSettingsDto,
+    pub voice: VoiceSettingsDto,
+}
+
+/// One-tap voice-capture (E9.F4) feature settings, mirroring
+/// `pkm_core::VoiceCaptureConfig`.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct VoiceSettingsDto {
+    /// Whether the one-tap voice-capture button is shown in the Journal.
+    pub enabled: bool,
+    /// Insertion target, e.g. "journal:today".
+    pub target: String,
+}
+
+impl Default for VoiceSettingsDto {
+    fn default() -> Self {
+        // Keep in sync with `VoiceCaptureConfig::default()` in pkm-core.
+        Self {
+            enabled: true,
+            target: "journal:today".to_string(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -264,6 +285,10 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             speed: config.tts.speed,
             use_llm_gateway_and_auth: config.tts.use_llm_gateway_and_auth,
         },
+        voice: VoiceSettingsDto {
+            enabled: config.voice.enabled,
+            target: config.voice.target.clone(),
+        },
     })
 }
 
@@ -422,6 +447,10 @@ pub async fn save_settings(
             format: settings.tts.format,
             speed: settings.tts.speed,
             use_llm_gateway_and_auth: settings.tts.use_llm_gateway_and_auth,
+        },
+        voice: pkm_core::VoiceCaptureConfig {
+            enabled: settings.voice.enabled,
+            target: settings.voice.target,
         },
         ..pkm_core::Config::default()
     };

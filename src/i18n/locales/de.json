@@ -688,5 +688,21 @@
     "unsaved": "Nicht gespeichert",
     "whiteboard_name": "Whiteboard-Name",
     "whiteboards": "Whiteboards"
+  },
+  "voice_capture": {
+    "cancel": "Abbrechen",
+    "configure_stt": "STT konfigurieren",
+    "configure_stt_prompt": "Die Transkription ist nicht eingerichtet. Die Aufnahme wurde als Platzhalter gespeichert.",
+    "denied_banner": "Die Mikrofonberechtigung ist verweigert. Aktiviere sie in den Einstellungen.",
+    "enable": "Sprachaufnahme aktivieren",
+    "error_fallback_inserted": "Transkription fehlgeschlagen – die Aufnahme wurde als Memo-Platzhalter gespeichert.",
+    "error_retry": "Etwas ist schiefgelaufen.",
+    "memo_inserted": "Sprachnotiz eingefügt",
+    "record": "Sprachnotiz aufnehmen",
+    "recording": "Aufnahme…",
+    "retry_transcription": "Transkription erneut versuchen",
+    "settings_target_today": "Aufnahmen werden in das heutige Journal eingefügt.",
+    "settings_toggle_label": "Sprachaufnahme-Button",
+    "stop_save": "Stoppen & speichern"
   }
 }

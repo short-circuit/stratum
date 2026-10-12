@@ -60,6 +60,9 @@ export function useJournalPanel() {
   const [calendarAnchorEl, setCalendarAnchorEl] = useState<HTMLElement | null>(null);
   const [journalLoading, setJournalLoading] = useState(false);
   const [journalError, setJournalError] = useState<string | null>(null);
+  // Bumped after a voice memo is inserted so the today-editor remounts and
+  // shows the freshly added memo (the editor loads blocks only on mount/key).
+  const [editorNonce, setEditorNonce] = useState(0);
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -139,6 +142,8 @@ export function useJournalPanel() {
         setJournalLoading(false);
       });
   }, [loadPages]);
+
+  const bumpEditorNonce = useCallback(() => setEditorNonce((n) => n + 1), []);
 
   const repairJournal = useCallback(() => {
     setJournalError(null);
@@ -302,6 +307,9 @@ export function useJournalPanel() {
     journalError,
     retryJournal,
     repairJournal,
+    editorNonce,
+    bumpEditorNonce,
+    loadPages,
     targetDate,
     allJournalDates,
     pastDates,

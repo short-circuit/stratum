@@ -14,6 +14,7 @@ import ToggleButton from '@mui/material/ToggleButton';
 import Divider from '@mui/material/Divider';
 import { useTranslation } from 'react-i18next';
 import { SttTestButton, TtsTestButton } from './AiTestButtons';
+import VoiceCaptureSection from './VoiceCaptureSection';
 
 const PROVIDERS = [
   { value: 'ollama', labelKey: 'settings.ollama_local' },
@@ -67,6 +68,8 @@ interface AITabProps {
     use_llm_gateway_and_auth: boolean;
   };
   onTtsChange?: (patch: Partial<NonNullable<AITabProps['tts']>>) => void;
+  voice?: { enabled: boolean; target: string };
+  onVoiceChange?: (patch: { enabled?: boolean; target?: string }) => void;
 }
 
 function envVarForProvider(provider: string): string {
@@ -95,6 +98,8 @@ export default function AITab({
   onSttChange,
   tts,
   onTtsChange,
+  voice,
+  onVoiceChange,
 }: AITabProps) {
   const { t } = useTranslation();
   const modelCaps = (name: string) =>
@@ -414,6 +419,8 @@ export default function AITab({
           </Box>
         </Box>
       )}
+
+      <VoiceCaptureSection voice={voice} onVoiceChange={onVoiceChange} />
     </Box>
   );
 }

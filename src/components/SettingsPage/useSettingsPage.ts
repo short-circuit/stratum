@@ -140,6 +140,7 @@ export function useSettingsPage() {
     speed: 1.0,
     use_llm_gateway_and_auth: false,
   };
+  const voice = settings?.voice || { enabled: true, target: 'journal:today' };
 
   const updateAi = (patch: any) => setSettings({ ...settings, ai: { ...ai, ...patch } });
   const updateVault = (patch: any) => setSettings({ ...settings, ...patch });
@@ -162,6 +163,8 @@ export function useSettingsPage() {
     setSettings({ ...settings, stt: { ...(settings.stt || {}), ...patch } });
   const updateTts = (patch: any) =>
     setSettings({ ...settings, tts: { ...(settings.tts || {}), ...patch } });
+  const updateVoice = (patch: any) =>
+    setSettings({ ...settings, voice: { ...(settings.voice || {}), ...patch } });
   const locale = settings?.locale ?? 'en';
   const onLocaleChange = (loc: string) => {
     setSettings({ ...settings, locale: loc });
@@ -385,6 +388,7 @@ export function useSettingsPage() {
     syncSettings,
     stt: settings?.stt,
     tts,
+    voice,
     locale,
     onLocaleChange,
 
@@ -399,6 +403,7 @@ export function useSettingsPage() {
     updateSync,
     updateStt,
     updateTts,
+    updateVoice,
     handleSave,
     handleFetchModels,
     handleReindex,

@@ -685,6 +685,23 @@ jobs:
             npx tauri ios init
           fi
 
+      - name: Insert NSMicrophoneUsageDescription into iOS Info.plist
+        shell: bash
+        run: |
+          CONFIG=$(ls src-tauri/gen/apple/ios/App/Info.plist 2>/dev/null || true)
+          if [ -z "$CONFIG" ]; then
+            CONFIG=$(find src-tauri/gen/apple -name Info.plist -path '*/App/*' 2>/dev/null | head -1)
+          fi
+          if [ -z "$CONFIG" ]; then
+            echo "::warning::No generated iOS Info.plist found; skipping microphone usage description patch"
+          else
+            # NSMicrophoneUsageDescription is required: without it the app would
+            # crash on the first audio capture during voice dictation.
+            /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'Stratum uses the microphone to record voice memos into your journal.'" "$CONFIG" \
+              || /usr/libexec/PlistBuddy -c "Set :NSMicrophoneUsageDescription 'Stratum uses the microphone to record voice memos into your journal.'" "$CONFIG"
+            echo "patched $CONFIG"
+          fi
+
       - name: Patch Xcode project (link flags for old SDKs)
         shell: bash
         run: |

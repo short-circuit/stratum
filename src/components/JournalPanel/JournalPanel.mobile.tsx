@@ -9,6 +9,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import OutlinerEditor from '../OutlinerEditor';
 import JournalCalendar from '../JournalCalendar';
+import VoiceCaptureButton from '../VoiceCaptureButton';
 import { useJournalPanel, formatDisplayDate } from './JournalPanel.shared';
 import { useTranslation } from 'react-i18next';
 
@@ -33,6 +34,9 @@ export default function JournalPanelMobile() {
     journalError,
     retryJournal,
     repairJournal,
+    editorNonce,
+    bumpEditorNonce,
+    loadPages,
     targetDate,
     allJournalDates,
     pastDates,
@@ -93,7 +97,7 @@ export default function JournalPanelMobile() {
         // rather than stretching to the viewport height of the scroll
         // container (matches the past-entry sizing).
         <Box>
-          <OutlinerEditor pagePath={todayPagePath} minHeight="0" />
+          <OutlinerEditor key={editorNonce} pagePath={todayPagePath} minHeight="0" />
         </Box>
       )}
 
@@ -126,6 +130,14 @@ export default function JournalPanelMobile() {
         onDateSelect={handleDateSelect}
         journalDates={allJournalDates}
         anchorEl={null}
+      />
+
+      <VoiceCaptureButton
+        targetPath={todayPagePath}
+        onInserted={() => {
+          bumpEditorNonce();
+          loadPages();
+        }}
       />
     </Box>
   );
