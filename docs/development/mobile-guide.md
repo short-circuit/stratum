@@ -507,6 +507,33 @@ class MainActivity : TauriActivity() {
 
 The safe area injection reads the system-bar + display-cutout insets and sets `--safe-area-inset-top` / `--safe-area-inset-bottom` (in CSS pixels) on the webview document so the frontend can account for status bars, notches, and navigation bars. See [Safe Area Handling](#safe-area-handling) for the full implementation and consumption.
 
+### Microphone Permission (Android)
+
+The E9.F4 one-tap voice-capture feature needs the `RECORD_AUDIO` permission on
+Android. Tauri v2 does not forward `onRequestPermissionsResult` to Rust, so the
+permission dialog is driven entirely from the patched `MainActivity.kt`:
+
+1. `src-tauri/android-patches/app/src/main/AndroidManifest.xml` declares
+   `<uses-permission android:name="android.permission.RECORD_AUDIO" />`.
+2. `MainActivity.kt` registers an `ActivityResultLauncher<String>` with
+   `ActivityResultContracts.RequestPermission()` and, once the WebView exists
+   (same 100/500/1500/5000 ms retry loop as the safe-area injection), injects a
+   `StratumMic` JS bridge via `addJavascriptInterface` exposing
+   `isMicGranted()` and `requestMicPermission()`.
+3. The frontend (`src/components/VoiceCaptureButton.shared.tsx`) calls
+   `window.StratumMic` on Android. `requestMicPermission()` launches the system
+   dialog; the Kotlin result handler writes the outcome back by calling
+   `window.__stratumMicPermissionResolve(granted)`, resolving the awaiting
+   promise. On desktop/iOS the permission is treated as granted.
+
+### iOS Microphone Usage Description
+
+iOS requires `NSMicrophoneUsageDescription` in `Info.plist`, which lives in the
+generated `src-tauri/gen/apple` project (created by `tauri ios init`, not
+checked in). The CI workflow inserts the key after init via `PlistBuddy`. See
+`.github/workflows/ci.yml` — the `ios build` job runs the patch step after the
+init step. Without this key the app would crash on the first audio stream.
+
 ## Known Issues
 
 ### Android

@@ -171,6 +171,48 @@ fn test_old_config_without_stt_section_loads() {
 }
 
 #[test]
+fn test_voice_capture_config_defaults() {
+    let cfg = Config::default();
+    assert!(cfg.voice.enabled);
+    assert_eq!(cfg.voice.target, "journal:today");
+}
+
+#[test]
+fn test_voice_capture_config_roundtrip() {
+    let dir = TempDir::new().unwrap();
+    let config_path = dir.path().join("config.toml");
+
+    let cfg = Config {
+        voice: VoiceCaptureConfig {
+            enabled: false,
+            target: "journal:today".into(),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    cfg.save(&config_path).unwrap();
+
+    let loaded = Config::load(&config_path).unwrap();
+    assert!(!loaded.voice.enabled);
+    assert_eq!(loaded.voice.target, "journal:today");
+}
+
+#[test]
+fn test_old_config_without_voice_section_loads() {
+    let dir = TempDir::new().unwrap();
+    let config_path = dir.path().join("config.toml");
+    // Config TOML predating the [voice] section must still parse.
+    std::fs::write(
+        &config_path,
+        "[theme]\ndark_mode = false\n\n[ai]\nmodel = \"llama3.2\"\n",
+    )
+    .unwrap();
+    let loaded = Config::load(&config_path).unwrap();
+    assert!(loaded.voice.enabled);
+    assert_eq!(loaded.voice.target, "journal:today");
+}
+
+#[test]
 fn test_vault_layout_recordings_dir_default() {
     assert_eq!(VaultLayout::default().recordings_dir, "assets/recordings");
 }

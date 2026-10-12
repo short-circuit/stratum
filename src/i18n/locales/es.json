@@ -759,5 +759,21 @@
     "installing": "Instalando...",
     "error": "Algo salió mal: {{message}}",
     "step": "Paso {{current}} de {{total}}"
+  },
+  "voice_capture": {
+    "cancel": "Cancelar",
+    "configure_stt": "Configurar STT",
+    "configure_stt_prompt": "La transcripción no está configurada. La grabación se guardó como marcador de posición.",
+    "denied_banner": "El permiso del micrófono está denegado. Actívalo en Configuración.",
+    "enable": "Activar captura de voz",
+    "error_fallback_inserted": "No se pudo transcribir: la grabación se guardó como marcador en el memo.",
+    "error_retry": "Algo salió mal.",
+    "memo_inserted": "Memo de voz insertado",
+    "record": "Grabar memo de voz",
+    "recording": "Grabando…",
+    "retry_transcription": "Reintentar transcripción",
+    "settings_target_today": "Las capturas se insertan en el diario de hoy.",
+    "settings_toggle_label": "Botón de captura de voz",
+    "stop_save": "Detener y guardar"
   }
 }

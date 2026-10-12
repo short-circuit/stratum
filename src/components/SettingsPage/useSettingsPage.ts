@@ -148,6 +148,7 @@ export function useSettingsPage() {
     capture_target: 'journal',
     inbox_path: 'Inbox.md',
   };
+  const voice = settings?.voice || { enabled: true, target: 'journal:today' };
 
   const updateAi = (patch: any) => setSettings({ ...settings, ai: { ...ai, ...patch } });
   const updateVault = (patch: any) => setSettings({ ...settings, ...patch });
@@ -172,6 +173,8 @@ export function useSettingsPage() {
     setSettings({ ...settings, tts: { ...(settings.tts || {}), ...patch } });
   const updateTray = (patch: any) =>
     setSettings({ ...settings, tray: { ...(settings.tray || {}), ...patch } });
+  const updateVoice = (patch: any) =>
+    setSettings({ ...settings, voice: { ...(settings.voice || {}), ...patch } });
   const locale = settings?.locale ?? 'en';
   const onLocaleChange = (loc: string) => {
     setSettings({ ...settings, locale: loc });
@@ -423,6 +426,7 @@ export function useSettingsPage() {
     stt: settings?.stt,
     tts,
     tray,
+    voice,
     locale,
     onLocaleChange,
 
@@ -438,6 +442,7 @@ export function useSettingsPage() {
     updateStt,
     updateTts,
     updateTray,
+    updateVoice,
     handleSave,
     handleFetchModels,
     handleReindex,

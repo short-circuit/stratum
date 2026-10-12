@@ -9,6 +9,7 @@ import '@fontsource/inter/700.css'
 import App from './App'
 import { applyTheme } from './lib/theme'
 import { useStore } from './stores/appStore'
+import { useSettingsStore } from './stores/settingsStore'
 import { useSyncStore } from './stores/syncStore'
 import * as api from './lib/commands'
 import { initI18n, setLocale } from './i18n'
@@ -51,6 +52,11 @@ async function init() {
   // E2E harness hook: lets WebDriver open quick capture without the OS tray/shortcut.
   (window as any).__stratOpenQuickCapture = (voice = false) =>
     import('@tauri-apps/api/event').then(m => m.emit('quick-capture:open', { voice }));
+
+  // Populate the settings store so domain logic (e.g. voice-capture STT
+  // configuration) can read the persisted settings. Best-effort: a failure
+  // must never block app boot.
+  void useSettingsStore.getState().loadSettings();
 
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

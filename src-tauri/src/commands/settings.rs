@@ -16,6 +16,8 @@ pub struct SettingsDto {
     pub tts: TtsSettingsDto,
     #[serde(default)]
     pub tray: TraySettingsDto,
+    #[serde(default)]
+    pub voice: VoiceSettingsDto,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -36,6 +38,26 @@ impl Default for TraySettingsDto {
             quick_capture_shortcut: "CmdOrCtrl+Shift+Space".to_string(),
             capture_target: "journal".to_string(),
             inbox_path: "Inbox.md".to_string(),
+        }
+    }
+}
+
+/// One-tap voice-capture (E9.F4) feature settings, mirroring
+/// `pkm_core::VoiceCaptureConfig`.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct VoiceSettingsDto {
+    /// Whether the one-tap voice-capture button is shown in the Journal.
+    pub enabled: bool,
+    /// Insertion target, e.g. "journal:today".
+    pub target: String,
+}
+
+impl Default for VoiceSettingsDto {
+    fn default() -> Self {
+        // Keep in sync with `VoiceCaptureConfig::default()` in pkm-core.
+        Self {
+            enabled: true,
+            target: "journal:today".to_string(),
         }
     }
 }
@@ -288,6 +310,10 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             speed: config.tts.speed,
             use_llm_gateway_and_auth: config.tts.use_llm_gateway_and_auth,
         },
+        voice: VoiceSettingsDto {
+            enabled: config.voice.enabled,
+            target: config.voice.target.clone(),
+        },
         tray: TraySettingsDto {
             enabled: config.tray.enabled,
             close_to_tray: config.tray.close_to_tray,
@@ -462,6 +488,10 @@ pub async fn save_settings<R: tauri::Runtime>(
             format: settings.tts.format,
             speed: settings.tts.speed,
             use_llm_gateway_and_auth: settings.tts.use_llm_gateway_and_auth,
+        },
+        voice: pkm_core::VoiceCaptureConfig {
+            enabled: settings.voice.enabled,
+            target: settings.voice.target,
         },
         tray: pkm_core::TrayConfig {
             enabled: settings.tray.enabled,

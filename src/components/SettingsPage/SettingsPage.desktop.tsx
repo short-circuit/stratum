@@ -34,6 +34,7 @@ export default function SettingsPageDesktop() {
     syncSettings,
     stt,
     tts,
+    voice,
     locale,
     onLocaleChange,
     setMsg,
@@ -46,6 +47,7 @@ export default function SettingsPageDesktop() {
     updateTts,
     tray,
     updateTray,
+    updateVoice,
     handleSave,
     handleFetchModels,
     handleReindex,
@@ -136,6 +138,8 @@ export default function SettingsPageDesktop() {
             onSttChange={updateStt}
             tts={tts}
             onTtsChange={updateTts}
+            voice={voice}
+            onVoiceChange={updateVoice}
           />
         )}
         {tab === 'research' && (

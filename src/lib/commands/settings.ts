@@ -71,6 +71,7 @@ export async function getSettings(): Promise<{
     capture_target: string;
     inbox_path: string;
   };
+  voice?: { enabled: boolean; target: string };
 }> {
   return invoke('get_settings');
 }
@@ -116,6 +117,7 @@ export async function saveSettings(settings: {
     capture_target: string;
     inbox_path: string;
   };
+  voice?: { enabled: boolean; target: string };
 }): Promise<void> {
   return invoke('save_settings', { settings });
 }

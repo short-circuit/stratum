@@ -759,5 +759,21 @@
     "installing": "Installazione...",
     "error": "Qualcosa è andato storto: {{message}}",
     "step": "Passaggio {{current}} di {{total}}"
+  },
+  "voice_capture": {
+    "cancel": "Annulla",
+    "configure_stt": "Configura STT",
+    "configure_stt_prompt": "La trascrizione non è configurata. La registrazione è stata salvata come segnaposto.",
+    "denied_banner": "Il permesso del microfono è negato. Abilitalo nelle Impostazioni.",
+    "enable": "Abilita acquisizione vocale",
+    "error_fallback_inserted": "Trascrizione non riuscita – la registrazione è stata salvata come segnaposto nel memo.",
+    "error_retry": "Qualcosa è andato storto.",
+    "memo_inserted": "Memo vocale inserito",
+    "record": "Registra memo vocale",
+    "recording": "Registrazione…",
+    "retry_transcription": "Riprova trascrizione",
+    "settings_target_today": "Le acquisizioni vengono inserite nel journal di oggi.",
+    "settings_toggle_label": "Pulsante acquisizione vocale",
+    "stop_save": "Ferma e salva"
   }
 }

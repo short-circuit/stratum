@@ -143,6 +143,10 @@ stratum/
 │   │   ├── MobileLayout.tsx
 │   │   ├── MobileNav.tsx
 │   │   ├── JournalCalendar.tsx
+│   │   ├── VoiceCaptureButton.tsx
+│   │   ├── VoiceCaptureButton.desktop.tsx
+│   │   ├── VoiceCaptureButton.mobile.tsx
+│   │   ├── VoiceCaptureButton.shared.tsx
 │   │   └── VaultPicker.tsx
 │   └── test/
 ├── src-tauri/                  # Tauri v2 shell
@@ -317,6 +321,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `MobileNav` | Bottom navigation bar for mobile |
 | `JournalCalendar` | Calendar popup for date navigation |
 | `QuickCapture` | Quick capture dialog for tray/global-shortcut captures (desktop) |
+| `VoiceCaptureButton` (`index`/`.desktop`/`.mobile`/`.shared`) | One-tap voice-capture into today's journal (mobile FAB / desktop header button) |
 
 ### UI Primitives (`src/components/ui/`)
 

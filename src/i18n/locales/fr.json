@@ -759,5 +759,21 @@
     "installing": "Installation...",
     "error": "Une erreur s'est produite : {{message}}",
     "step": "Étape {{current}} sur {{total}}"
+  },
+  "voice_capture": {
+    "cancel": "Annuler",
+    "configure_stt": "Configurer STT",
+    "configure_stt_prompt": "La transcription n'est pas configurée. L'enregistrement a été sauvegardé comme espace réservé.",
+    "denied_banner": "Le permission du micro est refusée. Activez-la dans les Paramètres.",
+    "enable": "Activer la capture vocale",
+    "error_fallback_inserted": "Transcription impossible — l'enregistrement a été sauvegardé comme espace réservé du memo.",
+    "error_retry": "Une erreur s'est produite.",
+    "memo_inserted": "Memo vocal inséré",
+    "record": "Enregistrer un memo vocal",
+    "recording": "Enregistrement…",
+    "retry_transcription": "Réessayer la transcription",
+    "settings_target_today": "Les captures sont insérées dans le journal du jour.",
+    "settings_toggle_label": "Bouton de capture vocale",
+    "stop_save": "Arrêter et sauvegarder"
   }
 }
