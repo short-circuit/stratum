@@ -4,6 +4,7 @@ pub mod dictation;
 pub mod export;
 pub mod flashcards;
 pub mod graph;
+pub mod import;
 pub mod kanban;
 pub mod page;
 pub mod plugins;

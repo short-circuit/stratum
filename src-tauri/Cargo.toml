@@ -35,6 +35,7 @@ pkm-core = { path = "../crates/pkm-core" }
 pkm-block = { path = "../crates/pkm-block" }
 pkm-markdown = { path = "../crates/pkm-markdown" }
 pkm-index = { path = "../crates/pkm-index" }
+pkm-import = { path = "../crates/pkm-import" }
 pkm-query = { path = "../crates/pkm-query" }
 pkm-sync = { path = "../crates/pkm-sync" }
 pkm-ai = { path = "../crates/pkm-ai" }

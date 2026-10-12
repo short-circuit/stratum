@@ -39,7 +39,7 @@ const IDENTICAL_OK = new Set([
   // Brand / product names
   'Stratum', 'Stratum PKM', 'Kanban', 'Journal', 'Graph', 'Plugins',
   'Whiteboards', 'Flashcards', 'Pages', 'Vault', 'Excalidraw', 'TODO',
-  'DOING', 'DONE', 'Graph Settings',
+  'DOING', 'DONE', 'Graph Settings', 'Obsidian', 'Logseq',
   // Language endonyms (the settings language list is intentionally native)
   'Deutsch', 'English', 'Español', 'Français', 'Italiano', 'Ελληνικά',
   '日本語', '中文',

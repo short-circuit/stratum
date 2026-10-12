@@ -356,6 +356,58 @@ async function runTests(driver) {
       `return ![...document.querySelectorAll('textarea,input')].some(e => e.placeholder && e.placeholder.length > 3);`, []);
     closed ? ok('Escape discards/closes quick capture') : bad('Escape discards/closes quick capture');
   }
+  console.log('\n── Test 5: 1-Click Importers ──');
+  // Real IPC through the real app: import the committed Obsidian sample vault.
+  // This targets the ACTIVE vault (the default ~/StratumVault), so the outcome
+  // is idempotent and must be interpreted as a disjunction:
+  //   first run  → 3 pages imported, 1 asset, 0 duplicates
+  //   re-run     → 0 pages imported, 0 assets, 3 duplicates
+  const FIXTURE = path.join(REPO_ROOT, 'crates/pkm-import/tests/fixtures/obsidian-sample');
+  const impRes = await driver.executeScript(
+    `return window.__TAURI_INTERNALS__.invoke('import_vault',
+       { path: ${JSON.stringify(FIXTURE)}, opts: { format: 'auto', dry_run: false } });`,
+    [],
+  );
+  if (impRes && typeof impRes.pages_imported === 'number') {
+    const firstRun =
+      impRes.pages_imported === 3 && impRes.assets_imported === 1 && impRes.duplicates_skipped === 0;
+    const rerun =
+      impRes.pages_imported === 0 && impRes.assets_imported === 0 && impRes.duplicates_skipped === 3;
+    if (firstRun || rerun) {
+      ok(`import_vault counts (pages=${impRes.pages_imported} assets=${impRes.assets_imported} duplicates=${impRes.duplicates_skipped})`);
+    } else {
+      bad('import_vault counts (3 then 0 / 3 duplicates)', JSON.stringify(impRes));
+    }
+  } else {
+    bad('import_vault returned a usable report', JSON.stringify(impRes));
+  }
+
+  // The imported pages must be registered in the vault page list.
+  const pages = await driver.executeScript(
+    `return window.__TAURI_INTERNALS__.invoke('list_pages');`,
+    [],
+  );
+  const listPaths = (pages && Array.isArray(pages.pages) ? pages.pages : []).map((p) => String(p.path));
+  if (listPaths.some((p) => p.startsWith('imported/obsidian-sample/'))) {
+    ok('list_pages includes imported pages under imported/obsidian-sample/');
+  } else {
+    bad('list_pages includes imported pages', JSON.stringify(listPaths.slice(0, 10)));
+  }
+
+  // The imported content must render in the UI. Open the imported Welcome page
+  // and confirm its title appears in the rendered body text.
+  await driver.executeScript(
+    `location.href = location.origin + '/page/' + encodeURIComponent('imported/obsidian-sample/Welcome.md'); return true;`,
+    [],
+  );
+  await waitForApp(driver, { url: 'tauri://localhost' });
+  await sleep(1500);
+  const impBody = await driver.executeScript(`return (document.body && document.body.innerText) || '';`, []);
+  if (impBody.includes('Welcome')) {
+    ok('imported page title rendered in the UI (Welcome)');
+  } else {
+    bad('imported page title rendered in the UI (Welcome)', impBody.slice(0, 200));
+  }
 }
 
 async function main() {

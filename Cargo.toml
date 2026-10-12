@@ -4,6 +4,7 @@ members = [
     "crates/pkm-core",
     "crates/pkm-markdown",
     "crates/pkm-index",
+    "crates/pkm-import",
     "crates/pkm-sync",
     "crates/pkm-watcher",
     "crates/pkm-ai",
