@@ -10,9 +10,12 @@ The configuration file is also directly editable — Stratum auto-reloads on cha
 ## Configuration File Reference
 
 ```toml
-[vault]
 # Path to the vault root directory
-path = "~/StratumVault"
+vault_path = "~/StratumVault"
+
+# UI language (ISO 639-1 code). Default: "en".
+# Supported: en, de, it, fr, es, zh, ja, el
+locale = "en"
 
 [sync]
 # Sync mode: Manual, AutoCommit, AutoSync

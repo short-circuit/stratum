@@ -9,6 +9,7 @@ import Typography from '@mui/material/Typography';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import SettingsIcon from '@mui/icons-material/Settings';
+import { useTranslation } from 'react-i18next';
 import type { ComponentDto, OrphanDto, GraphDataDto } from '../../lib/types';
 
 interface GraphToolbarProps {
@@ -48,10 +49,11 @@ const GraphToolbar = memo(function GraphToolbar({
   graphData,
   saveStatus,
 }: GraphToolbarProps) {
+  const { t } = useTranslation();
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 0.75, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper', flexShrink: 0 }}>
       <Button size="small" variant="contained" onClick={onRefresh} disabled={loading}>
-        {loading ? 'Loading...' : 'Refresh'}
+        {loading ? t('common.loading') : t('graph.refresh')}
       </Button>
 
       <ToggleButtonGroup
@@ -60,9 +62,9 @@ const GraphToolbar = memo(function GraphToolbar({
         onChange={(_, v) => v && onViewModeChange(v)}
         size="small"
       >
-        <ToggleButton value="full" sx={{ textTransform: 'none', fontSize: '0.75rem', px: 1.5 }}>Full</ToggleButton>
-        <ToggleButton value="component" sx={{ textTransform: 'none', fontSize: '0.75rem', px: 1.5 }}>Components</ToggleButton>
-        <ToggleButton value="orphans" sx={{ textTransform: 'none', fontSize: '0.75rem', px: 1.5 }}>Orphans</ToggleButton>
+        <ToggleButton value="full" sx={{ textTransform: 'none', fontSize: '0.75rem', px: 1.5 }}>{t('graph.full')}</ToggleButton>
+        <ToggleButton value="component" sx={{ textTransform: 'none', fontSize: '0.75rem', px: 1.5 }}>{t('graph.components')}</ToggleButton>
+        <ToggleButton value="orphans" sx={{ textTransform: 'none', fontSize: '0.75rem', px: 1.5 }}>{t('graph.orphans')}</ToggleButton>
       </ToggleButtonGroup>
 
       {viewMode === 'component' && components.length > 0 && (
@@ -75,12 +77,12 @@ const GraphToolbar = memo(function GraphToolbar({
           >
             {components.map((c, i) => (
               <MenuItem key={i} value={i} sx={{ fontSize: '0.75rem' }}>
-                Component {i + 1} ({c.size} notes)
+                {t('graph.component')} {i + 1} ({c.size} {t('graph.notes')}
               </MenuItem>
             ))}
           </Select>
           <Typography variant="caption" color="text.secondary">
-            {components.length} groups total
+            {components.length} {t('graph.groups_total')}
           </Typography>
         </>
       )}
@@ -89,7 +91,7 @@ const GraphToolbar = memo(function GraphToolbar({
 
       <TextField
         size="small"
-        placeholder="Filter by title/tag…"
+        placeholder={t('graph.filter_by_title_tag')}
         value={search}
         onChange={(e) => {
           onSearchChange(e.target.value);
@@ -102,7 +104,7 @@ const GraphToolbar = memo(function GraphToolbar({
         size="small"
         onClick={onSettingsToggle}
         color={settingsOpen ? 'primary' : 'default'}
-        title="Graph settings"
+        title={t('graph.graph_settings_label')}
       >
         <SettingsIcon fontSize="small" />
         {saveStatus === 'unsaved' && (
@@ -112,7 +114,7 @@ const GraphToolbar = memo(function GraphToolbar({
 
       {graphData && (
         <Typography variant="caption" color="text.disabled" sx={{ whiteSpace: 'nowrap' }}>
-          {nodes.length}/{graphData.node_count} n · {edges.length} e
+          {nodes.length}/{graphData.node_count} {t('graph.n')} {edges.length} e
           {orphans.length > 0 && ` · ${orphans.length} o`}
         </Typography>
       )}

@@ -25,6 +25,7 @@ import { useTheme } from '@mui/material/styles';
 import { useGraphPanel } from './GraphPanel.shared';
 import GraphCanvas2D from './GraphCanvas2D';
 import GraphCanvas from './GraphCanvas';
+import { useTranslation } from 'react-i18next';
 
 function SliderSetting({ label, value, min, max, step, display, onChange }: {
   label: string;
@@ -49,6 +50,7 @@ function SliderSetting({ label, value, min, max, step, display, onChange }: {
 export default function GraphPanelMobile() {
   const navigate = useNavigate();
   const muiTheme = useTheme();
+  const { t } = useTranslation();
 
   const {
     state: { graphData, components, loading, error, viewMode,
@@ -107,7 +109,7 @@ export default function GraphPanelMobile() {
       {/* ── Header Bar ── */}
       <AppBar position="static" color="default" elevation={1} sx={{ height: 56 }}>
         <Toolbar variant="dense" sx={{ gap: 0.5, minHeight: '56px !important' }}>
-          <IconButton edge="start" size="small" onClick={() => navigate(-1)} aria-label="Back">
+          <IconButton edge="start" size="small" onClick={() => navigate(-1)} aria-label={t('common.back')}>
             <ArrowBackIcon />
           </IconButton>
 
@@ -118,9 +120,9 @@ export default function GraphPanelMobile() {
             size="small"
             sx={{ '& .MuiToggleButton-root': { fontSize: '0.7rem', px: 1, py: 0.25, textTransform: 'none' } }}
           >
-            <ToggleButton value="full">All</ToggleButton>
-            <ToggleButton value="component">Comp</ToggleButton>
-            <ToggleButton value="orphans">Orphs</ToggleButton>
+            <ToggleButton value="full">{t('graph.all')}</ToggleButton>
+            <ToggleButton value="component">{t('graph.comp')}</ToggleButton>
+            <ToggleButton value="orphans">{t('graph.orphs')}</ToggleButton>
           </ToggleButtonGroup>
 
           {/* Component selector — visible only in component view mode */}
@@ -148,23 +150,23 @@ export default function GraphPanelMobile() {
             <TextField
               autoFocus
               size="small"
-              placeholder="Filter…"
+              placeholder={t('graph.filter')}
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
               sx={{ width: 130, '& .MuiInputBase-input': { fontSize: '0.75rem', py: 0.5 } }}
             />
           )}
 
-          <IconButton size="small" onClick={() => setSearchOpen((o) => !o)} aria-label="Toggle search">
+          <IconButton size="small" onClick={() => setSearchOpen((o) => !o)} aria-label={t('graph.toggle_search')}>
             <SearchIcon fontSize="small" />
           </IconButton>
-          <IconButton size="small" onClick={loadData} disabled={loading} aria-label="Refresh graph">
+          <IconButton size="small" onClick={loadData} disabled={loading} aria-label={t('graph.refresh_graph')}>
             <RefreshIcon fontSize="small" />
           </IconButton>
           <IconButton
             size="small"
             onClick={() => setSettingsOpen(true)}
-            aria-label="Open settings"
+            aria-label={t('graph.open_settings')}
           >
             <SettingsIcon fontSize="small" />
             {saveStatus === 'unsaved' && (
@@ -195,7 +197,7 @@ export default function GraphPanelMobile() {
             }}
           >
             <CircularProgress size={18} sx={{ mr: 1 }} />
-            <Typography variant="body2" color="text.secondary">Building graph...</Typography>
+            <Typography variant="body2" color="text.secondary">{t('graph.building_graph')}</Typography>
           </Box>
         )}
 
@@ -208,9 +210,9 @@ export default function GraphPanelMobile() {
         {nodeCapActive && (
           <Alert severity="info" icon={false} sx={{ position: 'absolute', top: error ? 44 : 8, left: 8, right: 8, zIndex: 10, py: 0, '& .MuiAlert-message': { py: 0.5 } }}>
             <Typography variant="caption">
-              Showing {filteredNodes.length}/{preCapNodeCount} nodes{defaultCapActive
-                ? ` (capped to ${effectiveCap} by default; increase the cap in Graph settings to reveal more)`
-                : ` (cap: ${effectiveCap})`}
+              {t('graph.showing', { count: filteredNodes.length, total: preCapNodeCount, cap: defaultCapActive
+                ? ` ${t('graph._capped_to')} ${effectiveCap} by default; increase the cap in Graph settings to reveal more)`
+                : ` ${t('graph._cap')} ${effectiveCap})` })}
             </Typography>
           </Alert>
         )}
@@ -218,7 +220,7 @@ export default function GraphPanelMobile() {
         {progressiveLoading && (
           <Alert severity="info" icon={false} sx={{ position: 'absolute', top: (nodeCapActive ? 44 : error ? 44 : 8), left: 8, right: 8, zIndex: 10, py: 0, '& .MuiAlert-message': { py: 0.5 } }}>
             <Typography variant="caption" sx={{ mb: 0.25, display: 'block' }}>
-              Rendering {progress.current}/{progress.total} nodes...
+              {t('graph.rendering', { current: progress.current, total: progress.total })}
             </Typography>
             <LinearProgress
               variant="determinate"
@@ -264,9 +266,9 @@ export default function GraphPanelMobile() {
           !loading && !error && (
             <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>No graph data yet</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>{t('graph.no_graph_data_yet')}</Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Create pages with [[wiki-links]] to build connections.
+                  {t('graph.create_pages_with_wiki_links_to_build_connections')}
                 </Typography>
               </Box>
             </Box>
@@ -280,8 +282,7 @@ export default function GraphPanelMobile() {
             onClose={() => setFallbackNoticeDismissed(true)}
           >
             <Typography variant="caption">
-              3D view isn't supported on this device (WebGL unavailable or too
-              constrained). Showing the 2D graph instead.
+              {t('graph.fallback_notice_webgl')}
             </Typography>
           </Alert>
         )}
@@ -289,7 +290,7 @@ export default function GraphPanelMobile() {
         {!loading && !error && graphData && graphData.node_count > 0 && graphData.edge_count === 0 && (
           <Alert severity="warning" icon={false} sx={{ position: 'absolute', top: 8, left: 8, right: 8, zIndex: 10, boxShadow: 3 }}>
             <Typography variant="caption">
-              Pages found but no wiki-links yet.
+              {t('graph.pages_found_but_no_wiki_links_yet')}
             </Typography>
           </Alert>
         )}
@@ -308,51 +309,51 @@ export default function GraphPanelMobile() {
       >
         <Box sx={{ width: '100%', maxWidth: 500, mx: 'auto' }}>
           <Typography variant="subtitle2" sx={{ mb: 2, textAlign: 'center', fontWeight: 600 }}>
-            Graph Settings
+            {t('graph.graph_settings')}
           </Typography>
 
           <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
             <FormControlLabel
               control={<Checkbox size="small" checked={graphSettings.show_connected} onChange={(e) => updateSetting('show_connected', e.target.checked)} />}
-              label={<Typography variant="caption">Connected</Typography>}
+              label={<Typography variant="caption">{t('graph.connected')}</Typography>}
             />
             <FormControlLabel
               control={<Checkbox size="small" checked={graphSettings.show_orphaned} onChange={(e) => updateSetting('show_orphaned', e.target.checked)} />}
-              label={<Typography variant="caption">Orphaned</Typography>}
+              label={<Typography variant="caption">{t('graph.orphaned')}</Typography>}
             />
             <FormControlLabel
               control={<Checkbox size="small" checked={graphSettings.show_tags} onChange={(e) => updateSetting('show_tags', e.target.checked)} />}
-              label={<Typography variant="caption">Tags</Typography>}
+              label={<Typography variant="caption">{t('graph.tags')}</Typography>}
             />
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, px: 0.5 }}>
             <Box>
-              <Typography variant="caption" sx={{ display: 'block', fontWeight: 600 }}>3D view</Typography>
+              <Typography variant="caption" sx={{ display: 'block', fontWeight: 600 }}>{t('graph.3d_view')}</Typography>
               <Typography variant="caption" color="text.secondary">
                 {graph3dSupport.supported
-                  ? 'Render the graph in 3D (experimental on mobile)'
-                  : '3D not supported on this device — falls back to 2D'}
+                  ? t('graph.render_the_graph_in_3d_experimental_on_mobile')
+                  : t('graph.3d_not_supported_on_this_device_falls_back_to_2d')}
               </Typography>
             </Box>
             <Checkbox
               checked={graphSettings.use_3d}
               onChange={toggle3d}
               disabled={!graph3dSupport.supported}
-              slotProps={{ input: { 'aria-label': 'Enable 3D view' } }}
+              slotProps={{ input: { 'aria-label': t('graph.enable_3d_view') } }}
             />
           </Box>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            <SliderSetting label="Repulsion" value={graphSettings.charge_strength} min={-30} max={0} step={1} display={`${Math.round(graphSettings.charge_strength)}`} onChange={(v) => updateSetting('charge_strength', v)} />
-            <SliderSetting label="Link distance" value={graphSettings.link_distance} min={10} max={120} step={5} display={`${Math.round(graphSettings.link_distance)}px`} onChange={(v) => updateSetting('link_distance', v)} />
-            <SliderSetting label="Alpha decay" value={graphSettings.alpha_decay} min={0.01} max={0.3} step={0.01} display={graphSettings.alpha_decay.toFixed(2)} onChange={(v) => updateSetting('alpha_decay', v)} />
-            <SliderSetting label="Friction" value={graphSettings.velocity_decay} min={0.05} max={0.95} step={0.05} display={graphSettings.velocity_decay.toFixed(2)} onChange={(v) => updateSetting('velocity_decay', v)} />
-            <SliderSetting label="Curvature" value={graphSettings.link_curvature} min={0} max={0.5} step={0.05} display={graphSettings.link_curvature.toFixed(2)} onChange={(v) => updateSetting('link_curvature', v)} />
+            <SliderSetting label={t('graph.repulsion')} value={graphSettings.charge_strength} min={-30} max={0} step={1} display={`${Math.round(graphSettings.charge_strength)}`} onChange={(v) => updateSetting('charge_strength', v)} />
+            <SliderSetting label={t('graph.link_distance')} value={graphSettings.link_distance} min={10} max={120} step={5} display={`${Math.round(graphSettings.link_distance)}px`} onChange={(v) => updateSetting('link_distance', v)} />
+            <SliderSetting label={t('graph.alpha_decay')} value={graphSettings.alpha_decay} min={0.01} max={0.3} step={0.01} display={graphSettings.alpha_decay.toFixed(2)} onChange={(v) => updateSetting('alpha_decay', v)} />
+            <SliderSetting label={t('graph.friction')} value={graphSettings.velocity_decay} min={0.05} max={0.95} step={0.05} display={graphSettings.velocity_decay.toFixed(2)} onChange={(v) => updateSetting('velocity_decay', v)} />
+            <SliderSetting label={t('graph.curvature')} value={graphSettings.link_curvature} min={0} max={0.5} step={0.05} display={graphSettings.link_curvature.toFixed(2)} onChange={(v) => updateSetting('link_curvature', v)} />
             <Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="caption">Node cap</Typography>
-                <Typography variant="caption" color="text.secondary">{graphSettings.node_cap === 0 ? 'Unlimited (auto-cap)' : graphSettings.node_cap}</Typography>
+                <Typography variant="caption">{t('graph.node_cap')}</Typography>
+                <Typography variant="caption" color="text.secondary">{graphSettings.node_cap === 0 ? t('graph.unlimited_auto_cap') : graphSettings.node_cap}</Typography>
               </Box>
               <Slider size="small" value={graphSettings.node_cap} min={0} max={10000} step={500} marks={[{ value: 0, label: '∞' }]} onChange={(_, v) => updateSetting('node_cap', v as number)} />
             </Box>

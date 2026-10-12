@@ -8,8 +8,10 @@ import { useGraphPanel } from './GraphPanel.shared';
 import GraphToolbar from './GraphToolbar';
 import GraphSettingsPanel from './GraphSettings';
 import GraphCanvas from './GraphCanvas';
+import { useTranslation } from 'react-i18next';
 
 export default function GraphPanelDesktop() {
+  const { t } = useTranslation();
   const muiTheme = useTheme();
   const bgColor = muiTheme.palette.background.default;
   const textColor = muiTheme.palette.text.primary;
@@ -73,9 +75,9 @@ export default function GraphPanelDesktop() {
       {nodeCapActive && (
         <Alert severity="info" icon={false} sx={{ mx: 1, mt: 0.5, py: 0, '& .MuiAlert-message': { py: 0.5 } }}>
           <Typography variant="caption">
-            Showing {filteredNodes.length} of {preCapNodeCount} nodes{defaultCapActive
-              ? ` (large vault — capped to ${effectiveCap} by default; increase the cap in Graph settings to reveal more)`
-              : ` (cap: ${effectiveCap})`}
+            {t('graph.showing', { count: filteredNodes.length, total: preCapNodeCount, cap: defaultCapActive
+              ? ` ${t('graph._large_vault_capped_to')} ${effectiveCap} by default; increase the cap in Graph settings to reveal more)`
+              : ` ${t('graph._cap')} ${effectiveCap})` })}
           </Typography>
         </Alert>
       )}
@@ -83,7 +85,7 @@ export default function GraphPanelDesktop() {
       {progressiveLoading && (
         <Alert severity="info" icon={false} sx={{ mx: 1, mt: 0.5, py: 0, '& .MuiAlert-message': { py: 0.5 } }}>
           <Typography variant="caption" sx={{ mb: 0.25, display: 'block' }}>
-            Rendering {progress.current}/{progress.total} nodes...
+            {t('graph.rendering', { current: progress.current, total: progress.total })}
           </Typography>
           <LinearProgress
             variant="determinate"

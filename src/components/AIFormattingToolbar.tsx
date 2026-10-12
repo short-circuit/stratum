@@ -10,8 +10,10 @@ import type { AiTransformResult, ResearchResult, TtsResult } from '../lib/types'
 import { createMermaidBlock } from '../lib/mermaidBlock';
 import AILoadingOverlay from './ui/AILoadingOverlay';
 import { playAudio } from '../lib/audio';
+import { useTranslation } from 'react-i18next';
 
 export default function AIFormattingToolbar() {
+  const { t } = useTranslation();
   const editor = useBlockNoteEditor();
   const Components = useComponentsContext();
   const [busy, setBusy] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export default function AIFormattingToolbar() {
       await playAudio(res.audio_b64, res.mime);
     } catch (e) {
       console.error('[TTS] read-aloud failed:', e);
-      alert(`Read-aloud failed: ${String(e)}`);
+      alert(`${t('aiformatting_toolbar.read_aloud_failed')} ${String(e)}`);
     } finally {
       setSpeaking(false);
     }
@@ -78,35 +80,35 @@ export default function AIFormattingToolbar() {
           <FormattingToolbar>
             {getFormattingToolbarItems(blockTypeSelectItems)}
             <Btn
-              mainTooltip="Rewrite selected text with AI"
+              mainTooltip={t('aiformatting_toolbar.rewrite_selected_text_with_ai')}
               onClick={() => runAiTransform(editor, 'rewrite')}
               isDisabled={busy !== null}
             >
               ✨
             </Btn>
             <Btn
-              mainTooltip="Format selected text with AI"
+              mainTooltip={t('aiformatting_toolbar.format_selected_text_with_ai')}
               onClick={() => runAiTransform(editor, 'format')}
               isDisabled={busy !== null}
             >
               🎨
             </Btn>
             <Btn
-              mainTooltip="Summarize selected text with AI"
+              mainTooltip={t('aiformatting_toolbar.summarize_selected_text_with_ai')}
               onClick={() => runAiTransform(editor, 'summarize')}
               isDisabled={busy !== null}
             >
               📝
             </Btn>
             <Btn
-              mainTooltip="Research selected text on the web"
+              mainTooltip={t('aiformatting_toolbar.research_selected_text_on_the_web')}
               onClick={() => runAiTransform(editor, 'research')}
               isDisabled={busy !== null}
             >
               🌐
             </Btn>
             <Btn
-              mainTooltip="Generate Mermaid diagram from selection"
+              mainTooltip={t('aiformatting_toolbar.generate_mermaid_diagram_from_selection')}
               onClick={async () => {
                 const { from, to } = editor.prosemirrorView.state.selection;
                 if (from === to) return;
@@ -135,7 +137,7 @@ export default function AIFormattingToolbar() {
               📊
             </Btn>
             <Btn
-              mainTooltip={speaking ? 'Reading aloud…' : 'Read selected text aloud'}
+              mainTooltip={speaking ? t('aiformatting_toolbar.reading_aloud') : t('aiformatting_toolbar.read_selected_text_aloud')}
               onClick={readAloud}
               isDisabled={busy !== null || speaking}
             >

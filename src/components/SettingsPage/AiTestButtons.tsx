@@ -3,6 +3,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import * as api from '../../lib/commands';
+import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
 // Connection / playback test buttons for the AI settings tab.
@@ -11,6 +12,7 @@ import * as api from '../../lib/commands';
 // ---------------------------------------------------------------------------
 
 export function SttTestButton() {
+  const { t } = useTranslation();
   const [state, setState] = useState<'idle' | 'testing' | 'ok' | 'error'>('idle');
   const [detail, setDetail] = useState('');
 
@@ -35,11 +37,11 @@ export function SttTestButton() {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
       <Button variant="outlined" size="small" onClick={test} disabled={state === 'testing'}>
-        {state === 'testing' ? 'Testing…' : 'Test Connection'}
+        {state === 'testing' ? t('settings.testing') : t('settings.test_connection')}
       </Button>
       {state === 'ok' && (
         <Typography variant="caption" color="success.main">
-          Connected — {detail}
+          {t('settings.connected')} {detail}
         </Typography>
       )}
       {state === 'error' && (
@@ -52,6 +54,7 @@ export function SttTestButton() {
 }
 
 export function TtsTestButton() {
+  const { t } = useTranslation();
   const [state, setState] = useState<'idle' | 'generating' | 'error'>('idle');
   const [detail, setDetail] = useState('');
 
@@ -59,11 +62,11 @@ export function TtsTestButton() {
     setState('generating');
     setDetail('');
     try {
-      const res = await api.ttsGenerate('Hello, this is a test of Stratum text to speech.');
+      const res = await api.ttsGenerate(t('settings.hello_this_is_a_test_of_stratum_text_to_speech'));
       const audio = new Audio(`data:${res.mime};base64,${res.audio_b64}`);
       audio.play();
       setState('idle');
-      setDetail(`Generating… played ${(res.byte_len / 1024).toFixed(1)} KiB audio`);
+      setDetail(`${t('settings.generating_played')} ${(res.byte_len / 1024).toFixed(1)} KiB audio`);
     } catch (e) {
       setState('error');
       setDetail(String(e));
@@ -78,7 +81,7 @@ export function TtsTestButton() {
         onClick={test}
         disabled={state === 'generating'}
       >
-        {state === 'generating' ? 'Generating…' : 'Test / Play voice'}
+        {state === 'generating' ? t('settings.generating') : t('settings.test_play_voice')}
       </Button>
       {state === 'idle' && detail && (
         <Typography variant="caption" color="success.main">

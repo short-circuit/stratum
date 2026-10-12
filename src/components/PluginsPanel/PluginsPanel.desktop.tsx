@@ -14,6 +14,7 @@ import { usePluginsPanel } from './PluginsPanel.shared';
 import { StatusChip } from './StatusChip';
 import { PluginManifestMeta } from './PluginManifestMeta';
 import EmptyState from '../ui/EmptyState';
+import { useTranslation } from 'react-i18next';
 
 export default function PluginsPanelDesktop() {
   const {
@@ -34,6 +35,7 @@ export default function PluginsPanelDesktop() {
     clearTestResult,
     clearError,
   } = usePluginsPanel();
+  const { t } = useTranslation();
 
   const installing = busyId === '__install__';
 
@@ -41,7 +43,7 @@ export default function PluginsPanelDesktop() {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Box sx={{ flex: 1, overflow: 'auto', p: 3, maxWidth: 760, mx: 'auto', width: '100%' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>Plugins</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>{t('mobile_layout.plugins')}</Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
               size="small"
@@ -50,7 +52,7 @@ export default function PluginsPanelDesktop() {
               disabled={loading || installing}
               sx={{ textTransform: 'none' }}
             >
-              Refresh
+              {t('common.refresh')}
             </Button>
             <Button
               size="small"
@@ -60,12 +62,12 @@ export default function PluginsPanelDesktop() {
               disabled={loading || installing}
               sx={{ textTransform: 'none' }}
             >
-              {installing ? 'Installing…' : 'Install'}
+              {installing ? t('plugins.installing') : 'Install'}
             </Button>
           </Box>
         </Box>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-          WASM plugins loaded from <Box component="code" sx={{ bgcolor: 'action.hover', px: 0.5, borderRadius: 0.5 }}>~/.pkm/plugins</Box>.
+          {t('plugins.wasm_plugins_loaded_from')} <Box component="code" sx={{ bgcolor: 'action.hover', px: 0.5, borderRadius: 0.5 }}>{t('plugins._pkm_plugins')}</Box>.
           {!backendReady && ' The plugin backend has not been wired yet — showing mock data so the UI is usable.'}
         </Typography>
 
@@ -86,13 +88,13 @@ export default function PluginsPanelDesktop() {
         {loading ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 4, justifyContent: 'center' }}>
             <CircularProgress size={18} />
-            <Typography variant="body2" color="text.secondary">Loading plugins...</Typography>
+            <Typography variant="body2" color="text.secondary">{t('plugins.loading_plugins')}</Typography>
           </Box>
         ) : plugins.length === 0 ? (
           <EmptyState
             icon={<ExtensionIcon sx={{ fontSize: 40 }} />}
-            message="No plugins installed"
-            description="Install a plugin.wasm file, or drop one into ~/.pkm/plugins/ and press Refresh."
+            message={t('plugins.no_plugins_installed')}
+            description={t('plugins.install_a_plugin_wasm_file_or_drop_one_into_pkm_')}
             actionLabel="Install"
             onAction={() => void installFromFile()}
           />
@@ -107,7 +109,7 @@ export default function PluginsPanelDesktop() {
                     <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
                       <Box sx={{ minWidth: 0 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{plugin.name}</Typography>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t(plugin.name)}</Typography>
                           <Chip
                             label={`v${plugin.version}`}
                             size="small"
@@ -151,7 +153,7 @@ export default function PluginsPanelDesktop() {
                             onClick={() => void uninstall(plugin.id)}
                             sx={{ textTransform: 'none' }}
                           >
-                            {busy ? '…' : 'Uninstall'}
+                            {busy ? '…' : t('plugins.uninstall')}
                           </Button>
                         </Box>
                       </Box>
@@ -159,10 +161,10 @@ export default function PluginsPanelDesktop() {
 
                     <Box sx={{ mt: 1.5, display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
                       <Button size="small" disabled={busy} onClick={() => void runNoteReadTest(plugin.id)} sx={{ textTransform: 'none' }}>
-                        Test note_read
+                        {t('plugins.test_note_read')}
                       </Button>
                       <Button size="small" disabled={busy} onClick={() => void runHttpRequestTest(plugin.id)} sx={{ textTransform: 'none' }}>
-                        Test http_request
+                        {t('plugins.test_http_request')}
                       </Button>
                       {test && (
                         <Typography
@@ -170,7 +172,7 @@ export default function PluginsPanelDesktop() {
                           color={test.ok ? 'primary' : 'error'}
                           sx={{ flex: '1 1 auto', textAlign: 'right', cursor: 'pointer', userSelect: 'none' }}
                           onClick={() => clearTestResult(plugin.id)}
-                          title="Click to dismiss"
+                          title={t('plugins.click_to_dismiss')}
                         >
                           {test.label}: {test.ok ? 'ok' : 'failed'} — {test.detail}
                         </Typography>

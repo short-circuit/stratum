@@ -41,6 +41,7 @@ import LinkPreviewPopup from '../LinkPreviewPopup';
 import MathEditorModal from '../MathEditorModal';
 import MarkerBadge from '../MarkerBadge';
 import { useLongPress } from '../../lib/hooks/useLongPress';
+import { useTranslation } from 'react-i18next';
 import type {
   MathEditState,
   PreviewState,
@@ -81,6 +82,7 @@ export default function MobileEditorOverlays({
   onInsertMath,
   onApplyMarker,
 }: MobileEditorOverlaysProps) {
+  const { t } = useTranslation();
   // -----------------------------------------------------------------------
   // Insert menu state
   // -----------------------------------------------------------------------
@@ -166,13 +168,13 @@ export default function MobileEditorOverlays({
             await speakText(text);
           } catch (e) {
             console.error('[TTS] read-aloud failed:', e);
-            alert(`Read-aloud failed: ${String(e)}`);
+            alert(`${t('aiformatting_toolbar.read_aloud_failed')} ${String(e)}`);
           }
           break;
         }
       }
     },
-    [contextMenu, editor],
+    [contextMenu, editor, t],
   );
 
   const onCloseMath = useCallback(() => setMathEdit(null), [setMathEdit]);
@@ -218,7 +220,7 @@ export default function MobileEditorOverlays({
         <Fab
           color="primary"
           size="medium"
-          aria-label="Insert block"
+          aria-label={t('editor.insert_block')}
           onClick={(e) => setInsertAnchor(e.currentTarget)}
           sx={{
             position: 'absolute',
@@ -235,7 +237,7 @@ export default function MobileEditorOverlays({
         <Fab
           color="secondary"
           size="small"
-          aria-label="Toggle marker"
+          aria-label={t('editor.toggle_marker')}
           onClick={(e) => setMarkerAnchor(e.currentTarget)}
           sx={{
             position: 'absolute',
@@ -259,31 +261,31 @@ export default function MobileEditorOverlays({
         >
           <MenuItem onClick={() => onInsert('paragraph')}>
             <ListItemIcon><TextFieldsIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>Paragraph</ListItemText>
+            <ListItemText>{t('editor.paragraph')}</ListItemText>
           </MenuItem>
           <MenuItem onClick={() => onInsert('heading', 1)}>
             <ListItemIcon><LooksOneIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>Heading 1</ListItemText>
+            <ListItemText>{t('editor.heading_1')}</ListItemText>
           </MenuItem>
           <MenuItem onClick={() => onInsert('heading', 2)}>
             <ListItemIcon><LooksTwoIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>Heading 2</ListItemText>
+            <ListItemText>{t('editor.heading_2')}</ListItemText>
           </MenuItem>
           <MenuItem onClick={() => onInsert('heading', 3)}>
             <ListItemIcon><Looks3Icon fontSize="small" /></ListItemIcon>
-            <ListItemText>Heading 3</ListItemText>
+            <ListItemText>{t('editor.heading_3')}</ListItemText>
           </MenuItem>
           <MenuItem onClick={() => onInsert('codeBlock')}>
             <ListItemIcon><CodeIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>Code block</ListItemText>
+            <ListItemText>{t('editor.code_block')}</ListItemText>
           </MenuItem>
           <MenuItem onClick={() => onInsert('mermaid')}>
             <ListItemIcon><DiagramIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>Mermaid diagram</ListItemText>
+            <ListItemText>{t('editor.mermaid_diagram')}</ListItemText>
           </MenuItem>
           <MenuItem onClick={onInsertMath}>
             <ListItemIcon><FunctionsIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>Math equation</ListItemText>
+            <ListItemText>{t('editor.math_equation')}</ListItemText>
           </MenuItem>
         </Menu>
 
@@ -315,19 +317,19 @@ export default function MobileEditorOverlays({
         >
           <MenuItem onClick={() => handleContextAction('cut')}>
             <ListItemIcon><ContentCutIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>Cut</ListItemText>
+            <ListItemText>{t('editor.cut')}</ListItemText>
           </MenuItem>
           <MenuItem onClick={() => handleContextAction('copy')}>
             <ListItemIcon><ContentCopyIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>Copy</ListItemText>
+            <ListItemText>{t('editor.copy')}</ListItemText>
           </MenuItem>
           <MenuItem onClick={() => handleContextAction('speak')}>
             <ListItemIcon><VolumeUpIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>Read aloud</ListItemText>
+            <ListItemText>{t('editor.read_aloud')}</ListItemText>
           </MenuItem>
           <MenuItem onClick={() => handleContextAction('delete')}>
             <ListItemIcon><DeleteIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>Delete</ListItemText>
+            <ListItemText>{t('editor.delete')}</ListItemText>
           </MenuItem>
         </Menu>
       </div>
@@ -362,7 +364,7 @@ export default function MobileEditorOverlays({
         disableScrollLock
         slotProps={{ paper: { sx: { p: 0.5 } } }}
       >
-        <Tooltip title="Create page">
+        <Tooltip title={t('editor.create_page')}>
           <IconButton
             size="small"
             color="primary"
@@ -373,8 +375,8 @@ export default function MobileEditorOverlays({
                 await api.createPage(slug);
                 useRecentsStore.getState().refresh();
               } catch (e) {
-                if (!String(e).includes('already exists')) {
-                  console.error('Failed to create page:', e);
+                if (!String(e).includes(t('editor.already_exists'))) {
+                  console.error(t('editor.failed_to_create_page'), e);
                   setDeadLinkPopup(null);
                   return;
                 }

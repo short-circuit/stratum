@@ -38,8 +38,10 @@ import MarkerSuggestMenu from './MarkerSuggestMenu';
 import WikiLinkAutocomplete from './WikiLinkAutocomplete';
 import { useEditorData } from './OutlinerEditor.shared';
 import type { Props } from './OutlinerEditor.shared';
+import { useTranslation } from 'react-i18next';
 
 export default function OutlinerEditorDesktop(props: Props) {
+  const { t } = useTranslation();
   const { pagePath, autoFocus, minHeight = '400px' } = props;
 
   const {
@@ -64,10 +66,10 @@ export default function OutlinerEditorDesktop(props: Props) {
   } = useEditorData(pagePath, autoFocus, minHeight);
 
   const saveLabel = useMemo(() => {
-    if (saving) return 'Saving…';
+    if (saving) return t('editor.saving');
     if (lastSavedAt) return `Saved ${new Date(lastSavedAt).toLocaleTimeString()}`;
     return null;
-  }, [saving, lastSavedAt]);
+  }, [saving, lastSavedAt, t]);
 
   // Right-click block context menu (desktop read-aloud entry point).
   const [blockMenu, setBlockMenu] = useState<{
@@ -98,7 +100,7 @@ export default function OutlinerEditorDesktop(props: Props) {
       await speakText(text);
     } catch (e) {
       console.error('[TTS] read-aloud failed:', e);
-      alert(`Read-aloud failed: ${String(e)}`);
+      alert(`${t('aiformatting_toolbar.read_aloud_failed')} ${String(e)}`);
     }
   };
 
@@ -149,7 +151,7 @@ export default function OutlinerEditorDesktop(props: Props) {
         <Box sx={{ textAlign: 'center' }}>
           <CircularProgress size={20} sx={{ mb: 1.5 }} />
           <Typography variant="body2" color="text.secondary">
-            Loading editor...
+            {t('editor.loading_editor')}
           </Typography>
           <Typography
             variant="caption"
@@ -177,11 +179,11 @@ export default function OutlinerEditorDesktop(props: Props) {
               setStatus('init');
             }}
           >
-            Retry
+            {t('editor.retry')}
           </Button>
         }
       >
-        Editor error: {error}
+        {t('editor.editor_error')} {error}
       </Alert>
     );
   }
@@ -246,7 +248,7 @@ export default function OutlinerEditorDesktop(props: Props) {
         >
           <MenuItem onClick={readBlockAloud}>
             <ListItemIcon><VolumeUpIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>Read aloud</ListItemText>
+            <ListItemText>{t('editor.read_aloud')}</ListItemText>
           </MenuItem>
         </Menu>
 
@@ -278,7 +280,7 @@ export default function OutlinerEditorDesktop(props: Props) {
           disableScrollLock
           slotProps={{ paper: { sx: { p: 0.5 } } }}
         >
-          <Tooltip title="Create page">
+          <Tooltip title={t('editor.create_page')}>
             <IconButton
               size="small"
               color="primary"
@@ -289,8 +291,8 @@ export default function OutlinerEditorDesktop(props: Props) {
                   await api.createPage(slug);
                   useRecentsStore.getState().refresh();
                 } catch (e) {
-                  if (!String(e).includes('already exists')) {
-                    console.error('Failed to create page:', e);
+                  if (!String(e).includes(t('editor.already_exists'))) {
+                    console.error(t('editor.failed_to_create_page'), e);
                     setDeadLinkPopup(null);
                     return;
                   }

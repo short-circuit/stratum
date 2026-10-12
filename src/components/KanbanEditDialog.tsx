@@ -11,6 +11,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
+import { useTranslation } from 'react-i18next';
 import type { KanbanBlockDto } from '../lib/types';
 
 const MARKERS = ['TODO', 'DOING', 'DONE', 'NOW', 'LATER', 'WAITING', 'CANCELLED'] as const;
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export default function KanbanEditDialog({ block, onSave, onCancel }: Props) {
+  const { t } = useTranslation();
   const [content, setContent] = useState(block.content);
   const [marker, setMarker] = useState(block.marker ?? '');
   const [priority, setPriority] = useState(block.priority ?? '');
@@ -38,7 +40,7 @@ export default function KanbanEditDialog({ block, onSave, onCancel }: Props) {
   return (
     <Dialog open maxWidth="sm" fullWidth onClose={onCancel}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="body1" sx={{ fontWeight: 600 }}>Edit Card</Typography>
+        <Typography variant="body1" sx={{ fontWeight: 600 }}>{t('kanban_edit_dialog.edit_card')}</Typography>
         <IconButton size="small" onClick={onCancel}>
           <CloseIcon fontSize="small" />
         </IconButton>
@@ -46,7 +48,7 @@ export default function KanbanEditDialog({ block, onSave, onCancel }: Props) {
 
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: '20px !important' }}>
         <TextField
-          label="Content"
+          label={t('kanban_edit_dialog.content')}
           multiline
           minRows={3}
           value={content}
@@ -58,7 +60,7 @@ export default function KanbanEditDialog({ block, onSave, onCancel }: Props) {
 
         <Box>
           <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', mb: 0.75, display: 'block' }}>
-            Marker
+            {t('kanban_edit_dialog.marker')}
           </Typography>
           <ToggleButtonGroup
             value={marker}
@@ -76,7 +78,7 @@ export default function KanbanEditDialog({ block, onSave, onCancel }: Props) {
 
         <Box>
           <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', mb: 0.75, display: 'block' }}>
-            Priority
+            {t('kanban_edit_dialog.priority')}
           </Typography>
           <ToggleButtonGroup
             value={priority}
@@ -84,7 +86,7 @@ export default function KanbanEditDialog({ block, onSave, onCancel }: Props) {
             onChange={(_, v) => setPriority(v ?? '')}
             size="small"
           >
-            <ToggleButton value="" sx={{ fontSize: '0.7rem', px: 1.5 }}>None</ToggleButton>
+            <ToggleButton value="" sx={{ fontSize: '0.7rem', px: 1.5 }}>{t('kanban_edit_dialog.none')}</ToggleButton>
             {['A', 'B', 'C'].map((p) => (
               <ToggleButton key={p} value={p} sx={{ fontSize: '0.7rem', px: 1.5 }}>
                 {p}
@@ -94,14 +96,14 @@ export default function KanbanEditDialog({ block, onSave, onCancel }: Props) {
         </Box>
 
         <Typography variant="caption" color="text.disabled">
-          Source: {block.page_title || block.page_path}
+          {t('flashcards.source')} {block.page_title || block.page_path}
         </Typography>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onCancel}>Cancel</Button>
+        <Button onClick={onCancel}>{t('kanban_edit_dialog.cancel')}</Button>
         <Button variant="contained" onClick={handleSave}>
-          Save
+          {t('kanban_edit_dialog.save')}
         </Button>
       </DialogActions>
     </Dialog>
