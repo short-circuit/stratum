@@ -191,11 +191,12 @@ pub async fn install_starter_sample(
         Err(_) => {
             let pages_dir = state.vault_path.join("pages");
             match std::fs::read_dir(&pages_dir) {
-                Ok(rd) => rd
-                    .filter_map(|e| e.ok())
-                    .filter(|e| e.path().extension().and_then(|x| x.to_str()) == Some("md"))
-                    .count()
-                    == 0,
+                Ok(rd) => {
+                    rd.filter_map(|e| e.ok())
+                        .filter(|e| e.path().extension().and_then(|x| x.to_str()) == Some("md"))
+                        .count()
+                        == 0
+                }
                 Err(_) => true,
             }
         }

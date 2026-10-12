@@ -438,7 +438,7 @@ fn test_asset_link_embed_round_trip() {
     // parse unchanged.
     let id1 = Uuid::new_v4();
     let block1 = Block::new(id1, "![[assets/foo.png]]".into());
-    let serialized = serialize_blocks(&vec![block1]);
+    let serialized = serialize_blocks(&[block1]);
     assert!(serialized.contains("![[assets/foo.png]]"));
     let (_fm, _body, reparsed) = parse_document(&serialized);
     assert_eq!(reparsed.len(), 1);
@@ -447,7 +447,7 @@ fn test_asset_link_embed_round_trip() {
     // Likewise for a plain file link `[[assets/bar.pdf]]`.
     let id2 = Uuid::new_v4();
     let block2 = Block::new(id2, "[[assets/bar.pdf]]".into());
-    let serialized2 = serialize_blocks(&vec![block2]);
+    let serialized2 = serialize_blocks(&[block2]);
     assert!(serialized2.contains("[[assets/bar.pdf]]"));
     let (_fm2, _body2, reparsed2) = parse_document(&serialized2);
     assert_eq!(reparsed2[0].content, "[[assets/bar.pdf]]");

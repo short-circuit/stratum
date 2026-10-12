@@ -632,9 +632,7 @@ pub async fn fetch_models(state: tauri::State<'_, AppState>) -> Result<Vec<Strin
 /// wizard never reappears for that vault. "Reset onboarding" re-arms it via
 /// [`set_onboarding_pending`].
 #[tauri::command]
-pub async fn get_onboarding_state(
-    state: tauri::State<'_, AppState>,
-) -> Result<bool, String> {
+pub async fn get_onboarding_state(state: tauri::State<'_, AppState>) -> Result<bool, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let config_path = state.vault_path.join(".pkm").join("config.toml");
 

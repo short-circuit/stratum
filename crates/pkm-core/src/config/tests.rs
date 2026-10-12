@@ -186,7 +186,6 @@ fn test_voice_capture_config_roundtrip() {
         voice: VoiceCaptureConfig {
             enabled: false,
             target: "journal:today".into(),
-            ..Default::default()
         },
         ..Default::default()
     };

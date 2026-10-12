@@ -132,7 +132,10 @@ pub async fn read_asset(
 
 /// Delete an asset (removes the file and its index record).
 #[tauri::command]
-pub async fn delete_asset(ref_path: String, state: tauri::State<'_, AppState>) -> Result<(), String> {
+pub async fn delete_asset(
+    ref_path: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
     let vault_path = {
         let s = state.lock().map_err(|e| e.to_string())?;
         s.vault_path.clone()

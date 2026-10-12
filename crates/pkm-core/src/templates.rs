@@ -377,10 +377,7 @@ mod tests {
     #[test]
     fn every_template_name_is_a_valid_file_stem() {
         for t in starter_templates() {
-            assert!(
-                !t.name.is_empty(),
-                "template name must not be empty"
-            );
+            assert!(!t.name.is_empty(), "template name must not be empty");
             assert!(
                 !t.name.contains('/') && !t.name.contains('\\'),
                 "template name must be a file stem (no separators): {:?}",
@@ -392,7 +389,9 @@ mod tests {
                 t.name
             );
             assert!(
-                t.name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-'),
+                t.name
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b == b'-'),
                 "template name must be a slug (alphanumeric + dash): {:?}",
                 t.name
             );
