@@ -5480,6 +5480,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "pkm-import"
+version = "0.7.1"
+dependencies = [
+ "pkm-block",
+ "pkm-core",
+ "pkm-markdown",
+ "regex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "tempfile",
+]
+
+[[package]]
 name = "pkm-index"
 version = "0.7.1"
 dependencies = [
@@ -7110,6 +7124,7 @@ dependencies = [
  "pkm-block",
  "pkm-core",
  "pkm-dictation",
+ "pkm-import",
  "pkm-index",
  "pkm-markdown",
  "pkm-plugin",

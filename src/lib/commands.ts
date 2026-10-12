@@ -15,3 +15,4 @@ export * from './commands/settings';
 export * from './commands/features';
 export * from './commands/plugins';
 export * from './commands/tray';
+export * from './commands/import';
