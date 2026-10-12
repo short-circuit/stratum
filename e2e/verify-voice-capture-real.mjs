@@ -12,7 +12,7 @@
  */
 import WebDriver from 'webdriver';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const appBinary = './.worktrees/t_e1982a1b/target/debug/stratum-tauri';
+const appBinary = process.env.STRATUM_APP_BINARY || './.worktrees/t_e1982a1b/target/debug/stratum-tauri';
 const driver = await WebDriver.newSession({
   hostname: '127.0.0.1', port: 4444, path: '/', protocol: 'http',
   connectionRetryTimeout: 30000, connectionRetryCount: 1,
