@@ -30,6 +30,7 @@ import VaultPicker from './components/VaultPicker';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import ConflictModal from './components/ui/ConflictModal';
 import PassphraseModal from './components/ui/PassphraseModal';
+import QuickCapture from './components/QuickCapture';
 import { getCurrentWindow, type CloseRequestedEvent } from '@tauri-apps/api/window';
 import { getLatestLibraryJson } from './lib/libraryStore';
 import { subscribePagesChanged } from './lib/recentsEvents';
@@ -50,8 +51,13 @@ getCurrentWindow().onCloseRequested(async (event: CloseRequestedEvent) => {
       console.error('[library] failed to save on app close:', e);
     }
   }
-  // Manually close after save completes
-  getCurrentWindow().destroy();
+  // Honor the "close to tray" preference: hide the window instead of quitting.
+  const st = await api.getTrayStatus().catch(() => null);
+  if (st?.close_to_tray) {
+    await getCurrentWindow().hide();
+  } else {
+    getCurrentWindow().destroy();
+  }
 });
 
 function AppContent() {
@@ -234,6 +240,7 @@ function AppContent() {
           onSubmit={syncModal.submitPassphrase}
         />
       )}
+      <QuickCapture />
     </Box>
   );
 }

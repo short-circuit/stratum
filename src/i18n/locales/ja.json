@@ -610,7 +610,15 @@
     "voice": "Voice",
     "voice_dictation_stt": "Voice Dictation (STT)",
     "web_research_searxng": "Web Research (SearXNG)",
-    "z_ai": "Z.AI"
+    "z_ai": "Z.AI",
+    "tray": "Tray",
+    "tray_enabled": "Enable tray icon",
+    "tray_close_to_tray": "Close to tray",
+    "tray_shortcut": "Quick capture shortcut",
+    "tray_capture_target": "Quick capture target",
+    "tray_capture_target_journal": "Today's journal",
+    "tray_capture_target_inbox": "Inbox page",
+    "tray_inbox_path": "Inbox page path"
   },
   "sidebar": {
     "ask_notes": "Ask Notes",
@@ -688,5 +696,18 @@
     "unsaved": "Unsaved",
     "whiteboard_name": "Whiteboard name",
     "whiteboards": "Whiteboards"
+  },
+  "quickcapture": {
+    "title": "Quick Capture",
+    "placeholder": "Capture a thought…",
+    "hint_save": "Enter to save · Esc to discard",
+    "saved": "Captured to {{page}}",
+    "voice": "Voice capture",
+    "recording": "Recording…",
+    "stop": "Stop",
+    "voice_done": "Voice memo captured",
+    "target_label": "Target:",
+    "target_journal": "Today's journal",
+    "target_inbox": "Inbox"
   }
 }

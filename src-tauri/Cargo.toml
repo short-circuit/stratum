@@ -17,9 +17,11 @@ tauri-build = { version = "2", features = [] }
 ignored = ["tauri-build"]
 
 [dependencies]
-tauri = { version = "2", features = ["custom-protocol", "test"] }
+tauri = { version = "2", features = ["custom-protocol", "test", "tray-icon", "image-png"] }
 tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-single-instance = "2"
 serde.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true

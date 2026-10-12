@@ -226,3 +226,63 @@ fn test_config_with_plugins() {
     assert_eq!(cfg.plugins[0].name, "my-plugin");
     assert!(cfg.plugins[0].enabled);
 }
+
+#[test]
+fn test_tray_config_defaults() {
+    let tray = TrayConfig::default();
+    assert!(tray.enabled);
+    assert!(tray.close_to_tray);
+    assert_eq!(tray.quick_capture_shortcut, "CmdOrCtrl+Shift+Space");
+    assert_eq!(tray.capture_target, CaptureTarget::Journal);
+    assert_eq!(tray.inbox_path, "Inbox.md");
+}
+
+#[test]
+fn test_tray_config_serde_yaml_roundtrip_custom_values() {
+    let tray = TrayConfig {
+        enabled: false,
+        close_to_tray: false,
+        quick_capture_shortcut: "Ctrl+Alt+Q".to_string(),
+        capture_target: CaptureTarget::Inbox,
+        inbox_path: "pages/Inbox.md".to_string(),
+    };
+    let yaml = serde_yaml::to_string(&tray).unwrap();
+    let deserialized: TrayConfig = serde_yaml::from_str(&yaml).unwrap();
+    assert!(!deserialized.enabled);
+    assert!(!deserialized.close_to_tray);
+    assert_eq!(deserialized.quick_capture_shortcut, "Ctrl+Alt+Q");
+    assert_eq!(deserialized.capture_target, CaptureTarget::Inbox);
+    assert_eq!(deserialized.inbox_path, "pages/Inbox.md");
+}
+
+#[test]
+fn test_config_with_tray_roundtrips_preserving_tray_section() {
+    let dir = TempDir::new().unwrap();
+    let config_path = dir.path().join("config.toml");
+
+    let cfg = Config {
+        vault_path: PathBuf::from("/tmp/test-vault"),
+        tray: TrayConfig {
+            enabled: false,
+            close_to_tray: false,
+            quick_capture_shortcut: "Ctrl+Alt+Q".to_string(),
+            capture_target: CaptureTarget::Inbox,
+            inbox_path: "pages/Inbox.md".to_string(),
+        },
+        ..Default::default()
+    };
+    cfg.save(&config_path).unwrap();
+
+    let loaded = Config::load(&config_path).unwrap();
+    assert!(!loaded.tray.enabled);
+    assert!(!loaded.tray.close_to_tray);
+    assert_eq!(loaded.tray.quick_capture_shortcut, "Ctrl+Alt+Q");
+    assert_eq!(loaded.tray.capture_target, CaptureTarget::Inbox);
+    assert_eq!(loaded.tray.inbox_path, "pages/Inbox.md");
+
+    // A config without a [tray] section loads with tray defaults (back-compat).
+    std::fs::write(&config_path, "[theme]\ndark_mode = false\n").unwrap();
+    let without_tray = Config::load(&config_path).unwrap();
+    assert!(without_tray.tray.enabled);
+    assert_eq!(without_tray.tray.capture_target, CaptureTarget::Journal);
+}

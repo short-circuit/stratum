@@ -129,6 +129,18 @@ velocity_decay = 0.4
 # Render the graph in 3D on mobile (opt-in; desktop always renders 3D regardless
 # of this flag). On constrained devices Stratum falls back to 2D automatically.
 use_3d = false
+
+[tray]
+# Show a system tray icon (desktop only)
+enabled = true
+# Hide the window to tray on close instead of quitting (desktop only)
+close_to_tray = true
+# Global shortcut that opens Quick Capture
+quick_capture_shortcut = "CmdOrCtrl+Shift+Space"
+# Where quick-captured blocks are written: "journal" or "inbox"
+capture_target = "journal"
+# Vault-relative path of the inbox page (when capture_target = "inbox")
+inbox_path = "Inbox.md"
 ```
 
 ## Settings Panel Reference
@@ -215,6 +227,22 @@ for the full behavior of the `use_llm_gateway_and_auth` settings.
 | Repair DB from disk | First-class stale-database repair: re-syncs every `.md` whose on-disk modification time is newer than its database record (true drift), plus missing or empty pages, and prunes database entries with no file on disk. Use this when a page or the journal shows stale/empty content. Refreshes the running page list automatically. |
 | Normalize All Files | Parse every `.md` file through the block parser and re-serialize to normalize indentation, block syntax, and frontmatter |
 | Reindex Progress | Live progress bar shown during reindex operations |
+
+### Tray Tab
+
+| Setting | Description |
+|---------|-------------|
+| Enable tray icon | Show or hide the system tray icon (desktop only) |
+| Close to tray | Hide the window to the tray on close instead of quitting (desktop only) |
+| Quick capture shortcut | Global keyboard shortcut that opens Quick Capture |
+| Quick capture target | Where quick captures are written: `journal` (today's daily note) or `inbox` (a configured page) |
+| Inbox page path | Vault-relative path of the inbox page — shown only when the target is `inbox` |
+
+!!! note "Tray availability"
+    The tray and Quick Capture are **desktop-only**. On mobile there is no tray
+    icon and closing the app quits it.
+
+See [Quick Capture](../guide/quick-capture.md) for usage and troubleshooting.
 
 !!! note "Mobile accessibility"
     On mobile, reindex **progress** is displayed live under the Developer section.

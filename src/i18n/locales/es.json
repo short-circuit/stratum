@@ -610,7 +610,15 @@
     "voice": "Voz",
     "voice_dictation_stt": "Dictado por voz (STT)",
     "web_research_searxng": "Investigación web (SearXNG)",
-    "z_ai": "Z.AI"
+    "z_ai": "Z.AI",
+    "tray": "Bandeja del sistema",
+    "tray_enabled": "Activar icono de la bandeja",
+    "tray_close_to_tray": "Minimizar a la bandeja al cerrar",
+    "tray_shortcut": "Atajo de captura rápida",
+    "tray_capture_target": "Destino de la captura rápida",
+    "tray_capture_target_journal": "Diario de hoy",
+    "tray_capture_target_inbox": "Página de Bandeja de entrada",
+    "tray_inbox_path": "Ruta de la página de entrada"
   },
   "sidebar": {
     "ask_notes": "Preguntar a las notas",
@@ -688,5 +696,18 @@
     "unsaved": "Sin guardar",
     "whiteboard_name": "Nombre de la pizarra",
     "whiteboards": "Pizarras"
+  },
+  "quickcapture": {
+    "title": "Captura rápida",
+    "placeholder": "Captura un pensamiento…",
+    "hint_save": "Intro para guardar · Esc para descartar",
+    "saved": "Guardado en {{page}}",
+    "voice": "Captura por voz",
+    "recording": "Grabando…",
+    "stop": "Detener",
+    "voice_done": "Nota de voz capturada",
+    "target_label": "Destino:",
+    "target_journal": "Diario de hoy",
+    "target_inbox": "Bandeja de entrada"
   }
 }
