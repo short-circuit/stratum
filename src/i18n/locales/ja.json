@@ -644,7 +644,13 @@
     "tray_capture_target": "Quick capture target",
     "tray_capture_target_journal": "Today's journal",
     "tray_capture_target_inbox": "Inbox page",
-    "tray_inbox_path": "Inbox page path"
+    "tray_inbox_path": "Inbox page path",
+    "reset_onboarding": "Reset onboarding",
+    "reset_onboarding_help": "Show the first-run wizard again on next launch.",
+    "install_starter_templates": "Install starter templates",
+    "install_starter_templates_help": "Add the bundled starter templates to this vault.",
+    "onboarding_reset_done": "Onboarding will show again on next launch.",
+    "templates_installed": "Installed {{count}} starter template(s)."
   },
   "sidebar": {
     "ask_notes": "Ask Notes",
@@ -735,5 +741,23 @@
     "target_label": "Target:",
     "target_journal": "Today's journal",
     "target_inbox": "Inbox"
+  },
+  "onboarding": {
+    "welcome_title": "Welcome to Stratum",
+    "welcome_subtitle": "Set up your first vault and start capturing ideas.",
+    "choose_vault_folder": "Choose Vault Folder",
+    "next": "Next",
+    "back": "Back",
+    "start_with_templates": "Start with templates",
+    "templates_hint": "Install a curated set of starter pages into your vault.",
+    "sample_vault": "Create a sample vault",
+    "sample_vault_hint": "Add a few linked example notes showing backlinks and the graph.",
+    "finish": "Get Started",
+    "finish_title": "You're all set",
+    "finish_hint": "Your vault is ready. Open the Quick Start guide to explore.",
+    "open_quick_start": "Open the Quick Start guide",
+    "installing": "Installing...",
+    "error": "Something went wrong: {{message}}",
+    "step": "Step {{current}} of {{total}}"
   }
 }

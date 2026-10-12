@@ -120,3 +120,119 @@ pub async fn apply_template(
 
     Ok(result)
 }
+
+/// Install bundled starter templates into `<vault>/templates/`.
+///
+/// When `names` is `None`, every bundled starter template is installed;
+/// otherwise only the named subset. Installation is idempotent: a file that
+/// already exists is never overwritten (so user edits are preserved), but its
+/// name is still included in the returned list so the UI can report it as
+/// already present. The `templates/` directory is created if missing.
+///
+/// Returns the sorted, de-duplicated list of template names present in the
+/// templates directory after the call.
+#[tauri::command]
+pub async fn install_starter_templates(
+    names: Option<Vec<String>>,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<String>, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+    let templates_dir = state.vault_path.join("templates");
+    std::fs::create_dir_all(&templates_dir).map_err(|e| e.to_string())?;
+
+    let selected = names.unwrap_or_else(|| {
+        pkm_core::starter_template_names()
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect()
+    });
+
+    let mut present: Vec<String> = Vec::new();
+    for name in &selected {
+        let template = pkm_core::starter_templates()
+            .iter()
+            .find(|t| t.name == name);
+        if let Some(t) = template {
+            let path = templates_dir.join(format!("{}.md", name));
+            if !path.exists() {
+                std::fs::write(&path, t.content).map_err(|e| e.to_string())?;
+            }
+            present.push(name.clone());
+        }
+    }
+
+    present.sort();
+    present.dedup();
+    Ok(present)
+}
+
+/// Seed a sample vault (a small set of linked demo notes) when empty.
+///
+/// Writes plain Markdown pages under `<vault>/pages/` — a welcome note plus
+/// linked project notes — demonstrating wiki-links, backlinks, and the graph.
+/// The notes are created ONLY when the vault has no pages yet; otherwise the
+/// command is a no-op returning an empty list (never clobbering existing work).
+///
+/// Returns the list of created vault-relative paths (empty when skipped).
+#[tauri::command]
+pub async fn install_starter_sample(
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<String>, String> {
+    let state = state.lock().map_err(|e| e.to_string())?;
+
+    // Only seed when the vault is empty: prefer the block store's page count,
+    // falling back to scanning the `pages/` directory if the store is
+    // unavailable (e.g. SQLite not yet initialized).
+    let empty = match state.get_store() {
+        Ok(store) => match store.page_count() {
+            Ok(n) => n == 0,
+            Err(_) => false,
+        },
+        Err(_) => {
+            let pages_dir = state.vault_path.join("pages");
+            match std::fs::read_dir(&pages_dir) {
+                Ok(rd) => rd
+                    .filter_map(|e| e.ok())
+                    .filter(|e| e.path().extension().and_then(|x| x.to_str()) == Some("md"))
+                    .count()
+                    == 0,
+                Err(_) => true,
+            }
+        }
+    };
+
+    if !empty {
+        return Ok(Vec::new());
+    }
+
+    let notes: [(&str, &str); 4] = [
+        (
+            "pages/Getting Started.md",
+            "---\ntitle: Getting Started\ntags: [welcome]\n---\n\n# Getting Started\n\nWelcome to Stratum. This sample vault shows how wiki-links, backlinks, and the knowledge graph work.\n\n## Explore\n\n- [ ] TODO: Open [[Project Alpha]]\n- [ ] TODO: Open [[Second Project]]\n- [ ] TODO: Add a note to [[Quick Notes]]\n\n- #welcome\n",
+        ),
+        (
+            "pages/Project Alpha.md",
+            "---\ntitle: Project Alpha\ntags: [project]\n---\n\n# Project Alpha\n\nA sample project note linked to [[Getting Started]] and [[Second Project]].\n\n## Status\n\n- [ ] TODO: Define scope\n- [ ] DOING: Build the prototype\n- [ ] DONE: Research\n\n- #project\n",
+        ),
+        (
+            "pages/Second Project.md",
+            "---\ntitle: Second Project\ntags: [project, demo]\n---\n\n# Second Project\n\nA second project note that links back to [[Project Alpha]].\n\n## Notes\n\n- Track progress in [[Project Alpha]].\n\n- #project\n- #demo\n",
+        ),
+        (
+            "pages/Quick Notes.md",
+            "---\ntitle: Quick Notes\ntags: [notes]\n---\n\n# Quick Notes\n\nA scratch note for quick captures.\n\n## Ideas\n\n- Links back to [[Project Alpha]].\n\n- #notes\n",
+        ),
+    ];
+
+    let mut created = Vec::new();
+    for (rel, content) in notes {
+        let path = state.vault_path.join(rel);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        std::fs::write(&path, content).map_err(|e| e.to_string())?;
+        created.push(rel.to_string());
+    }
+
+    Ok(created)
+}

@@ -51,7 +51,8 @@ src/
 │   ├── settingsStore.ts     # Theme + AI + sync config
 │   ├── graphStore.ts        # Graph data + settings
 │   ├── syncStore.ts         # Sync status + commits
-│   └── recentsStore.ts      # Sidebar "Recent" list + debounced refresh
+│   ├── recentsStore.ts      # Sidebar "Recent" list + debounced refresh
+│   └── onboardingStore.ts   # First-run wizard state + install orchestration
 ├── components/
 │   ├── ui/                  # Reusable UI primitives
 │   ├── Sidebar/
@@ -126,7 +127,7 @@ Components **never** call `invoke()` directly — always through `commands.ts`. 
 
 ### Zustand Stores
 
-Stratum uses five domain-specific Zustand stores, each in `src/stores/`:
+Stratum uses six domain-specific Zustand stores, each in `src/stores/`:
 
 #### `appStore` — Core Application State
 

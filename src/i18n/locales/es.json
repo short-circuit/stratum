@@ -644,7 +644,13 @@
     "tray_capture_target": "Destino de la captura rápida",
     "tray_capture_target_journal": "Diario de hoy",
     "tray_capture_target_inbox": "Página de Bandeja de entrada",
-    "tray_inbox_path": "Ruta de la página de entrada"
+    "tray_inbox_path": "Ruta de la página de entrada",
+    "reset_onboarding": "Restablecer incorporación",
+    "reset_onboarding_help": "Mostrar el asistente de nuevo en el próximo inicio.",
+    "install_starter_templates": "Instalar plantillas iniciales",
+    "install_starter_templates_help": "Añadir las plantillas iniciales incluidas a este vault.",
+    "onboarding_reset_done": "El onboarding volverá a aparecer en el próximo inicio.",
+    "templates_installed": "Instaladas {{count}} plantilla(s) inicial(es)."
   },
   "sidebar": {
     "ask_notes": "Preguntar a las notas",
@@ -735,5 +741,23 @@
     "target_label": "Destino:",
     "target_journal": "Diario de hoy",
     "target_inbox": "Bandeja de entrada"
+  },
+  "onboarding": {
+    "welcome_title": "Bienvenido a Stratum",
+    "welcome_subtitle": "Configura tu primer vault y empieza a capturar ideas.",
+    "choose_vault_folder": "Elegir carpeta del vault",
+    "next": "Siguiente",
+    "back": "Atrás",
+    "start_with_templates": "Empezar con plantillas",
+    "templates_hint": "Instala un conjunto curado de páginas iniciales en tu vault.",
+    "sample_vault": "Crear un vault de ejemplo",
+    "sample_vault_hint": "Añade algunas notas de ejemplo enlazadas que muestren backlinks y el grafo.",
+    "finish": "Empezar",
+    "finish_title": "Todo listo",
+    "finish_hint": "Tu vault está listo. Abre la guía de inicio rápido para explorar.",
+    "open_quick_start": "Abrir la guía de inicio rápido",
+    "installing": "Instalando...",
+    "error": "Algo salió mal: {{message}}",
+    "step": "Paso {{current}} de {{total}}"
   }
 }

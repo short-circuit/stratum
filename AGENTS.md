@@ -258,6 +258,7 @@ React app uses **Zustand** for state. Domain-specific stores in `src/stores/`:
 - **graphStore** — graph data, connected components, orphans, graph settings
 - **syncStore** — sync status, commit log, conflict state
 - **navigationStore** — modifier-click navigation state (source-editor scroll restore on return; session-scoped)
+- **onboardingStore** — first-run wizard state (step, template/sample toggles, install orchestration)
 
 All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rust command → crate logic.
 
@@ -267,6 +268,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 
 | Component | Route | Purpose | Guide |
 |-----------|-------|---------|-------|
+| `Onboarding` | (first-run gate — no route) | First-run wizard (create vault, templates, sample) | `docs/getting-started/quickstart.md` |
 | `PagesHome` | `/` | Page list with block counts | — |
 | `JournalPanel` | `/journal` | Calendar + daily journal creation | `docs/guide/journal.md` |
 | `PageView` | `/page/:pagePath` | Block editor + backlinks + connections | `docs/guide/block-editor.md` |
@@ -343,6 +345,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `useMathInline` | ProseMirror plugin for inline KaTeX | OutlinerEditor |
 | `useLongPress` | Detect long-press gestures | MobileNav, MobileLayout |
 | `useMarkerDecorations` | ProseMirror decorations for inline marker/priority badges | OutlinerEditor |
+| `useOnboarding` | First-run wizard step/install orchestration (in `Onboarding.shared.tsx`) | Onboarding desktop/mobile |
 
 ### Component Sizing Rules
 
