@@ -19,4 +19,6 @@ runs:
           pkg-config \
           webkit2gtk-driver \
           xvfb \
-          dbus
+          dbus \
+          libayatana-appindicator3-dev \
+          libappindicator3-dev
