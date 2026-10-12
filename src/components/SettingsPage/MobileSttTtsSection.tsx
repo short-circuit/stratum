@@ -6,6 +6,7 @@ import TextField from '@mui/material/TextField';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { SttTestButton, TtsTestButton } from './AiTestButtons';
+import VoiceCaptureSection from './VoiceCaptureSection';
 import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
@@ -35,9 +36,11 @@ export interface MobileSttTtsSectionProps {
     speed: number;
   };
   updateTts: (patch: any) => void;
+  voice?: { enabled: boolean; target: string };
+  updateVoice?: (patch: any) => void;
 }
 
-export default function MobileSttTtsSection({ stt, updateStt, tts, updateTts }: MobileSttTtsSectionProps) {
+export default function MobileSttTtsSection({ stt, updateStt, tts, updateTts, voice, updateVoice }: MobileSttTtsSectionProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
@@ -186,6 +189,9 @@ export default function MobileSttTtsSection({ stt, updateStt, tts, updateTts }: 
             {t('settings.speed_is_applied_at_play_time_a_value_of_1_0_is_normal_speed')}
           </Typography>
           <TtsTestButton />
+
+          {/* Voice capture toggle */}
+          <VoiceCaptureSection voice={voice} onVoiceChange={updateVoice} />
         </Box>
       )}
     </Box>

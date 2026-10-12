@@ -9,6 +9,7 @@ import '@fontsource/inter/700.css'
 import App from './App'
 import { applyTheme } from './lib/theme'
 import { useStore } from './stores/appStore'
+import { useSettingsStore } from './stores/settingsStore'
 import { useSyncStore } from './stores/syncStore'
 import * as api from './lib/commands'
 import { initI18n, setLocale } from './i18n'
@@ -47,6 +48,11 @@ async function init() {
 
   // Initialize sync status on startup so it's available globally
   useSyncStore.getState().fetchSyncStatus();
+
+  // Populate the settings store so domain logic (e.g. voice-capture STT
+  // configuration) can read the persisted settings. Best-effort: a failure
+  // must never block app boot.
+  void useSettingsStore.getState().loadSettings();
 
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

@@ -95,6 +95,7 @@ const ALLOW_EXACT = new Set([
   'http://localhost:8888', 'http://localhost:9000', '~/.ssh/id_ed25519',
   'pyannote/speaker-diarization', 'whisper-1', 'gpt-4o', 'alloy', 'mp3', 'wav', 'flac',
   'main', 'master', 'pages/my-new-page.md', '#f97316', '#6b7280',
+  'journal:today', // voice-capture insertion target config token
   '1x', '2x', '1.5x', '0 0 80px', '0 0 120px', '0 0 160px', '0 0 auto',
   '1 1 auto', '1 1 45%', '50%!important', '56px !important', '20px !important',
   'underline dashed', 'pointer-events:none;transform-origin:0 0;',

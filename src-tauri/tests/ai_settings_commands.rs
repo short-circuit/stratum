@@ -82,6 +82,7 @@ fn seed_config_with_key(tv: &common::TestVault, key: &str) {
 fn settings_body(tv: &common::TestVault, ai_key: serde_json::Value) -> serde_json::Value {
     json!({
         "vault_path": tv.vault_path,
+        "locale": "en",
         "theme": { "dark_mode": false, "primary_color": "#fff", "secondary_color": "#000", "font_size": 14 },
         "ai": {
             "provider": "custom-openai",
@@ -97,7 +98,8 @@ fn settings_body(tv: &common::TestVault, ai_key: serde_json::Value) -> serde_jso
         "graph": { "show_connected": true, "show_orphaned": true, "show_tags": true, "charge_strength": 30.0, "link_distance": 120.0, "alpha_decay": 0.1, "velocity_decay": 0.2, "link_curvature": 0.0 },
         "sync": { "mode": "manual", "branch": "master", "auto_commit_interval_secs": 300, "auto_sync_interval_secs": 3600, "commit_template": "{{message}}" },
         "stt": { "endpoint": "http://localhost:9001", "model": "whisper-1", "diarize_model": "", "language": null, "diarize": false, "auto_summarize": false, "auto_identify": false },
-        "tts": { "endpoint": "", "voice": "alloy", "format": "mp3", "speed": 1.0 }
+        "tts": { "endpoint": "", "voice": "alloy", "format": "mp3", "speed": 1.0 },
+        "voice": { "enabled": true, "target": "journal:today" }
     })
 }
 

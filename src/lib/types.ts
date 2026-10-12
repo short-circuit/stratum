@@ -325,6 +325,20 @@ export interface TtsSettings {
   speed: number;
 }
 
+// --- Voice capture (E9.F4) ---
+
+/** Voice-capture feature settings (mirrors `VoiceCaptureConfig` in pkm-core). */
+export interface VoiceSettings {
+  enabled: boolean;
+  target: string;
+}
+
+/** Result of `mic_permission_status`. */
+export interface MicPermissionDto {
+  granted: boolean;
+  restricted: boolean;
+}
+
 export interface SpeakerDto {
   name: string;
   clip: string | null;

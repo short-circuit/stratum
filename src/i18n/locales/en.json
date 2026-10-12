@@ -688,5 +688,21 @@
     "unsaved": "Unsaved",
     "whiteboard_name": "Whiteboard name",
     "whiteboards": "Whiteboards"
+  },
+  "voice_capture": {
+    "cancel": "Cancel",
+    "configure_stt": "Configure STT",
+    "configure_stt_prompt": "Transcription isn't configured. The recording was saved as a placeholder.",
+    "denied_banner": "Microphone permission is denied. Enable it in Settings.",
+    "enable": "Enable voice capture",
+    "error_fallback_inserted": "Couldn't transcribe — the recording was saved as a memo placeholder.",
+    "error_retry": "Something went wrong.",
+    "memo_inserted": "Voice memo inserted",
+    "record": "Record voice memo",
+    "recording": "Recording…",
+    "retry_transcription": "Retry transcription",
+    "settings_target_today": "Captures are inserted into today's journal.",
+    "settings_toggle_label": "Voice-Capture Button",
+    "stop_save": "Stop & save"
   }
 }

@@ -51,6 +51,11 @@ export interface TtsSettings {
   use_llm_gateway_and_auth: boolean;
 }
 
+export interface VoiceSettings {
+  enabled: boolean;
+  target: string;
+}
+
 export interface AppSettings {
   vault_path: string;
   locale: string;
@@ -61,6 +66,7 @@ export interface AppSettings {
   research: ResearchSettings;
   stt: SttSettings;
   tts: TtsSettings;
+  voice: VoiceSettings;
   [key: string]: unknown;
 }
 
@@ -77,6 +83,7 @@ export interface SettingsState {
   updateResearch: (patch: Partial<ResearchSettings>) => void;
   updateStt: (patch: Partial<SttSettings>) => void;
   updateTts: (patch: Partial<TtsSettings>) => void;
+  updateVoice: (patch: Partial<VoiceSettings>) => void;
   updateLocale: (locale: string) => void;
   setSettings: (settings: AppSettings) => void;
 }
@@ -152,6 +159,12 @@ const DEFAULT_TTS: TtsSettings = {
   use_llm_gateway_and_auth: false,
 };
 
+/** Default voice-capture settings. Keep in sync with `VoiceCaptureConfig::default()`. */
+const DEFAULT_VOICE: VoiceSettings = {
+  enabled: true,
+  target: 'journal:today',
+};
+
 const DEFAULT_SETTINGS: AppSettings = {
   vault_path: '',
   locale: 'en',
@@ -162,6 +175,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   research: DEFAULT_RESEARCH,
   stt: DEFAULT_STT,
   tts: DEFAULT_TTS,
+  voice: DEFAULT_VOICE,
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -186,6 +200,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           research: result.research ? { ...DEFAULT_RESEARCH, ...result.research } : DEFAULT_RESEARCH,
           stt: result.stt ? { ...DEFAULT_STT, ...result.stt } : DEFAULT_STT,
           tts: result.tts ? { ...DEFAULT_TTS, ...result.tts } : DEFAULT_TTS,
+          voice: result.voice ? { ...DEFAULT_VOICE, ...result.voice } : DEFAULT_VOICE,
         },
         loading: false,
       });
@@ -239,6 +254,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const s = get().settings;
     if (!s) return;
     set({ settings: { ...s, tts: { ...s.tts, ...patch } } });
+  },
+
+  updateVoice: (patch) => {
+    const s = get().settings;
+    if (!s) return;
+    set({ settings: { ...s, voice: { ...s.voice, ...patch } } });
   },
 
   updateLocale: (locale) => {

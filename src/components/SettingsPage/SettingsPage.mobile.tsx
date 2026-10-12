@@ -56,6 +56,8 @@ export default function SettingsPageMobile() {
     tts,
     updateStt,
     updateTts,
+    voice,
+    updateVoice,
     // Sync
     syncSettings,
     updateSync,
@@ -135,6 +137,8 @@ export default function SettingsPageMobile() {
           updateStt={updateStt}
           tts={tts}
           updateTts={updateTts}
+          voice={voice}
+          updateVoice={updateVoice}
         />
 
         {/* ─── Research Section ─── */}

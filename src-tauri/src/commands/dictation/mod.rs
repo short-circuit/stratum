@@ -5,10 +5,12 @@
 //! atomic-write flow as `save_blocks`.
 
 mod memos;
+mod mic;
 mod speakers;
 mod transcribe;
 
 pub use memos::*;
+pub use mic::*;
 pub use speakers::*;
 pub use transcribe::*;
 

@@ -64,6 +64,7 @@ export async function getSettings(): Promise<{
     format: string;
     speed: number;
   };
+  voice?: { enabled: boolean; target: string };
 }> {
   return invoke('get_settings');
 }
@@ -102,6 +103,7 @@ export async function saveSettings(settings: {
     format: string;
     speed: number;
   };
+  voice?: { enabled: boolean; target: string };
 }): Promise<void> {
   return invoke('save_settings', { settings });
 }
