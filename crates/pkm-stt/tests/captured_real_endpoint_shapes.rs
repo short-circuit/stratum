@@ -5,9 +5,9 @@
 //! (LocalAI). They lock in the real response shapes so the parser contract the
 //! backend relies on cannot silently drift.
 //!
-//! Captures live in the validation report:
-//! `docs/development/endpoint-validation.md` (§2.4–2.6), raw files under
-//! `/tmp/stratum_captures/` at capture time.
+//! Captured shapes are documented in the gitignored QA report
+//! `.hermes/stratum-qa/docs/endpoint-validation.md` (§2.4–2.6); raw files
+//! lived under `/tmp/stratum_captures/` at capture time.
 
 use pkm_stt::{assign_speakers, parse_diarization_json, parse_transcription_json};
 
