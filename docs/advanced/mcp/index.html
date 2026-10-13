@@ -13,6 +13,10 @@
         <link rel="canonical" href="https://short-circuit.github.io/stratum/docs/advanced/mcp/">
       
       
+        <link rel="prev" href="../mcp-deployment/">
+      
+      
+        <link rel="next" href="../../contributing/">
       
       
         
@@ -308,10 +312,12 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../file-format/" class="md-tabs__link">
           
   
@@ -1531,8 +1537,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -1542,25 +1550,28 @@
       
         
       
+        
+      
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   
@@ -1578,7 +1589,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1668,6 +1679,634 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stratum MCP Server — API Contract (NORMATIVE)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stratum MCP Server — API Contract (NORMATIVE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table of Contents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-revision-pin-and-normative-facts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Revision pin and normative facts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-transports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Transports
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Transports">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-streamable-http" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Streamable HTTP
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-stdio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 stdio
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-server-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Server metadata
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-data-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Data models
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Data models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-notedocument-the-full-content-model-of-a-note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 NoteDocument — the full content model of a note
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-block-matches-the-editors-block-dto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Block — matches the editor's block DTO
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-searchhit-matches-searchresultdto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 SearchHit — matches SearchResultDto
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-backlink-matches-backlinkdto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Backlink — matches BacklinkDto
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-graphdata-matches-graphdatadto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 GraphData — matches GraphDataDto
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#46-vaultinfo-matches-vaultinfo-command-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.6 VaultInfo — matches VaultInfo command output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#47-tagoperationresult-returned-by-tag-mutation-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.7 TagOperationResult — returned by tag mutation tools
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#48-indexstatus-returned-by-kb_index_status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.8 IndexStatus — returned by kb_index_status
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-tools-json-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Tools (JSON Schema)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Tools (JSON Schema)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-kb_get_page-read-a-single-note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 kb_get_page — read a single note
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-kb_list_pages-enumerate-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 kb_list_pages — enumerate notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-kb_write_page-create-or-overwrite-a-note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 kb_write_page — create or overwrite a note
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-kb_delete_page-delete-a-note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 kb_delete_page — delete a note
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55-kb_reindex-rebuildincremental-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.5 kb_reindex — rebuild/incremental index
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#56-kb_index_status-inspect-index-health" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.6 kb_index_status — inspect index health
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#57-kb_search-full-text-search" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.7 kb_search — full-text search
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#58-kb_search_by_tag-tag-search" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.8 kb_search_by_tag — tag search
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#59-kb_autocomplete-completion-suggestions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.9 kb_autocomplete — completion suggestions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#510-kb_backlinks-inbound-links-mentions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.10 kb_backlinks — inbound links &amp; mentions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#511-kb_graph-graph-neighborhood" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.11 kb_graph — graph neighborhood
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#512-kb_resolve_link-resolve-a-wiki-link-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.12 kb_resolve_link — resolve a wiki-link target
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#513-kb_add_tag-organize-add-a-tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.13 kb_add_tag — organize: add a tag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#514-kb_remove_tag-organize-remove-a-tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.14 kb_remove_tag — organize: remove a tag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#515-kb_vault_info-meta" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.15 kb_vault_info — meta
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-mapping-to-existing-storage-and-command-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Mapping to existing storage and command surface
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Mapping to existing storage and command surface">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-how-link-organize-operations-map-to-mcp-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 How link &amp; organize operations map to MCP tools
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-authentication-authorization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Authentication &amp; authorization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Authentication &amp; authorization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Modes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-scopes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Scopes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Boundaries
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74-credential-rotation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4 Credential rotation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-error-handling-error-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Error handling &amp; error codes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Error handling &amp; error codes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-canonical-code-vocabulary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 Canonical code vocabulary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-rate-limiting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Rate limiting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-concurrency-atomicity-consistency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Concurrency, atomicity &amp; consistency
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-pagination-limits-payload-caps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Pagination, limits &amp; payload caps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-operational-endpoints-observability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Operational endpoints &amp; observability
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-integration-plan-for-backend-developers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Integration plan for backend developers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-qa-test-suite-coverage-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. QA test suite &amp; coverage gate
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -2791,14 +3430,14 @@ schema against the JSON Schemas in §5.</p>
 <li><a href="#2-transports">Transports</a></li>
 <li><a href="#3-server-metadata">Server metadata</a></li>
 <li><a href="#4-data-models">Data models</a></li>
-<li><a href="#5-tools--json-schema">Tools (JSON Schema)</a></li>
+<li><a href="#5-tools-json-schema">Tools (JSON Schema)</a></li>
 <li><a href="#6-mapping-to-existing-storage-and-command-surface">Mapping to existing storage and command surface</a></li>
-<li><a href="#7-authentication--authorization">Authentication &amp; authorization</a></li>
-<li><a href="#8-error-handling--error-codes">Error handling &amp; error codes</a></li>
+<li><a href="#7-authentication-authorization">Authentication &amp; authorization</a></li>
+<li><a href="#8-error-handling-error-codes">Error handling &amp; error codes</a></li>
 <li><a href="#9-rate-limiting">Rate limiting</a></li>
-<li><a href="#10-concurrency-atomicity--consistency">Concurrency, atomicity &amp; consistency</a></li>
-<li><a href="#11-pagination-limits--payload-caps">Pagination, limits &amp; payload caps</a></li>
-<li><a href="#12-operational-endpoints--observability">Operational endpoints &amp; observability</a></li>
+<li><a href="#10-concurrency-atomicity-consistency">Concurrency, atomicity &amp; consistency</a></li>
+<li><a href="#11-pagination-limits-payload-caps">Pagination, limits &amp; payload caps</a></li>
+<li><a href="#12-operational-endpoints-observability">Operational endpoints &amp; observability</a></li>
 <li><a href="#13-integration-plan-for-backend-developers">Integration plan for backend developers</a></li>
 </ol>
 <hr />

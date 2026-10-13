@@ -1548,6 +1548,8 @@
       
         
       
+        
+      
     
     
     
@@ -1666,6 +1668,34 @@
     
   
     Stratum MCP Server — Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../advanced/mcp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stratum MCP Server — API Contract (NORMATIVE)
   
 
     
@@ -2425,7 +2455,7 @@ task (<code>t_e132158a</code>) must expose it through the documented Tauri comma
    the linker registers a real WASI preview1 context (so <code>std</code> wasm32-wasip1
    builds link), in addition to the <code>"pkm"</code> host module. Host functions are
    imported from the <code>"pkm"</code> module in WASM linear-memory via the ABI in
-   <a href="../advanced/plugins.md"><code>../advanced/plugins.md</code></a> ("Host Function ABI"
+   <a href="../../../advanced/plugins/"><code>../../advanced/plugins.md</code></a> ("Host Function ABI"
    section). Every host call reads its request from WASM memory at the
    guest-supplied offset and writes its response back at <strong>offset 0</strong> of the
    plugin's linear memory, returning the byte length of the response. This
