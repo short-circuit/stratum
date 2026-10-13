@@ -39,6 +39,8 @@ jobs:
           mv site gh-pages-output/docs
           # Copy landing page to root of gh-pages
           cp docs/landing/index.html gh-pages-output/index.html
+          # Copy LICENSE so the landing page's LICENSE link resolves
+          cp LICENSE gh-pages-output/LICENSE
 
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
