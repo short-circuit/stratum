@@ -1,13 +1,36 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import AITab from './AITab';
+import * as api from '../../lib/commands';
 
 // The test buttons (SttTestButton/TtsTestButton) call the Tauri command surface;
 // stub the commands module so the tab renders in jsdom without a runtime.
 vi.mock('../../lib/commands', () => ({
   sttTestConnection: vi.fn().mockResolvedValue({ ok: false, models: [], latency_ms: 0, error: 'stub' }),
   ttsGenerate: vi.fn().mockResolvedValue({ audio_b64: '', mime: 'audio/mpeg', byte_len: 0, model: 'stub' }),
+  discoverLocalAi: vi.fn(),
+  pingSearchInstance: vi.fn(),
 }));
+
+const OLLAMA_EP = {
+  host: 'http://127.0.0.1:11434',
+  name: 'Ollama',
+  kind: 'ollama' as const,
+  models: ['llama3.2:latest'],
+  status: 'available' as const,
+  latency_ms: 12,
+  error: null,
+};
+const LM_EP = {
+  host: 'http://127.0.0.1:1234/v1',
+  name: 'LM Studio',
+  kind: 'openai_compatible' as const,
+  models: [],
+  status: 'unreachable' as const,
+  latency_ms: 0,
+  error: 'no response',
+};
+const DISCOVERY = [OLLAMA_EP, LM_EP];
 
 function makeProps(overrides: any = {}) {
   return {
@@ -102,5 +125,49 @@ describe('AITab — use_llm_gateway_and_auth checkboxes', () => {
     // The TTS checkbox renders enabled (not gated/disabled) per the backend decision.
     const ttsBox = screen.getAllByLabelText('Use gateway and auth from LLM')[2];
     expect(ttsBox).not.toBeDisabled();
+  });
+});
+
+describe('AITab — local discovery', () => {
+  beforeEach(() => {
+    (api.discoverLocalAi as ReturnType<typeof vi.fn>).mockReset();
+    (api.pingSearchInstance as ReturnType<typeof vi.fn>).mockReset();
+  });
+
+  it('discover button lists detected endpoints', async () => {
+    (api.discoverLocalAi as ReturnType<typeof vi.fn>).mockResolvedValue(DISCOVERY);
+    render(<AITab {...makeProps()} />);
+
+    fireEvent.click(screen.getByText('Discover local models'));
+    await expect(screen.findByText('Ollama')).resolves.toBeInTheDocument();
+    expect(screen.getByText('llama3.2:latest')).toBeInTheDocument();
+    expect(screen.getByText('Unreachable')).toBeInTheDocument();
+    expect(screen.queryByText('No local endpoints detected yet')).not.toBeInTheDocument();
+  });
+
+  it('use this endpoint adopts provider/endpoint', () => {
+    // Seed last_discovered with the available Ollama endpoint so the row's
+    // "Use this endpoint" button renders without an explicit discovery click.
+    const props = makeProps({
+      ai: { ...makeProps().ai, last_discovered: DISCOVERY },
+    });
+    render(<AITab {...props} />);
+
+    fireEvent.click(screen.getByText('Use this endpoint'));
+    expect(props.onAiChange).toHaveBeenCalledWith({
+      provider: 'ollama',
+      endpoint: 'http://127.0.0.1:11434',
+    });
+  });
+
+  it('extra hosts editor round-trips', () => {
+    const props = makeProps();
+    render(<AITab {...props} />);
+
+    const textarea = screen.getByLabelText('Extra local hosts (host:port, one per line)');
+    fireEvent.change(textarea, { target: { value: '127.0.0.1:9999\n\n http://x ' } });
+    expect(props.onAiChange).toHaveBeenCalledWith({
+      extra_local_hosts: ['127.0.0.1:9999', 'http://x'],
+    });
   });
 });

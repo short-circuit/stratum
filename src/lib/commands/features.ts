@@ -7,6 +7,8 @@ import type {
   RagQueryResultDto,
   KanbanBlockDto,
   KanbanDataDto,
+  DiscoveredEndpoint,
+  SearchPingResult,
   DictationStartDto,
   DictationStopDto,
   DictationOptsDto,
@@ -46,6 +48,14 @@ export async function aiInterlinkNotes(
 export async function generateMermaid(prompt: string): Promise<string> {
   const result = await invoke<AiTransformResult>('generate_mermaid', { prompt });
   return result.content;
+}
+
+export function discoverLocalAi(): Promise<DiscoveredEndpoint[]> {
+  return invoke('discover_local_ai');
+}
+
+export function pingSearchInstance(url: string): Promise<SearchPingResult> {
+  return invoke('ping_search_instance', { url });
 }
 
 // --- Templates ---

@@ -24,6 +24,24 @@ docker run --rm -d -p 8888:8080 searxng/searxng
 3. Adjust **Max Results** (1–10) and **Research Depth** (1–5)
 4. Click **Save**
 
+### Public SearXNG Instances
+
+**Settings → Research** also lists four community-run public SearXNG
+instances with per-instance **Test instance** and **Use this instance**
+buttons:
+
+- `https://searx.be`
+- `https://search.bus-hit.me`
+- `https://priv.au`
+- `https://searx.tiekoetter.com`
+
+These are **static presets** — Stratum never auto-detects a public instance, so
+the list is fixed and not reordered by connectivity. Public instances are
+community-run and their availability varies, so test one before relying on it.
+A rate-limited instance (HTTP 429) still counts as **reachable** for the ping —
+it is available, just throttled. If you self-host SearXNG, ignore the presets
+and enter your own URL in the endpoint field, which remains fully supported.
+
 ## How Research Works
 
 Stratum's research engine performs iterative depth-first search:
