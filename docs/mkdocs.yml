@@ -104,6 +104,7 @@ nav:
     - guide/git-sync.md
     - guide/export.md
     - guide/importers.md
+    - guide/kanban.md
     - guide/plugins.md
     - guide/localization.md
     - guide/quick-capture.md
