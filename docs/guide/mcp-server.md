@@ -188,7 +188,7 @@ Clients configured for **Streamable HTTP** with a bearer token:
 
 !!! tip "Use `--require-auth` in production"
     Over a network, always combine `--require-auth` with a long, random PAT
-    (see [Authentication](#authentication--authorization)). Without it, any
+    (see [Authentication](#authentication-authorization)). Without it, any
     client that can reach the port has full read/write access to your notes.
 
 ### 3. Manual verification with `curl`

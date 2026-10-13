@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520" role="img" aria-labelledby="title desc">
+  <title id="title">Voice memo pipeline</title>
+  <desc id="desc">Pipeline from microphone capture through speech-to-text and the Stratum pipeline to memo insertion and reindexing.</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7a4a12"/>
+    </marker>
+    <style>
+      .box { fill: #fff8f0; stroke: #7a4a12; stroke-width: 1.5; rx: 8; }
+      .accent { fill: #ff8c35; stroke: #7a4a12; stroke-width: 1.5; rx: 8; }
+      .label { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; fill: #2b2118; }
+      .sub { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 11px; fill: #6b5d4f; }
+      .flow { stroke: #7a4a12; stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <!-- Stage 1: capture -->
+  <rect class="accent" x="40" y="40" width="240" height="72"/>
+  <text class="label" x="160" y="72" text-anchor="middle" font-weight="600">Microphone capture</text>
+  <text class="sub" x="160" y="92" text-anchor="middle">FLAC saved in &lt;vault&gt;/assets/recordings/</text>
+
+  <!-- Stage 2: STT -->
+  <rect class="box" x="40" y="160" width="240" height="72"/>
+  <text class="label" x="160" y="192" text-anchor="middle" font-weight="600">Speech-to-text endpoint</text>
+  <text class="sub" x="160" y="212" text-anchor="middle">OpenAI-compatible, configurable (e.g. LocalAI)</text>
+
+  <!-- Stage 3: Stratum pipeline -->
+  <rect class="accent" x="40" y="280" width="240" height="72"/>
+  <text class="label" x="160" y="312" text-anchor="middle" font-weight="600">Stratum pipeline</text>
+  <text class="sub" x="160" y="332" text-anchor="middle">segments + speaker labels</text>
+
+  <!-- Stage 3 branches -->
+  <rect class="box" x="360" y="200" width="170" height="46"/>
+  <text class="label" x="445" y="228" text-anchor="middle">LLM summary</text>
+  <rect class="box" x="560" y="200" width="170" height="46"/>
+  <text class="label" x="645" y="228" text-anchor="middle">[[wiki-links]]</text>
+  <rect class="box" x="760" y="200" width="110" height="46"/>
+  <text class="label" x="815" y="228" text-anchor="middle">tags</text>
+
+  <!-- Stage 4: memo -->
+  <rect class="box" x="360" y="300" width="510" height="54"/>
+  <text class="label" x="615" y="324" text-anchor="middle" font-weight="600">Memo markdown inserted at end of current note</text>
+  <text class="sub" x="615" y="343" text-anchor="middle">audio clip linked from the memo (&#128266; Listen to recording)</text>
+
+  <!-- Stage 5: reindex -->
+  <rect class="box" x="360" y="400" width="510" height="54"/>
+  <text class="label" x="615" y="424" text-anchor="middle" font-weight="600">Reindexed</text>
+  <text class="sub" x="615" y="443" text-anchor="middle">backlinks, search, graph and tag cloud pick it up</text>
+
+  <!-- Flow arrows -->
+  <path class="flow" d="M 160 112 L 160 160"/>
+  <path class="flow" d="M 160 232 L 160 280"/>
+  <path class="flow" d="M 280 316 L 360 316"/>
+  <path class="flow" d="M 280 316 L 445 260"/>
+  <path class="flow" d="M 280 316 L 645 260"/>
+  <path class="flow" d="M 280 316 L 815 260"/>
+  <path class="flow" d="M 445 246 L 445 300"/>
+  <path class="flow" d="M 645 246 L 645 300"/>
+  <path class="flow" d="M 815 246 L 815 300"/>
+  <path class="flow" d="M 615 354 L 615 400"/>
+</svg>

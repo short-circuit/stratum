@@ -4,7 +4,7 @@ Record a voice memo from inside a note, save the raw audio clip, and get a
 diarized transcript inserted directly into the current page — enriched with
 an LLM summary, `[[wiki-links]]` to related notes, and tags from your vault.
 
-![Voice memo pipeline](diagrams/voice-dictation.png)
+![Voice memo pipeline](diagrams/voice-dictation.svg)
 
 ## How it works
 
