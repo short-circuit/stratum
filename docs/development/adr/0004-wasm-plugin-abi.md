@@ -26,7 +26,7 @@ task (`t_e132158a`) must expose it through the documented Tauri command surface.
    the linker registers a real WASI preview1 context (so `std` wasm32-wasip1
    builds link), in addition to the `"pkm"` host module. Host functions are
    imported from the `"pkm"` module in WASM linear-memory via the ABI in
-   [`../advanced/plugins.md`](../advanced/plugins.md) ("Host Function ABI"
+   [`../../advanced/plugins.md`](../../advanced/plugins.md) ("Host Function ABI"
    section). Every host call reads its request from WASM memory at the
    guest-supplied offset and writes its response back at **offset 0** of the
    plugin's linear memory, returning the byte length of the response. This
