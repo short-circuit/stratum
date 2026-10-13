@@ -444,3 +444,51 @@ pub async fn ai_rag_query(
         had_sources,
     })
 }
+
+/// Probe the well-known local AI endpoints plus configured extra hosts.
+#[tauri::command]
+pub async fn discover_local_ai(
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<pkm_core::DiscoveredEndpoint>, String> {
+    // Read configured extra hosts (mirrors fetch_models' config loading).
+    let extras = {
+        let state = state.lock().map_err(|e| e.to_string())?;
+        let config_path = state.vault_path.join(".pkm").join("config.toml");
+        if config_path.exists() {
+            match Config::load(&config_path) {
+                Ok(c) => c.ai.extra_local_hosts,
+                Err(e) => {
+                    warn!("discover_local_ai: failed to load config: {e}");
+                    Vec::new()
+                }
+            }
+        } else {
+            Vec::new()
+        }
+    };
+
+    let results = pkm_ai::discover::discover_local_ai(&extras).await;
+    debug!("discover_local_ai: {} endpoints", results.len());
+
+    // Cache the run so the UI can render a previous result on next open.
+    {
+        let state = state.lock().map_err(|e| e.to_string())?;
+        let config_path = state.vault_path.join(".pkm").join("config.toml");
+        if config_path.exists() {
+            if let Ok(mut config) = Config::load(&config_path) {
+                config.ai.last_discovered = results.clone();
+                if let Err(e) = config.save(&config_path) {
+                    warn!("discover_local_ai: failed to persist last_discovered: {e}");
+                }
+            }
+        }
+    }
+
+    Ok(results)
+}
+
+/// Ping a SearXNG instance to test reachability.
+#[tauri::command]
+pub async fn ping_search_instance(url: String) -> Result<pkm_core::SearchPingResult, String> {
+    Ok(pkm_ai::discover::ping_search_instance(&url).await)
+}

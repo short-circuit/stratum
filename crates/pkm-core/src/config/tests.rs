@@ -366,3 +366,60 @@ fn test_config_with_tray_roundtrips_preserving_tray_section() {
     assert!(without_tray.tray.enabled);
     assert_eq!(without_tray.tray.capture_target, CaptureTarget::Journal);
 }
+
+#[test]
+fn test_ai_config_discovery_fields_roundtrip() {
+    // build an AiConfig with the discovery fields populated, serialize +
+    // deserialize as TOML, and assert equality on round-trip (E10.F2 item 7).
+    let dir = TempDir::new().unwrap();
+    let config_path = dir.path().join("config.toml");
+
+    let ai = AiConfig {
+        extra_local_hosts: vec![
+            "127.0.0.1:8123".to_string(),
+            "http://192.168.1.5:11434".to_string(),
+        ],
+        last_discovered: vec![DiscoveredEndpoint {
+            host: "http://127.0.0.1:11434".to_string(),
+            name: "Ollama".to_string(),
+            kind: "ollama".to_string(),
+            models: vec!["llama3.2:latest".to_string()],
+            status: "available".to_string(),
+            latency_ms: 12,
+            error: None,
+        }],
+        ..Default::default()
+    };
+
+    let cfg = Config {
+        ai,
+        ..Default::default()
+    };
+    cfg.save(&config_path).unwrap();
+
+    let loaded = Config::load(&config_path).unwrap();
+    assert_eq!(loaded.ai.extra_local_hosts.len(), 2);
+    assert_eq!(loaded.ai.extra_local_hosts[0], "127.0.0.1:8123");
+    assert_eq!(loaded.ai.extra_local_hosts[1], "http://192.168.1.5:11434");
+    assert_eq!(loaded.ai.last_discovered.len(), 1);
+    let ep = &loaded.ai.last_discovered[0];
+    assert_eq!(ep.host, "http://127.0.0.1:11434");
+    assert_eq!(ep.name, "Ollama");
+    assert_eq!(ep.kind, "ollama");
+    assert_eq!(ep.models, vec!["llama3.2:latest".to_string()]);
+    assert_eq!(ep.status, "available");
+    assert_eq!(ep.latency_ms, 12);
+    assert_eq!(ep.error, None);
+}
+
+#[test]
+fn test_old_config_without_discovery_fields_loads() {
+    // A config TOML predating the discovery fields must still parse, loading
+    // both fields as their empty defaults (E10.F2 item 7).
+    let dir = TempDir::new().unwrap();
+    let config_path = dir.path().join("config.toml");
+    std::fs::write(&config_path, "[ai]\nmodel = \"llama3.2\"\n").unwrap();
+    let loaded = Config::load(&config_path).unwrap();
+    assert_eq!(loaded.ai.extra_local_hosts, Vec::<String>::new());
+    assert_eq!(loaded.ai.last_discovered, Vec::<DiscoveredEndpoint>::new());
+}

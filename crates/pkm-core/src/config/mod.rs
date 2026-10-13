@@ -244,6 +244,42 @@ pub struct AiConfig {
     /// existing configs remain valid.
     #[serde(default)]
     pub use_llm_gateway_and_auth: bool,
+    /// Extra local AI hosts to probe during discovery. Entries are "host:port"
+    /// (scheme optional). Persisted via the settings save path.
+    #[serde(default)]
+    pub extra_local_hosts: Vec<String>,
+    /// Cache of the last local-endpoint discovery run. Written server-side by
+    /// the `discover_local_ai` command; returned read-only via get_settings.
+    #[serde(default)]
+    pub last_discovered: Vec<DiscoveredEndpoint>,
+}
+
+/// A local AI endpoint detected by the discovery probe.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct DiscoveredEndpoint {
+    /// Base URL to adopt for this endpoint. For OpenAI-compatible kinds this
+    /// already includes the `/v1` suffix (e.g. "http://127.0.0.1:1234/v1").
+    pub host: String,
+    /// Friendly display name (e.g. "Ollama", "LM Studio", "LocalAI").
+    pub name: String,
+    /// Endpoint kind: "ollama" | "openai_compatible" | "unknown".
+    pub kind: String,
+    /// Model names reported by the endpoint (empty when unreachable).
+    pub models: Vec<String>,
+    /// Probe result: "available" | "unreachable".
+    pub status: String,
+    /// Probe latency in milliseconds (0 when unreachable).
+    pub latency_ms: u64,
+    /// Human-readable error when unreachable, else None.
+    pub error: Option<String>,
+}
+
+/// Result of a SearXNG instance connectivity ping.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SearchPingResult {
+    pub ok: bool,
+    pub latency_ms: u64,
+    pub error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -264,6 +300,8 @@ impl Default for AiConfig {
             rag_chunk_count: 5,
             embedding_dimensions: 0,
             use_llm_gateway_and_auth: false,
+            extra_local_hosts: Vec::new(),
+            last_discovered: Vec::new(),
         }
     }
 }

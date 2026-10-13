@@ -2,6 +2,7 @@ import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { useTranslation } from 'react-i18next';
+import ResearchPresetsSection from './ResearchPresetsSection';
 
 interface ResearchTabProps {
   research: { searxng_endpoint: string; max_results: number; max_depth: number };
@@ -45,6 +46,10 @@ export default function ResearchTab({ research, onResearchChange }: ResearchTabP
           slotProps={{ htmlInput: { min: 1, max: 5 } }}
           sx={{ width: 200 }}
         />
+      </Box>
+
+      <Box sx={{ mt: 2 }}>
+        <ResearchPresetsSection research={research} onResearchChange={onResearchChange} />
       </Box>
     </Box>
   );
