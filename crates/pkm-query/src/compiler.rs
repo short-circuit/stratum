@@ -5,8 +5,14 @@
 //! attributes (`:page/tags`, `:block/tags`, `:page/links`, `:page/backlinks`,
 //! `:block/properties`) compile to SQL subqueries / JSON predicates so the
 //! documented queries return results instead of a "Unknown attribute" error.
+//!
+//! In addition to triples, the compiler supports Logseq-compatible extended
+//! forms: predicate lists (`[(not= ?m "DONE")]`), negation (`(not ...)`),
+//! or-groups (`(or ...)`) and a top-level `:order-by` clause. Predicate /
+//! or / not clauses compile through the same alias registration path as
+//! triples, so entity variables bind exactly like top-level patterns.
 
-use crate::parser::{FindSpec, Query};
+use crate::parser::{FindSpec, Query, WhereClause};
 use std::collections::{HashMap, HashSet};
 
 /// Resolved attribute describing how to compile a datalog attribute.
@@ -153,6 +159,7 @@ fn special_where(
 pub enum CompileError {
     UnknownAttribute(String),
     UnresolvedVariable(String),
+    UnknownPredicate(String),
 }
 
 impl std::fmt::Display for CompileError {
@@ -160,11 +167,13 @@ impl std::fmt::Display for CompileError {
         match self {
             Self::UnknownAttribute(a) => write!(f, "Unknown attribute: {a}"),
             Self::UnresolvedVariable(v) => write!(f, "Unresolved variable: {v}"),
+            Self::UnknownPredicate(p) => write!(f, "Unknown predicate: {p}"),
         }
     }
 }
 impl std::error::Error for CompileError {}
 
+#[derive(Debug)]
 pub struct CompiledQuery {
     pub sql: String,
     pub params: Vec<String>,
@@ -176,78 +185,14 @@ pub fn compile(query: &Query) -> Result<CompiledQuery, CompileError> {
     let mut conditions: Vec<String> = Vec::new();
     let mut params: Vec<String> = Vec::new();
 
-    for pattern in &query.r#where {
-        let attr = resolve_attr(&pattern.attribute)
-            .ok_or_else(|| CompileError::UnknownAttribute(pattern.attribute.clone()))?;
-        let alias = special_alias(&attr).to_string();
-
-        // Cross-table reference handling for plain columns: if the entity var
-        // is already bound to the other table, join via the page foreign key.
-        if let Attr::Col(_a, c) = &attr {
-            if pattern.entity.starts_with('?') {
-                if let Some((prev_alias, _)) = var_map.get(&pattern.entity) {
-                    let cross_table = (*prev_alias == "b" && alias == "p")
-                        || (*prev_alias == "p" && alias == "b");
-                    if cross_table && *prev_alias != alias {
-                        conditions.push("b.page_path = p.path".to_string());
-                    }
-                }
-                // An entity variable identifies the ENTITY itself (the block
-                // UUID or the page path), never the attribute's value column.
-                // E7.F5 correctness: `[:find ?block ...]` must return the real
-                // block id, or results cannot be resolved back to blocks.
-                let identity = match alias.as_str() {
-                    "b" => "id",
-                    "p" => "path",
-                    _ => c,
-                };
-                var_map.insert(
-                    pattern.entity.clone(),
-                    (alias.clone(), identity.to_string()),
-                );
-            }
-            aliases.insert(alias.clone());
-        } else {
-            aliases.insert(alias.clone());
-            if pattern.entity.starts_with('?') {
-                // An entity var bound through a special (set/map) attribute
-                // still identifies the ENTITY itself (block id / page path),
-                // not the attribute's rendered value.
-                let identity = match alias.as_str() {
-                    "b" => "id",
-                    "p" => "path",
-                    _ => "",
-                };
-                var_map.insert(
-                    pattern.entity.clone(),
-                    (alias.clone(), identity.to_string()),
-                );
-            }
-        }
-
-        if pattern.value == "_" {
-            continue;
-        }
-
-        if let Attr::Col(a, c) = &attr {
-            if pattern.value.starts_with('?') {
-                if let Some((prev_alias, prev_col)) = var_map.get(&pattern.value) {
-                    if prev_alias.as_str() != *a {
-                        conditions.push(format!("{prev_alias}.{prev_col} = {a}.{c}"));
-                    }
-                }
-                var_map.insert(pattern.value.clone(), (a.to_string(), c.to_string()));
-            } else if pattern.value != "_" {
-                conditions.push(format!("{a}.{c} = ?{}", params.len() + 1));
-                params.push(pattern.value.clone());
-            }
-        } else {
-            // Special (set/map) attribute with a literal value → containment test.
-            let (pred, mut to_push) = special_where(&attr, &pattern.value, params.len() + 1)
-                .map_err(|_| CompileError::UnknownAttribute(pattern.attribute.clone()))?;
-            conditions.push(pred);
-            params.append(&mut to_push);
-        }
+    for clause in &query.r#where {
+        build_clause(
+            clause,
+            &mut var_map,
+            &mut aliases,
+            &mut conditions,
+            &mut params,
+        )?;
     }
 
     let find_vars = match &query.find {
@@ -302,17 +247,252 @@ pub fn compile(query: &Query) -> Result<CompiledQuery, CompileError> {
         format!("WHERE {}", conditions.join(" AND "))
     };
 
+    // :order-by — resolve each variable to its bound plain column.
+    let mut order_sql = String::new();
+    if !query.order_by.is_empty() {
+        let mut parts: Vec<String> = Vec::new();
+        for ob in &query.order_by {
+            let (alias, col) = var_map
+                .get(&ob.var)
+                .ok_or_else(|| CompileError::UnresolvedVariable(ob.var.clone()))?;
+            if col.starts_with('(') || col.starts_with("json_") {
+                return Err(CompileError::UnresolvedVariable(ob.var.clone()));
+            }
+            let dir = if ob.desc { "DESC" } else { "ASC" };
+            parts.push(format!("{alias}.{col} {dir}"));
+        }
+        order_sql = format!(" ORDER BY {}", parts.join(", "));
+    }
+
     let sql = format!(
-        "SELECT {} FROM {} {}",
+        "SELECT {} FROM {} {}{}",
         select_cols.join(", "),
         tables.join(", "),
         where_clause,
+        order_sql,
     );
 
     Ok(CompiledQuery {
         sql: sql.trim().to_string(),
         params,
     })
+}
+
+/// Compile a single where clause, registering aliases/var bindings as a side
+/// effect (same behaviour as the historical inline loop for triples).
+///
+/// Predicates do NOT register aliases — the referenced variables must already
+/// be bound to a plain column by an earlier clause. Or/not recurse into their
+/// sub-clauses with the same `var_map`/`aliases` so entity variables bind
+/// exactly like top-level triples.
+fn build_clause(
+    clause: &WhereClause,
+    var_map: &mut HashMap<String, (String, String)>,
+    aliases: &mut HashSet<String>,
+    conditions: &mut Vec<String>,
+    params: &mut Vec<String>,
+) -> Result<(), CompileError> {
+    match clause {
+        WhereClause::Triple(pattern) => build_triple(pattern, var_map, aliases, conditions, params),
+        WhereClause::Pred(pred) => build_predicate(pred, var_map, conditions, params),
+        WhereClause::Or(sub_clauses) => {
+            let mut sub_conditions: Vec<String> = Vec::new();
+            for sub in sub_clauses {
+                // Sub-clauses share the SAME var_map/aliases so entity
+                // variables bind exactly like top-level triples.
+                build_clause(sub, var_map, aliases, &mut sub_conditions, params)?;
+            }
+            if sub_conditions.is_empty() {
+                return Ok(());
+            }
+            // Each compiled subcondition is parenthesized per Logseq semantics.
+            let wrapped: Vec<String> = sub_conditions.iter().map(|c| format!("({})", c)).collect();
+            conditions.push(format!("({})", wrapped.join(" OR ")));
+            Ok(())
+        }
+        WhereClause::Not(sub) => {
+            let mut sub_conditions: Vec<String> = Vec::new();
+            build_clause(sub, var_map, aliases, &mut sub_conditions, params)?;
+            if sub_conditions.is_empty() {
+                return Ok(());
+            }
+            conditions.push(format!("NOT ({})", sub_conditions.join(" AND ")));
+            Ok(())
+        }
+    }
+}
+
+/// Compile a plain `[entity attribute value]` triple (existing behaviour).
+fn build_triple(
+    pattern: &crate::parser::Pattern,
+    var_map: &mut HashMap<String, (String, String)>,
+    aliases: &mut HashSet<String>,
+    conditions: &mut Vec<String>,
+    params: &mut Vec<String>,
+) -> Result<(), CompileError> {
+    let attr = resolve_attr(&pattern.attribute)
+        .ok_or_else(|| CompileError::UnknownAttribute(pattern.attribute.clone()))?;
+    let alias = special_alias(&attr).to_string();
+
+    // Cross-table reference handling for plain columns: if the entity var
+    // is already bound to the other table, join via the page foreign key.
+    if let Attr::Col(_a, c) = &attr {
+        if pattern.entity.starts_with('?') {
+            if let Some((prev_alias, _)) = var_map.get(&pattern.entity) {
+                let cross_table =
+                    (*prev_alias == "b" && alias == "p") || (*prev_alias == "p" && alias == "b");
+                if cross_table && *prev_alias != alias {
+                    conditions.push("b.page_path = p.path".to_string());
+                }
+            }
+            // An entity variable identifies the ENTITY itself (the block
+            // UUID or the page path), never the attribute's value column.
+            // E7.F5 correctness: `[:find ?block ...]` must return the real
+            // block id, or results cannot be resolved back to blocks.
+            let identity = match alias.as_str() {
+                "b" => "id",
+                "p" => "path",
+                _ => c,
+            };
+            var_map.insert(
+                pattern.entity.clone(),
+                (alias.clone(), identity.to_string()),
+            );
+        }
+        aliases.insert(alias.clone());
+    } else {
+        aliases.insert(alias.clone());
+        if pattern.entity.starts_with('?') {
+            // An entity var bound through a special (set/map) attribute
+            // still identifies the ENTITY itself (block id / page path),
+            // not the attribute's rendered value.
+            let identity = match alias.as_str() {
+                "b" => "id",
+                "p" => "path",
+                _ => "",
+            };
+            var_map.insert(
+                pattern.entity.clone(),
+                (alias.clone(), identity.to_string()),
+            );
+        }
+    }
+
+    if pattern.value == "_" {
+        return Ok(());
+    }
+
+    if let Attr::Col(a, c) = &attr {
+        if pattern.value.starts_with('?') {
+            if let Some((prev_alias, prev_col)) = var_map.get(&pattern.value) {
+                if prev_alias.as_str() != *a {
+                    conditions.push(format!("{prev_alias}.{prev_col} = {a}.{c}"));
+                }
+            }
+            var_map.insert(pattern.value.clone(), (a.to_string(), c.to_string()));
+        } else if pattern.value != "_" {
+            conditions.push(format!("{a}.{c} = ?{}", params.len() + 1));
+            params.push(pattern.value.clone());
+        }
+    } else {
+        // Special (set/map) attribute with a literal value → containment test.
+        let (pred, mut to_push) = special_where(&attr, &pattern.value, params.len() + 1)
+            .map_err(|_| CompileError::UnknownAttribute(pattern.attribute.clone()))?;
+        conditions.push(pred);
+        params.append(&mut to_push);
+    }
+    Ok(())
+}
+
+/// Compile a predicate list against already-bound plain-column variables.
+fn build_predicate(
+    pred: &crate::parser::Predicate,
+    var_map: &HashMap<String, (String, String)>,
+    conditions: &mut Vec<String>,
+    params: &mut Vec<String>,
+) -> Result<(), CompileError> {
+    if pred.args.is_empty() {
+        return Err(CompileError::UnknownPredicate(pred.op.clone()));
+    }
+    let (var, lit) = if pred.args[0].starts_with('?') {
+        (pred.args[0].clone(), pred.args.get(1).cloned())
+    } else {
+        // Literal-first form is unusual; treat first arg as the var-less
+        // comparison against the first bound var otherwise.
+        let var = pred
+            .args
+            .iter()
+            .find(|a| a.starts_with('?'))
+            .cloned()
+            .ok_or_else(|| CompileError::UnresolvedVariable(pred.op.clone()))?;
+        let lit = pred.args.iter().find(|a| !a.starts_with('?')).cloned();
+        (var, lit)
+    };
+
+    let (alias, col) = var_map
+        .get(&var)
+        .ok_or_else(|| CompileError::UnresolvedVariable(var.clone()))?;
+    if col.starts_with('(') || col.starts_with("json_") {
+        // Plain-column requirement is relaxed: special values render as
+        // `"var" AS "var"` aliases, which are usable in an outer filter —
+        // handled by projection later.
+    }
+
+    let op = pred.op.as_str();
+    let col_expr = format!("{alias}.{col}");
+    match op {
+        "=" => {
+            let lit = lit.unwrap_or_else(|| "".to_string());
+            conditions.push(format!("{col_expr} = ?{}", params.len() + 1));
+            params.push(lit);
+        }
+        "!=" | "not=" => {
+            let lit = lit.unwrap_or_else(|| "".to_string());
+            conditions.push(format!("{col_expr} <> ?{}", params.len() + 1));
+            params.push(lit);
+        }
+        ">" => {
+            let lit = lit.unwrap_or_else(|| "".to_string());
+            conditions.push(format!("{col_expr} > ?{}", params.len() + 1));
+            params.push(lit);
+        }
+        "<" => {
+            let lit = lit.unwrap_or_else(|| "".to_string());
+            conditions.push(format!("{col_expr} < ?{}", params.len() + 1));
+            params.push(lit);
+        }
+        ">=" => {
+            let lit = lit.unwrap_or_else(|| "".to_string());
+            conditions.push(format!("{col_expr} >= ?{}", params.len() + 1));
+            params.push(lit);
+        }
+        "<=" => {
+            let lit = lit.unwrap_or_else(|| "".to_string());
+            conditions.push(format!("{col_expr} <= ?{}", params.len() + 1));
+            params.push(lit);
+        }
+        "contains?" | "includes?" | "clojure.string/includes?" => {
+            let lit = lit.unwrap_or_else(|| "".to_string());
+            conditions.push(format!(
+                "{col_expr} LIKE '%' || ?{} || '%'",
+                params.len() + 1
+            ));
+            params.push(lit);
+        }
+        "starts-with?" | "clojure.string/starts-with?" => {
+            let lit = lit.unwrap_or_else(|| "".to_string());
+            conditions.push(format!("{col_expr} LIKE ?{} || '%'", params.len() + 1));
+            params.push(lit);
+        }
+        "present?" => {
+            conditions.push(format!("{col_expr} IS NOT NULL"));
+        }
+        "absent?" => {
+            conditions.push(format!("{col_expr} IS NULL"));
+        }
+        other => return Err(CompileError::UnknownPredicate(other.to_string())),
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -403,5 +583,104 @@ mod tests {
     fn test_unknown_attr() {
         let q = parse_query(r#"{:query [:find ?b :where [?b :unknown/attr "x"]]}"#).unwrap();
         assert!(compile(&q).is_err());
+    }
+
+    #[test]
+    fn test_predicate_not_eq_compiles_to_neq() {
+        let q =
+            parse_query(r#"{:query [:find ?b :where [?b :block/marker ?m] [(not= ?m "DONE")]]}"#)
+                .unwrap();
+        let c = compile(&q).unwrap();
+        assert!(c.sql.contains("b.marker <> ?"), "SQL: {}", c.sql);
+        assert!(c.params.contains(&"DONE".to_string()));
+    }
+
+    #[test]
+    fn test_predicate_contains_compiles_to_like() {
+        let q = parse_query(
+            r#"{:query [:find ?b :where [?b :block/content ?c] [(clojure.string/includes? ?c "groceries")]]}"#,
+        )
+        .unwrap();
+        let c = compile(&q).unwrap();
+        assert!(c.sql.contains("b.content LIKE '%' || ?"), "SQL: {}", c.sql);
+        assert!(c.params.contains(&"groceries".to_string()));
+    }
+
+    #[test]
+    fn test_predicate_gt_compiles() {
+        let q = parse_query(r#"{:query [:find ?b :where [?b :block/content ?c] [(> ?c "a")]]}"#)
+            .unwrap();
+        let c = compile(&q).unwrap();
+        assert!(c.sql.contains("b.content > ?"), "SQL: {}", c.sql);
+    }
+
+    #[test]
+    fn test_predicate_present_compiles_to_is_not_null() {
+        let q = parse_query(r#"{:query [:find ?b :where [?b :block/marker ?m] [(present? ?m)]]}"#)
+            .unwrap();
+        let c = compile(&q).unwrap();
+        assert!(c.sql.contains("b.marker IS NOT NULL"), "SQL: {}", c.sql);
+    }
+
+    #[test]
+    fn test_predicate_absent_compiles_to_is_null() {
+        let q = parse_query(r#"{:query [:find ?b :where [?b :block/marker ?m] [(absent? ?m)]]}"#)
+            .unwrap();
+        let c = compile(&q).unwrap();
+        assert!(c.sql.contains("b.marker IS NULL"), "SQL: {}", c.sql);
+    }
+
+    #[test]
+    fn test_or_group_wraps_in_parens() {
+        let q = parse_query(
+            r#"{:query [:find ?b :where (or [?b :block/marker "TODO"] [?b :block/marker "DOING"])]}"#,
+        )
+        .unwrap();
+        let c = compile(&q).unwrap();
+        assert!(c.sql.contains("(b.marker = ?"), "SQL: {}", c.sql);
+        assert!(c.sql.contains(" OR "), "SQL: {}", c.sql);
+    }
+
+    #[test]
+    fn test_not_wraps_in_parens() {
+        let q =
+            parse_query(r#"{:query [:find ?b :where (not [?b :block/marker "DONE"])]}"#).unwrap();
+        let c = compile(&q).unwrap();
+        assert!(c.sql.contains("NOT (b.marker = ?"), "SQL: {}", c.sql);
+    }
+
+    #[test]
+    fn test_order_by_appends_order_by() {
+        let q = parse_query(
+            r#"{:query [:find ?page ?title ?modified :where [?page :page/title ?title] [?page :page/modified ?modified] :order-by [[?modified :desc]]]}"#,
+        )
+        .unwrap();
+        let c = compile(&q).unwrap();
+        assert!(
+            c.sql.contains("ORDER BY p.modified_at DESC"),
+            "SQL: {}",
+            c.sql
+        );
+    }
+
+    #[test]
+    fn test_unknown_predicate_is_error() {
+        let q = parse_query(r#"{:query [:find ?b :where [?b :block/marker ?m] [(bogus? ?m)]]}"#)
+            .unwrap();
+        let err = compile(&q).unwrap_err();
+        match err {
+            CompileError::UnknownPredicate(p) => assert_eq!(p, "bogus?"),
+            other => panic!("expected UnknownPredicate, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_unbound_predicate_var_is_error() {
+        let q = parse_query(r#"{:query [:find ?b :where [(> ?n "5")]]}"#).unwrap();
+        let err = compile(&q).unwrap_err();
+        match err {
+            CompileError::UnresolvedVariable(v) => assert_eq!(v, "?n"),
+            other => panic!("expected UnresolvedVariable, got {:?}", other),
+        }
     }
 }

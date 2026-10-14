@@ -278,7 +278,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `JournalPanel` | `/journal` | Calendar + daily journal creation | `docs/guide/journal.md` |
 | `PageView` | `/page/:pagePath` | Block editor + backlinks + connections | `docs/guide/block-editor.md` |
 | `SearchPanel` | `/search` | Full-text + tag search | `docs/guide/search.md` |
-| `QueryPanel` | `/query` | Datalog query input + results table | `docs/guide/datalog-queries.md` |
+| `QueryPanel` | `/query` | Datalog query panel: visual filter builder + raw Datalog editor (BuilderMode, ConditionRow) | `docs/guide/datalog-queries.md` |
 | `GraphPanel` | `/graph` | 3D/2D force-directed graph (desktop/mobile) | `docs/guide/graph-view.md` |
 | `TemplatesPanel` | `/templates` | Template list + apply with variables | `docs/guide/templates.md` |
 | `FlashcardsPanel` | `/flashcards` | SRS card review (SM-2) | `docs/guide/flashcards.md` |
