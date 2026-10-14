@@ -40,7 +40,8 @@ pub fn run() {
     let _ = pkm_core::init_logging();
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_notification::init());
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_opener::init());
 
     // Single-instance must be registered before any other plugin that can open
     // a second window (notably dialog). Empty crates on mobile — desktop only.
@@ -510,6 +511,8 @@ pub fn run() {
             // Export
             commands::export::export_html,
             commands::export::export_json,
+            commands::export::pdf::export_pdf,
+            commands::export::zip::export_zip,
             // Flashcards
             commands::flashcards::generate_flashcards,
             commands::flashcards::generate_cards_from_page,

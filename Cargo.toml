@@ -67,6 +67,10 @@ base64 = "0.22"
 # Validation
 url = "2"
 
+# Export (PDF/ZIP)
+zip = "4"
+latex2mathml = "0.2"
+
 # Plugin
 wasmtime = "36"
 wasmtime-wasi = "36"
