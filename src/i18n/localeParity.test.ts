@@ -55,6 +55,8 @@ const IDENTICAL_OK = new Set([
   'Query', // Datalog "query" is used untranslated as a loanword in de/it/fr/es UIs
   // Symbol / layout fragments
   'n ·', 'b ·', 'a\n─\nb', '&quot;?', 'T): Promise',
+  '>', '<', '≥', '≤', '=', 'AND', 'OR', // builder operator symbols / combiner labels (pure symbols and standard loanwords)
+  'Datalog', 'Operator', // technical loanwords (cf. 'Query' above)
   // Meta marker (already excluded by key, value harmless)
   'complete', 'in progress',
 ]);

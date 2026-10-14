@@ -8,6 +8,65 @@ Stratum includes a Datalog query engine that compiles Datalog patterns into SQL 
 
 Click **Query** in the sidebar or navigate to `/query`.
 
+The panel has two tabs:
+
+- **Builder** (default) — a visual filter builder: pick fields, operators and values; the generated Datalog is shown live and can be copied into the editor or run directly.
+- **Datalog** — the raw EDN editor for hand-written queries.
+
+Both tabs share the same query state (Run, Save Query, Reset and the Saved Queries list work identically).
+
+## Visual Filter Builder
+
+The Builder tab lets you compose a query without writing EDN:
+
+1. Click **Add condition** to append a filter row.
+2. Each row has a:
+   - **Combiner** — how the row joins the previous one (`AND` / `OR`). The first row is always AND.
+   - **Field** — the attribute to filter on (whitelisted, see table below).
+   - **Operator** — the comparison for that field (options depend on the field).
+   - **Value** — text/number/date input (hidden for "is set"/"is not set").
+3. Rows can be reordered with the up/down arrows and removed with ×.
+4. The **Generated query** preview shows the exact EDN that will be run. Copy it to the editor with the copy button, or press **Run** to execute it immediately.
+
+### Fields
+
+| Field | Attribute | Value type |
+|-------|-----------|------------|
+| Block text | `:block/content` | text |
+| Marker | `:block/marker` | marker (TODO, DOING, DONE) |
+| Priority | `:block/priority` | priority (A, B, C) |
+| Page title | `:page/title` | text |
+| Page path | `:page/path` | text |
+| Block count | `:page/block_count` | number |
+| Created | `:block/created` | date |
+| Modified | `:block/modified` | date |
+| Tags | `:block/tags` | tag |
+| Has wiki-link | `:page/links` | page link |
+
+### Operators
+
+| Operator | EDN generated | Meaning |
+|----------|---------------|---------|
+| equals | `[?b :block/marker "X"]` | equality |
+| does not equal | `[(not= ?v "X")]` | inequality |
+| contains | `[(clojure.string/includes? ?v "X")]` | substring |
+| starts with | `[(clojure.string/starts-with? ?v "X")]` | prefix |
+| `>` `<` `≥` `≤` | `[(> ?v "X")]` … | numeric/date comparison |
+| is set | `[(present? ?v)]` | value exists |
+| is not set | `[(absent? ?v)]` | value is NULL |
+| has (tags / wiki-link) | `[?b :block/tags "x"]` | containment |
+| does not have (tags / wiki-link) | `(not [?b :block/tags "x"])` | negation |
+
+### Combiners and validity
+
+- Consecutive **OR** rows form a single `(or ...)` group; every OR group needs at least two rows. A lone OR row is reported as invalid and Run is disabled until fixed.
+- Every condition that requires a value must have one; otherwise the builder shows an inline error and disables Run.
+- "Does not have" (negation) cannot be nested inside an OR group — the builder emits it as a top-level `(not ...)` clause, so a group containing such a row is split.
+
+### Round-trip
+
+When you switch from the Datalog tab back to the Builder, Stratum attempts to parse the editor content into builder rows. Queries the builder can understand (its own output or hand-written equivalents using whitelisted fields/operators) are converted; anything else — `pull` find specs, unknown attributes, JSON query syntax — shows a notice and keeps your current builder rows unchanged.
+
 ## Query Syntax
 
 Queries use Datalog syntax in EDN format:
@@ -27,6 +86,16 @@ Queries use Datalog syntax in EDN format:
 | `?entity` | A variable representing a block or page |
 | `:attribute` | A block attribute (see table below) |
 | `value` | A literal value or variable |
+
+### Extended where-clause grammar
+
+In addition to plain triples, `:where` accepts Logseq-compatible extended forms:
+
+- **Predicate lists** — `[(<op> <arg>...)]`, e.g. `[(not= ?m "DONE")]`, `[(clojure.string/includes? ?c "foo")]`, `[(> ?n "5")]`, `[(present? ?m)]`, `[(absent? ?m)]`.
+  Supported operators: `=` `!=` `not=` `>` `<` `>=` `<=` `contains?` `includes?` `clojure.string/includes?` `starts-with?` `clojure.string/starts-with?` `present?` `absent?`. The variable must be bound to a plain column by an earlier triple.
+- **Negation** — `(not <triple-or-predicate>)`, e.g. `(not [?b :block/tags "x"])`.
+- **Or-groups** — `(or <clause> <clause> ...)` with at least two clauses (triples or predicates), e.g. `(or [?b :block/marker "TODO"] [?b :block/marker "DOING"])`.
+- **Ordering** — `:order-by [[?var :asc] ...]` to order results by bound variables.
 
 ## Block Attributes
 
@@ -91,8 +160,32 @@ The following attributes are available for querying:
 ```clojure
 {:query [:find ?page ?title ?modified
          :where [?page :page/title ?title]
-                [?page :page/modified ?modified]]
+                [?page :page/modified ?modified]
          :order-by [[?modified :desc]]}
+```
+
+### Find items with a marker other than DONE
+
+```clojure
+{:query [:find ?block ?content
+         :where [?block :block/marker ?marker]
+                [(not= ?marker "DONE")]
+                [?block :block/content ?content]]}
+```
+
+### Or-groups and negation
+
+```clojure
+{:query [:find ?block ?content
+         :where (or [?block :block/marker "TODO"]
+                    [?block :block/marker "DOING"])
+                [?block :block/content ?content]]}
+```
+
+```clojure
+{:query [:find ?block ?content
+         :where (not [?block :block/tags "project"])
+                [?block :block/content ?content]]}
 ```
 
 ## Query Results
@@ -147,3 +240,4 @@ Use the delete (trash) icon next to a saved query, then confirm in the dialog. D
 - Use `?block` as your first variable to identify blocks
 - Combine markers and tags for powerful filtering: `?block :block/marker "TODO"` + `?block :block/tags "project"`
 - Results are live — run queries after editing to see changes
+- The visual builder only exposes whitelisted fields; for anything else (e.g. `pull` find specs) use the Datalog tab directly
