@@ -292,6 +292,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 |-----------|--------|---------|
 | `OutlinerEditor` | `PageView` | BlockNote-based outliner with auto-save, markers, wiki-links — decomposed into `index.tsx` + `dtoConverters.ts` + `markerDetection.ts` |
 | `BacklinksPanel` | `PageView` | Linked references + unlinked mentions + hover preview; Ctrl+hover snippet popup + Ctrl+click navigation via `useBacklinkNavigation` |
+| `ProseView` | `PageView` (desktop/mobile) | Read-mode prose renderer (files `prose.tsx` + `proseRenderer.ts`); renders blocks as clean read-only prose that never modifies the file |
 | `BacklinkSnippetBody` | `BacklinksPanel` | Renders backlinked block snippet (title, context, anchor highlight, loading/error) |
 | `BacklinkSnippetPopup` | `BacklinksPanel` (desktop) | Viewport-clamped popup for the backlink snippet (Ctrl+hover) |
 | `SuggestedConnectionsPanel` | `PageView` | AI-suggested wiki-link connections |

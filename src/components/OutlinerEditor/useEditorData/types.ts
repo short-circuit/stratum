@@ -12,6 +12,8 @@ export interface Props {
   pagePath: string;
   autoFocus?: boolean;
   minHeight?: string;
+  /** When set, focuses this block (start of content) once the editor mounts (prose→edit jump). */
+  focusBlockId?: string;
 }
 
 export type MathEditState = { latex: string; pos: number } | null;
