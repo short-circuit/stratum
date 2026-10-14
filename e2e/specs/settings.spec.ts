@@ -27,4 +27,29 @@ test.describe('Settings Page', () => {
     // Should also show preset color swatches
     await expect(page.getByText(/primary.*buttons|accent/i)).toBeVisible();
   });
+
+  test('AI tab discovers local endpoints (mocked)', async ({ page }) => {
+    await page.getByText('AI').first().click();
+    await page.getByText('Discover local models').click();
+
+    await expect(page.getByText('Ollama').first()).toBeVisible();
+    await expect(page.getByText('llama3.2:latest').first()).toBeVisible();
+    await expect(page.getByText('Unreachable').first()).toBeVisible();
+
+    await page.getByText('Use this endpoint').first().click();
+    const endpointInput = page.getByLabel('API Endpoint URL');
+    await expect(endpointInput).toHaveValue('http://127.0.0.1:11434');
+  });
+
+  test('Research tab shows presets and pings', async ({ page }) => {
+    await page.getByText('Research').first().click();
+
+    await expect(page.getByText('https://searx.be').first()).toBeVisible();
+    await expect(page.getByText('https://search.bus-hit.me').first()).toBeVisible();
+    await expect(page.getByText('https://priv.au').first()).toBeVisible();
+    await expect(page.getByText('https://searx.tiekoetter.com').first()).toBeVisible();
+
+    await page.getByText('Test instance').first().click();
+    await expect(page.getByText('Reachable — 180ms').first()).toBeVisible();
+  });
 });

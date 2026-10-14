@@ -100,6 +100,31 @@ All three flags are additive and backward compatible (`serde(default) =
 false`): existing `.pkm/config.toml` files without the keys keep working
 unchanged.
 
+## Discovering Local AI Endpoints
+
+If you run a local model server, Stratum can auto-discover it instead of
+hand-typing the base URL. Open **Settings → AI → Discover local models**. The
+probe checks the well-known local endpoints **http://127.0.0.1:11434**
+(Ollama), **http://127.0.0.1:1234** (LM Studio) and **http://127.0.0.1:8081**
+(LocalAI), plus any extra hosts you list in the **Extra local hosts** field
+(one `host:port` per line).
+
+Each detected endpoint is shown with its name, host, status and model count
+where available. The **Use this endpoint** button switches the AI provider and
+sets the base URL for you:
+
+- An Ollama endpoint (**kind `ollama`**) sets the provider to **Ollama** and
+  the base URL as detected.
+- Any OpenAI-compatible endpoint (LM Studio, LocalAI, or an unknown server that
+  responded) sets the provider to **Custom OpenAI-compatible** and the base URL
+  to the detected `/v1` address.
+
+After adopting an endpoint, click **Save** to persist it. A discovered host
+that differs from your currently selected endpoint is shown as a hint. The list
+of results is cached server-side in `ai.last_discovered` so the previous scan
+is still visible on the next visit, and your extra hosts are persisted in
+`ai.extra_local_hosts`.
+
 ## Embeddings & RAG
 
 Embedding generation (used by RAG to retrieve and re-rank your notes by

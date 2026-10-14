@@ -14,6 +14,7 @@ import MobileSttTtsSection from './MobileSttTtsSection';
 import MobileDeveloperSection from './MobileDeveloperSection';
 import MobileSyncSection from './MobileSyncSection';
 import ImportDialog from '../ImportDialog';
+import ResearchPresetsSection from './ResearchPresetsSection';
 
 // ---------------------------------------------------------------------------
 // Mobile settings page.
@@ -190,6 +191,9 @@ export default function SettingsPageMobile() {
               size="small"
               slotProps={{ htmlInput: { min: 1, max: 5 } }}
             />
+          </Box>
+          <Box sx={{ mt: 2 }}>
+            <ResearchPresetsSection research={research} onResearchChange={updateResearch} />
           </Box>
         </Box>
 

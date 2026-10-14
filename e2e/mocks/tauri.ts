@@ -597,6 +597,13 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
         abort_merge: () => {},
         ai_transform_block: () => ({ content: 'Transformed content' }),
         ai_research: () => ({ findings: 'Research findings', sources: [] }),
+        discover_local_ai: () => ([
+          { host: 'http://127.0.0.1:11434', name: 'Ollama', kind: 'ollama',
+            models: ['llama3.2:latest'], status: 'available', latency_ms: 12, error: null },
+          { host: 'http://127.0.0.1:1234/v1', name: 'LM Studio', kind: 'openai_compatible',
+            models: [], status: 'unreachable', latency_ms: 0, error: 'no response' },
+        ]),
+        ping_search_instance: () => ({ ok: true, latency_ms: 180, error: null }),
         ai_interlink_notes: () => ({ content: 'Interlinked content' }),
         generate_mermaid: () => ({ content: 'graph TD; A-->B;' }),
         suggest_connections: () => (${JSON.stringify(MOCK_CONNECTIONS)}),
