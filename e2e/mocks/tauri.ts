@@ -513,6 +513,9 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
           };
         },
         save_page: () => {},
+        list_reminders: () => [],
+        snooze_reminder: () => null,
+        clear_reminder: () => null,
         create_page: (args) => ({
           path: args.path,
           slug: (args.path || '').toLowerCase().replace(/\\s+/g, '-'),
@@ -907,8 +910,16 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
         callbacks: new Map(),
       };
 
-      // Event plugin internals (needed by @tauri-apps/api/event)
-      window.__TAURI_EVENT_PLUGIN_INTERNALS__ = {};
+      // Event plugin internals (needed by @tauri-apps/api/event).
+      // @tauri-apps/api >= 2.12 calls unregisterListener(event, eventId) from
+      // _unlisten; without it, listener teardown throws and crashes the app.
+      window.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+        unregisterListener: function(event, eventId) {
+          // No-op: the mock's plugin:event|listen registry never needs removal.
+          // Keep a no-op so callers that track ids (e.g. plugin:event|emit
+          // fan-out) remain harmless even after unlisten.
+        },
+      };
     })()`,
   });
 }
