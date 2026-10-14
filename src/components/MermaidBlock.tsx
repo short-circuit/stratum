@@ -1,20 +1,5 @@
 import { createBlockSpec } from '@blocknote/core';
-import mermaid from 'mermaid';
-import DOMPurify from 'dompurify';
-
-let mermaidInitialized = false;
-
-function ensureMermaid() {
-  if (mermaidInitialized) return;
-  const dark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: dark ? 'dark' : 'default',
-    securityLevel: 'strict',
-    fontFamily: 'sans-serif',
-  });
-  mermaidInitialized = true;
-}
+import { renderMermaidSvg } from '../lib/mermaidRender';
 
 export const createMermaidSpec = createBlockSpec(
   {
@@ -88,20 +73,19 @@ export const createMermaidSpec = createBlockSpec(
       }
 
       function renderDiagram() {
-        ensureMermaid();
         const code = getCode();
         if (!code.trim()) {
           diagramEl.innerHTML = '<div style="padding:16px;text-align:center;color:var(--secondary-500);font-size:13px;">Empty mermaid diagram</div>';
           return;
         }
         const renderId = `mermaid-${block.id.replace(/[^a-zA-Z0-9-]/g, '')}-${Date.now()}`;
-        mermaid.render(renderId, code)
-          .then(({ svg }) => {
+        renderMermaidSvg(code, renderId)
+          .then((svg) => {
             diagramEl.innerHTML = '';
             const wrapper = document.createElement('div');
             wrapper.style.cssText = 'pointer-events:none;transform-origin:0 0;';
             wrapper.style.transform = `scale(${scale}) translate(${offsetX / scale}px, ${offsetY / scale}px)`;
-            wrapper.innerHTML = DOMPurify.sanitize(svg);
+            wrapper.innerHTML = svg;
             diagramEl.appendChild(wrapper);
             // Let the container grow to fit the diagram
             diagramEl.style.display = '';

@@ -77,6 +77,8 @@ const ALLOW_RE = [
   /^[A-Za-z0-9]{1,3}$/,               // short tokens (en, de, ok, x)
   /^[A-Za-z0-9]+\.[A-Za-z0-9]+$/,     // versionish / dotted
   /^[^a-zA-Z0-9]+$/,                  // symbols: ✨ · ─ …
+  /^&[a-z]+;$/,                       // HTML entities used as escape codes (&amp; &lt; …)
+  /^<\/?[a-z0-9]+>$/,                 // bare HTML tags (<hr>)
   /^[A-Za-z0-9_.-]+\[[A-Za-z0-9_.-]+\]$/, // key[v] placeholders
   /^\[[a-zA-Z]+\]$/,                  // attribute selectors
   /^\[(AI|TTS|MarkerSuggest|WikiLinkAutocomplete|MathInline|library|dictation|marker)\]/, // log tags
@@ -154,6 +156,9 @@ const ALLOW_EXACT = new Set([
   '[OutlinerEditor] marker save failed:', '[OutlinerEditor] replaceBlocks failed:',
   '[OutlinerEditor] getBlocks failed:', '[OutlinerEditor] save failed:',
   '[OutlinerEditor] reminder save failed:',
+  '[ProseView] getBlocks failed:',
+  '<pre class="bn-prose-mermaid-error"></pre>', '[role="dialog"]',
+  'bulletListItem', 'numberedListItem', 'toggleListItem',
   '[MarkerDecorations] registerPlugin failed:',
   'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
   'September', 'October', 'November', 'December',

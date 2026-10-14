@@ -413,7 +413,10 @@
     "select_a_page_from_the_sidebar_or_create_a_new_one": "Wählen Sie eine Seite in der Seitenleiste aus oder erstellen Sie eine neue.",
     "stratum_pkm": "Stratum PKM",
     "voice_memo": "Sprachmemo",
-    "voice_memo_dictation": "Sprachmemo (Diktat)"
+    "voice_memo_dictation": "Sprachmemo (Diktat)",
+    "read_mode": "Lesen",
+    "edit_mode": "Bearbeiten",
+    "prose_empty": "Diese Seite ist leer."
   },
   "pages_home": {
     "create_a_page_from_the_sidebar_or_open_the_journal_to_get_st": "Erstellen Sie eine Seite in der Seitenleiste oder öffnen Sie das Journal, um zu beginnen.",

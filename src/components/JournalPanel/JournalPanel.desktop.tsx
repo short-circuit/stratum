@@ -7,9 +7,11 @@ import IconButton from '@mui/material/IconButton';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import AutoStoriesIcon from '@mui/icons-material/AutoStories';
 import OutlinerEditor from '../OutlinerEditor';
 import JournalCalendar from '../JournalCalendar';
 import VoiceCaptureButton from '../VoiceCaptureButton';
+import ProseView from '../PageView/prose';
 import { useJournalPanel, formatDisplayDate } from './JournalPanel.shared';
 import { useTranslation } from 'react-i18next';
 
@@ -26,6 +28,10 @@ export default function JournalPanelDesktop() {
     today,
     todayPagePath,
     todayExists,
+    prose,
+    setProse,
+    focusBlockId,
+    setFocusBlockId,
     journalLoading,
     journalError,
     retryJournal,
@@ -82,6 +88,15 @@ export default function JournalPanelDesktop() {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <IconButton
             size="small"
+            data-testid="prose-toggle"
+            onClick={() => setProse(p => !p)}
+            title={t('page.read_mode')}
+            color={prose ? 'primary' : 'default'}
+          >
+            <AutoStoriesIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            size="small"
             onClick={(e) => {
               setCalendarAnchorEl(e.currentTarget);
               setCalendarOpen((o) => !o);
@@ -129,7 +144,15 @@ export default function JournalPanelDesktop() {
         // content rather than stretching to the viewport height of the
         // scroll container (see fill-viewport fix).
         <Box>
-          <OutlinerEditor key={editorNonce} pagePath={todayPagePath} minHeight="0" />
+          {prose ? (
+            <ProseView
+              pagePath={todayPagePath}
+              onExit={() => { setProse(false); setFocusBlockId(null); }}
+              onEditBlock={(id) => { setFocusBlockId(id); setProse(false); }}
+            />
+          ) : (
+            <OutlinerEditor key={editorNonce} pagePath={todayPagePath} minHeight="0" focusBlockId={focusBlockId ?? undefined} />
+          )}
         </Box>
       )}
 

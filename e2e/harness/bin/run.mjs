@@ -24,6 +24,7 @@
 
 import { spawn, spawnSync, execFileSync } from 'child_process';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createSession, waitForApp, deleteSession, sleep } from '../lib/driver.js';
@@ -99,6 +100,32 @@ function runCapture(cmd, args, { timeoutMs = 120000 } = {}) {
 function killPid(pid) {
   if (!pid) return;
   try { process.kill(pid, 'SIGTERM'); } catch (e) {}
+}
+
+// Depth-bounded search for a file under the user's home (the active vault path
+// can differ from the default ~/StratumVault on this machine).
+function findFileInHome(name) {
+  const home = os.homedir();
+  const stack = [{ dir: home, depth: 0 }];
+  const seen = new Set();
+  while (stack.length) {
+    const { dir, depth } = stack.pop();
+    try {
+      if (fs.existsSync(path.join(dir, name))) return path.join(dir, name);
+    } catch {}
+    if (depth >= 3) continue;
+    try {
+      for (const entry of fs.readdirSync(dir)) {
+        const full = path.join(dir, entry);
+        if (seen.has(full)) continue;
+        seen.add(full);
+        try {
+          if (fs.statSync(full).isDirectory()) stack.push({ dir: full, depth: depth + 1 });
+        } catch {}
+      }
+    } catch {}
+  }
+  return null;
 }
 
 let xvfbPid = null;
@@ -551,6 +578,127 @@ async function runTests(driver) {
         bad('list_reminders returned the reminder block', String(listed).slice(0, 200));
       }
     }
+  console.log('\n── Test 7: Prose toggle (byte-identical) ──');
+  const PROSE_FIXTURE = 'prose-fixture.md';
+  // Default vault; the file is re-located below if the active vault is elsewhere.
+  const VaultMain = path.join(os.homedir(), 'StratumVault');
+  try { fs.mkdirSync(VaultMain, { recursive: true }); } catch (e) {}
+  const FIXTURE_BLOCKS = [
+    { id: 'e2e-h1', content: 'Prose Fixture', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 2 },
+    { id: 'e2e-task', content: 'Task **alpha**', parent_id: null, left_id: null, properties: [], marker: 'TODO', priority: null, collapsed: false, heading_level: null },
+    { id: 'e2e-link', content: 'See [[Target Page]]', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
+    { id: 'e2e-math', content: 'E = $mc^2$', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
+    { id: 'e2e-mermaid', content: '```mermaid\ngraph TD;\n  A-->B;\n```', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
+    { id: 'e2e-code', content: '```python\nprint(1)\n```', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
+  ];
+  const saveRes = await driver.executeScript(
+    `return window.__TAURI_INTERNALS__.invoke('save_blocks', { pagePath: ${JSON.stringify(PROSE_FIXTURE)}, blocks: ${JSON.stringify(FIXTURE_BLOCKS)} }).then(()=>'ok').catch(e=>'ERR:'+e);`,
+    [],
+  );
+  if (saveRes === 'ok') ok('save_blocks wrote prose-fixture page');
+  else bad('save_blocks wrote prose-fixture page', String(saveRes));
+
+  // Capture the block ids as stored by the backend (the Rust save path may
+  // regenerate UUIDs), so we can later prove the prose toggle cycle caused no id churn.
+  let preIds = [];
+  try {
+    const pre = JSON.parse(
+      await driver.executeScript(
+        `return window.__TAURI_INTERNALS__.invoke('get_blocks', { pagePath: 'prose-fixture.md' }).then(r=>JSON.stringify(r)).catch(e=>'ERR:'+e);`,
+        [],
+      ),
+    );
+    preIds = pre.blocks.map((b) => b.id);
+  } catch (e) {}
+  const preContent = [];
+  try {
+    const pre = JSON.parse(
+      await driver.executeScript(
+        `return window.__TAURI_INTERNALS__.invoke('get_blocks', { pagePath: 'prose-fixture.md' }).then(r=>JSON.stringify(r)).catch(e=>'ERR:'+e);`,
+        [],
+      ),
+    );
+    pre.blocks.forEach((b) => preContent.push(b.content));
+  } catch (e) {}
+  const wantContent = ['Prose Fixture', 'Task **alpha**', 'See [[Target Page]]', 'E = $mc^2$', '```mermaid\ngraph TD;\n  A-->B;\n```', '```python\nprint(1)\n```'];
+  const allContentSaved = wantContent.every((c) => preContent.includes(c));
+  if (preIds.length === wantContent.length && allContentSaved) ok(`fixture stored with ${preIds.length} blocks (ids: ${preIds.length} unique)`);
+  else bad('fixture stored with expected block contents', JSON.stringify(preContent));
+
+  let fixturePath = path.join(VaultMain, PROSE_FIXTURE);
+  if (!fs.existsSync(fixturePath)) fixturePath = findFileInHome(PROSE_FIXTURE) || fixturePath;
+  const fixtureExists = fs.existsSync(fixturePath);
+  if (fixtureExists) ok(`prose-fixture.md present on disk (${fixturePath})`);
+  else bad('prose-fixture.md present on disk', `expected under ${VaultMain}`);
+
+  let beforeBytes = null;
+  let afterBytes = null;
+  try { beforeBytes = fs.readFileSync(fixturePath); } catch (e) {}
+  if (beforeBytes) ok('read prose-fixture.md bytes before toggling');
+  else bad('read prose-fixture.md bytes before toggling');
+
+  // Open the page and enter prose mode.
+  await driver.executeScript(
+    `location.href = location.origin + '/page/' + encodeURIComponent('prose-fixture.md'); return true;`,
+    [],
+  );
+  await waitForApp(driver, { url: 'tauri://localhost' });
+  await sleep(1800);
+  const toggledOn = await driver.executeScript(
+    `var b=document.querySelector('[data-testid="prose-toggle"]'); if(b){b.click();} return !!b;`,
+    [],
+  );
+  await sleep(1800);
+  if (toggledOn) ok('prose toggle button present and clicked'); else bad('prose toggle button present and clicked');
+  const prose = await driver.executeScript(
+    `const p = document.querySelector('.bn-prose');
+     const txt = (p && p.innerText) || '';
+     const mermaidEl = document.querySelector('.bn-prose svg, .bn-prose-mermaid');
+     return {
+       exists: !!p,
+       hasHeading: txt.includes('Prose Fixture'),
+       hasTask: txt.includes('Task alpha'),
+       hasMath: txt.includes('mc'),
+       hasCode: txt.includes('print(1)'),
+       hasMermaid: !!mermaidEl,
+       editorPresent: !!document.querySelector('.bn-editor'),
+       len: txt.length,
+     };`,
+    [],
+  );
+  if (prose && prose.exists && prose.hasHeading && prose.hasTask && prose.hasMath && prose.hasCode) {
+    ok('prose rendered heading/task/math/code text');
+  } else {
+    bad('prose rendered heading/task/math/code text', JSON.stringify(prose));
+  }
+  if (prose && prose.hasMermaid) ok('mermaid diagram hydrated in prose');
+  else bad('mermaid diagram hydrated in prose');
+  if (prose && !prose.editorPresent) ok('editor hidden in prose mode (no .bn-editor)');
+  else bad('editor hidden in prose mode (no .bn-editor)');
+
+  // Toggle back to edit, then verify byte-identical disk content + stable block ids.
+  await driver.executeScript(
+    `var b=document.querySelector('[data-testid="prose-toggle"]'); if(b){b.click();} return !!b;`,
+    [],
+  );
+  await sleep(2500);
+  try { afterBytes = fs.readFileSync(fixturePath); } catch (e) {}
+  if (beforeBytes && afterBytes && Buffer.compare(beforeBytes, afterBytes) === 0) {
+    ok('prose-fixture.md byte-identical after prose toggle cycle');
+  } else {
+    bad('prose-fixture.md byte-identical after prose toggle cycle', `before=${beforeBytes?.length} after=${afterBytes?.length}`);
+  }
+  const blk = await driver.executeScript(
+    `return window.__TAURI_INTERNALS__.invoke('get_blocks', { pagePath: 'prose-fixture.md' }).then(r=>JSON.stringify(r)).catch(e=>'ERR:'+e);`,
+    [],
+  );
+  let postIds = [];
+  try { postIds = JSON.parse(blk).blocks.map((b) => b.id); } catch (e) {}
+  const sameIds = preIds.length === postIds.length && preIds.every((id) => postIds.includes(id));
+  if (sameIds) {
+    ok('get_blocks block ids unchanged after prose toggle cycle (no UUID churn)');
+  } else {
+    bad('get_blocks block ids unchanged after prose toggle cycle', `before=${JSON.stringify(preIds)} after=${JSON.stringify(postIds)}`);
   }
 }
 

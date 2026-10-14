@@ -17,6 +17,8 @@ export interface Props {
    * to and briefly flashes the matching block once it is loaded.
    */
   highlightBlockId?: string;
+  /** When set, focuses this block (start of content) once the editor mounts (prose→edit jump). */
+  focusBlockId?: string;
 }
 
 export type MathEditState = { latex: string; pos: number } | null;

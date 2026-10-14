@@ -78,6 +78,24 @@ The editor auto-saves changes after a brief pause. A status indicator shows save
 - **Saving...** — changes pending
 - **Saved** — all changes persisted
 
+## Prose View (Read Mode)
+
+Toggle a page into read-only prose via the **Read** button in the page header
+(a book icon), or the **Ctrl/Cmd+Shift+R** shortcut. This renders the page's
+blocks as clean, focused prose with no editor chrome — safe for distraction-free
+reading.
+
+- **Read-only** — prose never modifies the file. Toggling back to edit leaves
+  the on-disk `.md` byte-identical.
+- **Double-click a block** — double-click any prose block to return to the
+  editor with that block focused, so you can edit it in place immediately.
+- **Navigate** — click a `[[wiki-link]]` or `#tag` in prose to open the target
+  page (in the editor) or search for that tag. External links open in a new tab.
+- The header **Edit** button exits prose without a focus target.
+
+The journal panel offers the same read toggle for today's entry only; past
+journal entries remain editable.
+
 ## Editor Features
 
 - **Rich text** — bold, italic, underline, code, strikethrough
