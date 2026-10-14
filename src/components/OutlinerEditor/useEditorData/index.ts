@@ -75,6 +75,7 @@ export function useEditorData(
   autoFocus?: boolean,
   minHeight = '400px',
   highlightBlockId?: string,
+  focusBlockId?: string,
 ): EditorData {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blockMetaRef = useRef<Map<string, import('../dtoConverters').BlockMeta>>(new Map());
@@ -280,6 +281,22 @@ export function useEditorData(
       editor?.prosemirrorView?.focus();
     });
   }, [editor, status, autoFocus]);
+
+  // Focus a specific block after the editor mounts (prose→edit double-click jump).
+  // Deferred a frame so the editor is attached; wrapped in try/catch because the
+  // target block may not exist (e.g. it was deleted before switching to edit).
+  useEffect(() => {
+    if (!editor || status !== 'ready' || !focusBlockId) return;
+    const timer = setTimeout(() => {
+      try {
+        editor.setTextCursorPosition(focusBlockId, 'start');
+        editor.focus();
+      } catch {
+        // Target block was removed before switching to edit — leave editor unfocused.
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [editor, status, focusBlockId]);
 
   // -----------------------------------------------------------------------
   // Inline KaTeX rendering via ProseMirror decorations
