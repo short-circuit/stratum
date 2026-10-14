@@ -762,7 +762,13 @@
     "backup_running": "Backing up...",
     "backup_success": "Backup completed.",
     "backup_failed": "Backup failed:",
-    "backup_manual_note": "Backups are a mirror copy of your vault; Git sync is unaffected."
+    "backup_manual_note": "Backups are a mirror copy of your vault; Git sync is unaffected.",
+    "notifications": {
+      "title": "Notifications",
+      "enable": "Enable reminders",
+      "sound": "Notification sound",
+      "sound_desc": "Play a sound when a reminder is due"
+    }
   },
   "sidebar": {
     "ask_notes": "Ask Notes",
@@ -874,5 +880,47 @@
     "settings_target_today": "Captures are inserted into today's journal.",
     "settings_toggle_label": "Voice-Capture Button",
     "stop_save": "Stop & save"
+  },
+  "reminders": {
+    "panel": {
+      "title": "Reminders",
+      "overdue": "Overdue",
+      "today": "Today",
+      "upcoming": "Upcoming",
+      "snooze_10min": "Snooze 10 min",
+      "snooze_1h": "Snooze 1 h",
+      "complete": "Complete",
+      "open": "Open",
+      "empty": "No reminders set",
+      "due": "Due"
+    },
+    "dialog": {
+      "set_reminder": "Set reminder",
+      "change_reminder": "Change reminder",
+      "clear_reminder": "Clear reminder",
+      "in_1_hour": "In 1 hour",
+      "tomorrow_0900": "Tomorrow 09:00",
+      "evening_1800": "This evening 18:00",
+      "save": "Save",
+      "cancel": "Cancel",
+      "invalid": "Invalid date"
+    },
+    "toast": {
+      "due_title": "Reminder due",
+      "open": "Open"
+    },
+    "chip": {
+      "title": "Due",
+      "clear": "Clear reminder"
+    },
+    "humanize": {
+      "now": "Due now",
+      "overdue_now": "Overdue",
+      "due_in_min": "Due in {{minutes}} min",
+      "overdue_min": "Overdue by {{minutes}} min",
+      "due_in_hours": "Due in {{hours}} h",
+      "overdue_hours": "Overdue by {{hours}} h",
+      "due_date": "Due {{date}}"
+    }
   }
 }

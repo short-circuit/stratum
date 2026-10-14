@@ -726,7 +726,7 @@
     "instance_unreachable": "Injoignable",
     "scanning_failed": "Échec de la recherche : {{error}}",
     "ping_failed": "Échec de la connexion",
-"backup": "Sauvegarde",
+    "backup": "Sauvegarde",
     "backup_enable": "Activer la sauvegarde cloud",
     "backup_mode": "Cible de sauvegarde",
     "backup_mode_folder": "Dossier",
@@ -749,7 +749,14 @@
     "backup_running": "Sauvegarde en cours...",
     "backup_success": "Sauvegarde terminée.",
     "backup_failed": "Échec de la sauvegarde :",
-    "backup_manual_note": "Les sauvegardes sont une copie miroir de votre vault ; la synchronisation Git n'est pas affectée."  },
+    "backup_manual_note": "Les sauvegardes sont une copie miroir de votre vault ; la synchronisation Git n'est pas affectée.",
+    "notifications": {
+      "title": "Notifications",
+      "enable": "Activer les rappels",
+      "sound": "Son de notification",
+      "sound_desc": "Jouer un son lorsqu'un rappel arrive à échéance"
+    }
+  },
   "sidebar": {
     "ask_notes": "Interroger les notes",
     "b": "b ·",
@@ -873,5 +880,47 @@
     "settings_target_today": "Les captures sont insérées dans le journal du jour.",
     "settings_toggle_label": "Bouton de capture vocale",
     "stop_save": "Arrêter et sauvegarder"
+  },
+  "reminders": {
+    "panel": {
+      "title": "Rappels",
+      "overdue": "En retard",
+      "today": "Aujourd'hui",
+      "upcoming": "À venir",
+      "snooze_10min": "Rappeler dans 10 min",
+      "snooze_1h": "Rappeler dans 1 h",
+      "complete": "Terminer",
+      "open": "Ouvrir",
+      "empty": "Aucun rappel défini",
+      "due": "Échéance"
+    },
+    "dialog": {
+      "set_reminder": "Définir un rappel",
+      "change_reminder": "Modifier le rappel",
+      "clear_reminder": "Effacer le rappel",
+      "in_1_hour": "Dans 1 heure",
+      "tomorrow_0900": "Demain 09:00",
+      "evening_1800": "Ce soir 18:00",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "invalid": "Date invalide"
+    },
+    "toast": {
+      "due_title": "Rappel dû",
+      "open": "Ouvrir"
+    },
+    "chip": {
+      "title": "Échéance",
+      "clear": "Effacer le rappel"
+    },
+    "humanize": {
+      "now": "Dû maintenant",
+      "overdue_now": "En retard",
+      "due_in_min": "Dans {{minutes}} min",
+      "overdue_min": "En retard de {{minutes}} min",
+      "due_in_hours": "Dans {{hours}} h",
+      "overdue_hours": "En retard de {{hours}} h",
+      "due_date": "Échéance {{date}}"
+    }
   }
 }

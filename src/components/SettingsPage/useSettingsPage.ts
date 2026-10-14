@@ -166,6 +166,7 @@ export function useSettingsPage() {
   };
   const voice = settings?.voice || { enabled: true, target: 'journal:today' };
   const backup = settings?.sync?.backup || DEFAULT_BACKUP;
+  const reminders = settings?.reminders || { enabled: true, sound: true };
 
   const updateAi = (patch: any) => setSettings({ ...settings, ai: { ...ai, ...patch } });
   const updateVault = (patch: any) => setSettings({ ...settings, ...patch });
@@ -197,6 +198,8 @@ export function useSettingsPage() {
     setSettings({ ...settings, tray: { ...(settings.tray || {}), ...patch } });
   const updateVoice = (patch: any) =>
     setSettings({ ...settings, voice: { ...(settings.voice || {}), ...patch } });
+  const updateReminders = (patch: any) =>
+    setSettings({ ...settings, reminders: { ...(settings.reminders || {}), ...patch } });
   const locale = settings?.locale ?? 'en';
   const onLocaleChange = (loc: string) => {
     setSettings({ ...settings, locale: loc });
@@ -494,6 +497,7 @@ export function useSettingsPage() {
     tts,
     tray,
     voice,
+    reminders,
     locale,
     onLocaleChange,
 
@@ -513,6 +517,7 @@ export function useSettingsPage() {
     updateTts,
     updateTray,
     updateVoice,
+    updateReminders,
     handleSave,
     handleFetchModels,
     handleReindex,

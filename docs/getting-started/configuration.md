@@ -141,6 +141,12 @@ quick_capture_shortcut = "CmdOrCtrl+Shift+Space"
 capture_target = "journal"
 # Vault-relative path of the inbox page (when capture_target = "inbox")
 inbox_path = "Inbox.md"
+
+[reminders]
+# Enable the block-reminder scheduler + notifications
+enabled = true
+# Play a sound when a reminder becomes due
+sound = true
 ```
 
 ## Settings Panel Reference
@@ -243,6 +249,16 @@ for the full behavior of the `use_llm_gateway_and_auth` settings.
     icon and closing the app quits it.
 
 See [Quick Capture](../guide/quick-capture.md) for usage and troubleshooting.
+
+### Notifications Tab
+
+The Notifications tab controls block reminders (see the [Reminders](../guide/reminders.md)
+guide). These settings are stored in the vault config under `[reminders]`:
+
+| Setting | Description |
+|---------|-------------|
+| Enable reminders | Turn the reminder scheduler + notifications on or off. Reminders already set are kept; they just stop notifying until re-enabled. |
+| Notification sound | Play a sound when a reminder becomes due. |
 
 !!! note "Mobile accessibility"
     On mobile, reindex **progress** is displayed live under the Developer section.

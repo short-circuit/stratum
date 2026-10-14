@@ -726,7 +726,7 @@
     "instance_unreachable": "Nicht erreichbar",
     "scanning_failed": "Suche fehlgeschlagen: {{error}}",
     "ping_failed": "Verbindung fehlgeschlagen",
-"backup": "Backup",
+    "backup": "Backup",
     "backup_enable": "Cloud-Backup aktivieren",
     "backup_mode": "Backup-Ziel",
     "backup_mode_folder": "Ordner",
@@ -749,7 +749,14 @@
     "backup_running": "Sichere...",
     "backup_success": "Sicherung abgeschlossen.",
     "backup_failed": "Sicherung fehlgeschlagen:",
-    "backup_manual_note": "Backups sind eine Spiegelkopie deines Vaults; Git-Sync bleibt unberührt."  },
+    "backup_manual_note": "Backups sind eine Spiegelkopie deines Vaults; Git-Sync bleibt unberührt.",
+    "notifications": {
+      "title": "Benachrichtigungen",
+      "enable": "Erinnerungen aktivieren",
+      "sound": "Benachrichtigungston",
+      "sound_desc": "Beim Fälligwerden einer Erinnerung einen Ton abspielen"
+    }
+  },
   "sidebar": {
     "ask_notes": "Notizen fragen",
     "b": "b ·",
@@ -873,5 +880,47 @@
     "settings_target_today": "Aufnahmen werden in das heutige Journal eingefügt.",
     "settings_toggle_label": "Sprachaufnahme-Button",
     "stop_save": "Stoppen & speichern"
+  },
+  "reminders": {
+    "panel": {
+      "title": "Erinnerungen",
+      "overdue": "Überfällig",
+      "today": "Heute",
+      "upcoming": "Geplant",
+      "snooze_10min": "10 Min. später",
+      "snooze_1h": "1 Std. später",
+      "complete": "Erledigt",
+      "open": "Öffnen",
+      "empty": "Keine Erinnerungen festgelegt",
+      "due": "Fällig"
+    },
+    "dialog": {
+      "set_reminder": "Erinnerung festlegen",
+      "change_reminder": "Erinnerung ändern",
+      "clear_reminder": "Erinnerung löschen",
+      "in_1_hour": "In 1 Stunde",
+      "tomorrow_0900": "Morgen 09:00",
+      "evening_1800": "Heute Abend 18:00",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "invalid": "Ungültiges Datum"
+    },
+    "toast": {
+      "due_title": "Erinnerung fällig",
+      "open": "Öffnen"
+    },
+    "chip": {
+      "title": "Fällig",
+      "clear": "Erinnerung löschen"
+    },
+    "humanize": {
+      "now": "Jetzt fällig",
+      "overdue_now": "Überfällig",
+      "due_in_min": "Fällig in {{minutes}} Min.",
+      "overdue_min": "Überfällig um {{minutes}} Min.",
+      "due_in_hours": "Fällig in {{hours}} Std.",
+      "overdue_hours": "Überfällig um {{hours}} Std.",
+      "due_date": "Fällig am {{date}}"
+    }
   }
 }

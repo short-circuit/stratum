@@ -4,7 +4,7 @@
 
 import type { DiscoveredEndpoint } from '../../lib/types';
 
-export type SettingsTab = 'vault' | 'theme' | 'ai' | 'research' | 'developer' | 'sync' | 'tray';
+export type SettingsTab = 'vault' | 'theme' | 'ai' | 'research' | 'developer' | 'sync' | 'tray' | 'notifications';
 
 export interface SettingsData {
   vault_path?: string;

@@ -726,7 +726,7 @@
     "instance_unreachable": "Inalcanzable",
     "scanning_failed": "Error en la búsqueda: {{error}}",
     "ping_failed": "Error de conexión",
-"backup": "Copia de seguridad",
+    "backup": "Copia de seguridad",
     "backup_enable": "Activar copia de seguridad en la nube",
     "backup_mode": "Destino de la copia",
     "backup_mode_folder": "Carpeta",
@@ -749,7 +749,14 @@
     "backup_running": "Copiando...",
     "backup_success": "Copia completada.",
     "backup_failed": "Error en la copia:",
-    "backup_manual_note": "Las copias son un espejo de tu vault; el sync de Git no se ve afectado."  },
+    "backup_manual_note": "Las copias son un espejo de tu vault; el sync de Git no se ve afectado.",
+    "notifications": {
+      "title": "Notificaciones",
+      "enable": "Activar recordatorios",
+      "sound": "Sonido de notificación",
+      "sound_desc": "Reproducir un sonido cuando vence un recordatorio"
+    }
+  },
   "sidebar": {
     "ask_notes": "Preguntar a las notas",
     "b": "b ·",
@@ -873,5 +880,47 @@
     "settings_target_today": "Las capturas se insertan en el diario de hoy.",
     "settings_toggle_label": "Botón de captura de voz",
     "stop_save": "Detener y guardar"
+  },
+  "reminders": {
+    "panel": {
+      "title": "Recordatorios",
+      "overdue": "Atrasados",
+      "today": "Hoy",
+      "upcoming": "Próximos",
+      "snooze_10min": "Posponer 10 min",
+      "snooze_1h": "Posponer 1 h",
+      "complete": "Completar",
+      "open": "Abrir",
+      "empty": "No hay recordatorios",
+      "due": "Vencimiento"
+    },
+    "dialog": {
+      "set_reminder": "Establecer recordatorio",
+      "change_reminder": "Cambiar recordatorio",
+      "clear_reminder": "Borrar recordatorio",
+      "in_1_hour": "En 1 hora",
+      "tomorrow_0900": "Mañana 09:00",
+      "evening_1800": "Esta tarde 18:00",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "invalid": "Fecha no válida"
+    },
+    "toast": {
+      "due_title": "Recordatorio vencido",
+      "open": "Abrir"
+    },
+    "chip": {
+      "title": "Vencimiento",
+      "clear": "Borrar recordatorio"
+    },
+    "humanize": {
+      "now": "Vence ahora",
+      "overdue_now": "Atrasado",
+      "due_in_min": "Vence en {{minutes}} min",
+      "overdue_min": "Atrasado {{minutes}} min",
+      "due_in_hours": "Vence en {{hours}} h",
+      "overdue_hours": "Atrasado {{hours}} h",
+      "due_date": "Vence {{date}}"
+    }
   }
 }

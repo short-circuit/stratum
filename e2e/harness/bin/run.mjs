@@ -500,6 +500,58 @@ async function runTests(driver) {
   } else {
     bad('imported page title rendered in the UI (Welcome)', impBody.slice(0, 200));
   }
+
+  console.log('\n── Test 6: Reminder flow (save due -> list_reminders persists) ──');
+  // Real IPC through the real app: persist a block carrying a `.due` property,
+  // then confirm `list_reminders` returns it (proves the reminder backend
+  // round-trips through save_blocks + list_reminders). Defensive: if the
+  // __TAURI_INTERNALS__ bridge is absent, record a skip rather than fail.
+  const hasInternals = await driver.executeScript(
+    `return typeof window.__TAURI_INTERNALS__ !== 'undefined' &&
+            typeof window.__TAURI_INTERNALS__.invoke === 'function';`,
+    [],
+  );
+  if (!hasInternals) {
+    ok('reminder flow (skipped: __TAURI_INTERNALS__ bridge unavailable)');
+  } else {
+    const page = 'journals/_reminder_e2e.md';
+    const saved = await driver.executeScript(
+      `return window.__TAURI_INTERNALS__.invoke('save_blocks', {
+         pagePath: ${JSON.stringify(page)},
+         blocks: [{ id: '00000000-0000-0000-0000-00000000e2e1',
+                    content: 'reminder e2e', parent_id: null, left_id: null,
+                    properties: [['due', '2020-01-01T00:00:00.000Z']],
+                    marker: null, priority: null, collapsed: false, heading_level: null }],
+         title: null }).then(() => true).catch((e) => 'ERR:' + e);`,
+      [],
+    );
+    if (saved !== true) {
+      bad('reminder block saved via save_blocks', String(saved));
+    } else {
+      ok('reminder block saved via save_blocks');
+      // Poll for the reminder to appear via list_reminders (up to ~40s) because
+      // the save goes through the debounced block-save path.
+      let found = false;
+      let listed = '';
+      for (let i = 0; i < 20; i++) {
+        listed = await driver.executeScript(
+          `return window.__TAURI_INTERNALS__.invoke('list_reminders', {})
+             .then(r => JSON.stringify(r)).catch(e => 'ERR:' + e);`,
+          [],
+        );
+        if (typeof listed === 'string' && listed.includes('reminder e2e')) {
+          found = true;
+          break;
+        }
+        await sleep(2000);
+      }
+      if (found) {
+        ok('list_reminders returned the reminder block');
+      } else {
+        bad('list_reminders returned the reminder block', String(listed).slice(0, 200));
+      }
+    }
+  }
 }
 
 async function main() {

@@ -171,7 +171,9 @@ stratum/
 │   │       ├── settings.rs     # App settings + AI model fetch
 │   │       ├── ai.rs           # AI transform + research + interlink
 │   │       ├── kanban.rs       # Kanban block queries
+│   │       ├── reminders.rs    # Reminder list/snooze/clear commands
 │   │       └── tray.rs         # System tray + global-shortcut Quick Capture (desktop)
+│   ├── reminder_scheduler.rs   # In-process block reminder scheduler (30s tick)
 │   └── capabilities/
 ├── docs/
 │   ├── index.md                # MkDocs home page
@@ -242,6 +244,8 @@ src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm
 
 **NOTE**: `src-tauri` does NOT currently depend on `pkm-plugin`. The CLI does NOT depend on `pkm-block` or `pkm-query`.
 
+**NOTE**: `src-tauri` additionally depends on `tauri-plugin-notification = "2"` (MIT OR Apache-2.0, AGPL-3.0 compatible) for block-reminder OS notifications.
+
 ## Core Principles
 
 1. **Plain `.md` files on disk** — readable and editable by any tool
@@ -284,6 +288,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `FlashcardsPanel` | `/flashcards` | SRS card review (SM-2) | `docs/guide/flashcards.md` |
 | `KanbanPanel` | `/kanban` | Drag-and-drop Kanban board | `docs/guide/kanban.md` |
 | `WhiteboardPanel` | `/whiteboards` | Excalidraw spatial canvas | `docs/guide/whiteboards.md` |
+| `RemindersPanel` | `/reminders` | Overdue/today/upcoming reminder list + snooze/complete/open | `docs/guide/reminders.md` |
 | `SettingsPage` | `/settings` | 6-tab app configuration | `docs/getting-started/configuration.md` |
 | `BackupSettingsPanel` | `SyncTab` (SettingsPage) | Cloud/folder backup (WebDAV + folder) config, test-connection, run-now + status | `docs/guide/git-sync.md` |
 
@@ -307,6 +312,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `MarkerBadge` | `OutlinerEditor` | Colored chip for task markers (TODO/DOING/DONE) |
 | `MarkerSuggestMenu` | `OutlinerEditor` | Autocomplete popup for markers and priorities |
 | `KanbanEditDialog` | `KanbanPanel` | Edit card content, marker, priority |
+| `ReminderDialog` | `OutlinerEditor` / `RemindersPanel` | Set/change/clear a block reminder (date-time picker + quick options) |
 
 ### Navigation & Utility
 

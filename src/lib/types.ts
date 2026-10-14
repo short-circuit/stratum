@@ -509,3 +509,27 @@ export interface AssetBytesDto {
   mime: string;
   size: number;
 }
+
+// --- Reminders (E10.F4) ---
+
+/** A block reminder as returned by `list_reminders` (snake_case, matches Rust ReminderDto). */
+export interface ReminderDto {
+  block_id: string;
+  page_path: string;
+  content: string;
+  /** RFC3339 UTC due timestamp. */
+  due: string;
+  marker: string | null;
+  priority: string | null;
+  page_title: string | null;
+}
+
+/** The camelCase payload emitted on the `reminder:due` / `reminder:open` Tauri events. */
+export interface ReminderEventPayload {
+  blockId: string;
+  pagePath: string;
+  content: string;
+  due: string;
+  marker: string | null;
+  pageTitle: string | null;
+}

@@ -89,6 +89,7 @@ nav:
     - guide/attachments.md
     - guide/tags.md
     - guide/tasks.md
+    - guide/reminders.md
     - guide/graph-view.md
     - guide/search.md
     - guide/datalog-queries.md

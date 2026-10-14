@@ -209,3 +209,58 @@ input[type="color"] {
 .dark ::-webkit-scrollbar-thumb {
   background: var(--primary-700);
 }
+
+/* ── Reminder block flash (highlight-on-open) ── */
+/* Transient highlight applied to a reminder target block when the editor
+   scrolls to it. The class is removed by JS after ~2.5s; the animation
+   fades the background/outline out so it never lingers. */
+.reminder-flash {
+  animation: reminder-flash-fade 2.5s ease forwards;
+}
+.dark .reminder-flash {
+  animation-name: reminder-flash-fade-dark;
+}
+@keyframes reminder-flash-fade {
+  0% {
+    background-color: var(--primary-100);
+    box-shadow: 0 0 0 2px var(--primary-400);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes reminder-flash-fade-dark {
+  0% {
+    background-color: var(--primary-900);
+    box-shadow: 0 0 0 2px var(--primary-600);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* ── Reminder chips ── */
+.reminder-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  line-height: 1.2;
+  background: var(--primary-200, #e5e7eb);
+  color: var(--primary-800, #374151);
+  cursor: pointer;
+  vertical-align: middle;
+  user-select: none;
+}
+.reminder-chip--overdue {
+  background: #fecaca;
+  color: #991b1b;
+}
+.reminder-chip--upcoming {
+  background: #e5e7eb;
+  color: #374151;
+}

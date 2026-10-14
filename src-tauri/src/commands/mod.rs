@@ -11,6 +11,7 @@ pub mod kanban;
 pub mod page;
 pub mod plugins;
 pub mod query;
+pub mod reminders;
 pub mod search;
 pub mod settings;
 pub mod sync;

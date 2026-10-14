@@ -12,6 +12,7 @@ import ChecklistIcon from '@mui/icons-material/Checklist';
 import DrawIcon from '@mui/icons-material/Draw';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ExtensionIcon from '@mui/icons-material/Extension';
+import AccessAlarmIcon from '@mui/icons-material/AccessAlarm';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useTranslation } from 'react-i18next';
 
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { id: 'journal', label: 'mobile_nav.journal', path: '/journal', icon: <CalendarMonthIcon /> },
   { id: 'graph', label: 'mobile_nav.graph', path: '/graph', icon: <HubIcon /> },
   { id: 'kanban', label: 'mobile_nav.kanban', path: '/kanban', icon: <ChecklistIcon /> },
+  { id: 'reminders', label: 'mobile_nav.reminders', path: '/reminders', icon: <AccessAlarmIcon /> },
   { id: 'search', label: 'mobile_nav.search', path: '/search', icon: <SearchIcon /> },
   { id: 'query', label: 'mobile_nav.query', path: '/query', icon: <CodeIcon /> },
   { id: 'asknotes', label: 'mobile_nav.ask_notes', path: '/ask-notes', icon: <AutoAwesomeIcon /> },
