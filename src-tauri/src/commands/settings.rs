@@ -147,6 +147,10 @@ pub struct AiSettingsDto {
     pub embedding_dimensions: usize,
     #[serde(default)]
     pub use_llm_gateway_and_auth: bool,
+    #[serde(default)]
+    pub extra_local_hosts: Vec<String>,
+    #[serde(default)]
+    pub last_discovered: Vec<pkm_core::DiscoveredEndpoint>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -260,6 +264,8 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             rag_chunk_count: config.ai.rag_chunk_count,
             embedding_dimensions: config.ai.embedding_dimensions,
             use_llm_gateway_and_auth: config.ai.use_llm_gateway_and_auth,
+            extra_local_hosts: config.ai.extra_local_hosts,
+            last_discovered: config.ai.last_discovered,
         },
         research: ResearchSettingsDto {
             searxng_endpoint: config.research.searxng_endpoint.clone(),
@@ -407,6 +413,8 @@ pub async fn save_settings<R: tauri::Runtime>(
             rag_chunk_count: settings.ai.rag_chunk_count,
             embedding_dimensions: settings.ai.embedding_dimensions,
             use_llm_gateway_and_auth: settings.ai.use_llm_gateway_and_auth,
+            extra_local_hosts: settings.ai.extra_local_hosts,
+            last_discovered: settings.ai.last_discovered,
         },
         research: pkm_core::ResearchConfig {
             searxng_endpoint: settings.research.searxng_endpoint,
@@ -548,7 +556,7 @@ pub async fn save_graph_settings(
 #[tauri::command]
 pub async fn fetch_models(state: tauri::State<'_, AppState>) -> Result<Vec<String>, String> {
     // Extract config data before async operation (MutexGuard is not Send)
-    let (endpoint, api_key) = {
+    let (endpoint, api_key, provider) = {
         let state = state.lock().map_err(|e| e.to_string())?;
         let config_path = state.vault_path.join(".pkm").join("config.toml");
 
@@ -564,13 +572,21 @@ pub async fn fetch_models(state: tauri::State<'_, AppState>) -> Result<Vec<Strin
                 provider_display(&config.ai.provider)
             )
         })?;
-        (endpoint, config.ai.effective_api_key())
+        (endpoint, config.ai.effective_api_key(), config.ai.provider)
     };
 
     // Validate endpoint URL to prevent SSRF
     pkm_core::endpoint::validate_endpoint_safe(&endpoint).map_err(|e| e.to_string())?;
 
-    let models_url = format!("{}/v1/models", endpoint.trim_end_matches('/'));
+    // A Custom/CustomOpenAI endpoint that already ends with "/v1" must not get
+    // a doubled "/v1/v1/models" URL. Bare-base endpoints (and Ollama) keep the
+    // existing "/v1/models" behavior.
+    let base = endpoint.trim_end_matches('/');
+    let models_url = if base.ends_with("/v1") && provider != pkm_core::AiProvider::Ollama {
+        format!("{base}/models")
+    } else {
+        format!("{base}/v1/models")
+    };
 
     // Validate the full models URL too
     pkm_core::endpoint::validate_endpoint_safe(&models_url).map_err(|e| e.to_string())?;

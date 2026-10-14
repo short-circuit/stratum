@@ -245,6 +245,22 @@ export interface RagQueryResultDto {
   had_sources: boolean;
 }
 
+export interface DiscoveredEndpoint {
+  host: string;
+  name: string;
+  kind: 'ollama' | 'openai_compatible' | 'unknown';
+  models: string[];
+  status: 'available' | 'unreachable';
+  latency_ms: number;
+  error: string | null;
+}
+
+export interface SearchPingResult {
+  ok: boolean;
+  latency_ms: number;
+  error: string | null;
+}
+
 export interface KanbanBlockDto {
   id: string;
   content: string;

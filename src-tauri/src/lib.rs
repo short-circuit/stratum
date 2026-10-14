@@ -410,6 +410,8 @@ pub fn run() {
             commands::ai::ai_interlink_notes,
             commands::ai::generate_mermaid,
             commands::ai::ai_rag_query,
+            commands::ai::discover_local_ai,
+            commands::ai::ping_search_instance,
             // Dictation
             commands::dictation::dictation_start,
             commands::dictation::dictation_stop,

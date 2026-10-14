@@ -2,6 +2,8 @@
 //! Extracted from SettingsPage.shared.tsx during the E6 sizing-gate refactor so
 //! the hook module stays small and types can be reused across sub-components.
 
+import type { DiscoveredEndpoint } from '../../lib/types';
+
 export type SettingsTab = 'vault' | 'theme' | 'ai' | 'research' | 'developer' | 'sync' | 'tray';
 
 export interface SettingsData {
@@ -17,6 +19,8 @@ export interface SettingsData {
     rag_chunk_count: number;
     embedding_dimensions: number;
     use_llm_gateway_and_auth: boolean;
+    extra_local_hosts?: string[];
+    last_discovered?: DiscoveredEndpoint[];
   };
   research?: {
     searxng_endpoint: string;

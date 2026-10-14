@@ -56,7 +56,7 @@ stratum/
 │   ├── flake.nix
 │   └── flake.lock
 ├── crates/
-│   ├── pkm-ai/                 # Embeddings, RAG, LLM provider
+│   ├── pkm-ai/                 # Embeddings, RAG, LLM provider, local-endpoint discovery (E10.F2)
 │   ├── pkm-audio/              # Microphone capture, FLAC/WAV codecs (dictation)
 │   ├── pkm-block/              # Block model, tree, ops, SQLite store
 │   ├── pkm-cli/                # CLI binary (cargo run -p pkm-cli)
