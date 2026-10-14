@@ -47,17 +47,20 @@ pkm-dictation = { path = "../crates/pkm-dictation" }
 pkm-plugin = { path = "../crates/pkm-plugin" }
 pulldown-cmark.workspace = true
 reqwest.workspace = true
+# sha256 verification for `plugins_install_url` (catalog installs)
+sha2.workspace = true
 gix.workspace = true
 dirs.workspace = true
 tauri-plugin-android-fs = "28"
 # Export: PDF (headless Chromium + MathML rendering) and ZIP (portable vault)
 zip.workspace = true
 latex2mathml.workspace = true
+# Catalog install (`plugins_install_url`): staging downloads in a temp dir
+tempfile.workspace = true
 # "Open folder" / reveal exported file in the OS file manager
 tauri-plugin-opener = "2"
 
 [dev-dependencies]
-tempfile.workspace = true
 uuid.workspace = true
 chrono.workspace = true
 # Benchmark harness (`tests/graph_perf_bench.rs`) uses rusqlite directly for

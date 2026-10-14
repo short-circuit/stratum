@@ -592,6 +592,85 @@ pub async fn plugins_install(
     manager.install(std::path::Path::new(&path))
 }
 
+/// §9.10 (F-series) — Install a plugin by downloading it from a catalog URL.
+///
+/// Downloads the WASM bytes from `download_url`, verifies the `sha256` hex
+/// digest against the catalog entry when one is provided, stages the bytes in
+/// a temp file, and delegates to [`PluginManager::install`] (which reads the
+/// embedded `stratum:manifest`, registers + persists, and compiles the
+/// module). The staged temp file is cleaned up on all paths. A digest
+/// mismatch fails fast with `plugin_checksum_error` before anything is
+/// written into the vault.
+#[tauri::command]
+pub async fn plugins_install_url(
+    url: String,
+    sha256: Option<String>,
+    id: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<PluginInfo, String> {
+    let manager = {
+        let locked = state.lock().map_err(|e| e.to_string())?;
+        get_manager(&locked)?
+    };
+    install_url(&manager, &url, sha256.as_deref(), &id).await
+}
+
+/// Download + verify + stage + install from a catalog URL. Separated from the
+/// command so the unit tests can drive it without a Tauri app.
+///
+/// `catalog_id` is the catalog entry id, used as the staged file name: a
+/// downloaded module without an embedded `stratum:manifest` falls back to the
+/// file stem as identity, so naming the stage `<catalog_id>.wasm` keeps that
+/// fallback aligned with the catalog (and filesystem-safe).
+async fn install_url(
+    manager: &PluginManager,
+    url: &str,
+    sha256: Option<&str>,
+    catalog_id: &str,
+) -> Result<PluginInfo, String> {
+    let bytes = reqwest::Client::new()
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| format!("plugin_download_error: {e}"))?
+        .error_for_status()
+        .map_err(|e| format!("plugin_download_error: {e}"))?
+        .bytes()
+        .await
+        .map_err(|e| format!("plugin_download_error: {e}"))?;
+
+    if let Some(expected) = sha256 {
+        if !expected.is_empty() {
+            let actual = {
+                use sha2::{Digest, Sha256};
+                let mut hasher = Sha256::new();
+                hasher.update(&bytes);
+                let digest = hasher.finalize();
+                let mut hex = String::with_capacity(digest.len() * 2);
+                for b in digest {
+                    use std::fmt::Write;
+                    let _ = write!(hex, "{b:02x}");
+                }
+                hex
+            };
+            if !actual.eq_ignore_ascii_case(expected.trim()) {
+                return Err(format!(
+                    "plugin_checksum_error: expected {expected}, got {actual}"
+                ));
+            }
+        }
+    }
+
+    // Stage in a temp dir named after the catalog id (<catalog_id>.wasm). The
+    // install copies it into the vault plugin directory before this function
+    // returns, so the temp dir is removed on drop.
+    let stage_dir = tempfile::tempdir().map_err(|e| format!("plugin_staging_error: {e}"))?;
+    let staged_wasm = stage_dir.path().join(format!("{catalog_id}.wasm"));
+    std::fs::write(&staged_wasm, &bytes).map_err(|e| format!("plugin_staging_error: {e}"))?;
+
+    manager.install(&staged_wasm)
+}
+
 /// §9.9 (F-series) — Uninstall a plugin by id.
 ///
 /// Unloads the plugin from the registry, removes its directory and config
@@ -967,5 +1046,119 @@ permissions = ["file:read", "network"]
                 .all(|p| p.name != "com.example.scan-test"),
             "config entry must be removed"
         );
+    }
+
+    // -----------------------------------------------------------------------
+    // install_url — catalog install (download → sha256 verify → stage → install)
+    // -----------------------------------------------------------------------
+
+    /// Run a futures-style future to completion on a throwaway current-thread
+    /// runtime (mirrors `tests/plugin_commands.rs::block_on`). Sync `#[test]`
+    /// fns are used because dropping the wasmtime-backed `PluginRuntime` from
+    /// within an async context panics ("Cannot drop a runtime …").
+    fn block_on<F: std::future::Future>(fut: F) -> F::Output {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("runtime")
+            .block_on(fut)
+    }
+
+    /// Wiremock-backed URL for `install_url` serving `body` at `/plugin.wasm`.
+    /// The server is boxed + leaked and reclaimed at process exit (a wiremock
+    /// server owns a runtime, which must not be dropped in async contexts).
+    fn serve_bytes(body: Vec<u8>) -> (String, &'static wiremock::MockServer) {
+        let server: &'static wiremock::MockServer = Box::leak(Box::new(block_on(
+            wiremock::MockServer::start(),
+        )));
+        block_on(wiremock::Mock::given(wiremock::matchers::method("GET"))
+            .and(wiremock::matchers::path("/plugin.wasm"))
+            .respond_with(
+                wiremock::ResponseTemplate::new(200)
+                    .set_body_bytes(body)
+                    .insert_header("content-type", "application/wasm"),
+            )
+            .mount(server));
+        (format!("{}/plugin.wasm", server.uri()), server)
+    }
+
+    #[test]
+    fn install_url_downloads_verifies_and_installs() {
+        let vault = tempfile::tempdir().expect("tempdir");
+        let manager = PluginManager::init_for_vault(vault.path()).expect("init_for_vault");
+
+        // Build a source plugin (wasm + sidecar) and read its bytes + digest
+        // so the URL handler receives exactly what install would receive.
+        let src = write_source_plugin(&vault.path().join("_src"));
+        let bytes = std::fs::read(&src).unwrap();
+        let digest = {
+            use sha2::{Digest, Sha256};
+            format!("{:x}", Sha256::digest(&bytes))
+        };
+        let (url, _server) = serve_bytes(bytes);
+
+        let info = block_on(install_url(&manager, &url, Some(&digest), "com.example.scan-test"))
+            .expect("install_url must succeed");
+        assert_eq!(info.id, "com.example.scan-test");
+        assert_eq!(info.status, "disabled", "fresh catalog install is disabled");
+        assert_eq!(manager.len(), 1);
+
+        let dest = vault
+            .path()
+            .join(".pkm")
+            .join("plugins")
+            .join("com.example.scan-test")
+            .join("plugin.wasm");
+        assert!(dest.is_file(), "installed wasm must exist at canonical path");
+    }
+
+    #[test]
+    fn install_url_rejects_checksum_mismatch() {
+        let vault = tempfile::tempdir().expect("tempdir");
+        let manager = PluginManager::init_for_vault(vault.path()).expect("init_for_vault");
+
+        let src = write_source_plugin(&vault.path().join("_src"));
+        let bytes = std::fs::read(&src).unwrap();
+        let (url, _server) = serve_bytes(bytes);
+
+        let wrong = "deadbeef".repeat(8); // 64 hex chars, all wrong
+        let err = block_on(install_url(&manager, &url, Some(&wrong), "com.example.scan-test"))
+            .expect_err("mismatch must fail");
+        assert!(err.contains("plugin_checksum_error"), "err: {err}");
+        assert!(manager.is_empty(), "nothing must be installed on mismatch");
+    }
+
+    #[test]
+    fn install_url_without_expected_checksum_installs() {
+        let vault = tempfile::tempdir().expect("tempdir");
+        let manager = PluginManager::init_for_vault(vault.path()).expect("init_for_vault");
+
+        let src = write_source_plugin(&vault.path().join("_src"));
+        let bytes = std::fs::read(&src).unwrap();
+        let (url, _server) = serve_bytes(bytes);
+
+        let info = block_on(install_url(&manager, &url, None, "com.example.scan-test"))
+            .expect("must install without checksum");
+        assert_eq!(info.id, "com.example.scan-test");
+    }
+
+    #[test]
+    fn install_url_reports_download_error_for_missing_server() {
+        // A bound-then-closed port: connecting is refused → download error.
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind");
+        let addr = listener.local_addr().expect("addr");
+        drop(listener);
+
+        let vault = tempfile::tempdir().expect("tempdir");
+        let manager = PluginManager::init_for_vault(vault.path()).expect("init_for_vault");
+        let err = block_on(install_url(
+            &manager,
+            &format!("http://{addr}/plugin.wasm"),
+            None,
+            "com.example.scan-test",
+        ))
+        .expect_err("connection refused must fail");
+        assert!(err.contains("plugin_download_error"), "err: {err}");
+        assert!(manager.is_empty());
     }
 }

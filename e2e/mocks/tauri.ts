@@ -300,6 +300,31 @@ export const MOCK_PLUGINS_DTO = [
 ];
 
 /**
+ * Seed data for the mocked `plugins_install_url` command — mirrors the real
+ * `PluginCatalogEntry` shape from `plugins/index.json` (id, name, version,
+ * description, author, permissions, sha256, download_url). The install-url
+ * mock looks up the entry by id to synthesize the installed plugin DTO.
+ */
+export const MOCK_CATALOG_PLUGINS = [
+  {
+    schema_version: 1,
+    id: 'com.example.hello-world',
+    name: 'Hello World',
+    version: '0.1.0',
+    description: 'Logs note metadata on save and demonstrates the pkm host API',
+    author: 'Stratum Community',
+    entry: 'plugin.wasm',
+    permissions: ['file:read'],
+    hooks: { onSave: true },
+    repo: 'https://github.com/short-circuit/stratum-plugins',
+    source: 'examples/hello-world',
+    sha256: '78d3d3d9784e089a7827a54b3c1f0cea2c3b75a14685edc16309cebad17c2d57',
+    download_url:
+      'https://raw.githubusercontent.com/short-circuit/stratum-plugins/main/plugins/com.example.hello-world/plugin.wasm',
+  },
+];
+
+/**
  * Seed data for the mocked saved-query commands. Mirrors the real `SavedQuery`
  * shape (name, query, updated_at) per docs/guide/datalog-queries.md. Tests can
  * override the store by pre-seeding `mock_saved_queries` in localStorage on a
@@ -381,6 +406,8 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
       // In-page plugin store so plugins_list -> enable/disable/install/uninstall
       // round-trip within the test (mirrors the real registry + config persistence).
       const MOCK_PLUGIN_ROWS = ${JSON.stringify(MOCK_PLUGINS_DTO)};
+      // Catalog seed for plugins_install_url (E10.F7 Plugin Directory mock).
+      const MOCK_CATALOG_PLUGIN_ROWS = ${JSON.stringify(MOCK_CATALOG_PLUGINS)};
       const persistedPlugins = window.localStorage.getItem('mock_plugins');
       let mockPlugins = persistedPlugins ? JSON.parse(persistedPlugins) : MOCK_PLUGIN_ROWS.map(function(p){ return Object.assign({}, p); });
       function persistPlugins(list) {
@@ -758,6 +785,28 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
             hooks: [],
             author: 'mock-author',
             description: 'Installed from ' + path,
+            error: null,
+          };
+          plugin.status = 'disabled';
+          plugin.enabled = false;
+          upsertMockPlugin(plugin);
+          return Object.assign({}, plugin);
+        },
+        plugins_install_url: (args) => {
+          const id = args && args.id ? String(args.id) : 'installed-url-plugin';
+          const sha = args && args.sha256 ? String(args.sha256) : null;
+          const entry = MOCK_CATALOG_PLUGIN_ROWS.find(function (p) { return p.id === id; });
+          const existing = pluginById(id);
+          const plugin = existing || {
+            id: id,
+            name: entry ? entry.name : id,
+            version: entry ? entry.version : '0.1.0',
+            status: 'disabled',
+            enabled: false,
+            permissions: entry ? entry.permissions : [],
+            hooks: [],
+            author: entry ? entry.author : 'mock-author',
+            description: (entry ? entry.description : 'Installed from catalog') + (sha ? ' (verified)' : ''),
             error: null,
           };
           plugin.status = 'disabled';

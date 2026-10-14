@@ -112,6 +112,9 @@ const DEFAULT_THEME: ThemeSettings = {
   font_size: 16,
 };
 
+/** Built-in theme values; exported so the Theme Hub can fall back to them. */
+export { DEFAULT_THEME };
+
 const DEFAULT_RESEARCH: ResearchSettings = {
   searxng_endpoint: 'http://localhost:8888',
   max_results: 3,
