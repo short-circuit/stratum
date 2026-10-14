@@ -5635,7 +5635,7 @@ checksum = "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
 
 [[package]]
 name = "pkm-ai"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "async-trait",
  "chrono",
@@ -5655,7 +5655,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-audio"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "chrono",
  "claxon",
@@ -5669,7 +5669,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-block"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -5685,7 +5685,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-cli"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "chrono",
  "clap",
@@ -5701,7 +5701,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-core"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "chrono",
  "dirs 5.0.1",
@@ -5718,7 +5718,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-dictation"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "async-trait",
  "chrono",
@@ -5741,7 +5741,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-import"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "pkm-block",
  "pkm-core",
@@ -5755,7 +5755,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-index"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "chrono",
  "pkm-block",
@@ -5769,7 +5769,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-markdown"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "chrono",
  "pkm-block",
@@ -5783,7 +5783,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-mcp"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -5819,7 +5819,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-mcp-security"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "constant_time_eq",
@@ -5832,7 +5832,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-plugin"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5853,7 +5853,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-query"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "chrono",
  "pkm-block",
@@ -5868,7 +5868,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-stt"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "pkm-core",
@@ -5879,7 +5879,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-sync"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "chrono",
  "dav-server",
@@ -5899,7 +5899,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-tests"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "chrono",
  "pkm-ai",
@@ -5921,7 +5921,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-watcher"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "crossbeam-channel",
  "notify",
@@ -7461,7 +7461,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "stratum-tauri"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "chrono",
