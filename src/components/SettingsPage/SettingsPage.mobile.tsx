@@ -16,6 +16,7 @@ import MobileSyncSection from './MobileSyncSection';
 import MobileNotificationsSection from './MobileNotificationsSection';
 import ImportDialog from '../ImportDialog';
 import ResearchPresetsSection from './ResearchPresetsSection';
+import ExportSection from './ExportSection';
 
 // ---------------------------------------------------------------------------
 // Mobile settings page.
@@ -146,6 +147,9 @@ export default function SettingsPageMobile() {
           </Button>
         </Box>
         <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
+        <Box sx={{ px: 2, pt: 2 }}>
+          <ExportSection vaultPath={settings.vault_path || ''} />
+        </Box>
 
         {/* ─── Theme Section ─── */}
         <MobileThemeSection theme={theme} updateTheme={updateTheme} locale={locale} onLocaleChange={onLocaleChange} />

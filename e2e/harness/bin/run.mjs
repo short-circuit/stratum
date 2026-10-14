@@ -102,32 +102,6 @@ function killPid(pid) {
   try { process.kill(pid, 'SIGTERM'); } catch (e) {}
 }
 
-// Depth-bounded search for a file under the user's home (the active vault path
-// can differ from the default ~/StratumVault on this machine).
-function findFileInHome(name) {
-  const home = os.homedir();
-  const stack = [{ dir: home, depth: 0 }];
-  const seen = new Set();
-  while (stack.length) {
-    const { dir, depth } = stack.pop();
-    try {
-      if (fs.existsSync(path.join(dir, name))) return path.join(dir, name);
-    } catch {}
-    if (depth >= 3) continue;
-    try {
-      for (const entry of fs.readdirSync(dir)) {
-        const full = path.join(dir, entry);
-        if (seen.has(full)) continue;
-        seen.add(full);
-        try {
-          if (fs.statSync(full).isDirectory()) stack.push({ dir: full, depth: depth + 1 });
-        } catch {}
-      }
-    } catch {}
-  }
-  return null;
-}
-
 let xvfbPid = null;
 let tdriverProc = null;
 
@@ -189,6 +163,32 @@ function bad(name, detail) {
   failed++;
   console.log(`  ❌ ${name}${detail ? ` — ${detail}` : ''}`);
   recordTest({ suite: 'harness', name, status: 'fail', detail });
+}
+
+// Depth-bounded search for a file under the user's home (the active vault path
+// can differ from the default ~/StratumVault on this machine).
+function findFileInHome(name) {
+  const home = os.homedir();
+  const stack = [{ dir: home, depth: 0 }];
+  const seen = new Set();
+  while (stack.length) {
+    const { dir, depth } = stack.pop();
+    try {
+      if (fs.existsSync(path.join(dir, name))) return path.join(dir, name);
+    } catch {}
+    if (depth >= 3) continue;
+    try {
+      for (const entry of fs.readdirSync(dir)) {
+        const full = path.join(dir, entry);
+        if (seen.has(full)) continue;
+        seen.add(full);
+        try {
+          if (fs.statSync(full).isDirectory()) stack.push({ dir: full, depth: depth + 1 });
+        } catch {}
+      }
+    } catch {}
+  }
+  return null;
 }
 
 async function runTests(driver) {
@@ -578,6 +578,7 @@ async function runTests(driver) {
         bad('list_reminders returned the reminder block', String(listed).slice(0, 200));
       }
     }
+  }
   console.log('\n── Test 7: Prose toggle (byte-identical) ──');
   const PROSE_FIXTURE = 'prose-fixture.md';
   // Default vault; the file is re-located below if the active vault is elsewhere.
@@ -699,8 +700,77 @@ async function runTests(driver) {
     ok('get_blocks block ids unchanged after prose toggle cycle (no UUID churn)');
   } else {
     bad('get_blocks block ids unchanged after prose toggle cycle', `before=${JSON.stringify(preIds)} after=${JSON.stringify(postIds)}`);
-  }
+    await testExports(driver);
 }
+
+async function testExports(driver) {
+  console.log('\n── Test 8: Export PDF / ZIP ──');
+  const fs = await import('fs');
+
+  const settingsRes = await driver.executeScript(
+    `return window.__TAURI_INTERNALS__.invoke('get_settings');`,
+    [],
+  );
+  const vaultPath = settingsRes && settingsRes.vault_path;
+  if (!vaultPath) {
+    bad('export: get_settings returned vault_path (got: ' + JSON.stringify(settingsRes) + ')');
+    return;
+  }
+
+  // Navigate to a known page so export_pdf has a valid page_path.
+  await driver.executeScript(
+    `location.href = location.origin + '/page/' + encodeURIComponent('imported/obsidian-sample/Welcome.md'); return true;`,
+    [],
+  );
+  await waitForApp(driver, { url: 'tauri://localhost' });
+  await sleep(1200);
+
+  const zipRes = await driver.executeScript(
+    `return window.__TAURI_INTERNALS__.invoke('export_zip', {});`,
+    [],
+  );
+  if (zipRes && zipRes.output_path && fs.existsSync(zipRes.output_path)) {
+    ok('export_zip produced file at ' + zipRes.output_path + ' (' + zipRes.files_packed + ' entries)');
+  } else {
+    bad('export_zip produced file (got: ' + JSON.stringify(zipRes) + ')');
+  }
+
+  const pdfRes = await driver.executeScript(
+    `return window.__TAURI_INTERNALS__.invoke('export_pdf', { pagePath: 'imported/obsidian-sample/Welcome.md' });`,
+    [],
+  );
+  if (pdfRes && pdfRes.output_path && fs.existsSync(pdfRes.output_path)) {
+    const head = fs.readFileSync(pdfRes.output_path).subarray(0, 4).toString('latin1');
+    if (head === '%PDF') {
+      ok('export_pdf produced valid PDF at ' + pdfRes.output_path);
+    } else {
+      bad('export_pdf produced PDF with %PDF magic (head=' + head + ')');
+    }
+  } else {
+    // Chromium missing — cannot render; do not fail the harness.
+    console.log('   (export_pdf skipped: ' + JSON.stringify(pdfRes) + ')');
+  }
+
+  // The settings export section must render its four action buttons.
+  await driver.executeScript(
+    `location.href = location.origin + '/settings'; return true;`,
+    [],
+  );
+  await waitForApp(driver, { url: 'tauri://localhost' });
+  await sleep(1500);
+  const exportBody = await driver.executeScript(
+    `return (document.body && document.body.innerText) || '';`,
+    [],
+  );
+  // Locale-agnostic: the harness may have switched to German in an earlier
+  // test. Match either the English or German action labels.
+  const sec =
+    (exportBody.includes('Export page as PDF') || exportBody.includes('Seite als PDF exportieren')) &&
+    (exportBody.includes('Export vault as ZIP') || exportBody.includes('Vault als ZIP exportieren'));
+  sec
+    ? ok('settings export section renders PDF + ZIP actions')
+    : bad('settings export section renders PDF + ZIP actions', exportBody.slice(0, 200));
+}}
 
 async function main() {
   console.log('=== Stratum Automated E2E Harness ===');

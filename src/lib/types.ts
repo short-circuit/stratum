@@ -533,3 +533,16 @@ export interface ReminderEventPayload {
   marker: string | null;
   pageTitle: string | null;
 }
+
+// --- Export ---
+
+export interface PdfExportResultDto {
+  output_path: string;
+  page_path: string;
+}
+
+export interface ZipExportResultDto {
+  output_path: string;
+  files_packed: number;
+  page_count: number;
+}

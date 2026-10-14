@@ -1,4 +1,9 @@
-//! Static site generation and export commands.
+//! Export commands: static site (HTML), JSON, per-page PDF (headless
+//! Chromium), and whole-vault ZIP. The PDF and ZIP implementations live in the
+//! [`pdf`] and [`zip`] submodules; HTML/JSON remain here and are unchanged.
+
+pub mod pdf;
+pub mod zip;
 
 use crate::commands::vault::AppState;
 use serde::{Deserialize, Serialize};
@@ -183,14 +188,41 @@ pub async fn export_json(
     export_json_core(vault, &output, &pages)
 }
 
-fn markdown_to_html(md: &str) -> String {
+/// Resolve the export output path for the Tauri commands.
+///
+/// When the user has chosen a non-empty `output_path`, it is honored as-is and
+/// its parent directory is created if missing (so a chained path like
+/// `/tmp/out/export.zip` works even when the leaf directories do not exist yet).
+/// When no path is supplied (`None`) or it is empty, the caller-provided
+/// `<vault>/<default_name>` fallback is used so existing callers keep their
+/// previous behavior.
+pub(crate) fn resolve_output_path(
+    vault: &std::path::Path,
+    output_path: Option<String>,
+    default_name: String,
+) -> Result<std::path::PathBuf, String> {
+    match output_path {
+        Some(p) if !p.is_empty() => {
+            let path = std::path::PathBuf::from(p);
+            if let Some(parent) = path.parent() {
+                if !parent.as_os_str().is_empty() {
+                    std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+                }
+            }
+            Ok(path)
+        }
+        _ => Ok(vault.join(default_name)),
+    }
+}
+
+pub(crate) fn markdown_to_html(md: &str) -> String {
     let parser = pulldown_cmark::Parser::new_ext(md, pulldown_cmark::Options::all());
     let mut html = String::new();
     pulldown_cmark::html::push_html(&mut html, parser);
     html
 }
 
-fn wrap_html(body: &str, title: &str) -> String {
+pub(crate) fn wrap_html(body: &str, title: &str) -> String {
     format!(
         r#"<!DOCTYPE html>
 <html>
@@ -217,7 +249,7 @@ a{{color:#36c}}
     )
 }
 
-fn copy_dir(src: &std::path::Path, dst: &std::path::Path) -> std::io::Result<()> {
+pub(crate) fn copy_dir(src: &std::path::Path, dst: &std::path::Path) -> std::io::Result<()> {
     if !dst.exists() {
         std::fs::create_dir_all(dst)?;
     }

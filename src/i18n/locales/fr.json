@@ -176,6 +176,23 @@
   "error_boundary": {
     "something_went_wrong": "Un problème est survenu"
   },
+  "export": {
+    "section_label": "Exporter",
+    "html": "Exporter en HTML",
+    "json": "Exporter en JSON",
+    "pdf": "Exporter la page en PDF",
+    "zip": "Exporter le vault en ZIP",
+    "output_path": "Chemin de sortie",
+    "browse": "Parcourir…",
+    "exporting": "Export…",
+    "success_html": "{{count}} pages exportées vers {{path}}",
+    "success_json": "{{count}} pages exportées vers {{path}}",
+    "success_pdf": "PDF exporté vers {{path}}",
+    "success_zip": "{{count}} fichiers ({{pages}} pages) exportés vers {{path}}",
+    "failed": "Échec de l'export : ",
+    "no_current_page": "Ouvrez une page pour l'exporter en PDF",
+    "open_folder": "Ouvrir le dossier"
+  },
   "flashcards": {
     "_ease": "· Facilité :",
     "_interval": "· Intervalle :",

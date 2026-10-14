@@ -50,6 +50,11 @@ reqwest.workspace = true
 gix.workspace = true
 dirs.workspace = true
 tauri-plugin-android-fs = "28"
+# Export: PDF (headless Chromium + MathML rendering) and ZIP (portable vault)
+zip.workspace = true
+latex2mathml.workspace = true
+# "Open folder" / reveal exported file in the OS file manager
+tauri-plugin-opener = "2"
 
 [dev-dependencies]
 tempfile.workspace = true

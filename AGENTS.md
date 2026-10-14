@@ -165,7 +165,9 @@ stratum/
 │   │       ├── query.rs        # Datalog query
 │   │       ├── sync.rs         # Git sync
 │   │       ├── template.rs     # Templates
-│   │       ├── export.rs       # HTML/JSON export
+│   │       ├── export.rs        # Export module root: HTML/JSON export, registers pdf/zip submodules
+│   │       ├── export/pdf.rs    # Per-page PDF export via headless Chromium (MathML + Mermaid)
+│   │       ├── export/zip.rs    # Portable vault ZIP export (manifest.json, excludes .pkm/.git)
 │   │       ├── flashcards.rs   # SRS flashcards
 │   │       ├── whiteboard.rs   # Excalidraw whiteboards + library
 │   │       ├── settings.rs     # App settings + AI model fetch
