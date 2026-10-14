@@ -32,6 +32,11 @@ export default function SettingsPageDesktop() {
     research,
     theme,
     syncSettings,
+    backup,
+    backupStatus,
+    testing,
+    running,
+    webdavTestResult,
     stt,
     tts,
     voice,
@@ -43,6 +48,9 @@ export default function SettingsPageDesktop() {
     updateResearch,
     updateTheme,
     updateSync,
+    updateBackup,
+    runBackupNow,
+    testWebdavConnection,
     updateStt,
     updateTts,
     tray,
@@ -168,6 +176,14 @@ export default function SettingsPageDesktop() {
             syncing={syncing}
             onSyncNow={handleSyncNow}
             onStartScheduler={handleStartScheduler}
+            backup={backup}
+            backupStatus={backupStatus}
+            onBackupChange={updateBackup}
+            onRunBackupNow={runBackupNow}
+            onTestWebdav={testWebdavConnection}
+            testing={testing}
+            running={running}
+            webdavTestResult={webdavTestResult}
           />
         )}
         {tab === 'tray' && (

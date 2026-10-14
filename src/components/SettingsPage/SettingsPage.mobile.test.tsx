@@ -17,6 +17,9 @@ vi.mock('../../lib/commands', () => ({
   startSyncScheduler: vi.fn(),
   pickVaultDirectory: vi.fn(),
   listPages: vi.fn(),
+  runBackup: vi.fn(),
+  getBackupStatus: vi.fn(),
+  testWebdav: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/api/event', () => ({
@@ -66,6 +69,15 @@ describe('SettingsPageMobile — parity with desktop Settings', () => {
     (api.getSettings as ReturnType<typeof vi.fn>).mockResolvedValue(SETTINGS);
     (api.fetchModels as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (api.listPages as ReturnType<typeof vi.fn>).mockResolvedValue({ pages: [] });
+    (api.getBackupStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+      enabled: false,
+      mode: 'folder',
+      last_run: null,
+      last_success: null,
+      last_error: null,
+      files_copied: null,
+      files_deleted: null,
+    });
   });
 
   it('renders all desktop-parity settings sections on mobile', async () => {

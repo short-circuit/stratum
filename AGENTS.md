@@ -70,7 +70,7 @@ stratum/
 │   ├── pkm-plugin/             # WASM plugin runtime
 │   ├── pkm-query/              # Datalog query engine
 │   ├── pkm-stt/                # Speech-to-text, diarization, speaker recognition
-│   ├── pkm-sync/               # Git sync engine (git2)
+│   ├── pkm-sync/               # Git sync engine (git2) + periodic cloud/folder backup mirror
 │   ├── pkm-tests/              # Integration tests for the Rust crates
 │   └── pkm-watcher/            # File system watcher
 ├── src/                        # React + TypeScript frontend
@@ -285,6 +285,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `KanbanPanel` | `/kanban` | Drag-and-drop Kanban board | `docs/guide/kanban.md` |
 | `WhiteboardPanel` | `/whiteboards` | Excalidraw spatial canvas | `docs/guide/whiteboards.md` |
 | `SettingsPage` | `/settings` | 6-tab app configuration | `docs/getting-started/configuration.md` |
+| `BackupSettingsPanel` | `SyncTab` (SettingsPage) | Cloud/folder backup (WebDAV + folder) config, test-connection, run-now + status | `docs/guide/git-sync.md` |
 
 ### Editor Sub-components
 

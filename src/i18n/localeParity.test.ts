@@ -47,6 +47,7 @@ const IDENTICAL_OK = new Set([
   'OpenAI', 'Anthropic', 'Google AI', 'Z.AI', 'Agent',
   // Technical loanwords / cognates that are standard in all target languages
   'Sync', 'Auto-Commit', 'Auto-Sync', 'Remote & Branch', 'Remote &amp; Branch',
+  'Backup', 'WebDAV', 'Password',
   'Chunks', 'Format', 'Optional', 'Marker', 'Name', 'Question', 'question::',
   'Actions', 'Note', 'Error:', 'Sources', 'Variables', 'Relations', 'Hooks:',
   'Test http_request', 'Test note_read', 'Comp', 'Tags', 'Friction',

@@ -52,4 +52,14 @@ test.describe('Settings Page', () => {
     await page.getByText('Test instance').first().click();
     await expect(page.getByText('Reachable — 180ms').first()).toBeVisible();
   });
+
+  test('sync tab backup: run-now reports success', async ({ page }) => {
+    await mockTauriInvoke(page, DEFAULT_MOCK_CONFIG);
+    await page.goto('/settings');
+    await expect(page.getByText('Vault').first()).toBeVisible({ timeout: 10000 });
+    await page.getByText('Sync').first().click();
+    await expect(page.getByText(/Backup/).first()).toBeVisible();
+    await page.getByText('Run backup now').first().click();
+    await expect(page.getByText('Backup completed.').first()).toBeVisible({ timeout: 5000 });
+  });
 });

@@ -16,6 +16,9 @@ vi.mock('../../lib/commands', () => ({
   startSyncScheduler: vi.fn(),
   pickVaultDirectory: vi.fn(),
   listPages: vi.fn(),
+  runBackup: vi.fn(),
+  getBackupStatus: vi.fn(),
+  testWebdav: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/api/event', () => ({
@@ -112,6 +115,15 @@ describe('useSettingsPage — vault path refresh after folder pick (SAF regressi
     (api.normalizeAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(0);
     (api.startSyncScheduler as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
     (api.listPages as ReturnType<typeof vi.fn>).mockResolvedValue({ pages: [] });
+    (api.getBackupStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+      enabled: false,
+      mode: 'folder',
+      last_run: null,
+      last_success: null,
+      last_error: null,
+      files_copied: null,
+      files_deleted: null,
+    });
   });
 
   afterEach(() => {

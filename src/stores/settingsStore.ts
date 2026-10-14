@@ -133,6 +133,16 @@ const DEFAULT_SYNC_SETTINGS: SyncSettings = {
   ssh_key_path: null,
   commit_template:
     'stratum({datetime}): {editedfiles} edited, {newfiles} added, {deletedfiles} deleted',
+  backup: {
+    enabled: false,
+    mode: 'folder',
+    interval_minutes: 60,
+    exclude: ['.git', '.pkm/blocks.db', '.pkm/search', '.pkm/backup_state.json', '.pkm/sync_state.json', '.DS_Store'],
+    webdav_url: null,
+    webdav_username: null,
+    webdav_password: null,
+    folder_path: null,
+  },
 };
 
 const DEFAULT_AI: AiConfig = {

@@ -168,6 +168,45 @@ pub struct SyncSettingsDto {
     pub auto_sync_interval_secs: u64,
     pub ssh_key_path: Option<String>,
     pub commit_template: String,
+    #[serde(default)]
+    pub backup: BackupSettingsDto,
+}
+
+/// Cloud/folder backup settings (E10.F3), mirroring `pkm_core::BackupConfig`.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct BackupSettingsDto {
+    #[serde(default)]
+    pub enabled: bool,
+    /// `"folder"` | `"webdav"` | `"both"`
+    #[serde(default)]
+    pub mode: String,
+    #[serde(default)]
+    pub interval_minutes: u64,
+    #[serde(default)]
+    pub exclude: Vec<String>,
+    #[serde(default)]
+    pub webdav_url: Option<String>,
+    #[serde(default)]
+    pub webdav_username: Option<String>,
+    #[serde(default)]
+    pub webdav_password: Option<String>,
+    #[serde(default)]
+    pub folder_path: Option<String>,
+}
+
+impl Default for BackupSettingsDto {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            mode: "folder".to_string(),
+            interval_minutes: 60,
+            exclude: pkm_core::default_backup_exclude(),
+            webdav_url: None,
+            webdav_username: None,
+            webdav_password: None,
+            folder_path: None,
+        }
+    }
 }
 
 /// Mask an API key for safe display, keeping only the first 3 and last 4 chars.
@@ -296,6 +335,20 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             auto_sync_interval_secs: config.sync.auto_sync_interval_secs,
             ssh_key_path: config.sync.ssh_key_path.clone(),
             commit_template: config.sync.commit_template.clone(),
+            backup: BackupSettingsDto {
+                enabled: config.sync.backup.enabled,
+                mode: match config.sync.backup.mode {
+                    pkm_core::BackupMode::Folder => "folder".into(),
+                    pkm_core::BackupMode::Webdav => "webdav".into(),
+                    pkm_core::BackupMode::Both => "both".into(),
+                },
+                interval_minutes: config.sync.backup.interval_minutes,
+                exclude: config.sync.backup.exclude.clone(),
+                webdav_url: config.sync.backup.webdav.url.clone(),
+                webdav_username: config.sync.backup.webdav.username.clone(),
+                webdav_password: mask_api_key(&config.sync.backup.webdav.password),
+                folder_path: config.sync.backup.folder.path.clone(),
+            },
         },
         stt: SttSettingsDto {
             endpoint: config.stt.endpoint.clone(),
@@ -440,6 +493,44 @@ pub async fn save_settings<R: tauri::Runtime>(
             auto_sync_interval_secs: settings.sync.auto_sync_interval_secs,
             ssh_key_path: settings.sync.ssh_key_path,
             commit_template: settings.sync.commit_template,
+            backup: pkm_core::BackupConfig {
+                enabled: settings.sync.backup.enabled,
+                mode: match settings.sync.backup.mode.as_str() {
+                    "webdav" => pkm_core::BackupMode::Webdav,
+                    "both" => pkm_core::BackupMode::Both,
+                    _ => pkm_core::BackupMode::Folder,
+                },
+                interval_minutes: settings.sync.backup.interval_minutes,
+                exclude: settings.sync.backup.exclude.clone(),
+                webdav: pkm_core::WebdavBackupConfig {
+                    url: settings.sync.backup.webdav_url,
+                    username: settings.sync.backup.webdav_username,
+                    password: {
+                        // Preserve the stored password when the frontend sent a
+                        // masked one (same pattern as stt/tts api_key).
+                        let masked = settings
+                            .sync
+                            .backup
+                            .webdav_password
+                            .as_ref()
+                            .is_some_and(|k| k.contains("****"));
+                        if masked {
+                            if config_path.exists() {
+                                pkm_core::Config::load(&config_path)
+                                    .ok()
+                                    .and_then(|c| c.sync.backup.webdav.password)
+                            } else {
+                                None
+                            }
+                        } else {
+                            settings.sync.backup.webdav_password
+                        }
+                    },
+                },
+                folder: pkm_core::FolderBackupConfig {
+                    path: settings.sync.backup.folder_path,
+                },
+            },
             ..pkm_core::SyncConfig::default()
         },
         stt: pkm_core::SttConfig {

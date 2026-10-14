@@ -1,5 +1,6 @@
 pub mod ai;
 pub mod asset;
+pub mod backup;
 pub mod block;
 pub mod dictation;
 pub mod export;
