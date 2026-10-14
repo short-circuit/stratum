@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
@@ -15,15 +15,19 @@ import ListItemText from '@mui/material/ListItemText';
 import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useDatalogQuery, useSavedQueries, formatUpdatedAt } from './QueryPanel.shared';
 import SavedQueryDialogs from './SavedQueryDialogs';
+import BuilderMode from './BuilderMode';
 import type { SavedQueryDialogState } from './SavedQueryDialogs';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import type { SavedQuery } from '../../lib/types';
+import { buildDatalog, parseDatalogToRows, type FilterSpec } from '../../lib/datalogBuilder';
 import { useTranslation } from 'react-i18next';
 
 function SavedQueryRowMobile({
@@ -68,6 +72,8 @@ function SavedQueryRowMobile({
   );
 }
 
+type PanelTab = 'builder' | 'datalog';
+
 export default function QueryPanelMobile() {
   const { t } = useTranslation();
   const { datalog, setDatalog, result, error, running, doQuery, resetQuery } = useDatalogQuery();
@@ -76,10 +82,34 @@ export default function QueryPanelMobile() {
   const [dialog, setDialog] = useState<SavedQueryDialogState | null>(null);
   const [renameTarget, setRenameTarget] = useState<SavedQuery | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [tab, setTab] = useState<PanelTab>('builder');
+  const [rows, setRows] = useState<FilterSpec[]>([]);
+  const [parseNotice, setParseNotice] = useState(false);
+
+  const generated = useMemo(() => buildDatalog(rows), [rows]);
+  const generatedDatalog = generated.valid ? generated.datalog : null;
+
+  useEffect(() => {
+    if (generatedDatalog !== null) setDatalog(generatedDatalog);
+  }, [generatedDatalog, setDatalog]);
 
   useEffect(() => {
     inputRef.current?.focus();
-  }, []);
+  }, [tab]);
+
+  const handleTabChange = (next: PanelTab) => {
+    if (next === 'builder') {
+      const parsed = parseDatalogToRows(datalog);
+      if (parsed) {
+        const current = JSON.stringify(rows);
+        const nextRows = JSON.stringify(parsed.specs);
+        if (nextRows !== current) setRows(parsed.specs);
+      } else if (rows.length > 0 || !parseNotice) {
+        setParseNotice(true);
+      }
+    }
+    setTab(next);
+  };
 
   const handleLoad = (q: SavedQuery) => {
     setDatalog(q.query);
@@ -103,20 +133,51 @@ export default function QueryPanelMobile() {
       <Box sx={{ p: 2 }}>
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 1.5 }}>{t('query.datalog_query')}</Typography>
 
-        <TextField
-          inputRef={inputRef}
-          multiline
-          minRows={4}
-          value={datalog}
-          onChange={e => setDatalog(e.target.value)}
-          placeholder={t('query.enter_datalog_query')}
-          fullWidth
-          sx={{ mb: 1.5, '& .MuiInputBase-root': { fontFamily: 'monospace', fontSize: '0.875rem' } }}
-        />
+        <Tabs
+          value={tab}
+          onChange={(_, v: PanelTab) => handleTabChange(v)}
+          aria-label={t('query.datalog_query')}
+          sx={{ mb: 1.5, minHeight: 40 }}
+        >
+          <Tab label={t('query.builder_mode')} value="builder" sx={{ minHeight: 40, textTransform: 'none' }} />
+          <Tab label={t('query.datalog_mode')} value="datalog" sx={{ minHeight: 40, textTransform: 'none' }} />
+        </Tabs>
+
+        {tab === 'builder' && (
+          <>
+            {parseNotice && (
+              <Alert severity="info" sx={{ mb: 1.5 }} onClose={() => setParseNotice(false)}>
+                {t('query.builder_not_parseable')}
+              </Alert>
+            )}
+            <BuilderMode
+              rows={rows}
+              setRows={setRows}
+              generated={generated}
+              onRun={doQuery}
+              disabled={running}
+            />
+          </>
+        )}
+
+        {/* Kept mounted so existing tests/querySelector('textarea') keep working;
+            hidden while the Builder tab is active. */}
+        <Box sx={{ display: tab === 'datalog' ? 'block' : 'none' }}>
+          <TextField
+            inputRef={inputRef}
+            multiline
+            minRows={4}
+            value={datalog}
+            onChange={e => setDatalog(e.target.value)}
+            placeholder={t('query.enter_datalog_query')}
+            fullWidth
+            sx={{ mb: 1.5, '& .MuiInputBase-root': { fontFamily: 'monospace', fontSize: '0.875rem' } }}
+          />
+        </Box>
 
         <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
           <Button variant="contained" size="small" onClick={doQuery} disabled={running}>
-            {running ? t('query.running') : 'Run'}
+            {running ? t('query.running') : t('query.run_query')}
           </Button>
           <Button
             variant="outlined"
