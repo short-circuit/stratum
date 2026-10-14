@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
@@ -26,6 +26,22 @@ export default function PageViewDesktop() {
   const { pagePath, currentPage, editorKey, reindexing, handleReindex, handleDelete } = usePageView();
   const [noteMenuAnchor, setNoteMenuAnchor] = useState<HTMLElement | null>(null);
   const [dictationOpen, setDictationOpen] = useState(false);
+
+  // Reminder highlight-on-open: capture a pending highlight for THIS page once,
+  // pass it to the editor, then immediately consume it from the global store so
+  // it is not replayed on a later navigation. Consuming only after capturing
+  // (via consumedRef) keeps the editor's scroll target stable across renders.
+  const highlightBlock = useStore((s) => s.highlightBlock);
+  const [highlightBlockId, setHighlightBlockId] = useState<string | undefined>(undefined);
+  const highlightConsumedRef = useRef(false);
+  useEffect(() => {
+    if (highlightConsumedRef.current) return;
+    if (!currentPage || !highlightBlock) return;
+    if (highlightBlock.pagePath !== currentPage.path) return;
+    highlightConsumedRef.current = true;
+    setHighlightBlockId(highlightBlock.blockId);
+    useStore.getState().consumeHighlightBlock();
+  }, [currentPage, highlightBlock]);
 
   const handleNormalizeFile = useCallback(async () => {
     if (!currentPage) return;
@@ -112,7 +128,7 @@ export default function PageViewDesktop() {
       )}
 
       <Box sx={{ flex: 1, overflow: 'auto' }}>
-        <OutlinerEditor key={editorKey} pagePath={currentPage.path} />
+        <OutlinerEditor key={editorKey} pagePath={currentPage.path} highlightBlockId={highlightBlockId} />
       </Box>
 
       <AttachmentPanel pagePath={currentPage.path} />

@@ -18,6 +18,27 @@ pub struct SettingsDto {
     pub tray: TraySettingsDto,
     #[serde(default)]
     pub voice: VoiceSettingsDto,
+    #[serde(default)]
+    pub reminders: ReminderSettingsDto,
+}
+
+/// Block reminder settings, mirroring `pkm_core::ReminderConfig`.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ReminderSettingsDto {
+    /// Whether block reminders are enabled (scheduler active + notifications).
+    pub enabled: bool,
+    /// Whether notification sound is enabled.
+    pub sound: bool,
+}
+
+impl Default for ReminderSettingsDto {
+    fn default() -> Self {
+        // Keep in sync with `ReminderConfig::default()` in pkm-core.
+        Self {
+            enabled: true,
+            sound: true,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -383,6 +404,10 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             },
             inbox_path: config.tray.inbox_path.clone(),
         },
+        reminders: ReminderSettingsDto {
+            enabled: config.reminders.enabled,
+            sound: config.reminders.sound,
+        },
     })
 }
 
@@ -598,6 +623,10 @@ pub async fn save_settings<R: tauri::Runtime>(
             quick_capture_shortcut: settings.tray.quick_capture_shortcut,
             capture_target,
             inbox_path: settings.tray.inbox_path,
+        },
+        reminders: pkm_core::ReminderConfig {
+            enabled: settings.reminders.enabled,
+            sound: settings.reminders.sound,
         },
         ..pkm_core::Config::default()
     };

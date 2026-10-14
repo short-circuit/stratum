@@ -12,6 +12,7 @@ import HubIcon from '@mui/icons-material/Hub';
 import SearchIcon from '@mui/icons-material/Search';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import ChecklistIcon from '@mui/icons-material/Checklist';
+import AccessAlarmIcon from '@mui/icons-material/AccessAlarm';
 import CodeIcon from '@mui/icons-material/Code';
 import DescriptionIcon from '@mui/icons-material/Description';
 import QuizIcon from '@mui/icons-material/Quiz';
@@ -30,6 +31,7 @@ const PRIMARY_TABS = [
 
 const MORE_ITEMS = [
   { label: 'mobile_nav.kanban', path: '/kanban', icon: <ChecklistIcon /> },
+  { label: 'mobile_nav.reminders', path: '/reminders', icon: <AccessAlarmIcon /> },
   { label: 'mobile_nav.query', path: '/query', icon: <CodeIcon /> },
   { label: 'mobile_nav.ask_notes', path: '/ask-notes', icon: <AutoAwesomeIcon /> },
   { label: 'mobile_nav.templates', path: '/templates', icon: <DescriptionIcon /> },

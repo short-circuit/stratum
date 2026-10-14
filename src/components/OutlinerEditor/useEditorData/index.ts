@@ -27,6 +27,7 @@ import { useMathInline, setupMathDblClick } from '../../../lib/useMathInline';
 import { dtoToBlockNote, blockNoteToDto } from '../dtoConverters';
 import { detectAndApplyMarkers } from '../markerDetection';
 import { useStore } from '../../../stores/appStore';
+import { applyReminderDecorations } from '../../../lib/useReminderDecorations';
 import { schema } from '../editorSchema';
 import type {
   MathEditState,
@@ -73,12 +74,16 @@ export function useEditorData(
   pagePath: string,
   autoFocus?: boolean,
   minHeight = '400px',
+  highlightBlockId?: string,
 ): EditorData {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blockMetaRef = useRef<Map<string, import('../dtoConverters').BlockMeta>>(new Map());
   const isProcessingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState('init');
+  // Bumped whenever block metadata (reminders/markers) is mutated, so reminder
+  // decoration effects can re-apply even though blockMetaRef is a mutable ref.
+  const [metaVersion, setMetaVersion] = useState(0);
   const [mathEdit, setMathEdit] = useState<MathEditState>(null);
   const [pageMarkers, setPageMarkers] = useState<string[]>([]);
   // Content snapshot taken right after the initial load, so auto-save can skip
@@ -149,6 +154,7 @@ export function useEditorData(
           ];
           setPageMarkers(markers);
           setStatus('ready');
+          setMetaVersion((v) => v + 1);
         } catch (e) {
           console.error('[OutlinerEditor] replaceBlocks failed:', e);
           setError(String(e));
@@ -228,6 +234,9 @@ export function useEditorData(
   const persistBlocks = useCallback(
     (blockNoteBlocks: any[]) => {
       pendingSaveRef.current = { blocks: blockNoteBlocks, pagePath };
+      // Refresh reminder chips alongside the pending save so the visible due
+      // badge reflects any metadata mutation without waiting for the save.
+      setMetaVersion((v) => v + 1);
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
         saveTimer.current = null;
@@ -325,6 +334,56 @@ export function useEditorData(
     const t = setTimeout(() => markDeadLinks(el), 1000);
     return () => clearTimeout(t);
   }, [status, markDeadLinks]);
+
+  // -----------------------------------------------------------------------
+  // Reminder decoration chips — re-applied after load and after any metadata
+  // mutation. blockMetaRef is a mutable ref, so the effect is driven off the
+  // metaVersion counter instead. applyReminderDecorations clears existing
+  // chips first, so repeated application never duplicates; a second delayed
+  // pass catches blocks that BlockNote commits asynchronously after load.
+  // -----------------------------------------------------------------------
+  useEffect(() => {
+    if (status !== 'ready') return;
+    const el = containerRef.current;
+    if (!el) return;
+    const translate = (k: string, opts?: Record<string, unknown>): string => i18n.t(k, opts as any) as string;
+    const apply = () => applyReminderDecorations(el, blockMetaRef.current, translate);
+    const t1 = window.setTimeout(apply, 50);
+    const t2 = window.setTimeout(apply, 400);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [status, metaVersion, editor]);
+
+  // Deep-link / highlight-on-open: when a highlightBlockId is provided and the
+  // editor is ready, scroll to and briefly flash the target block once its DOM
+  // node exists (BlockNote renders blocks asynchronously after replaceBlocks).
+  const scrollToBlock = useCallback((blockId: string) => {
+    const el = containerRef.current;
+    if (!el) return;
+    const blockEl = el.querySelector(`[data-block-id="${blockId}"]`);
+    if (!blockEl) return;
+    blockEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    blockEl.classList.add('reminder-flash');
+    window.setTimeout(() => blockEl.classList.remove('reminder-flash'), 2500);
+  }, []);
+
+  useEffect(() => {
+    if (status !== 'ready' || !highlightBlockId) return;
+    const id = highlightBlockId;
+    let attempts = 0;
+    const timer = window.setInterval(() => {
+      attempts += 1;
+      if (containerRef.current?.querySelector(`[data-block-id="${id}"]`)) {
+        window.clearInterval(timer);
+        scrollToBlock(id);
+      } else if (attempts > 20) {
+        window.clearInterval(timer);
+      }
+    }, 100);
+    return () => window.clearInterval(timer);
+  }, [status, highlightBlockId, scrollToBlock]);
 
   // -----------------------------------------------------------------------
   // Wiki-link preview popup (Ctrl + hover)
@@ -475,5 +534,6 @@ export function useEditorData(
     persistBlocks,
     saving,
     lastSavedAt,
+    scrollToBlock,
   };
 }

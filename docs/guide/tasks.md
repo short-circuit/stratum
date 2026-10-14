@@ -94,6 +94,19 @@ See the [Datalog Queries](datalog-queries.md) guide for more examples.
 
 The **Query** panel has a reset button that provides example queries. Modify them to suit your workflow.
 
+## Reminders on Tasks
+
+Any task block can also carry a **reminder**. Add a `.due` property with an
+RFC3339 timestamp to schedule a notification for when the task is due:
+
+```markdown
+- DOING Write docs
+  .due: 2026-10-15T09:00:00+00:00
+```
+
+When the time arrives, Stratum notifies you and takes you to the block. See the
+[Reminders](reminders.md) guide for full details.
+
 ## Task Workflow Tips
 
 - Use `DOING` to track work-in-progress — limits multitasking

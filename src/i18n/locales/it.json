@@ -726,7 +726,7 @@
     "instance_unreachable": "Non raggiungibile",
     "scanning_failed": "Ricerca non riuscita: {{error}}",
     "ping_failed": "Connessione non riuscita",
-"backup": "Backup",
+    "backup": "Backup",
     "backup_enable": "Attiva backup cloud",
     "backup_mode": "Destinazione backup",
     "backup_mode_folder": "Cartella",
@@ -749,7 +749,14 @@
     "backup_running": "Backup in corso...",
     "backup_success": "Backup completato.",
     "backup_failed": "Backup non riuscito:",
-    "backup_manual_note": "I backup sono una copia speculare del vault; la sincronizzazione Git non è influenzata."  },
+    "backup_manual_note": "I backup sono una copia speculare del vault; la sincronizzazione Git non è influenzata.",
+    "notifications": {
+      "title": "Notifiche",
+      "enable": "Attiva promemoria",
+      "sound": "Suono notifica",
+      "sound_desc": "Riproduci un suono quando scade un promemoria"
+    }
+  },
   "sidebar": {
     "ask_notes": "Chiedi alle note",
     "b": "b ·",
@@ -873,5 +880,47 @@
     "settings_target_today": "Le acquisizioni vengono inserite nel journal di oggi.",
     "settings_toggle_label": "Pulsante acquisizione vocale",
     "stop_save": "Ferma e salva"
+  },
+  "reminders": {
+    "panel": {
+      "title": "Promemoria",
+      "overdue": "In ritardo",
+      "today": "Oggi",
+      "upcoming": "In arrivo",
+      "snooze_10min": "Ritarda 10 min",
+      "snooze_1h": "Ritarda 1 h",
+      "complete": "Completa",
+      "open": "Apri",
+      "empty": "Nessun promemoria impostato",
+      "due": "Scadenza"
+    },
+    "dialog": {
+      "set_reminder": "Imposta promemoria",
+      "change_reminder": "Modifica promemoria",
+      "clear_reminder": "Rimuovi promemoria",
+      "in_1_hour": "Tra 1 ora",
+      "tomorrow_0900": "Domani 09:00",
+      "evening_1800": "Stasera 18:00",
+      "save": "Salva",
+      "cancel": "Annulla",
+      "invalid": "Data non valida"
+    },
+    "toast": {
+      "due_title": "Promemoria scaduto",
+      "open": "Apri"
+    },
+    "chip": {
+      "title": "Scadenza",
+      "clear": "Rimuovi promemoria"
+    },
+    "humanize": {
+      "now": "Scaduto ora",
+      "overdue_now": "In ritardo",
+      "due_in_min": "Scade tra {{minutes}} min",
+      "overdue_min": "In ritardo di {{minutes}} min",
+      "due_in_hours": "Scade tra {{hours}} h",
+      "overdue_hours": "In ritardo di {{hours}} h",
+      "due_date": "Scade {{date}}"
+    }
   }
 }

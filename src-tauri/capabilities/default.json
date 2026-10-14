@@ -8,6 +8,7 @@
     "core:window:allow-destroy",
     "dialog:default",
     "dialog:allow-open",
-    "global-shortcut:default"
+    "global-shortcut:default",
+    "notification:default"
   ]
 }

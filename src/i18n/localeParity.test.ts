@@ -52,6 +52,7 @@ const IDENTICAL_OK = new Set([
   'Actions', 'Note', 'Error:', 'Sources', 'Variables', 'Relations', 'Hooks:',
   'Test http_request', 'Test note_read', 'Comp', 'Tags', 'Friction',
   'Tray', 'Stop',
+  'Notifications', // identical word in en/fr (valid French)
   'notes)', '[[wiki-links]]', '~/.pkm/plugins', '~/.pkm/plugins.',
   'Query', // Datalog "query" is used untranslated as a loanword in de/it/fr/es UIs
   // Symbol / layout fragments

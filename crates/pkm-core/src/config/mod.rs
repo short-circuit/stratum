@@ -38,6 +38,8 @@ pub struct Config {
     pub graph: GraphConfig,
     /// System tray + quick capture configuration (desktop only; ignored on mobile).
     pub tray: TrayConfig,
+    /// Block-level reminder configuration.
+    pub reminders: ReminderConfig,
     /// Whether the first-run onboarding wizard has not yet been completed.
     ///
     /// Defaults to `false` (onboarding already done / never shown). The
@@ -70,6 +72,7 @@ impl Default for Config {
             watcher: WatcherConfig::default(),
             graph: GraphConfig::default(),
             tray: TrayConfig::default(),
+            reminders: ReminderConfig::default(),
             onboarding_pending: false,
         }
     }
@@ -655,6 +658,25 @@ pub enum CaptureTarget {
     #[default]
     Journal,
     Inbox,
+}
+
+/// Block-level reminder configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ReminderConfig {
+    /// Whether block reminders are enabled (scheduler active + notifications shown).
+    pub enabled: bool,
+    /// Whether to play a sound with the reminder notification.
+    pub sound: bool,
+}
+
+impl Default for ReminderConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            sound: true,
+        }
+    }
 }
 
 /// Configuration for web research (SearXNG).

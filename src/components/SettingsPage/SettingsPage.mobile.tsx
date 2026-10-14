@@ -13,6 +13,7 @@ import MobileAiAccordion from './MobileAiAccordion';
 import MobileSttTtsSection from './MobileSttTtsSection';
 import MobileDeveloperSection from './MobileDeveloperSection';
 import MobileSyncSection from './MobileSyncSection';
+import MobileNotificationsSection from './MobileNotificationsSection';
 import ImportDialog from '../ImportDialog';
 import ResearchPresetsSection from './ResearchPresetsSection';
 
@@ -63,6 +64,8 @@ export default function SettingsPageMobile() {
     updateTts,
     voice,
     updateVoice,
+    reminders,
+    updateReminders,
     // Sync
     syncSettings,
     updateSync,
@@ -237,6 +240,9 @@ export default function SettingsPageMobile() {
           running={running}
           webdavTestResult={webdavTestResult}
         />
+
+        {/* ─── Notifications Section ─── */}
+        <MobileNotificationsSection reminders={reminders} updateReminders={updateReminders} />
       </Box>
     </Box>
   );

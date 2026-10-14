@@ -10,6 +10,7 @@ import ResearchTab from './ResearchTab';
 import DeveloperTab from './DeveloperTab';
 import SyncTab from './SyncTab';
 import TrayTab from './TrayTab';
+import NotificationsTab from './NotificationsTab';
 import { useTranslation } from 'react-i18next';
 import { useSettingsPage, type SettingsTab } from './SettingsPage.shared';
 
@@ -56,6 +57,8 @@ export default function SettingsPageDesktop() {
     tray,
     updateTray,
     updateVoice,
+    reminders,
+    updateReminders,
     handleSave,
     handleFetchModels,
     handleReindex,
@@ -103,6 +106,7 @@ export default function SettingsPageDesktop() {
           <Tab label={t('settings.developer')} value="developer" sx={{ minHeight: 40, textTransform: 'none' }} />
           <Tab label={t('settings.sync')} value="sync" sx={{ minHeight: 40, textTransform: 'none' }} />
           <Tab label={t('settings.tray')} value="tray" sx={{ minHeight: 40, textTransform: 'none' }} />
+          <Tab label={t('settings.notifications.title')} value="notifications" sx={{ minHeight: 40, textTransform: 'none' }} />
         </Tabs>
         <Box sx={{ flex: 1 }} />
         <Button
@@ -188,6 +192,9 @@ export default function SettingsPageDesktop() {
         )}
         {tab === 'tray' && (
           <TrayTab tray={tray} onTrayChange={updateTray} />
+        )}
+        {tab === 'notifications' && (
+          <NotificationsTab reminders={reminders} onRemindersChange={updateReminders} />
         )}
       </Box>
     </Box>

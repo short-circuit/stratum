@@ -12,6 +12,11 @@ export interface Props {
   pagePath: string;
   autoFocus?: boolean;
   minHeight?: string;
+  /**
+   * When set (from a reminder notification / deep link), the editor scrolls
+   * to and briefly flashes the matching block once it is loaded.
+   */
+  highlightBlockId?: string;
 }
 
 export type MathEditState = { latex: string; pos: number } | null;
@@ -57,4 +62,6 @@ export interface EditorData {
   persistBlocks: (blockNoteBlocks: any[]) => void;
   saving: boolean;
   lastSavedAt: number | null;
+  /** Scroll to and briefly flash the given block (used for reminder deep links). */
+  scrollToBlock: (blockId: string) => void;
 }
