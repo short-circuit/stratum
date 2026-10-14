@@ -57,7 +57,7 @@ test.describe('QA parity — Settings', () => {
           // Tab surfaces each expose their fields.
           await page.getByRole('tab', { name: 'Vault' }).click();
           await expect(page.getByLabel('Vault Path')).toBeVisible();
-          await expect(page.getByRole('button', { name: /Browse/i })).toBeVisible();
+          await expect(page.getByRole('button', { name: /Browse/i }).first()).toBeVisible();
           await expect(page.getByRole('button', { name: /^Save$/ })).toBeVisible();
         } else {
           // Mobile: full vertical scroll of the same sections.
@@ -67,7 +67,7 @@ test.describe('QA parity — Settings', () => {
           // The mobile section layout must not be just a copy of the tab bar:
           // it must expose the actual form fields for the primary surfaces.
           await expect(page.getByLabel('Vault Path')).toBeVisible();
-          await expect(page.getByRole('button', { name: /Browse/i })).toBeVisible();
+          await expect(page.getByRole('button', { name: /Browse/i }).first()).toBeVisible();
           await expect(page.getByRole('button', { name: /^Save$/ })).toBeVisible();
           // AI provider accordion + STT/TTS + Research + Sync + Developer all
           // exist as scrollable sections (already asserted via section titles);
