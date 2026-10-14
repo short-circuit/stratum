@@ -157,6 +157,21 @@ pub fn run() {
                     }
                 }
 
+                // ── Cloud/folder backup scheduler (E10.F3) ───────────
+                // Backup is a separate layer from git sync: only start the
+                // scheduler when the user has explicitly enabled it.
+                if config.sync.backup.enabled {
+                    let mut scheduler = pkm_sync::BackupScheduler::new(
+                        vault_path.clone(),
+                        config.sync.backup.clone(),
+                    );
+                    scheduler.start();
+                    if let Ok(mut state) = app.state::<AppState>().lock() {
+                        state.backup_scheduler = Some(scheduler);
+                        tracing::info!("[stratum] Backup scheduler started");
+                    }
+                }
+
                 // ── File watcher ──────────────────────────────────────
                 #[cfg(not(target_os = "android"))]
                 if config.watcher.enabled {
@@ -379,6 +394,10 @@ pub fn run() {
             commands::sync::get_commit_log,
             commands::sync::resolve_conflict_file,
             commands::sync::abort_merge,
+            // Backup (E10.F3)
+            commands::backup::run_backup,
+            commands::backup::get_backup_status,
+            commands::backup::test_webdav,
             // Templates
             commands::template::list_templates,
             commands::template::save_template,

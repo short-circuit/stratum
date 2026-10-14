@@ -166,6 +166,16 @@ export const MOCK_SYNC_STATUS: SyncStatusDto = {
   pending_commits: 0,
 };
 
+export const MOCK_BACKUP_STATUS = {
+  enabled: true,
+  mode: 'folder',
+  last_run: NOW,
+  last_success: true,
+  last_error: null,
+  files_copied: 3,
+  files_deleted: 0,
+};
+
 export const MOCK_SETTINGS = {
   vault_path: '/mock/vault',
   theme: { dark_mode: true, primary_color: '#f97316', secondary_color: '#6b7280', font_size: 16 },
@@ -199,6 +209,16 @@ export const MOCK_SETTINGS = {
     auto_sync_interval_secs: 1800,
     ssh_key_path: null,
     commit_template: 'stratum({datetime}): {editedfiles} edited, {newfiles} added, {deletedfiles} deleted',
+    backup: {
+      enabled: false,
+      mode: 'folder',
+      interval_minutes: 60,
+      exclude: ['.git', '.pkm/blocks.db', '.pkm/search', '.pkm/backup_state.json', '.pkm/sync_state.json', '.DS_Store'],
+      webdav_url: null,
+      webdav_username: null,
+      webdav_password: null,
+      folder_path: null,
+    },
   },
   research: {
     searxng_endpoint: 'http://localhost:8888',
@@ -595,6 +615,9 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
         get_commit_log: () => (${JSON.stringify(MOCK_COMMITS)}),
         resolve_conflict_file: () => {},
         abort_merge: () => {},
+        run_backup: () => (${JSON.stringify(MOCK_BACKUP_STATUS)}),
+        get_backup_status: () => (${JSON.stringify(MOCK_BACKUP_STATUS)}),
+        test_webdav: () => ('ok'),
         ai_transform_block: () => ({ content: 'Transformed content' }),
         ai_research: () => ({ findings: 'Research findings', sources: [] }),
         discover_local_ai: () => ([

@@ -143,6 +143,92 @@ pub struct SyncConfig {
     /// Commit message template with placeholders:
     /// {datetime}, {editedfiles}, {newfiles}, {deletedfiles}, {count}
     pub commit_template: String,
+    /// Periodic cloud/folder backup configuration (E10.F3).
+    /// Backup is a separate layer from git sync — an independent mirror that
+    /// never touches git state or the search index.
+    #[serde(default)]
+    pub backup: BackupConfig,
+}
+
+/// Configuration for the periodic backup mirror (E10.F3).
+///
+/// Backup is intentionally decoupled from git sync: it copies vault files to
+/// either a local folder or a WebDAV endpoint as an independent, differential
+/// mirror. See `crates/pkm-sync/src/backup/` for the implementation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct BackupConfig {
+    /// Whether the periodic backup scheduler is enabled.
+    pub enabled: bool,
+    /// Which target(s) to back up to.
+    pub mode: BackupMode,
+    /// Interval between scheduled backups, in minutes (0 ⇒ 60).
+    pub interval_minutes: u64,
+    /// Vault-relative paths to exclude (prefix match for directories).
+    pub exclude: Vec<String>,
+    /// WebDAV target settings (used when `mode` includes WebDAV).
+    pub webdav: WebdavBackupConfig,
+    /// Local folder target settings (used when `mode` includes Folder).
+    pub folder: FolderBackupConfig,
+}
+
+/// Which backup target(s) to write to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum BackupMode {
+    #[default]
+    Folder,
+    Webdav,
+    Both,
+}
+
+/// WebDAV connection settings for the backup mirror.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct WebdavBackupConfig {
+    /// Base URL of the WebDAV endpoint.
+    pub url: Option<String>,
+    /// Basic-auth username.
+    pub username: Option<String>,
+    /// Basic-auth password (stored plaintext for now; keyring is a follow-up).
+    pub password: Option<String>,
+}
+
+/// Local folder target for the backup mirror.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct FolderBackupConfig {
+    /// Absolute path of the destination folder.
+    pub path: Option<String>,
+}
+
+/// Default set of vault-relative paths excluded from every backup.
+///
+/// `.git` is always excluded even if the config omits it (see
+/// `pkm_sync::backup::should_exclude`); the remaining entries are the default
+/// derived data that is rebuilt from `.md` files and never needs backing up.
+pub fn default_backup_exclude() -> Vec<String> {
+    vec![
+        ".git".to_string(),
+        ".pkm/blocks.db".to_string(),
+        ".pkm/search".to_string(),
+        ".pkm/backup_state.json".to_string(),
+        ".pkm/sync_state.json".to_string(),
+        ".DS_Store".to_string(),
+    ]
+}
+
+impl Default for BackupConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            mode: BackupMode::default(),
+            interval_minutes: 60,
+            exclude: default_backup_exclude(),
+            webdav: WebdavBackupConfig::default(),
+            folder: FolderBackupConfig::default(),
+        }
+    }
 }
 
 /// Detect the default SSH private key path.
@@ -174,6 +260,7 @@ impl Default for SyncConfig {
             signing_key: None,
             ssh_key_path: detect_default_ssh_key(),
             commit_template: default_template.to_string(),
+            backup: BackupConfig::default(),
         }
     }
 }

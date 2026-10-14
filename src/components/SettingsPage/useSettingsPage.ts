@@ -14,6 +14,17 @@ import type { SettingsTab } from './settingsTypes';
 
 export type { SettingsTab, SettingsData } from './settingsTypes';
 
+const DEFAULT_BACKUP = {
+  enabled: false,
+  mode: 'folder',
+  interval_minutes: 60,
+  exclude: ['.git', '.pkm/blocks.db', '.pkm/search', '.pkm/backup_state.json', '.pkm/sync_state.json', '.DS_Store'],
+  webdav_url: null,
+  webdav_username: null,
+  webdav_password: null,
+  folder_path: null,
+};
+
 export function useSettingsPage() {
   const { pickVaultDirectory, setThemeConfig, loadPages } = useStore(useShallow(
     s => ({ pickVaultDirectory: s.pickVaultDirectory, setThemeConfig: s.setThemeConfig, loadPages: s.loadPages }),
@@ -39,6 +50,10 @@ export function useSettingsPage() {
   const setSyncing = useSyncStore(s => s.setSyncing);
   const [commitsOpen, setCommitsOpen] = useState(false);
   const [installing, setInstalling] = useState(false);
+  const [backupStatus, setBackupStatus] = useState<any>(null);
+  const [testing, setTesting] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [webdavTestResult, setWebdavTestResult] = useState<string | null>(null);
 
   const syncModal = useSyncModalStore();
 
@@ -74,6 +89,7 @@ export function useSettingsPage() {
 
     useSyncStore.getState().fetchSyncStatus();
     useSyncStore.getState().fetchCommitLog();
+    api.getBackupStatus().then(setBackupStatus).catch(() => {});
 
     return () => {
       const saved = savedThemeRef.current;
@@ -149,6 +165,7 @@ export function useSettingsPage() {
     inbox_path: 'Inbox.md',
   };
   const voice = settings?.voice || { enabled: true, target: 'journal:today' };
+  const backup = settings?.sync?.backup || DEFAULT_BACKUP;
 
   const updateAi = (patch: any) => setSettings({ ...settings, ai: { ...ai, ...patch } });
   const updateVault = (patch: any) => setSettings({ ...settings, ...patch });
@@ -167,6 +184,11 @@ export function useSettingsPage() {
   };
   const updateSync = (patch: any) =>
     setSettings({ ...settings, sync: { ...syncSettings, ...patch } });
+  const updateBackup = (patch: any) =>
+    setSettings({
+      ...settings,
+      sync: { ...syncSettings, backup: { ...(syncSettings.backup || DEFAULT_BACKUP), ...patch } },
+    });
   const updateStt = (patch: any) =>
     setSettings({ ...settings, stt: { ...(settings.stt || {}), ...patch } });
   const updateTts = (patch: any) =>
@@ -301,6 +323,46 @@ export function useSettingsPage() {
     }
   };
 
+  const runBackupNow = async () => {
+    setRunning(true);
+    setMsg('');
+    setMsgSeverity('success');
+    try {
+      const status = await api.runBackup();
+      setBackupStatus(status);
+      setMsg(
+        status.last_error
+          ? `${i18n.t('settings.backup_failed')} ${status.last_error}`
+          : i18n.t('settings.backup_success')
+      );
+      if (status.last_error) setMsgSeverity('error');
+    } catch (e) {
+      setBackupStatus({ last_success: false, last_error: String(e) });
+      setMsg(`${i18n.t('settings.backup_failed')} ${e}`);
+      setMsgSeverity('error');
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const testWebdavConnection = async () => {
+    if (!backup.webdav_url) return;
+    setTesting(true);
+    setWebdavTestResult(null);
+    try {
+      const result = await api.testWebdav(
+        backup.webdav_url,
+        backup.webdav_username,
+        backup.webdav_password
+      );
+      setWebdavTestResult(result);
+    } catch (e) {
+      setWebdavTestResult(String(e));
+    } finally {
+      setTesting(false);
+    }
+  };
+
   const toggleModelCapability = (modelName: string, cap: string) => {
     const models = [...(ai.models || [])];
     const existing = models.find((m: any) => m.name === modelName);
@@ -417,12 +479,17 @@ export function useSettingsPage() {
     commits,
     commitsOpen,
     syncing,
+    backupStatus,
+    testing,
+    running,
+    webdavTestResult,
 
     // Derived
     ai,
     research,
     theme,
     syncSettings,
+    backup,
     stt: settings?.stt,
     tts,
     tray,
@@ -439,6 +506,9 @@ export function useSettingsPage() {
     updateResearch,
     updateTheme,
     updateSync,
+    updateBackup,
+    runBackupNow,
+    testWebdavConnection,
     updateStt,
     updateTts,
     updateTray,

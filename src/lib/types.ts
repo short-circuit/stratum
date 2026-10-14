@@ -94,6 +94,28 @@ export interface SyncSettings {
   auto_sync_interval_secs: number;
   ssh_key_path: string | null;
   commit_template: string;
+  backup: BackupSettings;
+}
+
+export interface BackupSettings {
+  enabled: boolean;
+  mode: string;
+  interval_minutes: number;
+  exclude: string[];
+  webdav_url: string | null;
+  webdav_username: string | null;
+  webdav_password: string | null;
+  folder_path: string | null;
+}
+
+export interface BackupStatusDto {
+  enabled: boolean;
+  mode: string;
+  last_run: string | null;
+  last_success: boolean | null;
+  last_error: string | null;
+  files_copied: number | null;
+  files_deleted: number | null;
 }
 
 export interface CommitLogEntry {

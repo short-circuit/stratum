@@ -106,3 +106,68 @@ git push
 - **`.pkm/` is in `.gitignore`** by default — only your `.md` files are versioned
 - **Cross-platform** — notes sync seamlessly between Linux, macOS, and Windows
 - **Pair with [restic](https://restic.net/) or [borg](https://www.borgbackup.org/)** for full backup strategy
+
+## Cloud Backup (WebDAV + Folder)
+
+In addition to Git sync, Stratum can mirror your vault to a **local folder** or a
+**WebDAV** endpoint as an independent, periodic backup. Backup is a *separate
+layer* from Git sync: it never touches Git state or the search index, so your
+version history and your external backup stay fully independent.
+
+### Targets
+
+| Target | Description |
+|--------|-------------|
+| **Folder** | A local directory (e.g. an external drive or another machine's share). |
+| **WebDAV** | A remote WebDAV endpoint (Nextcloud, a NAS, any WebDAV server). |
+| **Both** | Runs the folder target first, then the WebDAV target. |
+
+### How It Works
+
+Backup is a **differential per-file mirror**, not a zip archive:
+
+- Files whose size and modification time are unchanged are skipped; only changed
+  or new files are copied.
+- A `manifest.json` is written at the target root recording the last-known state.
+- **Delete propagation** removes files at the target only if they were recorded
+  in the previous manifest and no longer exist locally. Files at the target that
+  were never part of the manifest are left untouched, so the destination can
+  safely contain unrelated data.
+- When the destination folder lives **inside** the vault, it is automatically
+  excluded from the source walk to prevent recursive self-copy.
+
+### Configuration
+
+Enable and configure backup via **Settings → Sync → Backup**, or by editing
+`.pkm/config.toml`:
+
+```toml
+[sync.backup]
+enabled = true
+mode = "both"            # "folder" | "webdav" | "both"
+interval_minutes = 60
+
+[sync.backup.webdav]
+url = "https://dav.example.com/backup"
+username = "user"
+password = "secret"
+
+[sync.backup.folder]
+path = "/mnt/backup/stratum"
+```
+
+Excluded paths are vault-relative and comma-separated in the UI; `.git` is always
+excluded even if you omit it. The default excludes are `.git`, `.pkm/blocks.db`,
+`.pkm/search`, `.pkm/backup_state.json`, `.pkm/sync_state.json` and `.DS_Store`.
+
+!!! note "Secrets"
+    The WebDAV password is stored in plaintext in `.pkm/config.toml` for now.
+    Using the OS keyring is planned (see ADR-0007).
+
+### Running & Status
+
+Use **Run backup now** in Settings → Sync → Backup to trigger a backup manually
+(regardless of whether the scheduler is enabled), and **Test connection** to
+verify WebDAV reachability/auth. The status panel shows the last run time, files
+copied/removed, and any error. See
+[ADR-0007](../development/adr/0007-cloud-backup.md) for the design rationale.

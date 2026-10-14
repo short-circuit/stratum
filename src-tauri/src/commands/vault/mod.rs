@@ -22,6 +22,8 @@ pub struct VaultState {
     pub block_index: Option<BlockIndex>,
     pub sync_scheduler: Option<pkm_sync::SyncScheduler>,
     pub auto_commit_engine: Option<pkm_sync::AutoCommitEngine>,
+    /// Periodic cloud/folder backup scheduler (E10.F3), independent of git.
+    pub backup_scheduler: Option<pkm_sync::BackupScheduler>,
     pub passphrase: Option<String>,
     #[cfg(not(target_os = "android"))]
     pub watcher: Option<pkm_watcher::FileWatcher>,
@@ -75,6 +77,7 @@ impl VaultState {
             block_index: None,
             sync_scheduler: None,
             auto_commit_engine: None,
+            backup_scheduler: None,
             passphrase: None,
             #[cfg(not(target_os = "android"))]
             watcher: None,

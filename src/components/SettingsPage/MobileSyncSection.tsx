@@ -2,10 +2,11 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import TextField from '@mui/material/TextField';
-import type { SyncStatusDto, CommitLogEntry } from '../../lib/types';
+import type { SyncStatusDto, CommitLogEntry, BackupSettings, BackupStatusDto } from '../../lib/types';
 import { useTranslation } from 'react-i18next';
 import CommitLogPanel from './CommitLogPanel';
 import SyncControlsPanel from './SyncControlsPanel';
+import BackupSettingsPanel from './BackupSettingsPanel';
 
 // ---------------------------------------------------------------------------
 // Mobile sync configuration section.
@@ -33,6 +34,14 @@ export interface MobileSyncSectionProps {
   commits: CommitLogEntry[];
   commitsOpen: boolean;
   onToggleCommits: () => void;
+  backup: BackupSettings;
+  backupStatus: BackupStatusDto | null;
+  updateBackup: (patch: Partial<BackupSettings>) => void;
+  runBackupNow: () => Promise<void>;
+  testWebdavConnection: () => Promise<void>;
+  testing: boolean;
+  running: boolean;
+  webdavTestResult: string | null;
 }
 
 const MODES = ['manual', 'auto_commit', 'auto_sync', 'background'] as const;
@@ -58,6 +67,14 @@ export default function MobileSyncSection({
   commits,
   commitsOpen,
   onToggleCommits,
+  backup,
+  backupStatus,
+  updateBackup,
+  runBackupNow,
+  testWebdavConnection,
+  testing,
+  running,
+  webdavTestResult,
 }: MobileSyncSectionProps) {
   const { t } = useTranslation();
   const insertPlaceholder = (placeholder: string) => {
@@ -302,6 +319,19 @@ export default function MobileSyncSection({
           onToggleCommits={onToggleCommits}
         />
       </Box>
+
+      {/* Cloud backup */}
+      <Divider sx={{ my: 1.5 }} />
+      <BackupSettingsPanel
+        backup={backup}
+        backupStatus={backupStatus}
+        onBackupChange={updateBackup}
+        onRunBackupNow={runBackupNow}
+        onTestWebdav={testWebdavConnection}
+        testing={testing}
+        running={running}
+        webdavTestResult={webdavTestResult}
+      />
     </Box>
   );
 }

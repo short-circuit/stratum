@@ -8,7 +8,19 @@ license.workspace = true
 tracing.workspace = true
 chrono.workspace = true
 gix.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+url.workspace = true
 pkm-core = { path = "../pkm-core" }
+# WebDAV backup target (E10.F3). License: MIT OR Apache-2.0 — AGPL-compatible.
+reqwest_dav = { version = "0.3", default-features = false, features = ["rustls-tls"] }
 
 [dev-dependencies]
 tempfile.workspace = true
+# In-process WebDAV test server for backup round-trip tests (test-only).
+# License: Apache-2.0 — AGPL-compatible.
+dav-server = { version = "0.11", default-features = false, features = ["localfs"] }
+hyper.workspace = true
+hyper-util.workspace = true
+http-body-util.workspace = true

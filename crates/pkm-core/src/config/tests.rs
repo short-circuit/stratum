@@ -236,6 +236,52 @@ fn test_watcher_config_defaults() {
 }
 
 #[test]
+fn test_old_config_without_backup_section_loads() {
+    // A config written before the [sync.backup] table existed must still parse
+    // and fall back to the BackupConfig defaults (disabled, Folder mode, 60min).
+    let dir = TempDir::new().unwrap();
+    let config_path = dir.path().join("config.toml");
+    std::fs::write(&config_path, "[theme]\ndark_mode = false\n").unwrap();
+    let loaded = Config::load(&config_path).unwrap();
+    assert!(!loaded.sync.backup.enabled);
+    assert_eq!(loaded.sync.backup.mode, BackupMode::Folder);
+    assert_eq!(loaded.sync.backup.interval_minutes, 60);
+    assert_eq!(loaded.sync.backup.exclude.len(), 6);
+}
+
+#[test]
+fn test_backup_config_serde_roundtrip() {
+    let cfg = BackupConfig {
+        enabled: true,
+        mode: BackupMode::Both,
+        interval_minutes: 30,
+        exclude: vec![".git".to_string(), "temp".to_string()],
+        webdav: WebdavBackupConfig {
+            url: Some("https://dav.example.com/backup".into()),
+            username: Some("user".into()),
+            password: Some("pw".into()),
+        },
+        folder: FolderBackupConfig {
+            path: Some("/tmp/backup".into()),
+        },
+    };
+    let json = serde_json::to_string(&cfg).unwrap();
+    let deserialized: BackupConfig = serde_json::from_str(&json).unwrap();
+    assert!(deserialized.enabled);
+    assert_eq!(deserialized.mode, BackupMode::Both);
+    assert_eq!(deserialized.interval_minutes, 30);
+    assert_eq!(
+        deserialized.exclude,
+        vec![".git".to_string(), "temp".to_string()]
+    );
+    assert_eq!(
+        deserialized.webdav.url.as_deref(),
+        Some("https://dav.example.com/backup")
+    );
+    assert_eq!(deserialized.folder.path.as_deref(), Some("/tmp/backup"));
+}
+
+#[test]
 fn test_graph_config_link_curvature_default() {
     let cfg = GraphConfig::default();
     assert_eq!(cfg.link_curvature, 0.15);

@@ -66,6 +66,14 @@ export default function SettingsPageMobile() {
     // Sync
     syncSettings,
     updateSync,
+    backup,
+    backupStatus,
+    updateBackup,
+    runBackupNow,
+    testWebdavConnection,
+    testing,
+    running,
+    webdavTestResult,
     commits,
     commitsOpen,
     handleToggleCommits,
@@ -220,6 +228,14 @@ export default function SettingsPageMobile() {
           commits={commits}
           commitsOpen={commitsOpen}
           onToggleCommits={handleToggleCommits}
+          backup={backup}
+          backupStatus={backupStatus}
+          updateBackup={updateBackup}
+          runBackupNow={runBackupNow}
+          testWebdavConnection={testWebdavConnection}
+          testing={testing}
+          running={running}
+          webdavTestResult={webdavTestResult}
         />
       </Box>
     </Box>
