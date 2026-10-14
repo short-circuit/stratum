@@ -63,7 +63,7 @@ export default function OutlinerEditorDesktop(props: Props) {
     deadLinkPopup,
     setDeadLinkPopup,
     navigateRef,
-  } = useEditorData(pagePath, autoFocus, minHeight);
+  } = useEditorData(pagePath, autoFocus, minHeight, props.focusBlockId);
 
   const saveLabel = useMemo(() => {
     if (saving) return t('editor.saving');

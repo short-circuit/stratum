@@ -11,11 +11,13 @@ import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import IconButton from '@mui/material/IconButton';
 import MicNoneIcon from '@mui/icons-material/MicNone';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
+import AutoStoriesIcon from '@mui/icons-material/AutoStories';
 import OutlinerEditor from '../OutlinerEditor';
 import BacklinksPanel from '../BacklinksPanel';
 import SuggestedConnectionsPanel from '../SuggestedConnectionsPanel';
 import DictationPanel from '../DictationPanel';
 import AttachmentPanel, { FILE_INPUT_ID } from '../AttachmentPanel';
+import ProseView from './prose';
 import { usePageView } from './shared';
 import * as api from '../../lib/commands';
 import { useStore } from '../../stores/appStore';
@@ -23,7 +25,7 @@ import { useTranslation } from 'react-i18next';
 
 export default function PageViewDesktop() {
   const { t } = useTranslation();
-  const { pagePath, currentPage, editorKey, reindexing, handleReindex, handleDelete } = usePageView();
+  const { pagePath, currentPage, editorKey, reindexing, handleReindex, handleDelete, prose, setProse, focusBlockId, setFocusBlockId } = usePageView();
   const [noteMenuAnchor, setNoteMenuAnchor] = useState<HTMLElement | null>(null);
   const [dictationOpen, setDictationOpen] = useState(false);
 
@@ -78,6 +80,25 @@ export default function PageViewDesktop() {
         >
           <AttachFileIcon fontSize="small" />
         </IconButton>
+        <IconButton
+          size="small"
+          data-testid="prose-toggle"
+          onClick={() => setProse(p => !p)}
+          title={t('page.read_mode')}
+          color={prose ? 'primary' : 'default'}
+        >
+          <AutoStoriesIcon fontSize="small" />
+        </IconButton>
+        {prose && (
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => { setProse(false); setFocusBlockId(null); }}
+            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+          >
+            {t('page.edit_mode')}
+          </Button>
+        )}
         <Button
           size="small"
           variant="outlined"
@@ -112,7 +133,15 @@ export default function PageViewDesktop() {
       )}
 
       <Box sx={{ flex: 1, overflow: 'auto' }}>
-        <OutlinerEditor key={editorKey} pagePath={currentPage.path} />
+        {prose ? (
+          <ProseView
+            pagePath={currentPage.path}
+            onExit={() => { setProse(false); setFocusBlockId(null); }}
+            onEditBlock={(id) => { setFocusBlockId(id); setProse(false); }}
+          />
+        ) : (
+          <OutlinerEditor key={editorKey} pagePath={currentPage.path} focusBlockId={focusBlockId ?? undefined} />
+        )}
       </Box>
 
       <AttachmentPanel pagePath={currentPage.path} />

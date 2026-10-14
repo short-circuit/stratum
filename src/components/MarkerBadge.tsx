@@ -1,6 +1,8 @@
+/* eslint-disable react-refresh/only-export-components -- exports the shared MARKER_COLORS const used by proseRenderer */
 import Chip from '@mui/material/Chip';
 
-const MARKER_COLORS: Record<string, { bg: string; text: string }> = {
+/** Marker → badge colour map, shared with the read-mode prose renderer. */
+export const MARKER_COLORS: Record<string, { bg: string; text: string }> = {
   TODO:       { bg: '#f59e0b', text: '#fff' },
   DOING:      { bg: '#3b82f6', text: '#fff' },
   DONE:       { bg: '#10b981', text: '#fff' },

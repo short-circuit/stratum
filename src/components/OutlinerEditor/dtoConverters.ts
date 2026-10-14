@@ -48,7 +48,16 @@ export function dtoToBlockNote(dtos: BlockDto[], metaMap: Map<string, BlockMeta>
     const contentStr = dto.content || '';
     const mermaidMatch = contentStr.match(mermaidBlockRegex);
     if (mermaidMatch) {
+      // Preserve block metadata + id BEFORE the early return so the save path
+      // (blockNoteToDto) never regenerates a fresh UUID or drops marker/
+      // priority/properties → keeps the .md byte-identical across saves.
+      metaMap.set(dto.id, {
+        marker: dto.marker,
+        priority: dto.priority,
+        properties: dto.properties,
+      });
       return {
+        id: dto.id,
         type: 'mermaid',
         props: { language: 'mermaid' },
         content: [{ type: 'text' as const, text: mermaidMatch[1].trimEnd(), styles: {} }],
@@ -58,7 +67,13 @@ export function dtoToBlockNote(dtos: BlockDto[], metaMap: Map<string, BlockMeta>
     const codeMatch = contentStr.match(codeBlockRegex);
     if (codeMatch) {
       const lang = codeMatch[1] || 'text';
+      metaMap.set(dto.id, {
+        marker: dto.marker,
+        priority: dto.priority,
+        properties: dto.properties,
+      });
       return {
+        id: dto.id,
         type: 'codeBlock',
         props: { language: lang },
         content: [{ type: 'text' as const, text: codeMatch[2].trimEnd(), styles: {} }],
@@ -78,6 +93,7 @@ export function dtoToBlockNote(dtos: BlockDto[], metaMap: Map<string, BlockMeta>
         });
         if (IMAGE_EXTS.includes(ext)) {
           return {
+            id: dto.id,
             type: 'image',
             props: { url: ASSET_PREFIX + target, name: target, caption: '' },
             content: [],
@@ -85,6 +101,7 @@ export function dtoToBlockNote(dtos: BlockDto[], metaMap: Map<string, BlockMeta>
           };
         }
         return {
+          id: dto.id,
           type: 'file',
           props: {
             url: ASSET_PREFIX + target,

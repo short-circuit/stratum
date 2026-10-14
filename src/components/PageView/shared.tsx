@@ -4,7 +4,7 @@
  * and exposes reindex/delete handlers used by both desktop and mobile variants.
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, type Dispatch, type SetStateAction } from 'react';
 import { useParams } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 import { useStore, type AppState } from '../../stores/appStore';
@@ -21,6 +21,12 @@ export interface PageViewState {
   editorKey: number;
   /** True while a reindex operation is in flight */
   reindexing: boolean;
+  /** True while the page is shown in read-only prose mode */
+  prose: boolean;
+  setProse: Dispatch<SetStateAction<boolean>>;
+  /** Block id to focus when leaving prose into edit mode (double-click jump), or null */
+  focusBlockId: string | null;
+  setFocusBlockId: Dispatch<SetStateAction<string | null>>;
   /** Trigger a full reindex of the current page */
   handleReindex: () => Promise<void>;
   /** Delete the current page after user confirmation */
@@ -38,6 +44,8 @@ export function usePageView(): PageViewState {
   ));
   const [editorKey, setEditorKey] = useState(0);
   const [reindexing, setReindexing] = useState(false);
+  const [prose, setProse] = useState(false);
+  const [focusBlockId, setFocusBlockId] = useState<string | null>(null);
   const pagePath = rawPath ? decodeURIComponent(rawPath) : null;
 
   const restoreSourceScroll = useRestoreSourceScroll(pagePath);
@@ -51,7 +59,26 @@ export function usePageView(): PageViewState {
       // after a Ctrl/Cmd+click navigation away from it.
       restoreSourceScroll();
     }
+    // Prose is per-PageView instance; reset it whenever the page changes.
+    setProse(false);
+    setFocusBlockId(null);
   }, [pagePath, openPage, restoreSourceScroll]);
+
+  // Ctrl/Cmd+Shift+R toggles read mode. preventDefault so the browser reload
+  // shortcut is suppressed; ignored while typing or inside a dialog.
+  useEffect(() => {
+    if (!pagePath) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || !e.shiftKey || e.key.toLowerCase() !== 'r') return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' ||
+          target.isContentEditable || target.closest('[role="dialog"]'))) return;
+      e.preventDefault();
+      setProse((p) => !p);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [pagePath]);
 
   const handleReindex = useCallback(async () => {
     if (!currentPage) return;
@@ -88,6 +115,10 @@ export function usePageView(): PageViewState {
     currentPage,
     editorKey,
     reindexing,
+    prose,
+    setProse,
+    focusBlockId,
+    setFocusBlockId,
     handleReindex,
     handleDelete,
   };
