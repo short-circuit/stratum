@@ -136,6 +136,7 @@ const ALLOW_EXACT = new Set([
   'M3 6h18', 'M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6', 'M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2',
   'M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z', '0.1.0', '0.2.1', '0.0.4',
   'file:read', 'file:write', "plugin_not_found: no plugin with id '",
+  'SHA-256', 'Built-in', 'Built-in theme',
   '{:query [:find ?b :where [?b :block/marker "TODO"]]}', 'data:',
   '<svg', '<svg fill="currentColor"', '*.svg?raw', '& .MuiFormControlLabel-label',
   'relative', 'absolute', 'fixed', 'sticky', 'static', 'flex-start', 'flex-end',

@@ -290,6 +290,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `FlashcardsPanel` | `/flashcards` | SRS card review (SM-2) | `docs/guide/flashcards.md` |
 | `KanbanPanel` | `/kanban` | Drag-and-drop Kanban board | `docs/guide/kanban.md` |
 | `WhiteboardPanel` | `/whiteboards` | Excalidraw spatial canvas | `docs/guide/whiteboards.md` |
+| `PluginsPanel` | `/plugins` | Installed plugins + Plugin Directory / Theme Hub (desktop/mobile; shared hook `PluginsPanel.shared.tsx`) | `docs/guide/plugins.md` |
 | `RemindersPanel` | `/reminders` | Overdue/today/upcoming reminder list + snooze/complete/open | `docs/guide/reminders.md` |
 | `SettingsPage` | `/settings` | 6-tab app configuration | `docs/getting-started/configuration.md` |
 | `BackupSettingsPanel` | `SyncTab` (SettingsPage) | Cloud/folder backup (WebDAV + folder) config, test-connection, run-now + status | `docs/guide/git-sync.md` |
