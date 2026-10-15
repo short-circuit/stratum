@@ -333,7 +333,7 @@ jobs:
           set -o pipefail
           TMP="${RUNNER_TEMP//\\//}"
           if [ "${{ runner.os }}" = "Linux" ]; then
-            APPIMAGE_EXTRACT_AND_RUN=1 npx tauri build --bundles appimage 2>&1 | tee "$TMP/tauri-build.log"
+            APPIMAGE_EXTRACT_AND_RUN=1 npx tauri build --bundles appimage,deb,rpm 2>&1 | tee "$TMP/tauri-build.log"
           elif [ "${{ runner.os }}" = "macOS" ]; then
             APPLE_SIGNING_IDENTITY="${APPLE_SIGNING_IDENTITY:--}" npx tauri build --bundles app 2>&1 | tee "$TMP/tauri-build.log"
           elif [ "${{ runner.os }}" = "Windows" ]; then
@@ -359,6 +359,8 @@ jobs:
           name: ${{ matrix.artifact_name }}
           path: |
             target/release/bundle/appimage/*.AppImage
+            target/release/bundle/deb/*.deb
+            target/release/bundle/rpm/*.rpm
             target/release/bundle/macos/*.zip
             target/release/stratum-tauri.exe
           if-no-files-found: warn
@@ -805,6 +807,16 @@ jobs:
             cp "$APPIMAGE" assets/stratum-pkm-linux.AppImage
           fi
 
+          DEB=$(find linux-x86_64 -name '*.deb' -type f 2>/dev/null | head -1)
+          if [ -n "$DEB" ]; then
+            cp "$DEB" assets/stratum-pkm-linux.deb
+          fi
+
+          RPM=$(find linux-x86_64 -name '*.rpm' -type f 2>/dev/null | head -1)
+          if [ -n "$RPM" ]; then
+            cp "$RPM" assets/stratum-pkm-linux.rpm
+          fi
+
           MACOS_ZIP=$(find macos-x86_64 -name '*.zip' -type f 2>/dev/null | head -1)
           if [ -n "$MACOS_ZIP" ]; then
             cp "$MACOS_ZIP" assets/stratum-pkm-macos.zip
@@ -823,6 +835,9 @@ jobs:
           if [ -n "$AAB" ]; then
             cp "$AAB" assets/stratum-pkm-android.aab
           fi
+
+          # Checksums for every artifact (canonical release names)
+          (cd assets && sha256sum stratum-pkm-* > sha256sums.txt)
 
           ls -la assets/
 

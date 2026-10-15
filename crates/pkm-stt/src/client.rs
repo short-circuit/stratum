@@ -78,7 +78,13 @@ impl Transcriber {
         let mut form = reqwest::multipart::Form::new()
             .part("file", part)
             .text("model", model.to_string())
-            .text("response_format", "verbose_json".to_string());
+            .text("response_format", "verbose_json".to_string())
+            // LocalAI defaults `diarize` to true on /v1/audio/transcriptions
+            // (c.FormValue("diarize") != "false"); its whisperx backend then
+            // demands HF_TOKEN for the gated pyannote pipeline. Stratum does
+            // diarization separately via /v1/audio/diarization (Diarizer), so
+            // transcription must request a flat transcript.
+            .text("diarize", "false");
         if let Some(lang) = language {
             form = form.text("language", lang.to_string());
         }
