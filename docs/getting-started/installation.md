@@ -8,11 +8,14 @@ Pre-built binaries are available on the [GitHub Releases page](https://github.co
 
 | Platform | Format | File |
 |----------|--------|------|
-| Linux | AppImage | `stratum_<version>_amd64.AppImage` |
-| Linux | Debian | `stratum_<version>_amd64.deb` |
-| Windows | MSI | `stratum_<version>_x64.msi` |
-| Windows | NSIS | `stratum_<version>_x64-setup.exe` |
-| macOS | DMG | `stratum_<version>_x64.dmg` |
+| Linux | AppImage | `stratum-pkm-linux.AppImage` |
+| Linux | Debian | `stratum-pkm-linux.deb` |
+| Linux | RPM | `stratum-pkm-linux.rpm` |
+| Windows | Portable exe | `stratum-pkm-windows.exe` |
+| macOS | App bundle | `stratum-pkm-macos.zip` |
+| Android | APK / AAB | `stratum-pkm-android.apk` / `stratum-pkm-android.aab` |
+
+Every release ships a `sha256sums.txt` with checksums for all artifacts.
 
 !!! note "Linux Dependencies"
     The AppImage bundles most dependencies. For other Linux formats you need WebKitGTK libraries:
