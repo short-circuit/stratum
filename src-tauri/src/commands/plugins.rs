@@ -1068,17 +1068,18 @@ permissions = ["file:read", "network"]
     /// The server is boxed + leaked and reclaimed at process exit (a wiremock
     /// server owns a runtime, which must not be dropped in async contexts).
     fn serve_bytes(body: Vec<u8>) -> (String, &'static wiremock::MockServer) {
-        let server: &'static wiremock::MockServer = Box::leak(Box::new(block_on(
-            wiremock::MockServer::start(),
-        )));
-        block_on(wiremock::Mock::given(wiremock::matchers::method("GET"))
-            .and(wiremock::matchers::path("/plugin.wasm"))
-            .respond_with(
-                wiremock::ResponseTemplate::new(200)
-                    .set_body_bytes(body)
-                    .insert_header("content-type", "application/wasm"),
-            )
-            .mount(server));
+        let server: &'static wiremock::MockServer =
+            Box::leak(Box::new(block_on(wiremock::MockServer::start())));
+        block_on(
+            wiremock::Mock::given(wiremock::matchers::method("GET"))
+                .and(wiremock::matchers::path("/plugin.wasm"))
+                .respond_with(
+                    wiremock::ResponseTemplate::new(200)
+                        .set_body_bytes(body)
+                        .insert_header("content-type", "application/wasm"),
+                )
+                .mount(server),
+        );
         (format!("{}/plugin.wasm", server.uri()), server)
     }
 
@@ -1097,8 +1098,13 @@ permissions = ["file:read", "network"]
         };
         let (url, _server) = serve_bytes(bytes);
 
-        let info = block_on(install_url(&manager, &url, Some(&digest), "com.example.scan-test"))
-            .expect("install_url must succeed");
+        let info = block_on(install_url(
+            &manager,
+            &url,
+            Some(&digest),
+            "com.example.scan-test",
+        ))
+        .expect("install_url must succeed");
         assert_eq!(info.id, "com.example.scan-test");
         assert_eq!(info.status, "disabled", "fresh catalog install is disabled");
         assert_eq!(manager.len(), 1);
@@ -1109,7 +1115,10 @@ permissions = ["file:read", "network"]
             .join("plugins")
             .join("com.example.scan-test")
             .join("plugin.wasm");
-        assert!(dest.is_file(), "installed wasm must exist at canonical path");
+        assert!(
+            dest.is_file(),
+            "installed wasm must exist at canonical path"
+        );
     }
 
     #[test]
@@ -1122,8 +1131,13 @@ permissions = ["file:read", "network"]
         let (url, _server) = serve_bytes(bytes);
 
         let wrong = "deadbeef".repeat(8); // 64 hex chars, all wrong
-        let err = block_on(install_url(&manager, &url, Some(&wrong), "com.example.scan-test"))
-            .expect_err("mismatch must fail");
+        let err = block_on(install_url(
+            &manager,
+            &url,
+            Some(&wrong),
+            "com.example.scan-test",
+        ))
+        .expect_err("mismatch must fail");
         assert!(err.contains("plugin_checksum_error"), "err: {err}");
         assert!(manager.is_empty(), "nothing must be installed on mismatch");
     }

@@ -27,9 +27,7 @@ pub struct ReminderDto {
 /// The DTO stays pure (no overdue computation) — the frontend derives
 /// overdue/today/upcoming groupings from the due timestamp.
 #[tauri::command]
-pub async fn list_reminders(
-    state: tauri::State<'_, AppState>,
-) -> Result<Vec<ReminderDto>, String> {
+pub async fn list_reminders(state: tauri::State<'_, AppState>) -> Result<Vec<ReminderDto>, String> {
     let state = state.lock().map_err(|e| e.to_string())?;
     let store = state.get_store().map_err(|e| e.to_string())?;
 
@@ -98,19 +96,14 @@ pub async fn clear_reminder(
 
 /// Re-serialize the page's blocks to disk, preserving frontmatter, and record
 /// the change for the auto-commit engine.
-fn persist_page(
-    state: &mut VaultState,
-    store: &BlockStore,
-    page_path: &str,
-) -> Result<(), String> {
+fn persist_page(state: &mut VaultState, store: &BlockStore, page_path: &str) -> Result<(), String> {
     let full_path = state.vault_path.join(page_path);
     let all_blocks = store
         .get_blocks_by_page(page_path)
         .map_err(|e| e.to_string())?;
     let body = pkm_markdown::block_parser::serialize_blocks(&all_blocks);
     let existing = std::fs::read_to_string(&full_path).unwrap_or_default();
-    let markdown =
-        pkm_markdown::block_parser::assemble_blocks_markdown(&existing, &body, None);
+    let markdown = pkm_markdown::block_parser::assemble_blocks_markdown(&existing, &body, None);
 
     if let Some(parent) = full_path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;

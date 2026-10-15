@@ -338,9 +338,7 @@ pub fn run() {
                         let _ = w.set_focus();
                     }
                     if let Some(n) = performed.notification() {
-                        if let Some(block_id) =
-                            n.extra().get("block_id").and_then(|v| v.as_str())
-                        {
+                        if let Some(block_id) = n.extra().get("block_id").and_then(|v| v.as_str()) {
                             if let Ok(map) = tap_last_due.lock() {
                                 if let Some(rem) = map.get(block_id) {
                                     let _ = tap_app.emit("reminder:open", rem.clone());
@@ -371,8 +369,7 @@ pub fn run() {
                                 if body.chars().count() > 200 {
                                     body = body.chars().take(200).collect::<String>();
                                 }
-                                let payload =
-                                    serde_json::to_string(reminder).unwrap_or_default();
+                                let payload = serde_json::to_string(reminder).unwrap_or_default();
                                 let mut builder = notify_app
                                     .notification()
                                     .builder()

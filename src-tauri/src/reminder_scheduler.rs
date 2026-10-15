@@ -52,12 +52,7 @@ impl ReminderScheduler {
     ///
     /// `interval` is the scan period; `now` and `notify` are injected for
     /// testability.
-    pub fn new(
-        store: BlockStore,
-        interval: Duration,
-        now: NowFn,
-        notify: NotifyFn,
-    ) -> Self {
+    pub fn new(store: BlockStore, interval: Duration, now: NowFn, notify: NotifyFn) -> Self {
         Self {
             store,
             now,
@@ -139,7 +134,9 @@ mod tests {
     use uuid::Uuid;
 
     fn fixed_now(dt: &str) -> NowFn {
-        let t = DateTime::parse_from_rfc3339(dt).unwrap().with_timezone(&Utc);
+        let t = DateTime::parse_from_rfc3339(dt)
+            .unwrap()
+            .with_timezone(&Utc);
         Box::new(move || t)
     }
 
@@ -155,7 +152,12 @@ mod tests {
         now: NowFn,
         captured: std::sync::Arc<std::sync::Mutex<Vec<DueReminder>>>,
     ) -> ReminderScheduler {
-        ReminderScheduler::new(store, Duration::from_secs(30), now, recording_notify(captured))
+        ReminderScheduler::new(
+            store,
+            Duration::from_secs(30),
+            now,
+            recording_notify(captured),
+        )
     }
 
     #[test]
@@ -252,10 +254,9 @@ mod tests {
         // relative to the same (fixed) clock. The dedup key changes, so it re-fires.
         let block = sched.store.get_block(id).unwrap();
         let mut updated = block.clone();
-        updated.properties.insert(
-            "due".to_string(),
-            "2026-06-01T00:00:00.000Z".to_string(),
-        );
+        updated
+            .properties
+            .insert("due".to_string(), "2026-06-01T00:00:00.000Z".to_string());
         sched.store.update_block(&updated).unwrap();
 
         assert_eq!(sched.scan_and_notify(), 1);
