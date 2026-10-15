@@ -77,6 +77,8 @@ const ALLOW_RE = [
   /^[A-Za-z0-9]{1,3}$/,               // short tokens (en, de, ok, x)
   /^[A-Za-z0-9]+\.[A-Za-z0-9]+$/,     // versionish / dotted
   /^[^a-zA-Z0-9]+$/,                  // symbols: ✨ · ─ …
+  /^&[a-z]+;$/,                       // HTML entities used as escape codes (&amp; &lt; …)
+  /^<\/?[a-z0-9]+>$/,                 // bare HTML tags (<hr>)
   /^[A-Za-z0-9_.-]+\[[A-Za-z0-9_.-]+\]$/, // key[v] placeholders
   /^\[[a-zA-Z]+\]$/,                  // attribute selectors
   /^\[(AI|TTS|MarkerSuggest|WikiLinkAutocomplete|MathInline|library|dictation|marker)\]/, // log tags
@@ -134,6 +136,7 @@ const ALLOW_EXACT = new Set([
   'M3 6h18', 'M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6', 'M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2',
   'M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z', '0.1.0', '0.2.1', '0.0.4',
   'file:read', 'file:write', "plugin_not_found: no plugin with id '",
+  'SHA-256', 'Built-in', 'Built-in theme',
   '{:query [:find ?b :where [?b :block/marker "TODO"]]}', 'data:',
   '<svg', '<svg fill="currentColor"', '*.svg?raw', '& .MuiFormControlLabel-label',
   'relative', 'absolute', 'fixed', 'sticky', 'static', 'flex-start', 'flex-end',
@@ -149,9 +152,14 @@ const ALLOW_EXACT = new Set([
   'TypeScript', 'JavaScript', 'Python', 'Rust', 'java', 'c', 'cpp', 'go',
   'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GOOGLE_API_KEY',
   'quick-capture:open', 'app:quit', 'CmdOrCtrl+Shift+Space',
+  'reminder:due', 'reminder:open', 'onComplete',
   '[data-template-input]', '[data-mobile-template-input]', '[data-block-id]',
   '[OutlinerEditor] marker save failed:', '[OutlinerEditor] replaceBlocks failed:',
   '[OutlinerEditor] getBlocks failed:', '[OutlinerEditor] save failed:',
+  '[OutlinerEditor] reminder save failed:',
+  '[ProseView] getBlocks failed:',
+  '<pre class="bn-prose-mermaid-error"></pre>', '[role="dialog"]',
+  'bulletListItem', 'numberedListItem', 'toggleListItem',
   '[MarkerDecorations] registerPlugin failed:',
   'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
   'September', 'October', 'November', 'December',

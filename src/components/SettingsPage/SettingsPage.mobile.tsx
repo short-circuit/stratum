@@ -13,7 +13,10 @@ import MobileAiAccordion from './MobileAiAccordion';
 import MobileSttTtsSection from './MobileSttTtsSection';
 import MobileDeveloperSection from './MobileDeveloperSection';
 import MobileSyncSection from './MobileSyncSection';
+import MobileNotificationsSection from './MobileNotificationsSection';
 import ImportDialog from '../ImportDialog';
+import ResearchPresetsSection from './ResearchPresetsSection';
+import ExportSection from './ExportSection';
 
 // ---------------------------------------------------------------------------
 // Mobile settings page.
@@ -62,9 +65,19 @@ export default function SettingsPageMobile() {
     updateTts,
     voice,
     updateVoice,
+    reminders,
+    updateReminders,
     // Sync
     syncSettings,
     updateSync,
+    backup,
+    backupStatus,
+    updateBackup,
+    runBackupNow,
+    testWebdavConnection,
+    testing,
+    running,
+    webdavTestResult,
     commits,
     commitsOpen,
     handleToggleCommits,
@@ -134,6 +147,9 @@ export default function SettingsPageMobile() {
           </Button>
         </Box>
         <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
+        <Box sx={{ px: 2, pt: 2 }}>
+          <ExportSection vaultPath={settings.vault_path || ''} />
+        </Box>
 
         {/* ─── Theme Section ─── */}
         <MobileThemeSection theme={theme} updateTheme={updateTheme} locale={locale} onLocaleChange={onLocaleChange} />
@@ -191,6 +207,9 @@ export default function SettingsPageMobile() {
               slotProps={{ htmlInput: { min: 1, max: 5 } }}
             />
           </Box>
+          <Box sx={{ mt: 2 }}>
+            <ResearchPresetsSection research={research} onResearchChange={updateResearch} />
+          </Box>
         </Box>
 
         {/* ─── Developer Section ─── */}
@@ -216,7 +235,18 @@ export default function SettingsPageMobile() {
           commits={commits}
           commitsOpen={commitsOpen}
           onToggleCommits={handleToggleCommits}
+          backup={backup}
+          backupStatus={backupStatus}
+          updateBackup={updateBackup}
+          runBackupNow={runBackupNow}
+          testWebdavConnection={testWebdavConnection}
+          testing={testing}
+          running={running}
+          webdavTestResult={webdavTestResult}
         />
+
+        {/* ─── Notifications Section ─── */}
+        <MobileNotificationsSection reminders={reminders} updateReminders={updateReminders} />
       </Box>
     </Box>
   );

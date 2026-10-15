@@ -666,6 +666,32 @@ invoke("plugins_uninstall", { id: string }) -> PluginListResult
 Errors: `plugin_uninstall_error` (filesystem failure). Uninstalling an unknown
 id is not an error (no-op).
 
+### 9.10 `plugins_install_url` (E10.F7 — Plugin Directory)
+
+Installs a plugin by downloading it from a catalog `download_url`. Downloads
+the WASM bytes with `reqwest`, verifies the `sha256` hex digest against the
+catalog entry when one is provided (case-insensitive), stages the bytes in a
+temp dir named `<id>.wasm`, and delegates to the same install pipeline as
+§9.8 (embedded `stratum:manifest` read, canonical
+`<vault>/.pkm/plugins/<id>/plugin.wasm` layout, registry + config
+persistence, disabled-by-default).
+
+```
+invoke("plugins_install_url", { url: string, sha256: string | null, id: string }) -> PluginInfo
+```
+
+- `url` — the catalog `download_url` of the WASM artifact.
+- `sha256` — lowercase/uppercase hex digest; `null`/empty skips verification.
+- `id` — catalog entry id; used as the staged file name so a module without
+  an embedded manifest falls back to a valid identity.
+
+Errors: `plugin_download_error` (network/HTTP failure),
+`plugin_checksum_error` (digest mismatch — nothing is written to the vault),
+`plugin_staging_error` (temp dir write), plus all §9.8 errors.
+
+The frontend also verifies the digest via WebCrypto before invoking, so a
+tampered artifact never reaches the vault through either layer.
+
 ## 10. SSRF guard details
 
 The allowlist is read from `pkm_core::Config` field

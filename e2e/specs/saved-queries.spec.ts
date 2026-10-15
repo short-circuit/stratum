@@ -5,6 +5,9 @@ test.describe('Query Panel — saved queries', () => {
   test.beforeEach(async ({ page }) => {
     await mockTauriInvoke(page, DEFAULT_MOCK_CONFIG);
     await page.goto('/query');
+    // The panel defaults to the visual Builder tab (E10.F1); the saved-query
+    // flows operate on the raw Datalog editor, so switch to it first.
+    await page.getByRole('tab', { name: /datalog/i }).click();
     await expect(page.getByPlaceholder(/enter datalog/i).first()).toBeVisible({ timeout: 10000 });
   });
 
@@ -68,6 +71,8 @@ test.describe('Query Panel — saved queries', () => {
     // where the mocked store (persisted in localStorage, mirroring on-disk
     // storage) must still list the saved query.
     await page.reload();
+    // The panel again defaults to the Builder tab after reload.
+    await page.getByRole('tab', { name: /datalog/i }).click();
     await expect(page.getByPlaceholder(/enter datalog/i).first()).toBeVisible({ timeout: 10000 });
 
     await expect(page.getByText('Persisted Query')).toBeVisible({ timeout: 10000 });

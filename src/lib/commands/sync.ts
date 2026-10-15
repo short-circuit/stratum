@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { SyncStatusDto, CommitLogEntry } from '../types';
+import type { SyncStatusDto, CommitLogEntry, BackupStatusDto } from '../types';
 
 export async function getSyncStatus(): Promise<SyncStatusDto> {
   return invoke('get_sync_status');
@@ -31,4 +31,20 @@ export async function resolveConflictFile(path: string): Promise<void> {
 
 export async function abortMerge(): Promise<void> {
   return invoke('abort_merge');
+}
+
+export async function runBackup(): Promise<BackupStatusDto> {
+  return invoke('run_backup');
+}
+
+export async function getBackupStatus(): Promise<BackupStatusDto> {
+  return invoke('get_backup_status');
+}
+
+export async function testWebdav(
+  url: string,
+  username: string | null,
+  password: string | null
+): Promise<string> {
+  return invoke('test_webdav', { url, username, password });
 }

@@ -64,6 +64,11 @@ export interface VoiceSettings {
   target: string;
 }
 
+export interface ReminderSettings {
+  enabled: boolean;
+  sound: boolean;
+}
+
 export interface AppSettings {
   vault_path: string;
   locale: string;
@@ -76,6 +81,7 @@ export interface AppSettings {
   tts: TtsSettings;
   tray: TraySettings;
   voice: VoiceSettings;
+  reminders: ReminderSettings;
   [key: string]: unknown;
 }
 
@@ -94,6 +100,7 @@ export interface SettingsState {
   updateTts: (patch: Partial<TtsSettings>) => void;
   updateTray: (patch: Partial<TraySettings>) => void;
   updateVoice: (patch: Partial<VoiceSettings>) => void;
+  updateReminders: (patch: Partial<ReminderSettings>) => void;
   updateLocale: (locale: string) => void;
   setSettings: (settings: AppSettings) => void;
 }
@@ -104,6 +111,9 @@ const DEFAULT_THEME: ThemeSettings = {
   secondary_color: '#6b7280',
   font_size: 16,
 };
+
+/** Built-in theme values; exported so the Theme Hub can fall back to them. */
+export { DEFAULT_THEME };
 
 const DEFAULT_RESEARCH: ResearchSettings = {
   searxng_endpoint: 'http://localhost:8888',
@@ -133,6 +143,16 @@ const DEFAULT_SYNC_SETTINGS: SyncSettings = {
   ssh_key_path: null,
   commit_template:
     'stratum({datetime}): {editedfiles} edited, {newfiles} added, {deletedfiles} deleted',
+  backup: {
+    enabled: false,
+    mode: 'folder',
+    interval_minutes: 60,
+    exclude: ['.git', '.pkm/blocks.db', '.pkm/search', '.pkm/backup_state.json', '.pkm/sync_state.json', '.DS_Store'],
+    webdav_url: null,
+    webdav_username: null,
+    webdav_password: null,
+    folder_path: null,
+  },
 };
 
 const DEFAULT_AI: AiConfig = {
@@ -183,6 +203,12 @@ const DEFAULT_VOICE: VoiceSettings = {
   target: 'journal:today',
 };
 
+/** Default reminder settings. Keep in sync with `ReminderConfig::default()`. */
+const DEFAULT_REMINDERS: ReminderSettings = {
+  enabled: true,
+  sound: true,
+};
+
 const DEFAULT_SETTINGS: AppSettings = {
   vault_path: '',
   locale: 'en',
@@ -195,6 +221,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   tts: DEFAULT_TTS,
   tray: DEFAULT_TRAY,
   voice: DEFAULT_VOICE,
+  reminders: DEFAULT_REMINDERS,
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -221,6 +248,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           tts: result.tts ? { ...DEFAULT_TTS, ...result.tts } : DEFAULT_TTS,
           tray: { ...DEFAULT_TRAY, ...result.tray },
           voice: result.voice ? { ...DEFAULT_VOICE, ...result.voice } : DEFAULT_VOICE,
+          reminders: result.reminders ? { ...DEFAULT_REMINDERS, ...result.reminders } : DEFAULT_REMINDERS,
         },
         loading: false,
       });
@@ -286,6 +314,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const s = get().settings;
     if (!s) return;
     set({ settings: { ...s, voice: { ...s.voice, ...patch } } });
+  },
+
+  updateReminders: (patch) => {
+    const s = get().settings;
+    if (!s) return;
+    set({ settings: { ...s, reminders: { ...s.reminders, ...patch } } });
   },
 
   updateLocale: (locale) => {

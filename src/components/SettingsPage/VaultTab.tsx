@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { useTranslation } from 'react-i18next';
 import ImportDialog from '../ImportDialog';
+import ExportSection from './ExportSection';
 
 interface VaultTabProps {
   vaultPath: string;
@@ -44,6 +45,9 @@ export default function VaultTab({ vaultPath, onVaultPathChange, onBrowse }: Vau
         </Box>
       </Box>
       <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
+      <Box sx={{ mt: 2 }}>
+        <ExportSection vaultPath={vaultPath} />
+      </Box>
     </Box>
   );
 }

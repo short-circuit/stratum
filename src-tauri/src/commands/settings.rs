@@ -18,6 +18,27 @@ pub struct SettingsDto {
     pub tray: TraySettingsDto,
     #[serde(default)]
     pub voice: VoiceSettingsDto,
+    #[serde(default)]
+    pub reminders: ReminderSettingsDto,
+}
+
+/// Block reminder settings, mirroring `pkm_core::ReminderConfig`.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ReminderSettingsDto {
+    /// Whether block reminders are enabled (scheduler active + notifications).
+    pub enabled: bool,
+    /// Whether notification sound is enabled.
+    pub sound: bool,
+}
+
+impl Default for ReminderSettingsDto {
+    fn default() -> Self {
+        // Keep in sync with `ReminderConfig::default()` in pkm-core.
+        Self {
+            enabled: true,
+            sound: true,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -147,6 +168,10 @@ pub struct AiSettingsDto {
     pub embedding_dimensions: usize,
     #[serde(default)]
     pub use_llm_gateway_and_auth: bool,
+    #[serde(default)]
+    pub extra_local_hosts: Vec<String>,
+    #[serde(default)]
+    pub last_discovered: Vec<pkm_core::DiscoveredEndpoint>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -164,6 +189,45 @@ pub struct SyncSettingsDto {
     pub auto_sync_interval_secs: u64,
     pub ssh_key_path: Option<String>,
     pub commit_template: String,
+    #[serde(default)]
+    pub backup: BackupSettingsDto,
+}
+
+/// Cloud/folder backup settings (E10.F3), mirroring `pkm_core::BackupConfig`.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct BackupSettingsDto {
+    #[serde(default)]
+    pub enabled: bool,
+    /// `"folder"` | `"webdav"` | `"both"`
+    #[serde(default)]
+    pub mode: String,
+    #[serde(default)]
+    pub interval_minutes: u64,
+    #[serde(default)]
+    pub exclude: Vec<String>,
+    #[serde(default)]
+    pub webdav_url: Option<String>,
+    #[serde(default)]
+    pub webdav_username: Option<String>,
+    #[serde(default)]
+    pub webdav_password: Option<String>,
+    #[serde(default)]
+    pub folder_path: Option<String>,
+}
+
+impl Default for BackupSettingsDto {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            mode: "folder".to_string(),
+            interval_minutes: 60,
+            exclude: pkm_core::default_backup_exclude(),
+            webdav_url: None,
+            webdav_username: None,
+            webdav_password: None,
+            folder_path: None,
+        }
+    }
 }
 
 /// Mask an API key for safe display, keeping only the first 3 and last 4 chars.
@@ -260,6 +324,8 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             rag_chunk_count: config.ai.rag_chunk_count,
             embedding_dimensions: config.ai.embedding_dimensions,
             use_llm_gateway_and_auth: config.ai.use_llm_gateway_and_auth,
+            extra_local_hosts: config.ai.extra_local_hosts,
+            last_discovered: config.ai.last_discovered,
         },
         research: ResearchSettingsDto {
             searxng_endpoint: config.research.searxng_endpoint.clone(),
@@ -290,6 +356,20 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
             auto_sync_interval_secs: config.sync.auto_sync_interval_secs,
             ssh_key_path: config.sync.ssh_key_path.clone(),
             commit_template: config.sync.commit_template.clone(),
+            backup: BackupSettingsDto {
+                enabled: config.sync.backup.enabled,
+                mode: match config.sync.backup.mode {
+                    pkm_core::BackupMode::Folder => "folder".into(),
+                    pkm_core::BackupMode::Webdav => "webdav".into(),
+                    pkm_core::BackupMode::Both => "both".into(),
+                },
+                interval_minutes: config.sync.backup.interval_minutes,
+                exclude: config.sync.backup.exclude.clone(),
+                webdav_url: config.sync.backup.webdav.url.clone(),
+                webdav_username: config.sync.backup.webdav.username.clone(),
+                webdav_password: mask_api_key(&config.sync.backup.webdav.password),
+                folder_path: config.sync.backup.folder.path.clone(),
+            },
         },
         stt: SttSettingsDto {
             endpoint: config.stt.endpoint.clone(),
@@ -323,6 +403,10 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
                 pkm_core::CaptureTarget::Journal => "journal".into(),
             },
             inbox_path: config.tray.inbox_path.clone(),
+        },
+        reminders: ReminderSettingsDto {
+            enabled: config.reminders.enabled,
+            sound: config.reminders.sound,
         },
     })
 }
@@ -407,6 +491,8 @@ pub async fn save_settings<R: tauri::Runtime>(
             rag_chunk_count: settings.ai.rag_chunk_count,
             embedding_dimensions: settings.ai.embedding_dimensions,
             use_llm_gateway_and_auth: settings.ai.use_llm_gateway_and_auth,
+            extra_local_hosts: settings.ai.extra_local_hosts,
+            last_discovered: settings.ai.last_discovered,
         },
         research: pkm_core::ResearchConfig {
             searxng_endpoint: settings.research.searxng_endpoint,
@@ -432,6 +518,44 @@ pub async fn save_settings<R: tauri::Runtime>(
             auto_sync_interval_secs: settings.sync.auto_sync_interval_secs,
             ssh_key_path: settings.sync.ssh_key_path,
             commit_template: settings.sync.commit_template,
+            backup: pkm_core::BackupConfig {
+                enabled: settings.sync.backup.enabled,
+                mode: match settings.sync.backup.mode.as_str() {
+                    "webdav" => pkm_core::BackupMode::Webdav,
+                    "both" => pkm_core::BackupMode::Both,
+                    _ => pkm_core::BackupMode::Folder,
+                },
+                interval_minutes: settings.sync.backup.interval_minutes,
+                exclude: settings.sync.backup.exclude.clone(),
+                webdav: pkm_core::WebdavBackupConfig {
+                    url: settings.sync.backup.webdav_url,
+                    username: settings.sync.backup.webdav_username,
+                    password: {
+                        // Preserve the stored password when the frontend sent a
+                        // masked one (same pattern as stt/tts api_key).
+                        let masked = settings
+                            .sync
+                            .backup
+                            .webdav_password
+                            .as_ref()
+                            .is_some_and(|k| k.contains("****"));
+                        if masked {
+                            if config_path.exists() {
+                                pkm_core::Config::load(&config_path)
+                                    .ok()
+                                    .and_then(|c| c.sync.backup.webdav.password)
+                            } else {
+                                None
+                            }
+                        } else {
+                            settings.sync.backup.webdav_password
+                        }
+                    },
+                },
+                folder: pkm_core::FolderBackupConfig {
+                    path: settings.sync.backup.folder_path,
+                },
+            },
             ..pkm_core::SyncConfig::default()
         },
         stt: pkm_core::SttConfig {
@@ -500,6 +624,10 @@ pub async fn save_settings<R: tauri::Runtime>(
             capture_target,
             inbox_path: settings.tray.inbox_path,
         },
+        reminders: pkm_core::ReminderConfig {
+            enabled: settings.reminders.enabled,
+            sound: settings.reminders.sound,
+        },
         ..pkm_core::Config::default()
     };
 
@@ -548,7 +676,7 @@ pub async fn save_graph_settings(
 #[tauri::command]
 pub async fn fetch_models(state: tauri::State<'_, AppState>) -> Result<Vec<String>, String> {
     // Extract config data before async operation (MutexGuard is not Send)
-    let (endpoint, api_key) = {
+    let (endpoint, api_key, provider) = {
         let state = state.lock().map_err(|e| e.to_string())?;
         let config_path = state.vault_path.join(".pkm").join("config.toml");
 
@@ -564,13 +692,21 @@ pub async fn fetch_models(state: tauri::State<'_, AppState>) -> Result<Vec<Strin
                 provider_display(&config.ai.provider)
             )
         })?;
-        (endpoint, config.ai.effective_api_key())
+        (endpoint, config.ai.effective_api_key(), config.ai.provider)
     };
 
     // Validate endpoint URL to prevent SSRF
     pkm_core::endpoint::validate_endpoint_safe(&endpoint).map_err(|e| e.to_string())?;
 
-    let models_url = format!("{}/v1/models", endpoint.trim_end_matches('/'));
+    // A Custom/CustomOpenAI endpoint that already ends with "/v1" must not get
+    // a doubled "/v1/v1/models" URL. Bare-base endpoints (and Ollama) keep the
+    // existing "/v1/models" behavior.
+    let base = endpoint.trim_end_matches('/');
+    let models_url = if base.ends_with("/v1") && provider != pkm_core::AiProvider::Ollama {
+        format!("{base}/models")
+    } else {
+        format!("{base}/v1/models")
+    };
 
     // Validate the full models URL too
     pkm_core::endpoint::validate_endpoint_safe(&models_url).map_err(|e| e.to_string())?;

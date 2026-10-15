@@ -88,7 +88,7 @@ Components **never** call `invoke()` directly — always through `commands.ts`. 
 | `JournalPanel` | `/journal` | Calendar + daily journal creation |
 | `PageView` | `/page/:pagePath` | Block editor + backlinks + connections |
 | `SearchPanel` | `/search` | Full-text + tag search |
-| `QueryPanel` | `/query` | Datalog query input + results table |
+| `QueryPanel` | `/query` | Datalog query panel: visual filter builder + raw Datalog editor |
 | `GraphPanel` | `/graph` | 3D force-directed graph |
 | `TemplatesPanel` | `/templates` | Template list + apply with variables |
 | `FlashcardsPanel` | `/flashcards` | SRS card review (SM-2) |

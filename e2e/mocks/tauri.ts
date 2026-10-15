@@ -166,6 +166,16 @@ export const MOCK_SYNC_STATUS: SyncStatusDto = {
   pending_commits: 0,
 };
 
+export const MOCK_BACKUP_STATUS = {
+  enabled: true,
+  mode: 'folder',
+  last_run: NOW,
+  last_success: true,
+  last_error: null,
+  files_copied: 3,
+  files_deleted: 0,
+};
+
 export const MOCK_SETTINGS = {
   vault_path: '/mock/vault',
   theme: { dark_mode: true, primary_color: '#f97316', secondary_color: '#6b7280', font_size: 16 },
@@ -199,6 +209,16 @@ export const MOCK_SETTINGS = {
     auto_sync_interval_secs: 1800,
     ssh_key_path: null,
     commit_template: 'stratum({datetime}): {editedfiles} edited, {newfiles} added, {deletedfiles} deleted',
+    backup: {
+      enabled: false,
+      mode: 'folder',
+      interval_minutes: 60,
+      exclude: ['.git', '.pkm/blocks.db', '.pkm/search', '.pkm/backup_state.json', '.pkm/sync_state.json', '.DS_Store'],
+      webdav_url: null,
+      webdav_username: null,
+      webdav_password: null,
+      folder_path: null,
+    },
   },
   research: {
     searxng_endpoint: 'http://localhost:8888',
@@ -276,6 +296,31 @@ export const MOCK_PLUGINS_DTO = [
     author: '',
     description: '',
     error: "runtime_error: import 'pkm.note_write' not found (plugin compiled with a different ABI)",
+  },
+];
+
+/**
+ * Seed data for the mocked `plugins_install_url` command — mirrors the real
+ * `PluginCatalogEntry` shape from `plugins/index.json` (id, name, version,
+ * description, author, permissions, sha256, download_url). The install-url
+ * mock looks up the entry by id to synthesize the installed plugin DTO.
+ */
+export const MOCK_CATALOG_PLUGINS = [
+  {
+    schema_version: 1,
+    id: 'com.example.hello-world',
+    name: 'Hello World',
+    version: '0.1.0',
+    description: 'Logs note metadata on save and demonstrates the pkm host API',
+    author: 'Stratum Community',
+    entry: 'plugin.wasm',
+    permissions: ['file:read'],
+    hooks: { onSave: true },
+    repo: 'https://github.com/short-circuit/stratum-plugins',
+    source: 'examples/hello-world',
+    sha256: '78d3d3d9784e089a7827a54b3c1f0cea2c3b75a14685edc16309cebad17c2d57',
+    download_url:
+      'https://raw.githubusercontent.com/short-circuit/stratum-plugins/main/plugins/com.example.hello-world/plugin.wasm',
   },
 ];
 
@@ -361,6 +406,8 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
       // In-page plugin store so plugins_list -> enable/disable/install/uninstall
       // round-trip within the test (mirrors the real registry + config persistence).
       const MOCK_PLUGIN_ROWS = ${JSON.stringify(MOCK_PLUGINS_DTO)};
+      // Catalog seed for plugins_install_url (E10.F7 Plugin Directory mock).
+      const MOCK_CATALOG_PLUGIN_ROWS = ${JSON.stringify(MOCK_CATALOG_PLUGINS)};
       const persistedPlugins = window.localStorage.getItem('mock_plugins');
       let mockPlugins = persistedPlugins ? JSON.parse(persistedPlugins) : MOCK_PLUGIN_ROWS.map(function(p){ return Object.assign({}, p); });
       function persistPlugins(list) {
@@ -466,6 +513,9 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
           };
         },
         save_page: () => {},
+        list_reminders: () => [],
+        snooze_reminder: () => null,
+        clear_reminder: () => null,
         create_page: (args) => ({
           path: args.path,
           slug: (args.path || '').toLowerCase().replace(/\\s+/g, '-'),
@@ -595,8 +645,18 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
         get_commit_log: () => (${JSON.stringify(MOCK_COMMITS)}),
         resolve_conflict_file: () => {},
         abort_merge: () => {},
+        run_backup: () => (${JSON.stringify(MOCK_BACKUP_STATUS)}),
+        get_backup_status: () => (${JSON.stringify(MOCK_BACKUP_STATUS)}),
+        test_webdav: () => ('ok'),
         ai_transform_block: () => ({ content: 'Transformed content' }),
         ai_research: () => ({ findings: 'Research findings', sources: [] }),
+        discover_local_ai: () => ([
+          { host: 'http://127.0.0.1:11434', name: 'Ollama', kind: 'ollama',
+            models: ['llama3.2:latest'], status: 'available', latency_ms: 12, error: null },
+          { host: 'http://127.0.0.1:1234/v1', name: 'LM Studio', kind: 'openai_compatible',
+            models: [], status: 'unreachable', latency_ms: 0, error: 'no response' },
+        ]),
+        ping_search_instance: () => ({ ok: true, latency_ms: 180, error: null }),
         ai_interlink_notes: () => ({ content: 'Interlinked content' }),
         generate_mermaid: () => ({ content: 'graph TD; A-->B;' }),
         suggest_connections: () => (${JSON.stringify(MOCK_CONNECTIONS)}),
@@ -735,6 +795,28 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
           upsertMockPlugin(plugin);
           return Object.assign({}, plugin);
         },
+        plugins_install_url: (args) => {
+          const id = args && args.id ? String(args.id) : 'installed-url-plugin';
+          const sha = args && args.sha256 ? String(args.sha256) : null;
+          const entry = MOCK_CATALOG_PLUGIN_ROWS.find(function (p) { return p.id === id; });
+          const existing = pluginById(id);
+          const plugin = existing || {
+            id: id,
+            name: entry ? entry.name : id,
+            version: entry ? entry.version : '0.1.0',
+            status: 'disabled',
+            enabled: false,
+            permissions: entry ? entry.permissions : [],
+            hooks: [],
+            author: entry ? entry.author : 'mock-author',
+            description: (entry ? entry.description : 'Installed from catalog') + (sha ? ' (verified)' : ''),
+            error: null,
+          };
+          plugin.status = 'disabled';
+          plugin.enabled = false;
+          upsertMockPlugin(plugin);
+          return Object.assign({}, plugin);
+        },
         plugins_uninstall: (args) => {
           const id = args && args.id;
           mockPlugins = mockPlugins.filter(function (p) { return p.id !== id; });
@@ -828,8 +910,16 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
         callbacks: new Map(),
       };
 
-      // Event plugin internals (needed by @tauri-apps/api/event)
-      window.__TAURI_EVENT_PLUGIN_INTERNALS__ = {};
+      // Event plugin internals (needed by @tauri-apps/api/event).
+      // @tauri-apps/api >= 2.12 calls unregisterListener(event, eventId) from
+      // _unlisten; without it, listener teardown throws and crashes the app.
+      window.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+        unregisterListener: function(event, eventId) {
+          // No-op: the mock's plugin:event|listen registry never needs removal.
+          // Keep a no-op so callers that track ids (e.g. plugin:event|emit
+          // fan-out) remain harmless even after unlisten.
+        },
+      };
     })()`,
   });
 }

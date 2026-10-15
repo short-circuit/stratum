@@ -189,3 +189,65 @@ describe('QueryPanelDesktop — saved queries', () => {
     });
   });
 });
+
+
+describe('QueryPanelDesktop — visual filter builder', () => {
+  it('defaults to the Builder tab with an empty builder and a default preview', async () => {
+    render(<QueryPanelDesktop />);
+    await waitFor(() => {
+      expect(screen.getByText('No conditions yet. Run will use the default example query.')).toBeInTheDocument();
+    });
+    expect(
+      screen.getAllByText('{:query [:find ?b ?content :where [?b :block/marker "TODO"] [?b :block/content ?content]]}').length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('adds a condition and generates EDN in the preview (Run enabled)', async () => {
+    render(<QueryPanelDesktop />);
+    fireEvent.click(screen.getByRole('button', { name: 'Add condition' }));
+    // The value TextField has aria-label `Value 1`; query it via role textbox.
+    const valueInput = await screen.findByRole('textbox', { name: /Value 1/ });
+    fireEvent.change(valueInput, { target: { value: 'TODO' } });
+    await waitFor(() => {
+      expect(screen.getAllByText(/\[\?b :block\/content \?v0\]/).length).toBeGreaterThan(0);
+    });
+    expect(screen.getByRole('button', { name: 'Run' })).toBeEnabled();
+  });
+
+  it('disables Run and shows an error when a value is missing', async () => {
+    render(<QueryPanelDesktop />);
+    fireEvent.click(screen.getByRole('button', { name: 'Add condition' }));
+    await waitFor(() => {
+      expect(screen.getAllByText('This condition requires a value.').length).toBeGreaterThan(0);
+    });
+    expect(screen.queryByRole('button', { name: 'Run' })).toBeNull();
+  });
+
+  it('switches to the Datalog tab and back; saved queries remain visible', async () => {
+    render(<QueryPanelDesktop />);
+    await waitFor(() => {
+      expect(screen.getByText('All TODO')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('tab', { name: 'Datalog' }));
+    await waitFor(() => {
+      expect(screen.getByText('All TODO')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('tab', { name: 'Builder' }));
+    await waitFor(() => {
+      expect(screen.getByText('All TODO')).toBeInTheDocument();
+    });
+  });
+
+  it('parses an existing query into rows when switching back to Builder', async () => {
+    render(<QueryPanelDesktop />);
+    await waitFor(() => {
+      expect(screen.getByText('All TODO')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText('All TODO'));
+    fireEvent.click(screen.getByRole('tab', { name: 'Datalog' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Builder' }));
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: /Value 1/ })).toHaveValue('TODO');
+    });
+  });
+});

@@ -255,3 +255,25 @@ fn e7f5_unknown_attribute_is_reported() {
         "unknown attribute must be surfaced, got: {err}"
     );
 }
+
+#[test]
+fn e10f1_order_by_marker_desc_executes_and_orders() {
+    let (_d, engine, _seeded) = seed_vault();
+    // :order-by now actually works (previously a doc-only claim). Sorted
+    // marker descending — TODO rows must precede DONE rows.
+    let results = engine
+        .execute(
+            r#"{:query [:find ?b ?marker :where [?b :block/marker ?marker] :order-by [[?marker :desc]]]}"#,
+        )
+        .expect("order-by query must execute");
+    assert_eq!(results.len(), 3, "three seeded blocks have markers");
+    let markers: Vec<&str> = results
+        .iter()
+        .map(|r| r.values[1].as_str().unwrap_or(""))
+        .collect();
+    assert_eq!(
+        markers,
+        vec!["TODO", "TODO", "DONE"],
+        "markers must sort DESC (TODO > DONE lexically)"
+    );
+}

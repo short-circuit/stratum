@@ -1,11 +1,12 @@
 pub mod commands;
+pub mod reminder_scheduler;
 
 use commands::vault::{AppState, VaultState};
 use std::path::PathBuf;
 use std::sync::Mutex;
-#[cfg(not(target_os = "android"))]
 use tauri::Emitter;
 use tauri::Manager;
+use tauri_plugin_notification::NotificationExt;
 
 fn resolve_default_vault_path(_app: &tauri::AppHandle) -> PathBuf {
     #[cfg(target_os = "android")]
@@ -25,10 +26,22 @@ fn resolve_default_vault_path(_app: &tauri::AppHandle) -> PathBuf {
     }
 }
 
+/// Map a block id string to a stable 32-bit hash for use as a notification id.
+fn reminder_hash_to_i32(s: &str) -> i32 {
+    let mut h: i32 = 0;
+    for b in s.bytes() {
+        h = h.wrapping_mul(31).wrapping_add(b as i32);
+    }
+    h
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let _ = pkm_core::init_logging();
-    let builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init());
+    let builder = tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_opener::init());
 
     // Single-instance must be registered before any other plugin that can open
     // a second window (notably dialog). Empty crates on mobile — desktop only.
@@ -154,6 +167,21 @@ pub fn run() {
                             state.sync_scheduler = Some(scheduler);
                             tracing::info!("[stratum] Sync scheduler started");
                         }
+                    }
+                }
+
+                // ── Cloud/folder backup scheduler (E10.F3) ───────────
+                // Backup is a separate layer from git sync: only start the
+                // scheduler when the user has explicitly enabled it.
+                if config.sync.backup.enabled {
+                    let mut scheduler = pkm_sync::BackupScheduler::new(
+                        vault_path.clone(),
+                        config.sync.backup.clone(),
+                    );
+                    scheduler.start();
+                    if let Ok(mut state) = app.state::<AppState>().lock() {
+                        state.backup_scheduler = Some(scheduler);
+                        tracing::info!("[stratum] Backup scheduler started");
                     }
                 }
 
@@ -283,6 +311,94 @@ pub fn run() {
                 }
             }
 
+            // ── Block reminders ────────────────────────────────────────
+            // Runs an in-process scheduler (no daemon). It scans for due
+            // reminders; when enabled it also registers a notification tap
+            // handler and emits a `reminder:due` event for the in-app toast.
+            if config.reminders.enabled {
+                let app_handle = app.handle().clone();
+                let last_due: std::sync::Arc<
+                    std::sync::Mutex<
+                        std::collections::HashMap<String, crate::reminder_scheduler::DueReminder>,
+                    >,
+                > = std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new()));
+
+                // Register the tap handler BEFORE any notification is shown:
+                // the plugin only reports actions for notifications shown after
+                // a handler is registered.
+                let tap_app = app_handle.clone();
+                let tap_last_due = last_due.clone();
+                if let Err(e) = app_handle.notification().on_action(move |performed| {
+                    if performed.action_id() != "tap" {
+                        return;
+                    }
+                    // Show + focus the main window so the user sees the highlight.
+                    if let Some(w) = tap_app.get_webview_window("main") {
+                        let _ = w.show();
+                        let _ = w.set_focus();
+                    }
+                    if let Some(n) = performed.notification() {
+                        if let Some(block_id) = n.extra().get("block_id").and_then(|v| v.as_str()) {
+                            if let Ok(map) = tap_last_due.lock() {
+                                if let Some(rem) = map.get(block_id) {
+                                    let _ = tap_app.emit("reminder:open", rem.clone());
+                                }
+                            }
+                        }
+                    }
+                }) {
+                    tracing::warn!("[stratum] notification on_action registration failed: {e}");
+                }
+
+                if let Ok(state) = app.state::<AppState>().lock() {
+                    if let Ok(store) = state.get_store() {
+                        let notify_app = app.handle().clone();
+                        let notify_last_due = last_due.clone();
+                        let with_sound = config.reminders.sound;
+                        let notify: crate::reminder_scheduler::NotifyFn =
+                            Box::new(move |reminder| {
+                                if let Ok(mut map) = notify_last_due.lock() {
+                                    map.insert(reminder.block_id.clone(), reminder.clone());
+                                }
+                                // Body: line-wrapped content summary capped ~200
+                                // chars, prefixed with the page title when known.
+                                let mut body = reminder.content.replace('\n', " ");
+                                if let Some(title) = &reminder.page_title {
+                                    body = format!("{} — {}", title, body);
+                                }
+                                if body.chars().count() > 200 {
+                                    body = body.chars().take(200).collect::<String>();
+                                }
+                                let payload = serde_json::to_string(reminder).unwrap_or_default();
+                                let mut builder = notify_app
+                                    .notification()
+                                    .builder()
+                                    .id(reminder_hash_to_i32(&reminder.block_id))
+                                    .title("Stratum — Reminder")
+                                    .body(body)
+                                    .extra("reminder_payload", payload)
+                                    .extra("block_id", reminder.block_id.clone());
+                                if with_sound {
+                                    // Default system notification sound (desktop).
+                                    builder = builder.sound("default");
+                                }
+                                let _ = builder.show();
+                                // In-app toast + refresh signal for the frontend.
+                                let _ = notify_app.emit("reminder:due", reminder.clone());
+                            });
+                        let interval = std::time::Duration::from_secs(30);
+                        let scheduler = crate::reminder_scheduler::ReminderScheduler::new(
+                            store,
+                            interval,
+                            Box::new(chrono::Utc::now),
+                            notify,
+                        );
+                        tauri::async_runtime::spawn(scheduler.run());
+                        tracing::info!("[stratum] Reminder scheduler started");
+                    }
+                }
+            }
+
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
@@ -379,6 +495,10 @@ pub fn run() {
             commands::sync::get_commit_log,
             commands::sync::resolve_conflict_file,
             commands::sync::abort_merge,
+            // Backup (E10.F3)
+            commands::backup::run_backup,
+            commands::backup::get_backup_status,
+            commands::backup::test_webdav,
             // Templates
             commands::template::list_templates,
             commands::template::save_template,
@@ -388,6 +508,8 @@ pub fn run() {
             // Export
             commands::export::export_html,
             commands::export::export_json,
+            commands::export::pdf::export_pdf,
+            commands::export::zip::export_zip,
             // Flashcards
             commands::flashcards::generate_flashcards,
             commands::flashcards::generate_cards_from_page,
@@ -395,6 +517,10 @@ pub fn run() {
             // Kanban
             commands::kanban::get_kanban_blocks,
             commands::kanban::create_kanban_block,
+            // Reminders
+            commands::reminders::list_reminders,
+            commands::reminders::snooze_reminder,
+            commands::reminders::clear_reminder,
             // Whiteboards
             commands::whiteboard::list_whiteboards,
             commands::whiteboard::save_whiteboard,
@@ -410,6 +536,8 @@ pub fn run() {
             commands::ai::ai_interlink_notes,
             commands::ai::generate_mermaid,
             commands::ai::ai_rag_query,
+            commands::ai::discover_local_ai,
+            commands::ai::ping_search_instance,
             // Dictation
             commands::dictation::dictation_start,
             commands::dictation::dictation_stop,
@@ -446,6 +574,7 @@ pub fn run() {
             commands::plugins::plugins_reload,
             commands::plugins::plugins_status,
             commands::plugins::plugins_install,
+            commands::plugins::plugins_install_url,
             commands::plugins::plugins_uninstall,
             commands::plugins::plugin_note_read,
             commands::plugins::plugin_http_request,

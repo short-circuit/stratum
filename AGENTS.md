@@ -56,7 +56,7 @@ stratum/
 │   ├── flake.nix
 │   └── flake.lock
 ├── crates/
-│   ├── pkm-ai/                 # Embeddings, RAG, LLM provider
+│   ├── pkm-ai/                 # Embeddings, RAG, LLM provider, local-endpoint discovery (E10.F2)
 │   ├── pkm-audio/              # Microphone capture, FLAC/WAV codecs (dictation)
 │   ├── pkm-block/              # Block model, tree, ops, SQLite store
 │   ├── pkm-cli/                # CLI binary (cargo run -p pkm-cli)
@@ -70,7 +70,7 @@ stratum/
 │   ├── pkm-plugin/             # WASM plugin runtime
 │   ├── pkm-query/              # Datalog query engine
 │   ├── pkm-stt/                # Speech-to-text, diarization, speaker recognition
-│   ├── pkm-sync/               # Git sync engine (git2)
+│   ├── pkm-sync/               # Git sync engine (git2) + periodic cloud/folder backup mirror
 │   ├── pkm-tests/              # Integration tests for the Rust crates
 │   └── pkm-watcher/            # File system watcher
 ├── src/                        # React + TypeScript frontend
@@ -165,13 +165,17 @@ stratum/
 │   │       ├── query.rs        # Datalog query
 │   │       ├── sync.rs         # Git sync
 │   │       ├── template.rs     # Templates
-│   │       ├── export.rs       # HTML/JSON export
+│   │       ├── export.rs        # Export module root: HTML/JSON export, registers pdf/zip submodules
+│   │       ├── export/pdf.rs    # Per-page PDF export via headless Chromium (MathML + Mermaid)
+│   │       ├── export/zip.rs    # Portable vault ZIP export (manifest.json, excludes .pkm/.git)
 │   │       ├── flashcards.rs   # SRS flashcards
 │   │       ├── whiteboard.rs   # Excalidraw whiteboards + library
 │   │       ├── settings.rs     # App settings + AI model fetch
 │   │       ├── ai.rs           # AI transform + research + interlink
 │   │       ├── kanban.rs       # Kanban block queries
+│   │       ├── reminders.rs    # Reminder list/snooze/clear commands
 │   │       └── tray.rs         # System tray + global-shortcut Quick Capture (desktop)
+│   ├── reminder_scheduler.rs   # In-process block reminder scheduler (30s tick)
 │   └── capabilities/
 ├── docs/
 │   ├── index.md                # MkDocs home page
@@ -242,6 +246,8 @@ src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm
 
 **NOTE**: `src-tauri` does NOT currently depend on `pkm-plugin`. The CLI does NOT depend on `pkm-block` or `pkm-query`.
 
+**NOTE**: `src-tauri` additionally depends on `tauri-plugin-notification = "2"` (MIT OR Apache-2.0, AGPL-3.0 compatible) for block-reminder OS notifications.
+
 ## Core Principles
 
 1. **Plain `.md` files on disk** — readable and editable by any tool
@@ -278,13 +284,16 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `JournalPanel` | `/journal` | Calendar + daily journal creation | `docs/guide/journal.md` |
 | `PageView` | `/page/:pagePath` | Block editor + backlinks + connections | `docs/guide/block-editor.md` |
 | `SearchPanel` | `/search` | Full-text + tag search | `docs/guide/search.md` |
-| `QueryPanel` | `/query` | Datalog query input + results table | `docs/guide/datalog-queries.md` |
+| `QueryPanel` | `/query` | Datalog query panel: visual filter builder + raw Datalog editor (BuilderMode, ConditionRow) | `docs/guide/datalog-queries.md` |
 | `GraphPanel` | `/graph` | 3D/2D force-directed graph (desktop/mobile) | `docs/guide/graph-view.md` |
 | `TemplatesPanel` | `/templates` | Template list + apply with variables | `docs/guide/templates.md` |
 | `FlashcardsPanel` | `/flashcards` | SRS card review (SM-2) | `docs/guide/flashcards.md` |
 | `KanbanPanel` | `/kanban` | Drag-and-drop Kanban board | `docs/guide/kanban.md` |
 | `WhiteboardPanel` | `/whiteboards` | Excalidraw spatial canvas | `docs/guide/whiteboards.md` |
+| `PluginsPanel` | `/plugins` | Installed plugins + Plugin Directory / Theme Hub (desktop/mobile; shared hook `PluginsPanel.shared.tsx`) | `docs/guide/plugins.md` |
+| `RemindersPanel` | `/reminders` | Overdue/today/upcoming reminder list + snooze/complete/open | `docs/guide/reminders.md` |
 | `SettingsPage` | `/settings` | 6-tab app configuration | `docs/getting-started/configuration.md` |
+| `BackupSettingsPanel` | `SyncTab` (SettingsPage) | Cloud/folder backup (WebDAV + folder) config, test-connection, run-now + status | `docs/guide/git-sync.md` |
 
 ### Editor Sub-components
 
@@ -292,6 +301,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 |-----------|--------|---------|
 | `OutlinerEditor` | `PageView` | BlockNote-based outliner with auto-save, markers, wiki-links — decomposed into `index.tsx` + `dtoConverters.ts` + `markerDetection.ts` |
 | `BacklinksPanel` | `PageView` | Linked references + unlinked mentions + hover preview; Ctrl+hover snippet popup + Ctrl+click navigation via `useBacklinkNavigation` |
+| `ProseView` | `PageView` (desktop/mobile) | Read-mode prose renderer (files `prose.tsx` + `proseRenderer.ts`); renders blocks as clean read-only prose that never modifies the file |
 | `BacklinkSnippetBody` | `BacklinksPanel` | Renders backlinked block snippet (title, context, anchor highlight, loading/error) |
 | `BacklinkSnippetPopup` | `BacklinksPanel` (desktop) | Viewport-clamped popup for the backlink snippet (Ctrl+hover) |
 | `SuggestedConnectionsPanel` | `PageView` | AI-suggested wiki-link connections |
@@ -306,6 +316,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `MarkerBadge` | `OutlinerEditor` | Colored chip for task markers (TODO/DOING/DONE) |
 | `MarkerSuggestMenu` | `OutlinerEditor` | Autocomplete popup for markers and priorities |
 | `KanbanEditDialog` | `KanbanPanel` | Edit card content, marker, priority |
+| `ReminderDialog` | `OutlinerEditor` / `RemindersPanel` | Set/change/clear a block reminder (date-time picker + quick options) |
 
 ### Navigation & Utility
 

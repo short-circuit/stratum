@@ -15,6 +15,8 @@ import Divider from '@mui/material/Divider';
 import { useTranslation } from 'react-i18next';
 import { SttTestButton, TtsTestButton } from './AiTestButtons';
 import VoiceCaptureSection from './VoiceCaptureSection';
+import LocalDiscoverySection from './LocalDiscoverySection';
+import type { DiscoveredEndpoint } from '../../lib/types';
 
 const PROVIDERS = [
   { value: 'ollama', labelKey: 'settings.ollama_local' },
@@ -41,6 +43,8 @@ interface AITabProps {
     rag_chunk_count: number;
     embedding_dimensions: number;
     use_llm_gateway_and_auth: boolean;
+    extra_local_hosts?: string[];
+    last_discovered?: DiscoveredEndpoint[];
   };
   onAiChange: (patch: Partial<AITabProps['ai']>) => void;
   availableModels: string[];
@@ -235,6 +239,8 @@ export default function AITab({
             </Box>
           </Box>
         )}
+
+        <LocalDiscoverySection ai={ai} onAiChange={onAiChange} />
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <FormControlLabel

@@ -47,14 +47,18 @@ const IDENTICAL_OK = new Set([
   'OpenAI', 'Anthropic', 'Google AI', 'Z.AI', 'Agent',
   // Technical loanwords / cognates that are standard in all target languages
   'Sync', 'Auto-Commit', 'Auto-Sync', 'Remote & Branch', 'Remote &amp; Branch',
+  'Backup', 'WebDAV', 'Password', 'Offline', 'Directory',
   'Chunks', 'Format', 'Optional', 'Marker', 'Name', 'Question', 'question::',
   'Actions', 'Note', 'Error:', 'Sources', 'Variables', 'Relations', 'Hooks:',
   'Test http_request', 'Test note_read', 'Comp', 'Tags', 'Friction',
   'Tray', 'Stop',
+  'Notifications', // identical word in en/fr (valid French)
   'notes)', '[[wiki-links]]', '~/.pkm/plugins', '~/.pkm/plugins.',
   'Query', // Datalog "query" is used untranslated as a loanword in de/it/fr/es UIs
   // Symbol / layout fragments
   'n ·', 'b ·', 'a\n─\nb', '&quot;?', 'T): Promise',
+  '>', '<', '≥', '≤', '=', 'AND', 'OR', // builder operator symbols / combiner labels (pure symbols and standard loanwords)
+  'Datalog', 'Operator', // technical loanwords (cf. 'Query' above)
   // Meta marker (already excluded by key, value harmless)
   'complete', 'in progress',
 ]);

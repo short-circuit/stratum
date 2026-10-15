@@ -17,6 +17,8 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTranslation } from 'react-i18next';
+import type { DiscoveredEndpoint } from '../../lib/types';
+import LocalDiscoverySection from './LocalDiscoverySection';
 
 // ---------------------------------------------------------------------------
 // Mobile AI provider configuration (collapsible accordion).
@@ -69,6 +71,8 @@ export interface MobileAiAccordionProps {
     rag_chunk_count: number;
     embedding_dimensions: number;
     use_llm_gateway_and_auth: boolean;
+    extra_local_hosts?: string[];
+    last_discovered?: DiscoveredEndpoint[];
   };
   updateAi: (patch: any) => void;
   availableModels?: string[];
@@ -230,6 +234,8 @@ export default function MobileAiAccordion({
                 </Box>
               </Box>
             )}
+
+            {ai && <LocalDiscoverySection ai={ai} onAiChange={updateAi} />}
 
             <FormControlLabel
               control={

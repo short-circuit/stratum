@@ -7,9 +7,11 @@ import IconButton from '@mui/material/IconButton';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import AutoStoriesIcon from '@mui/icons-material/AutoStories';
 import OutlinerEditor from '../OutlinerEditor';
 import JournalCalendar from '../JournalCalendar';
 import VoiceCaptureButton from '../VoiceCaptureButton';
+import ProseView from '../PageView/prose';
 import { useJournalPanel, formatDisplayDate } from './JournalPanel.shared';
 import { useTranslation } from 'react-i18next';
 
@@ -30,6 +32,10 @@ export default function JournalPanelMobile() {
     today,
     todayPagePath,
     todayExists,
+    prose,
+    setProse,
+    focusBlockId,
+    setFocusBlockId,
     journalLoading,
     journalError,
     retryJournal,
@@ -76,6 +82,15 @@ export default function JournalPanelMobile() {
         <IconButton size="small" onClick={() => createNewDay(1)} aria-label={t('journal.next_day')}>
           <ChevronRightIcon />
         </IconButton>
+        <IconButton
+          size="small"
+          data-testid="prose-toggle"
+          onClick={() => setProse(p => !p)}
+          title={t('page.read_mode')}
+          color={prose ? 'primary' : 'default'}
+        >
+          <AutoStoriesIcon fontSize="small" />
+        </IconButton>
       </Box>
 
       {journalError ? (
@@ -97,7 +112,15 @@ export default function JournalPanelMobile() {
         // rather than stretching to the viewport height of the scroll
         // container (matches the past-entry sizing).
         <Box>
-          <OutlinerEditor key={editorNonce} pagePath={todayPagePath} minHeight="0" />
+          {prose ? (
+            <ProseView
+              pagePath={todayPagePath}
+              onExit={() => { setProse(false); setFocusBlockId(null); }}
+              onEditBlock={(id) => { setFocusBlockId(id); setProse(false); }}
+            />
+          ) : (
+            <OutlinerEditor key={editorNonce} pagePath={todayPagePath} minHeight="0" focusBlockId={focusBlockId ?? undefined} />
+          )}
         </Box>
       )}
 

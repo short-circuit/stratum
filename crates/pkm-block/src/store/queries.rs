@@ -84,6 +84,52 @@ impl BlockStore {
         Ok(count as usize)
     }
 
+    /// Find all blocks that carry a `due` property, returning each block paired
+    /// with its page_path. The `due` value lives in the `properties` JSON blob
+    /// (see `Block::due`), so the filter uses `json_extract` on that column.
+    pub fn find_due_blocks(&self) -> StoreResult<Vec<(Block, String)>> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT id, page_path FROM blocks \
+                 WHERE json_extract(properties, '$.due') IS NOT NULL",
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+
+        let rows: Vec<(String, String)> = stmt
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        let mut results = Vec::new();
+        for (id_str, page_path) in rows {
+            if let Ok(id) = Uuid::parse_str(&id_str) {
+                if let Ok(block) = self.get_block(id) {
+                    results.push((block, page_path));
+                }
+            }
+        }
+        Ok(results)
+    }
+
+    /// Count blocks that carry a `due` property. Provided as a cheap early-exit
+    /// check so the reminder scheduler can skip scanning when nothing is due.
+    pub fn count_due_blocks(&self) -> StoreResult<usize> {
+        let count: i64 = self
+            .conn
+            .query_row(
+                "SELECT COUNT(*) FROM blocks \
+                 WHERE json_extract(properties, '$.due') IS NOT NULL",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+        Ok(count as usize)
+    }
+
     /// Get counts of incoming links per target page, ordered by count descending.
     /// Returns (target_page, count) pairs.
     pub fn get_backlink_counts(&self) -> StoreResult<Vec<(String, i64)>> {
