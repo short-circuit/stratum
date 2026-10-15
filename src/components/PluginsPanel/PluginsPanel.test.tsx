@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import PluginsPanelDesktop from './PluginsPanel.desktop';
+import { clearCatalogCache } from '../../lib/pluginCatalog';
 
 // E10.F7 fixture mirroring the community catalog (plugins/index.json). The
 // install path verifies the sha256 of the downloaded bytes, so the fixture's
@@ -88,6 +89,11 @@ function cardOf(name: string): HTMLElement {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  // The catalog fetch caches payloads in localStorage. Without clearing,
+  // a later test's "fetch fails" path serves the cached catalog + Offline
+  // chip, and the empty-state Retry button never renders (CI-only flake
+  // because jsdom provides working localStorage there).
+  clearCatalogCache();
 });
 
 describe('PluginsPanelDesktop', () => {

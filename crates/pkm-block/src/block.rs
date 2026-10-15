@@ -198,12 +198,9 @@ pub fn parse_due(s: &str, now: &DateTime<Utc>) -> Option<DateTime<Utc>> {
     }
 
     // Naïve local date-time, with optional seconds. Interpret as local wall-clock.
-    let naive = [
-        "%Y-%m-%dT%H:%M:%S",
-        "%Y-%m-%dT%H:%M",
-    ]
-    .iter()
-    .find_map(|fmt| NaiveDateTime::parse_from_str(s, fmt).ok())?;
+    let naive = ["%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M"]
+        .iter()
+        .find_map(|fmt| NaiveDateTime::parse_from_str(s, fmt).ok())?;
 
     naive_local_to_utc(naive, now)
 }
@@ -215,7 +212,11 @@ fn naive_local_to_utc(naive: NaiveDateTime, now: &DateTime<Utc>) -> Option<DateT
         LocalResult::Ambiguous(earliest, latest) => {
             let e = earliest.with_timezone(&Utc);
             let l = latest.with_timezone(&Utc);
-            Some(if (l - *now).abs() < (e - *now).abs() { l } else { e })
+            Some(if (l - *now).abs() < (e - *now).abs() {
+                l
+            } else {
+                e
+            })
         }
         LocalResult::None => None,
     }
@@ -372,7 +373,10 @@ mod tests {
         let parsed = parse_due("2026-10-15T09:00:00", &now).unwrap();
         // The wall-clock time 09:00 is preserved when echoed back into local time.
         assert_eq!(parsed.with_timezone(&Local).naive_local().time().hour(), 9);
-        assert_eq!(parsed.with_timezone(&Local).naive_local().time().minute(), 0);
+        assert_eq!(
+            parsed.with_timezone(&Local).naive_local().time().minute(),
+            0
+        );
     }
 
     #[test]

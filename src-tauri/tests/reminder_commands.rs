@@ -84,8 +84,7 @@ fn command_list_reminders_returns_block_with_due() {
     let app = build_app(&tv);
     let wv = webview(&app);
 
-    let res = invoke(&wv, "list_reminders", json!({}))
-        .expect("list_reminders resolves");
+    let res = invoke(&wv, "list_reminders", json!({})).expect("list_reminders resolves");
     let arr = res.as_array().expect("list must return an array");
     assert_eq!(arr.len(), 1);
     let item = &arr[0];
@@ -104,8 +103,7 @@ fn command_snooze_reminder_shifts_due_forward() {
     let app = build_app(&tv);
     let wv = webview(&app);
 
-    let before = invoke(&wv, "list_reminders", json!({}))
-        .expect("list_reminders resolves");
+    let before = invoke(&wv, "list_reminders", json!({})).expect("list_reminders resolves");
     let due_before = before[0]["due"].as_str().unwrap().to_string();
 
     invoke(
@@ -119,8 +117,7 @@ fn command_snooze_reminder_shifts_due_forward() {
     )
     .expect("snooze resolves");
 
-    let after = invoke(&wv, "list_reminders", json!({}))
-        .expect("list_reminders resolves");
+    let after = invoke(&wv, "list_reminders", json!({})).expect("list_reminders resolves");
     let due_after = after[0]["due"].as_str().unwrap().to_string();
 
     let parse = |s: &str| -> chrono::DateTime<chrono::Utc> {

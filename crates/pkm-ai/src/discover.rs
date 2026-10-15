@@ -487,8 +487,8 @@ mod tests {
 
         let result = ping_search_instance(&server.uri()).await;
         assert!(result.ok);
-        // Mock server may answer in <1ms; latency is only meaningful as >= 0.
-        assert!(result.latency_ms >= 0);
+        // `latency_ms` is u64; any value (including 0 for sub-ms mock answers)
+        // is valid for a successful ping, so no lower-bound assertion is needed.
     }
 
     #[tokio::test]

@@ -485,8 +485,8 @@ fn test_due_property_value_with_colons() {
     // The `due` value contains colons (a full timestamp). The parser must split
     // on the first colon only, preserving the full value verbatim.
     let id = Uuid::new_v4();
-    let block = Block::new(id, "Remind me".into())
-        .with_property("due", "2026-10-15T07:00:00+00:00");
+    let block =
+        Block::new(id, "Remind me".into()).with_property("due", "2026-10-15T07:00:00+00:00");
     let serialized = serialize_blocks(&[block]);
 
     let (_fm, _body, reparsed) = parse_document(&serialized);
