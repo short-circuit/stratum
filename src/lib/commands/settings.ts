@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import i18n from '../../i18n';
 import { getPlatform } from '../platform';
-import type { VaultInfo, GraphSettings, SyncSettings } from '../types';
+import type { VaultInfo, GraphSettings, SyncSettings, DiscoveredEndpoint } from '../types';
 
 export async function getVaultInfo(): Promise<VaultInfo> {
   return invoke('get_vault_info');
@@ -39,6 +39,8 @@ export async function getSettings(): Promise<{
     rag_enabled: boolean;
     rag_chunk_count: number;
     embedding_dimensions: number;
+    extra_local_hosts?: string[];
+    last_discovered?: DiscoveredEndpoint[];
   };
   graph: GraphSettings;
   sync: SyncSettings;
@@ -72,6 +74,7 @@ export async function getSettings(): Promise<{
     inbox_path: string;
   };
   voice?: { enabled: boolean; target: string };
+  reminders?: { enabled: boolean; sound: boolean };
 }> {
   return invoke('get_settings');
 }
@@ -90,6 +93,8 @@ export async function saveSettings(settings: {
     rag_enabled: boolean;
     rag_chunk_count: number;
     embedding_dimensions: number;
+    extra_local_hosts?: string[];
+    last_discovered?: DiscoveredEndpoint[];
   };
   graph: GraphSettings;
   sync: SyncSettings;
@@ -118,6 +123,7 @@ export async function saveSettings(settings: {
     inbox_path: string;
   };
   voice?: { enabled: boolean; target: string };
+  reminders?: { enabled: boolean; sound: boolean };
 }): Promise<void> {
   return invoke('save_settings', { settings });
 }

@@ -21,6 +21,8 @@ import TemplatesPanel from './components/TemplatesPanel';
 import FlashcardsPanel from './components/FlashcardsPanel';
 import KanbanPanel from './components/KanbanPanel';
 import WhiteboardPanel from './components/WhiteboardPanel';
+import RemindersPanel from './components/RemindersPanel';
+import ReminderToaster from './components/RemindersPanel/ReminderToaster';
 import GraphPanel from './components/GraphPanel';
 import AskNotesPanel from './components/AskNotesPanel';
 import PluginsPanel from './components/PluginsPanel';
@@ -197,6 +199,7 @@ function AppContent() {
           <Route path="/templates" element={<ErrorBoundary><TemplatesPanel /></ErrorBoundary>} />
           <Route path="/flashcards" element={<ErrorBoundary><FlashcardsPanel /></ErrorBoundary>} />
           <Route path="/kanban" element={<ErrorBoundary><KanbanPanel /></ErrorBoundary>} />
+          <Route path="/reminders" element={<ErrorBoundary><RemindersPanel /></ErrorBoundary>} />
           <Route path="/whiteboards" element={<ErrorBoundary><WhiteboardPanel /></ErrorBoundary>} />
           <Route path="/graph" element={<ErrorBoundary><GraphPanel /></ErrorBoundary>} />
           <Route path="/plugins" element={<ErrorBoundary><PluginsPanel /></ErrorBoundary>} />
@@ -217,6 +220,7 @@ function AppContent() {
             onSubmit={syncModal.submitPassphrase}
           />
         )}
+        <ReminderToaster />
       </MobileLayout>
     );
   }
@@ -246,6 +250,7 @@ function AppContent() {
           <Route path="/templates" element={<ErrorBoundary><TemplatesPanel /></ErrorBoundary>} />
           <Route path="/flashcards" element={<ErrorBoundary><FlashcardsPanel /></ErrorBoundary>} />
           <Route path="/kanban" element={<ErrorBoundary><KanbanPanel /></ErrorBoundary>} />
+          <Route path="/reminders" element={<ErrorBoundary><RemindersPanel /></ErrorBoundary>} />
           <Route path="/whiteboards" element={<ErrorBoundary><WhiteboardPanel /></ErrorBoundary>} />
           <Route path="/graph" element={<ErrorBoundary><GraphPanel /></ErrorBoundary>} />
           <Route path="/plugins" element={<ErrorBoundary><PluginsPanel /></ErrorBoundary>} />
@@ -269,6 +274,7 @@ function AppContent() {
         />
       )}
       <QuickCapture />
+      <ReminderToaster />
     </Box>
   );
 }

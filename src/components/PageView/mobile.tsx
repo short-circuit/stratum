@@ -2,25 +2,43 @@ import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MicNoneIcon from '@mui/icons-material/MicNone';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
+import AutoStoriesIcon from '@mui/icons-material/AutoStories';
 import OutlinerEditor from '../OutlinerEditor';
 import BacklinksPanel from '../BacklinksPanel';
 import DictationPanel from '../DictationPanel';
 import AttachmentPanel, { FILE_INPUT_ID } from '../AttachmentPanel';
+import ProseView from './prose';
 import { usePageView } from './shared';
 import { useStore } from '../../stores/appStore';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export default function PageViewMobile() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { pagePath, currentPage, editorKey, reindexing, handleReindex, handleDelete } = usePageView();
+  const { pagePath, currentPage, editorKey, reindexing, handleReindex, handleDelete, prose, setProse, focusBlockId, setFocusBlockId } = usePageView();
   const [dictationOpen, setDictationOpen] = useState(false);
+
+  // Reminder highlight-on-open: capture a pending highlight for THIS page once,
+  // pass it to the editor, then immediately consume it from the global store so
+  // it is not replayed on a later navigation (see desktop.tsx for rationale).
+  const highlightBlock = useStore((s) => s.highlightBlock);
+  const [highlightBlockId, setHighlightBlockId] = useState<string | undefined>(undefined);
+  const highlightConsumedRef = useRef(false);
+  useEffect(() => {
+    if (highlightConsumedRef.current) return;
+    if (!currentPage || !highlightBlock) return;
+    if (highlightBlock.pagePath !== currentPage.path) return;
+    highlightConsumedRef.current = true;
+    setHighlightBlockId(highlightBlock.blockId);
+    useStore.getState().consumeHighlightBlock();
+  }, [currentPage, highlightBlock]);
 
   if (!pagePath) {
     return null;
@@ -67,6 +85,27 @@ export default function PageViewMobile() {
           <AttachFileIcon fontSize="small" />
         </IconButton>
 
+        <IconButton
+          size="small"
+          data-testid="prose-toggle"
+          onClick={() => setProse(p => !p)}
+          title={t('page.read_mode')}
+          color={prose ? 'primary' : 'default'}
+        >
+          <AutoStoriesIcon fontSize="small" />
+        </IconButton>
+
+        {prose && (
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => { setProse(false); setFocusBlockId(null); }}
+            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+          >
+            {t('page.edit_mode')}
+          </Button>
+        )}
+
         <IconButton size="small" onClick={handleReindex} disabled={reindexing} title={t('page.reindex')}>
           <RefreshIcon fontSize="small" />
         </IconButton>
@@ -87,7 +126,15 @@ export default function PageViewMobile() {
       )}
 
       <Box sx={{ flex: 1, overflow: 'auto' }}>
-        <OutlinerEditor key={editorKey} pagePath={currentPage.path} />
+        {prose ? (
+          <ProseView
+            pagePath={currentPage.path}
+            onExit={() => { setProse(false); setFocusBlockId(null); }}
+            onEditBlock={(id) => { setFocusBlockId(id); setProse(false); }}
+          />
+        ) : (
+          <OutlinerEditor key={editorKey} pagePath={currentPage.path} highlightBlockId={highlightBlockId} focusBlockId={focusBlockId ?? undefined} />
+        )}
       </Box>
 
       <AttachmentPanel pagePath={currentPage.path} />

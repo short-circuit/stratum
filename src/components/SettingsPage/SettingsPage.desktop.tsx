@@ -10,6 +10,7 @@ import ResearchTab from './ResearchTab';
 import DeveloperTab from './DeveloperTab';
 import SyncTab from './SyncTab';
 import TrayTab from './TrayTab';
+import NotificationsTab from './NotificationsTab';
 import { useTranslation } from 'react-i18next';
 import { useSettingsPage, type SettingsTab } from './SettingsPage.shared';
 
@@ -32,6 +33,11 @@ export default function SettingsPageDesktop() {
     research,
     theme,
     syncSettings,
+    backup,
+    backupStatus,
+    testing,
+    running,
+    webdavTestResult,
     stt,
     tts,
     voice,
@@ -43,11 +49,16 @@ export default function SettingsPageDesktop() {
     updateResearch,
     updateTheme,
     updateSync,
+    updateBackup,
+    runBackupNow,
+    testWebdavConnection,
     updateStt,
     updateTts,
     tray,
     updateTray,
     updateVoice,
+    reminders,
+    updateReminders,
     handleSave,
     handleFetchModels,
     handleReindex,
@@ -95,6 +106,7 @@ export default function SettingsPageDesktop() {
           <Tab label={t('settings.developer')} value="developer" sx={{ minHeight: 40, textTransform: 'none' }} />
           <Tab label={t('settings.sync')} value="sync" sx={{ minHeight: 40, textTransform: 'none' }} />
           <Tab label={t('settings.tray')} value="tray" sx={{ minHeight: 40, textTransform: 'none' }} />
+          <Tab label={t('settings.notifications.title')} value="notifications" sx={{ minHeight: 40, textTransform: 'none' }} />
         </Tabs>
         <Box sx={{ flex: 1 }} />
         <Button
@@ -168,10 +180,21 @@ export default function SettingsPageDesktop() {
             syncing={syncing}
             onSyncNow={handleSyncNow}
             onStartScheduler={handleStartScheduler}
+            backup={backup}
+            backupStatus={backupStatus}
+            onBackupChange={updateBackup}
+            onRunBackupNow={runBackupNow}
+            onTestWebdav={testWebdavConnection}
+            testing={testing}
+            running={running}
+            webdavTestResult={webdavTestResult}
           />
         )}
         {tab === 'tray' && (
           <TrayTab tray={tray} onTrayChange={updateTray} />
+        )}
+        {tab === 'notifications' && (
+          <NotificationsTab reminders={reminders} onRemindersChange={updateReminders} />
         )}
       </Box>
     </Box>

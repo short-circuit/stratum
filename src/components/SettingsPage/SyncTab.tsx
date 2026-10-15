@@ -1,9 +1,11 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
-import type { SyncStatusDto, CommitLogEntry } from '../../lib/types';
+import Divider from '@mui/material/Divider';
+import type { SyncStatusDto, CommitLogEntry, BackupSettings, BackupStatusDto } from '../../lib/types';
 import CommitLogPanel from './CommitLogPanel';
 import SyncControlsPanel from './SyncControlsPanel';
+import BackupSettingsPanel from './BackupSettingsPanel';
 import { useTranslation } from 'react-i18next';
 
 interface SyncTabProps {
@@ -24,6 +26,14 @@ interface SyncTabProps {
   syncing: boolean;
   onSyncNow: () => void;
   onStartScheduler: () => Promise<void>;
+  backup: BackupSettings;
+  backupStatus: BackupStatusDto | null;
+  onBackupChange: (patch: Partial<BackupSettings>) => void;
+  onRunBackupNow: () => Promise<void>;
+  onTestWebdav: () => Promise<void>;
+  testing: boolean;
+  running: boolean;
+  webdavTestResult: string | null;
 }
 
 export default function SyncTab({
@@ -36,6 +46,14 @@ export default function SyncTab({
   syncing,
   onSyncNow,
   onStartScheduler,
+  backup,
+  backupStatus,
+  onBackupChange,
+  onRunBackupNow,
+  onTestWebdav,
+  testing,
+  running,
+  webdavTestResult,
 }: SyncTabProps) {
   const { t } = useTranslation();
   return (
@@ -299,6 +317,19 @@ export default function SyncTab({
           commits={commits}
           commitsOpen={commitsOpen}
           onToggleCommits={onToggleCommits}
+        />
+
+        {/* Section 8 — Cloud Backup */}
+        <Divider sx={{ my: 1.5 }} />
+        <BackupSettingsPanel
+          backup={backup}
+          backupStatus={backupStatus}
+          onBackupChange={onBackupChange}
+          onRunBackupNow={onRunBackupNow}
+          onTestWebdav={onTestWebdav}
+          testing={testing}
+          running={running}
+          webdavTestResult={webdavTestResult}
         />
       </Box>
     </Box>

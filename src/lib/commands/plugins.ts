@@ -166,6 +166,37 @@ export async function pluginsInstall(path: string): Promise<PluginInfoDto> {
   );
 }
 
+/**
+ * Install a plugin straight from a catalog `download_url` (E10.F7 — Plugin
+ * Directory). The Rust command downloads the WASM bytes, verifies the
+ * optional sha256 digest, stages, and installs into the vault plugin dir.
+ * The frontend performs its own digest verification via
+ * `verifySha256` (src/lib/pluginCatalog.ts) before calling, so the sha256
+ * argument passed here is a defense-in-depth duplicate of the catalog entry.
+ */
+export async function pluginsInstallUrl(
+  url: string,
+  sha256: string | null,
+  id: string,
+): Promise<PluginInfoDto> {
+  return callOrMock(
+    'plugins_install_url',
+    { url, sha256, id },
+    () => {
+      const plugin: PluginInfoDto = {
+        id,
+        name: id,
+        version: '0.1.0',
+        status: 'disabled',
+        enabled: false,
+        permissions: [],
+      };
+      mockStore = { ...mockStore, [id]: plugin };
+      return { ...plugin };
+    },
+  );
+}
+
 export async function pluginsUninstall(id: string): Promise<PluginListResultDto> {
   return callOrMock('plugins_uninstall', { id }, () => {
     const next = Object.values(mockStore).filter(p => p.id !== id);

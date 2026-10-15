@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as api from '../../lib/commands';
 import { isPluginBackendReady } from '../../lib/commands/plugins';
-import type { PluginHttpRequestParams, PluginInfoDto } from '../../lib/types';
+import type { PluginCatalogEntry, PluginHttpRequestParams, PluginInfoDto, ThemeCatalogEntry } from '../../lib/types';
 import { useTranslation } from 'react-i18next';
+import { usePluginDirectory } from './usePluginDirectory';
+import { useThemeHub, type InstalledThemeInfo } from './useThemeHub';
 
 export interface PluginTestResult {
   label: string;
   ok: boolean;
   detail: string;
 }
+
+export type PluginsTab = 'installed' | 'directory' | 'themes';
 
 export interface PluginsPanelState {
   plugins: PluginInfoDto[];
@@ -27,6 +31,30 @@ export interface PluginsPanelState {
   runHttpRequestTest: (id: string) => Promise<void>;
   clearTestResult: (id: string) => void;
   clearError: () => void;
+  // ── E10.F7: Plugin Directory / Theme Hub ──
+  tab: PluginsTab;
+  setTab: (tab: PluginsTab) => void;
+  catalogPlugins: PluginCatalogEntry[];
+  catalogLoading: boolean;
+  catalogError: string | null;
+  catalogOffline: boolean;
+  catalogFetchedAt: string | null;
+  installedIds: Set<string>;
+  catalogBusyId: string | null;
+  refreshCatalog: () => Promise<void>;
+  installCatalogPlugin: (entry: PluginCatalogEntry) => Promise<void>;
+  uninstallById: (id: string) => Promise<void>;
+  catalogThemes: ThemeCatalogEntry[];
+  themesLoading: boolean;
+  themesError: string | null;
+  themesOffline: boolean;
+  themesFetchedAt: string | null;
+  installedThemes: InstalledThemeInfo[];
+  themesBusyId: string | null;
+  refreshThemes: () => Promise<void>;
+  installTheme: (entry: ThemeCatalogEntry) => Promise<void>;
+  uninstallTheme: (id: string) => Promise<void>;
+  applyThemeById: (entry: ThemeCatalogEntry) => void;
 }
 
 export function usePluginsPanel(): PluginsPanelState {
@@ -37,6 +65,15 @@ export function usePluginsPanel(): PluginsPanelState {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, PluginTestResult | null>>({});
   const [backendReady] = useState<boolean>(() => isPluginBackendReady());
+  const [tab, setTab] = useState<PluginsTab>('installed');
+
+  const setErrorMaybe = useCallback((message: string) => setError(message), []);
+  const setPluginsFromList = useCallback((list: PluginInfoDto[]) => setPlugins(list), []);
+
+  // E10.F7 sub-hooks: directory + theme hub. Their error surfaces share the
+  // panel error banner; installed-plugin list mutations flow into the parent.
+  const directory = usePluginDirectory(plugins, setPluginsFromList, setErrorMaybe, tab === 'directory');
+  const themeHub = useThemeHub(setErrorMaybe, tab === 'themes');
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -193,5 +230,28 @@ export function usePluginsPanel(): PluginsPanelState {
     runHttpRequestTest,
     clearTestResult,
     clearError,
+    tab,
+    setTab,
+    catalogPlugins: directory.catalogPlugins,
+    catalogLoading: directory.catalogLoading,
+    catalogError: directory.catalogError,
+    catalogOffline: directory.catalogOffline,
+    catalogFetchedAt: directory.catalogFetchedAt,
+    installedIds: directory.installedIds,
+    catalogBusyId: directory.busyId,
+    refreshCatalog: directory.refresh,
+    installCatalogPlugin: directory.install,
+    uninstallById: directory.uninstall,
+    catalogThemes: themeHub.catalogThemes,
+    themesLoading: themeHub.themesLoading,
+    themesError: themeHub.themesError,
+    themesOffline: themeHub.themesOffline,
+    themesFetchedAt: themeHub.themesFetchedAt,
+    installedThemes: themeHub.installedThemes,
+    themesBusyId: themeHub.busyId,
+    refreshThemes: themeHub.refresh,
+    installTheme: themeHub.install,
+    uninstallTheme: themeHub.uninstall,
+    applyThemeById: themeHub.apply,
   };
 }

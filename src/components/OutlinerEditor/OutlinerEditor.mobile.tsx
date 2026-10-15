@@ -12,7 +12,7 @@
  * @module OutlinerEditor/OutlinerEditor.mobile
  */
 
-import { useMemo, useCallback } from 'react';
+import { useEffect, useMemo, useCallback, useState } from 'react';
 import { BlockNoteView } from '@blocknote/mantine';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -26,6 +26,8 @@ import AIFormattingToolbar from '../AIFormattingToolbar';
 import MarkerBadge from '../MarkerBadge';
 import MarkerSuggestMenu from './MarkerSuggestMenu';
 import WikiLinkAutocomplete from './WikiLinkAutocomplete';
+import ReminderDialog from '../ReminderDialog';
+import { getBlockDue, attachReminderChipClick } from '../../lib/reminders/editorReminderHelpers';
 import { useEditorData } from './OutlinerEditor.shared';
 import type { Props } from './OutlinerEditor.shared';
 import MobileEditorOverlays from './MobileEditorOverlays';
@@ -33,7 +35,7 @@ import { useTranslation } from 'react-i18next';
 
 export default function OutlinerEditorMobile(props: Props) {
   const { t } = useTranslation();
-  const { pagePath, autoFocus, minHeight = '400px' } = props;
+  const { pagePath, autoFocus, minHeight = '400px', highlightBlockId } = props;
 
   const {
     editor,
@@ -54,7 +56,7 @@ export default function OutlinerEditorMobile(props: Props) {
     deadLinkPopup,
     setDeadLinkPopup,
     navigateRef,
-  } = useEditorData(pagePath, autoFocus, minHeight);
+  } = useEditorData(pagePath, autoFocus, minHeight, highlightBlockId, props.focusBlockId);
 
   const saveLabel = useMemo(() => {
     if (saving) return t('editor.saving');
@@ -116,6 +118,41 @@ export default function OutlinerEditorMobile(props: Props) {
     },
     [editor],
   );
+
+  // -----------------------------------------------------------------------
+  // Reminder integration: tapping a reminder chip opens the dialog.
+  // -----------------------------------------------------------------------
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogBlockId, setDialogBlockId] = useState<string | null>(null);
+  const [dialogDue, setDialogDue] = useState<string | null>(null);
+
+  const openReminderForBlock = useCallback((blockId: string) => {
+    setDialogBlockId(blockId);
+    setDialogDue(getBlockDue(blockId, blockMetaRef.current));
+    setDialogOpen(true);
+  }, [blockMetaRef]);
+
+  const handleReminderSave = (isoUtc: string | null) => {
+    const blockId = dialogBlockId;
+    setDialogOpen(false);
+    if (!blockId) return;
+    const existing =
+      blockMetaRef.current.get(blockId) ?? { marker: null, priority: null, properties: [] as [string, string][] };
+    const properties = existing.properties.filter(([key]) => key !== 'due');
+    const updated = { ...existing, properties: isoUtc ? [...properties, ['due', isoUtc] as [string, string]] : properties };
+    blockMetaRef.current.set(blockId, updated);
+    try {
+      if (editor) persistBlocks(editor.document);
+    } catch (e) {
+      console.error('[OutlinerEditor] reminder save failed:', e);
+    }
+  };
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || status !== 'ready') return;
+    return attachReminderChipClick(el, openReminderForBlock);
+  }, [containerRef, status, openReminderForBlock]);
 
   // -----------------------------------------------------------------------
   // Memoised editor view
@@ -282,6 +319,13 @@ export default function OutlinerEditorMobile(props: Props) {
       >
         {editorView}
       </MobileEditorOverlays>
+
+      <ReminderDialog
+        open={dialogOpen}
+        initialDue={dialogDue}
+        onSave={handleReminderSave}
+        onClose={() => setDialogOpen(false)}
+      />
     </Box>
   );
 }

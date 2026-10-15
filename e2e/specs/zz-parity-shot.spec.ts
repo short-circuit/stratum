@@ -42,6 +42,9 @@ async function mockJournalApp(page: Page, today: string) {
             build_markdown: () => '# Markdown',
             get_settings: () => ({ vault_path: '/mock/vault', theme: { dark_mode: true, primary_color: '#f97316', secondary_color: '#6b7280', font_size: 16 }, ai: { provider: 'ollama', endpoint: null, api_key: null, api_key_from_env: false, model: '', models: [], rag_enabled: false, rag_chunk_count: 3 }, graph: { show_connected: true, show_orphaned: true, show_tags: true, charge_strength: -4, link_distance: 40, alpha_decay: 0.15, velocity_decay: 0.4, link_curvature: 0.15, node_cap: 0 }, sync: { mode: 'manual', remote_url: null, branch: 'main', auto_commit_interval_secs: 300, auto_sync_interval_secs: 1800, ssh_key_path: null, commit_template: '' }, research: { searxng_endpoint: '', max_results: 3, max_depth: 2 }, stt: { endpoint: '', api_key: null, model: 'whisper-1', diarize_model: '', language: null, diarize: true, auto_summarize: true, auto_identify: true } }),
             save_settings: () => undefined,
+            list_reminders: () => [],
+            snooze_reminder: () => undefined,
+            clear_reminder: () => undefined,
             get_sync_status: () => ({ status: 'clean', branch: 'main', ahead: 0, behind: 0, conflicts: [], last_sync_time: now, last_sync_success: true, pending_commits: 0 }),
             start_sync_scheduler: () => undefined,
             stop_sync_scheduler: () => undefined,
@@ -56,7 +59,11 @@ async function mockJournalApp(page: Page, today: string) {
         runCallback() {},
         callbacks: new Map(),
       };
-      win.__TAURI_EVENT_PLUGIN_INTERNALS__ = {};
+      // @tauri-apps/api >= 2.12 calls unregisterListener(event, eventId) from
+      // _unlisten; without it, listener teardown throws and crashes the app.
+      win.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+        unregisterListener() {},
+      };
     },
     { today },
   );

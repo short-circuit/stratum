@@ -141,6 +141,12 @@ quick_capture_shortcut = "CmdOrCtrl+Shift+Space"
 capture_target = "journal"
 # Vault-relative path of the inbox page (when capture_target = "inbox")
 inbox_path = "Inbox.md"
+
+[reminders]
+# Enable the block-reminder scheduler + notifications
+enabled = true
+# Play a sound when a reminder becomes due
+sound = true
 ```
 
 ## Settings Panel Reference
@@ -150,6 +156,25 @@ inbox_path = "Inbox.md"
 | Setting | Description |
 |---------|-------------|
 | Vault Path | Absolute path to your vault directory. Click Browse to pick a folder. |
+
+### Export
+
+The Export subsection (under the Vault Tab / Vault section) provides four
+export actions, each with an output path, a **Browse** button, and an
+**Open folder** button on success:
+
+| Action | Description | Output |
+|--------|-------------|--------|
+| Export HTML | Static HTML snapshot of the vault | chosen directory (`export.html`/mirrored files) |
+| Export JSON | Structured JSON data | chosen directory (`<page>.json` files) |
+| Export page as PDF | The currently open page (disabled when no page is open) | `export-<slug>.pdf` in the vault |
+| Export vault as ZIP | Portable vault archive | `export.zip` in the vault |
+
+!!! note "PDF runtime dependency"
+    PDF export requires a headless Chromium binary on the system. Set the
+    `STRATUM_CHROMIUM` environment variable to an explicit path if the
+    auto-detection does not find one. See
+    [Export → PDF Export](../guide/export.md#pdf-export) for details.
 
 ### Theme Tab
 
@@ -243,6 +268,16 @@ for the full behavior of the `use_llm_gateway_and_auth` settings.
     icon and closing the app quits it.
 
 See [Quick Capture](../guide/quick-capture.md) for usage and troubleshooting.
+
+### Notifications Tab
+
+The Notifications tab controls block reminders (see the [Reminders](../guide/reminders.md)
+guide). These settings are stored in the vault config under `[reminders]`:
+
+| Setting | Description |
+|---------|-------------|
+| Enable reminders | Turn the reminder scheduler + notifications on or off. Reminders already set are kept; they just stop notifying until re-enabled. |
+| Notification sound | Play a sound when a reminder becomes due. |
 
 !!! note "Mobile accessibility"
     On mobile, reindex **progress** is displayed live under the Developer section.

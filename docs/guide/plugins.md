@@ -20,6 +20,36 @@ embedded JSON manifest in the custom section named `stratum:manifest`. A legacy
 sidecar manifest (`plugin.wasm.manifest.json` beside the `.wasm`) is still
 accepted for reading, but new plugins must embed the manifest.
 
+## Plugin Directory
+
+The in-app Plugin Directory (Plugins panel → **Directory** tab) lists plugins
+from the community catalog at
+`https://raw.githubusercontent.com/short-circuit/stratum-plugins/main/plugins/index.json`.
+
+- **Fetch + cache:** the catalog is fetched on first open of the tab and cached
+  in local storage. Later opens revalidate in the background (stale-while-
+  revalidate).
+- **Offline fallback:** when the direct repo fetch fails, the last successful
+  cached catalog is shown with an **Offline** badge and a Retry action — the
+  panel never breaks on network failure.
+- **Verified installs:** each entry shows its version, description, declared
+  permissions, and verified `sha256` digest. **Install** downloads the WASM
+  bytes, verifies the digest (crypto.subtle + a backend re-check in
+  `plugins_install_url`), stages, and installs into
+  `<vault>/.pkm/plugins/<id>/` using the same pipeline as manual installs.
+- **Status reflection:** installed entries immediately show an *Installed*
+  badge; uninstall uses the same `plugins_uninstall` command and removes the
+  plugin dir + config entry.
+- **Theme Hub:** the **Themes** tab lists themes from
+  `themes/index.json` in the same repo. Installing downloads the theme
+  document, verifies its sha256, persists it locally, and applies it via
+  `applyTheme` + the settings store. Uninstalling the active theme falls back
+  to the built-in theme.
+
+> Catalog install requires the `https://raw.githubusercontent.com` origin in
+> the Tauri CSP `connect-src` (already configured). No other network origin is
+> contacted unless a plugin declares the `network` permission.
+
 <!-- SCREENSHOT: [plugins-panel] Plugins panel listing installed plugins with status -->
 
 ## Installing a Plugin

@@ -8,7 +8,7 @@
  * @module OutlinerEditor/OutlinerEditor.desktop
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { BlockNoteView } from '@blocknote/mantine';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -24,11 +24,14 @@ import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
+import AlarmIcon from '@mui/icons-material/Alarm';
+import AlarmOffIcon from '@mui/icons-material/AlarmOff';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
 import * as api from '../../lib/commands';
 import { useRecentsStore } from '../../stores/recentsStore';
 import { speakText, textFromBlock } from '../../lib/audio';
+import { getBlockDue, attachReminderChipClick } from '../../lib/reminders/editorReminderHelpers';
 import LinkPreviewPopup from '../LinkPreviewPopup';
 import AISlashMenu from '../AISlashMenu';
 import AIFormattingToolbar from '../AIFormattingToolbar';
@@ -36,13 +39,14 @@ import MathEditorModal from '../MathEditorModal';
 import MarkerBadge from '../MarkerBadge';
 import MarkerSuggestMenu from './MarkerSuggestMenu';
 import WikiLinkAutocomplete from './WikiLinkAutocomplete';
+import ReminderDialog from '../ReminderDialog';
 import { useEditorData } from './OutlinerEditor.shared';
 import type { Props } from './OutlinerEditor.shared';
 import { useTranslation } from 'react-i18next';
 
 export default function OutlinerEditorDesktop(props: Props) {
   const { t } = useTranslation();
-  const { pagePath, autoFocus, minHeight = '400px' } = props;
+  const { pagePath, autoFocus, minHeight = '400px', highlightBlockId } = props;
 
   const {
     editor,
@@ -63,7 +67,7 @@ export default function OutlinerEditorDesktop(props: Props) {
     deadLinkPopup,
     setDeadLinkPopup,
     navigateRef,
-  } = useEditorData(pagePath, autoFocus, minHeight);
+  } = useEditorData(pagePath, autoFocus, minHeight, highlightBlockId, props.focusBlockId);
 
   const saveLabel = useMemo(() => {
     if (saving) return t('editor.saving');
@@ -76,6 +80,7 @@ export default function OutlinerEditorDesktop(props: Props) {
     mouseX: number;
     mouseY: number;
     blockId: string;
+    due: string | null;
   } | null>(null);
 
   const onBlockContextMenu = (e: React.MouseEvent) => {
@@ -85,7 +90,8 @@ export default function OutlinerEditorDesktop(props: Props) {
     if (!blockEl) return;
     const blockId = blockEl.getAttribute('data-block-id') || '';
     if (!blockId) return;
-    setBlockMenu({ mouseX: e.clientX, mouseY: e.clientY, blockId });
+    const due = getBlockDue(blockId, blockMetaRef.current);
+    setBlockMenu({ mouseX: e.clientX, mouseY: e.clientY, blockId, due });
   };
 
   const readBlockAloud = async () => {
@@ -103,6 +109,49 @@ export default function OutlinerEditorDesktop(props: Props) {
       alert(`${t('aiformatting_toolbar.read_aloud_failed')} ${String(e)}`);
     }
   };
+
+  // -----------------------------------------------------------------------
+  // Reminder integration: set / change / clear a block's due reminder.
+  // -----------------------------------------------------------------------
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogBlockId, setDialogBlockId] = useState<string | null>(null);
+  const [dialogDue, setDialogDue] = useState<string | null>(null);
+
+  // Record the due property on a block's metadata and persist. Mirrors how
+  // MarkerSuggestMenu mutates blockMetaRef then triggers a save.
+  const applyDue = (blockId: string, isoUtc: string | null) => {
+    const existing =
+      blockMetaRef.current.get(blockId) ?? { marker: null, priority: null, properties: [] as [string, string][] };
+    const properties = existing.properties.filter(([key]) => key !== 'due');
+    const updated = { ...existing, properties: isoUtc ? [...properties, ['due', isoUtc] as [string, string]] : properties };
+    blockMetaRef.current.set(blockId, updated);
+    try {
+      if (editor) persistBlocks(editor.document);
+    } catch (e) {
+      console.error('[OutlinerEditor] reminder save failed:', e);
+    }
+  };
+
+  const openReminderForBlock = useCallback((blockId: string) => {
+    setDialogBlockId(blockId);
+    setDialogDue(getBlockDue(blockId, blockMetaRef.current));
+    setDialogOpen(true);
+  }, [blockMetaRef]);
+
+  const handleReminderSave = (isoUtc: string | null) => {
+    const blockId = dialogBlockId;
+    setDialogOpen(false);
+    if (blockId) applyDue(blockId, isoUtc);
+  };
+
+  const blockMenuDue = blockMenu?.due ?? null;
+
+  // Tapping a reminder chip opens the dialog for that block (delegated).
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || status !== 'ready') return;
+    return attachReminderChipClick(el, openReminderForBlock);
+  }, [containerRef, status, openReminderForBlock]);
 
   // Memoize the editor view so it doesn't re-render on popup state changes
   // (which would reset scroll position)
@@ -250,7 +299,52 @@ export default function OutlinerEditorDesktop(props: Props) {
             <ListItemIcon><VolumeUpIcon fontSize="small" /></ListItemIcon>
             <ListItemText>{t('editor.read_aloud')}</ListItemText>
           </MenuItem>
+          {blockMenuDue === null ? (
+            <MenuItem
+              onClick={() => {
+                if (!blockMenu) return;
+                const blockId = blockMenu.blockId;
+                setBlockMenu(null);
+                openReminderForBlock(blockId);
+              }}
+            >
+              <ListItemIcon><AlarmIcon fontSize="small" /></ListItemIcon>
+              <ListItemText>{t('reminders.dialog.set_reminder')}</ListItemText>
+            </MenuItem>
+          ) : (
+            <>
+              <MenuItem
+                onClick={() => {
+                  if (!blockMenu) return;
+                  const blockId = blockMenu.blockId;
+                  setBlockMenu(null);
+                  openReminderForBlock(blockId);
+                }}
+              >
+                <ListItemIcon><AlarmIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>{t('reminders.dialog.change_reminder')}</ListItemText>
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  if (!blockMenu) return;
+                  const blockId = blockMenu.blockId;
+                  setBlockMenu(null);
+                  applyDue(blockId, null);
+                }}
+              >
+                <ListItemIcon><AlarmOffIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>{t('reminders.dialog.clear_reminder')}</ListItemText>
+              </MenuItem>
+            </>
+          )}
         </Menu>
+
+        <ReminderDialog
+          open={dialogOpen}
+          initialDue={dialogDue}
+          onSave={handleReminderSave}
+          onClose={() => setDialogOpen(false)}
+        />
 
         {preview && (
           <LinkPreviewPopup

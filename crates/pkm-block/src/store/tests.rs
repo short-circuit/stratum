@@ -245,3 +245,62 @@ fn test_delete_blocks_by_page() {
     assert_eq!(deleted, 1);
     assert_eq!(store.block_count().unwrap(), 1);
 }
+
+#[test]
+fn test_find_due_blocks_returns_only_blocks_with_due() {
+    let store = BlockStore::open_in_memory().unwrap();
+    let a = Uuid::new_v4();
+    let b = Uuid::new_v4();
+    let c = Uuid::new_v4();
+
+    store
+        .insert_block(
+            &Block::new(a, "has due".into()).with_property("due", "2026-10-15T07:00:00+00:00"),
+            "pages/tasks.md",
+        )
+        .unwrap();
+    store
+        .insert_block(&Block::new(b, "no due".into()), "pages/notes.md")
+        .unwrap();
+    store
+        .insert_block(
+            &Block::new(c, "hand written due".into()).with_property("due", "2026-10-15T09:00"),
+            "pages/journal.md",
+        )
+        .unwrap();
+
+    let results = store.find_due_blocks().unwrap();
+    assert_eq!(results.len(), 2);
+    let ids: Vec<BlockId> = results.iter().map(|(b, _)| b.id).collect();
+    assert!(ids.contains(&a));
+    assert!(ids.contains(&c));
+    assert!(!ids.contains(&b));
+
+    for (_, page_path) in &results {
+        assert!(page_path == "pages/tasks.md" || page_path == "pages/journal.md");
+    }
+}
+
+#[test]
+fn test_count_due_blocks() {
+    let store = BlockStore::open_in_memory().unwrap();
+    assert_eq!(store.count_due_blocks().unwrap(), 0);
+
+    store
+        .insert_block(
+            &Block::new(Uuid::new_v4(), "one".into()).with_property("due", "2026-10-15T07:00:00Z"),
+            "pages/a.md",
+        )
+        .unwrap();
+    store
+        .insert_block(
+            &Block::new(Uuid::new_v4(), "two".into()).with_property("due", "2026-10-16T08:00:00Z"),
+            "pages/b.md",
+        )
+        .unwrap();
+    store
+        .insert_block(&Block::new(Uuid::new_v4(), "no due".into()), "pages/c.md")
+        .unwrap();
+
+    assert_eq!(store.count_due_blocks().unwrap(), 2);
+}

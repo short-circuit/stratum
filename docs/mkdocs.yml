@@ -89,6 +89,7 @@ nav:
     - guide/attachments.md
     - guide/tags.md
     - guide/tasks.md
+    - guide/reminders.md
     - guide/graph-view.md
     - guide/search.md
     - guide/datalog-queries.md
@@ -128,3 +129,5 @@ nav:
       - development/adr/0005-mcp-server-contract.md
     - ADR-0006 MCP Server Threat Model:
       - development/adr/0006-mcp-threat-model.md
+    - ADR-0007 Cloud Backup:
+      - development/adr/0007-cloud-backup.md

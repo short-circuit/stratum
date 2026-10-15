@@ -63,6 +63,13 @@ export function useJournalPanel() {
   // Bumped after a voice memo is inserted so the today-editor remounts and
   // shows the freshly added memo (the editor loads blocks only on mount/key).
   const [editorNonce, setEditorNonce] = useState(0);
+  // Read-only prose mode for today's entry only (past-date entries stay editors).
+  const [prose, setProse] = useState(false);
+  const [focusBlockId, setFocusBlockId] = useState<string | null>(null);
+  useEffect(() => {
+    setProse(false);
+    setFocusBlockId(null);
+  }, [today]);
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -303,6 +310,10 @@ export function useJournalPanel() {
     today,
     todayPagePath,
     todayExists,
+    prose,
+    setProse,
+    focusBlockId,
+    setFocusBlockId,
     journalLoading,
     journalError,
     retryJournal,

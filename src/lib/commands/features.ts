@@ -7,6 +7,8 @@ import type {
   RagQueryResultDto,
   KanbanBlockDto,
   KanbanDataDto,
+  DiscoveredEndpoint,
+  SearchPingResult,
   DictationStartDto,
   DictationStopDto,
   DictationOptsDto,
@@ -16,6 +18,8 @@ import type {
   SpeakerAssignDto,
   SttTestDto,
   TtsResult,
+  PdfExportResultDto,
+  ZipExportResultDto,
 } from '../types';
 
 // --- AI ---
@@ -48,6 +52,14 @@ export async function generateMermaid(prompt: string): Promise<string> {
   return result.content;
 }
 
+export function discoverLocalAi(): Promise<DiscoveredEndpoint[]> {
+  return invoke('discover_local_ai');
+}
+
+export function pingSearchInstance(url: string): Promise<SearchPingResult> {
+  return invoke('ping_search_instance', { url });
+}
+
 // --- Templates ---
 
 export async function listTemplates(): Promise<{
@@ -76,7 +88,7 @@ export async function installStarterSample(): Promise<string[]> {
   return invoke('install_starter_sample');
 }
 
-// --- Export ---
+// --- Export (HTML / JSON / PDF / ZIP) ---
 
 export async function exportHtml(outputDir: string): Promise<{
   output_dir: string; pages_exported: number; assets_copied: number;
@@ -88,6 +100,17 @@ export async function exportJson(outputDir: string): Promise<{
   output_dir: string; pages_exported: number; assets_copied: number;
 }> {
   return invoke('export_json', { outputDir });
+}
+
+export async function exportPdf(
+  pagePath: string,
+  outputPath?: string,
+): Promise<PdfExportResultDto> {
+  return invoke('export_pdf', { pagePath, outputPath });
+}
+
+export async function exportZip(outputPath?: string): Promise<ZipExportResultDto> {
+  return invoke('export_zip', { outputPath });
 }
 
 // --- Flashcards ---

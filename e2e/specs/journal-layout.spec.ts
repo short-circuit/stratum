@@ -138,6 +138,9 @@ async function mockJournalApp(page: Page): Promise<void> {
               stt: { endpoint: '', api_key: null, model: 'whisper-1', diarize_model: '', language: null, diarize: true, auto_summarize: true, auto_identify: true },
             }),
             save_settings: () => undefined,
+            list_reminders: () => [],
+            snooze_reminder: () => undefined,
+            clear_reminder: () => undefined,
             get_sync_status: () => ({ status: 'clean', branch: 'main', ahead: 0, behind: 0, conflicts: [], last_sync_time: now, last_sync_success: true, pending_commits: 0 }),
             start_sync_scheduler: () => undefined,
             stop_sync_scheduler: () => undefined,
@@ -159,7 +162,11 @@ async function mockJournalApp(page: Page): Promise<void> {
         runCallback() {},
         callbacks: new Map(),
       };
-      win.__TAURI_EVENT_PLUGIN_INTERNALS__ = {};
+      // @tauri-apps/api >= 2.12 calls unregisterListener(event, eventId) from
+      // _unlisten; without it, listener teardown throws and crashes the app.
+      win.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+        unregisterListener() {},
+      };
     },
     { today: todayDateStr() },
   );

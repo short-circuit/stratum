@@ -1,5 +1,6 @@
 pub mod ai;
 pub mod asset;
+pub mod backup;
 pub mod block;
 pub mod dictation;
 pub mod export;
@@ -10,6 +11,7 @@ pub mod kanban;
 pub mod page;
 pub mod plugins;
 pub mod query;
+pub mod reminders;
 pub mod search;
 pub mod settings;
 pub mod sync;

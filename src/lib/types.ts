@@ -94,6 +94,28 @@ export interface SyncSettings {
   auto_sync_interval_secs: number;
   ssh_key_path: string | null;
   commit_template: string;
+  backup: BackupSettings;
+}
+
+export interface BackupSettings {
+  enabled: boolean;
+  mode: string;
+  interval_minutes: number;
+  exclude: string[];
+  webdav_url: string | null;
+  webdav_username: string | null;
+  webdav_password: string | null;
+  folder_path: string | null;
+}
+
+export interface BackupStatusDto {
+  enabled: boolean;
+  mode: string;
+  last_run: string | null;
+  last_success: boolean | null;
+  last_error: string | null;
+  files_copied: number | null;
+  files_deleted: number | null;
 }
 
 export interface CommitLogEntry {
@@ -243,6 +265,22 @@ export interface RagQueryResultDto {
   citations: RagCitationDto[];
   total_tokens: number;
   had_sources: boolean;
+}
+
+export interface DiscoveredEndpoint {
+  host: string;
+  name: string;
+  kind: 'ollama' | 'openai_compatible' | 'unknown';
+  models: string[];
+  status: 'available' | 'unreachable';
+  latency_ms: number;
+  error: string | null;
+}
+
+export interface SearchPingResult {
+  ok: boolean;
+  latency_ms: number;
+  error: string | null;
 }
 
 export interface KanbanBlockDto {
@@ -406,6 +444,66 @@ export interface PluginHttpRequestDto {
   body: string;
 }
 
+// --- Plugin / theme catalogs (E10.F7 — Plugin Directory / Theme Hub) ---
+
+/** One entry in the community plugin catalog (`plugins/index.json`). */
+export interface PluginCatalogEntry {
+  schema_version: number;
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author?: string;
+  /** WASM entry file name inside the plugin directory (e.g. `plugin.wasm`). */
+  entry: string;
+  permissions: string[];
+  /** Hook enablement map (spec §8), e.g. `{ onSave: true }`. */
+  hooks?: Record<string, boolean>;
+  repo: string;
+  source?: string;
+  sha256: string;
+  download_url: string;
+}
+
+/** Schema-validated plugin catalog document (`plugins/index.json`). */
+export interface PluginCatalog {
+  schema: 'stratum-plugins-catalog/v1';
+  plugins: PluginCatalogEntry[];
+}
+
+/** One entry in the community theme catalog (`themes/index.json`). */
+export interface ThemeCatalogEntry {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author?: string;
+  dark_mode: boolean;
+  primary_color: string;
+  secondary_color: string;
+  font_size: number;
+  repo: string;
+  source?: string;
+  sha256: string;
+  download_url: string;
+}
+
+/** Schema-validated theme catalog document (`themes/index.json`). */
+export interface ThemeCatalog {
+  schema: 'stratum-theme-catalog/v1';
+  themes: ThemeCatalogEntry[];
+}
+
+/** Result of fetching a catalog: entries plus staleness metadata. */
+export interface CatalogFetchResult<T> {
+  entries: T[];
+  /** True when served from the local cache because the remote fetch failed. */
+  offline: boolean;
+  /** ISO timestamp of the last successful remote fetch (cached). */
+  fetchedAt: string | null;
+  error: string | null;
+}
+
 // --- One-click importers ---
 
 /** Source vault format for one-click import (mirrors `pkm_import::ImportFormat`). */
@@ -470,4 +568,41 @@ export interface AssetBytesDto {
   data_base64: string;
   mime: string;
   size: number;
+}
+
+// --- Reminders (E10.F4) ---
+
+/** A block reminder as returned by `list_reminders` (snake_case, matches Rust ReminderDto). */
+export interface ReminderDto {
+  block_id: string;
+  page_path: string;
+  content: string;
+  /** RFC3339 UTC due timestamp. */
+  due: string;
+  marker: string | null;
+  priority: string | null;
+  page_title: string | null;
+}
+
+/** The camelCase payload emitted on the `reminder:due` / `reminder:open` Tauri events. */
+export interface ReminderEventPayload {
+  blockId: string;
+  pagePath: string;
+  content: string;
+  due: string;
+  marker: string | null;
+  pageTitle: string | null;
+}
+
+// --- Export ---
+
+export interface PdfExportResultDto {
+  output_path: string;
+  page_path: string;
+}
+
+export interface ZipExportResultDto {
+  output_path: string;
+  files_packed: number;
+  page_count: number;
 }

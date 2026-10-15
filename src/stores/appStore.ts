@@ -49,6 +49,8 @@ export interface AppState {
   /** Persistent error slot: never auto-dismisses; cleared only by explicit dismissal. */
   persistentError: AppError | null;
   themeConfig: ThemeConfig;
+  /** Block to highlight after navigating (set from a reminder open event). */
+  highlightBlock: { pagePath: string; blockId: string } | null;
 
   loadVault: () => Promise<void>;
   loadPages: () => Promise<void>;
@@ -57,6 +59,9 @@ export interface AppState {
   deletePage: (path: string) => Promise<void>;
   pickVaultDirectory: () => Promise<void>;
   setThemeConfig: (config: ThemeConfig) => void;
+  setHighlightBlock: (payload: { pagePath: string; blockId: string } | null) => void;
+  /** Return the pending highlight and clear it in one atomic step. */
+  consumeHighlightBlock: () => { pagePath: string; blockId: string } | null;
 
   /**
    * Surface an error through the app-wide error slots.
@@ -109,6 +114,7 @@ export const useStore = create<AppState>((set, get) => ({
   error: null,
   persistentError: null,
   themeConfig: { primaryHex: '#f97316', secondaryHex: '#6b7280', dark: true, fontSize: 16 },
+  highlightBlock: null,
 
   loadVault: async () => {
     try {
@@ -196,6 +202,16 @@ export const useStore = create<AppState>((set, get) => ({
 
   setThemeConfig: (config: ThemeConfig) => {
     set({ themeConfig: config });
+  },
+
+  setHighlightBlock: (payload) => {
+    set({ highlightBlock: payload });
+  },
+
+  consumeHighlightBlock: () => {
+    const cur = get().highlightBlock;
+    set({ highlightBlock: null });
+    return cur;
   },
 
   showError: (message, opts) => {

@@ -38,6 +38,8 @@ pub struct Config {
     pub graph: GraphConfig,
     /// System tray + quick capture configuration (desktop only; ignored on mobile).
     pub tray: TrayConfig,
+    /// Block-level reminder configuration.
+    pub reminders: ReminderConfig,
     /// Whether the first-run onboarding wizard has not yet been completed.
     ///
     /// Defaults to `false` (onboarding already done / never shown). The
@@ -70,6 +72,7 @@ impl Default for Config {
             watcher: WatcherConfig::default(),
             graph: GraphConfig::default(),
             tray: TrayConfig::default(),
+            reminders: ReminderConfig::default(),
             onboarding_pending: false,
         }
     }
@@ -143,6 +146,92 @@ pub struct SyncConfig {
     /// Commit message template with placeholders:
     /// {datetime}, {editedfiles}, {newfiles}, {deletedfiles}, {count}
     pub commit_template: String,
+    /// Periodic cloud/folder backup configuration (E10.F3).
+    /// Backup is a separate layer from git sync — an independent mirror that
+    /// never touches git state or the search index.
+    #[serde(default)]
+    pub backup: BackupConfig,
+}
+
+/// Configuration for the periodic backup mirror (E10.F3).
+///
+/// Backup is intentionally decoupled from git sync: it copies vault files to
+/// either a local folder or a WebDAV endpoint as an independent, differential
+/// mirror. See `crates/pkm-sync/src/backup/` for the implementation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct BackupConfig {
+    /// Whether the periodic backup scheduler is enabled.
+    pub enabled: bool,
+    /// Which target(s) to back up to.
+    pub mode: BackupMode,
+    /// Interval between scheduled backups, in minutes (0 ⇒ 60).
+    pub interval_minutes: u64,
+    /// Vault-relative paths to exclude (prefix match for directories).
+    pub exclude: Vec<String>,
+    /// WebDAV target settings (used when `mode` includes WebDAV).
+    pub webdav: WebdavBackupConfig,
+    /// Local folder target settings (used when `mode` includes Folder).
+    pub folder: FolderBackupConfig,
+}
+
+/// Which backup target(s) to write to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum BackupMode {
+    #[default]
+    Folder,
+    Webdav,
+    Both,
+}
+
+/// WebDAV connection settings for the backup mirror.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct WebdavBackupConfig {
+    /// Base URL of the WebDAV endpoint.
+    pub url: Option<String>,
+    /// Basic-auth username.
+    pub username: Option<String>,
+    /// Basic-auth password (stored plaintext for now; keyring is a follow-up).
+    pub password: Option<String>,
+}
+
+/// Local folder target for the backup mirror.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct FolderBackupConfig {
+    /// Absolute path of the destination folder.
+    pub path: Option<String>,
+}
+
+/// Default set of vault-relative paths excluded from every backup.
+///
+/// `.git` is always excluded even if the config omits it (see
+/// `pkm_sync::backup::should_exclude`); the remaining entries are the default
+/// derived data that is rebuilt from `.md` files and never needs backing up.
+pub fn default_backup_exclude() -> Vec<String> {
+    vec![
+        ".git".to_string(),
+        ".pkm/blocks.db".to_string(),
+        ".pkm/search".to_string(),
+        ".pkm/backup_state.json".to_string(),
+        ".pkm/sync_state.json".to_string(),
+        ".DS_Store".to_string(),
+    ]
+}
+
+impl Default for BackupConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            mode: BackupMode::default(),
+            interval_minutes: 60,
+            exclude: default_backup_exclude(),
+            webdav: WebdavBackupConfig::default(),
+            folder: FolderBackupConfig::default(),
+        }
+    }
 }
 
 /// Detect the default SSH private key path.
@@ -174,6 +263,7 @@ impl Default for SyncConfig {
             signing_key: None,
             ssh_key_path: detect_default_ssh_key(),
             commit_template: default_template.to_string(),
+            backup: BackupConfig::default(),
         }
     }
 }
@@ -244,6 +334,42 @@ pub struct AiConfig {
     /// existing configs remain valid.
     #[serde(default)]
     pub use_llm_gateway_and_auth: bool,
+    /// Extra local AI hosts to probe during discovery. Entries are "host:port"
+    /// (scheme optional). Persisted via the settings save path.
+    #[serde(default)]
+    pub extra_local_hosts: Vec<String>,
+    /// Cache of the last local-endpoint discovery run. Written server-side by
+    /// the `discover_local_ai` command; returned read-only via get_settings.
+    #[serde(default)]
+    pub last_discovered: Vec<DiscoveredEndpoint>,
+}
+
+/// A local AI endpoint detected by the discovery probe.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct DiscoveredEndpoint {
+    /// Base URL to adopt for this endpoint. For OpenAI-compatible kinds this
+    /// already includes the `/v1` suffix (e.g. "http://127.0.0.1:1234/v1").
+    pub host: String,
+    /// Friendly display name (e.g. "Ollama", "LM Studio", "LocalAI").
+    pub name: String,
+    /// Endpoint kind: "ollama" | "openai_compatible" | "unknown".
+    pub kind: String,
+    /// Model names reported by the endpoint (empty when unreachable).
+    pub models: Vec<String>,
+    /// Probe result: "available" | "unreachable".
+    pub status: String,
+    /// Probe latency in milliseconds (0 when unreachable).
+    pub latency_ms: u64,
+    /// Human-readable error when unreachable, else None.
+    pub error: Option<String>,
+}
+
+/// Result of a SearXNG instance connectivity ping.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SearchPingResult {
+    pub ok: bool,
+    pub latency_ms: u64,
+    pub error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -264,6 +390,8 @@ impl Default for AiConfig {
             rag_chunk_count: 5,
             embedding_dimensions: 0,
             use_llm_gateway_and_auth: false,
+            extra_local_hosts: Vec::new(),
+            last_discovered: Vec::new(),
         }
     }
 }
@@ -530,6 +658,25 @@ pub enum CaptureTarget {
     #[default]
     Journal,
     Inbox,
+}
+
+/// Block-level reminder configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ReminderConfig {
+    /// Whether block reminders are enabled (scheduler active + notifications shown).
+    pub enabled: bool,
+    /// Whether to play a sound with the reminder notification.
+    pub sound: bool,
+}
+
+impl Default for ReminderConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            sound: true,
+        }
+    }
 }
 
 /// Configuration for web research (SearXNG).

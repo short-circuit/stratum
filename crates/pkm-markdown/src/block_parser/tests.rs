@@ -461,3 +461,37 @@ fn test_parse_asset_link_line() {
     assert_eq!(blocks.len(), 1);
     assert_eq!(blocks[0].content, "![[assets/a.png]]");
 }
+
+#[test]
+fn test_due_property_round_trip() {
+    let id = Uuid::new_v4();
+    let block = Block::new(id, "Write the release notes".into())
+        .with_property("due", "2026-10-15T07:00:00+00:00");
+    let blocks = vec![block];
+
+    let serialized = serialize_blocks(&blocks);
+    assert!(serialized.contains(".due: 2026-10-15T07:00:00+00:00"));
+
+    let (_fm, _body, reparsed) = parse_document(&serialized);
+    assert_eq!(reparsed.len(), 1);
+    assert_eq!(
+        reparsed[0].properties.get("due").map(|s| s.as_str()),
+        Some("2026-10-15T07:00:00+00:00")
+    );
+}
+
+#[test]
+fn test_due_property_value_with_colons() {
+    // The `due` value contains colons (a full timestamp). The parser must split
+    // on the first colon only, preserving the full value verbatim.
+    let id = Uuid::new_v4();
+    let block =
+        Block::new(id, "Remind me".into()).with_property("due", "2026-10-15T07:00:00+00:00");
+    let serialized = serialize_blocks(&[block]);
+
+    let (_fm, _body, reparsed) = parse_document(&serialized);
+    assert_eq!(
+        reparsed[0].properties.get("due").map(|s| s.as_str()),
+        Some("2026-10-15T07:00:00+00:00")
+    );
+}
