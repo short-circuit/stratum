@@ -333,7 +333,8 @@
     "refresh": "Aggiorna",
     "task_description": "Descrizione attività...",
     "to_do": "Da fare",
-    "today_apos_s_journal": "Il journal di oggi"
+    "today_apos_s_journal": "Il journal di oggi",
+    "done": "Fatto"
   },
   "kanban_edit_dialog": {
     "cancel": "Annulla",
@@ -413,7 +414,8 @@
     "search": "Ricerca",
     "settings": "Impostazioni",
     "templates": "Modelli",
-    "whiteboards": "Lavagne"
+    "whiteboards": "Lavagne",
+    "reminders": "Promemoria"
   },
   "page": {
     "actions": "Azioni",

@@ -2,6 +2,21 @@
 
 Get up and running with Stratum in 5 minutes.
 
+## Install Stratum
+
+The fastest way is to download a pre-built binary from the
+[GitHub Releases page](https://github.com/short-circuit/stratum/releases) — Linux
+(AppImage / `.deb` / `.rpm`), Windows, macOS, and Android — or build from source
+with one command inside the Nix dev shell:
+
+```bash
+nix develop ./nix
+cargo build --workspace && npm install && npm run tauri:dev
+```
+
+See the [Installation guide](installation.md) for prerequisites and per-platform
+details.
+
 ## First Launch
 
 On the first run of a brand-new vault, Stratum shows an **onboarding wizard** that walks you

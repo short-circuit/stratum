@@ -333,7 +333,8 @@
     "refresh": "Actualizar",
     "task_description": "Descripción de la tarea...",
     "to_do": "Por hacer",
-    "today_apos_s_journal": "El diario de hoy"
+    "today_apos_s_journal": "El diario de hoy",
+    "done": "Hecho"
   },
   "kanban_edit_dialog": {
     "cancel": "Cancelar",
@@ -413,7 +414,8 @@
     "search": "Buscar",
     "settings": "Ajustes",
     "templates": "Plantillas",
-    "whiteboards": "Pizarras"
+    "whiteboards": "Pizarras",
+    "reminders": "Recordatorios"
   },
   "page": {
     "actions": "Acciones",

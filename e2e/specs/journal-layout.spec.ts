@@ -91,7 +91,7 @@ async function mockJournalApp(page: Page): Promise<void> {
         [yesterdayPath]: [block('j-y-1', 'Yesterday journal entry', null)],
         [twoDaysAgoPath]: [block('j-2-1', 'Two days ago journal entry', null)],
         'Note A': [
-          block('n-a-1', '## Note A heading', null),
+          block('n-a-1', 'Note A heading', null),
           block('n-a-2', 'Body of note A with plenty of content so the page editor is tall.', 'n-a-1'),
         ],
         'Note B': [block('n-b-1', 'Note B content', null)],

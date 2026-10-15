@@ -333,7 +333,8 @@
     "refresh": "Aktualisieren",
     "task_description": "Aufgabenbeschreibung ...",
     "to_do": "Zu erledigen",
-    "today_apos_s_journal": "Heutiges Journal"
+    "today_apos_s_journal": "Heutiges Journal",
+    "done": "Erledigt"
   },
   "kanban_edit_dialog": {
     "cancel": "Abbrechen",
@@ -413,7 +414,8 @@
     "search": "Suche",
     "settings": "Einstellungen",
     "templates": "Vorlagen",
-    "whiteboards": "Whiteboards"
+    "whiteboards": "Whiteboards",
+    "reminders": "Erinnerungen"
   },
   "page": {
     "actions": "Aktionen",
