@@ -8,7 +8,7 @@
 import WebDriver from 'webdriver';
 import fs from 'fs';
 import crypto from 'crypto';
-const APP = 'target/debug/stratum-tauri';
+const APP = process.env.STRATUM_APP || fileURLToPath(new URL('../../target/debug/stratum-tauri', import.meta.url));
 const HOME = fs.readFileSync('/tmp/f4dir.txt', 'utf8').trim();
 const VAULT = `${HOME}/StratumVault`;
 const VAULT_FILE = `${VAULT}/notes/f1-editor.md`;
@@ -21,8 +21,8 @@ const rec = (label, pass, detail='') => { results.push({ label, pass: !!pass, de
 
 async function main() {
   // reset fixture
-  fs.copyFileSync('e2e/f1/fixture-f1-editor.md', VAULT_FILE);
-  fs.copyFileSync('e2e/f1/fixture-linker.md', `${VAULT}/notes/linker.md`);
+  fs.copyFileSync(fileURLToPath(new URL('../../e2e/f1/fixture-f1-editor.md', import.meta.url)), VAULT_FILE);
+  fs.copyFileSync(fileURLToPath(new URL('../../e2e/f1/fixture-linker.md', import.meta.url)), `${VAULT}/notes/linker.md`);
   const preSha = sha(VAULT_FILE);
 
   const driver = await WebDriver.newSession({
@@ -52,7 +52,7 @@ async function main() {
   const idle = fs.readFileSync(VAULT_FILE,'utf8');
   rec('A1 idle-open byte-stable', sha(VAULT_FILE) === preSha);
   rec('A2 no trailing "[[ "+ mangling', !/\[$/.test(idle.trimEnd()) && !/\[\[\[/.test(idle), idle.slice(-60).replace(/\n/g,'\\n'));
-  const mermaidIdIn = (fs.readFileSync('e2e/f1/fixture-f1-editor.md','utf8').match(/([0-9a-f]{8}-[0-9a-f-]{27})[\s\n]*$/)||[])[1]||'';
+  const mermaidIdIn = (fs.readFileSync(fileURLToPath(new URL('../../e2e/f1/fixture-f1-editor.md', import.meta.url)),'utf8').match(/([0-9a-f]{8}-[0-9a-f-]{27})[\s\n]*$/)||[])[1]||'';
   const mermaidIdOut = (idle.match(/([0-9a-f-]{36})/)||[])[1]||'';
   rec('A3 uuid structure preserved (no wholesale churn)', idle.includes('1f399b72-6af2-446f-a6ac-083fce7abfb4') && idle.includes('eee560e2')||idle.includes('71f1a2b3'), '');
 

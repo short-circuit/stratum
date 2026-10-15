@@ -5,10 +5,10 @@
 import WebDriver from 'webdriver';
 import fs from 'fs';
 
-const APP = 'target/debug/stratum-tauri';
+const APP = process.env.STRATUM_APP || fileURLToPath(new URL('../../target/debug/stratum-tauri', import.meta.url));
 const HOME = '/tmp/f1-e7/home';
 const VAULT = `${HOME}/StratumVault`;
-const OUT = 'e2e/f1/.evidence/live-e7f1';
+const OUT = fileURLToPath(new URL('../../e2e/f1/.evidence/live-e7f1', import.meta.url));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Set up the app home with the vault fixture (app reads HOME/StratumVault).

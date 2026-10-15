@@ -5,7 +5,7 @@
 
 import WebDriver from 'webdriver';
 
-const APP = 'target/debug/stratum-tauri';
+const APP = process.env.STRATUM_APP || fileURLToPath(new URL('../target/debug/stratum-tauri', import.meta.url));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const ELEMENT_KEY = 'element-6066-11e4-a52e-4f735466cecf';

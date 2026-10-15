@@ -7,7 +7,7 @@ import WebDriver from 'webdriver';
 import fs from 'fs';
 import crypto from 'crypto';
 
-const APP = 'target/debug/stratum-tauri';
+const APP = process.env.STRATUM_APP || fileURLToPath(new URL('../target/debug/stratum-tauri', import.meta.url));
 const NOTES = '/tmp/stratum-home/StratumVault/notes/alpha-project.md';
 const SHOTS = '/tmp/shots-qafinal';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

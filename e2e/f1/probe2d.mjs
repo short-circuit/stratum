@@ -2,7 +2,7 @@
 /** Dump node type of each leaf blockContainer (data-node-type attr + node type class) */
 import WebDriver from 'webdriver';
 import fs from 'fs';
-const APP = 'target/debug/stratum-tauri';
+const APP = process.env.STRATUM_APP || fileURLToPath(new URL('../../target/debug/stratum-tauri', import.meta.url));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function main() {
   const driver = await WebDriver.newSession({

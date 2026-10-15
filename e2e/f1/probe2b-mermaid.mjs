@@ -5,7 +5,7 @@
 import WebDriver from 'webdriver';
 import fs from 'fs';
 
-const APP = 'target/debug/stratum-tauri';
+const APP = process.env.STRATUM_APP || fileURLToPath(new URL('../../target/debug/stratum-tauri', import.meta.url));
 const OUT = '/tmp/stratum-f1-probe2b';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 fs.mkdirSync(OUT, { recursive: true });

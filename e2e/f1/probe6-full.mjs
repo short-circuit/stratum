@@ -16,7 +16,7 @@
 import WebDriver from 'webdriver';
 import fs from 'fs';
 import crypto from 'crypto';
-const APP = 'target/debug/stratum-tauri';
+const APP = process.env.STRATUM_APP || fileURLToPath(new URL('../../target/debug/stratum-tauri', import.meta.url));
 const HOME = fs.readFileSync('/tmp/f2dir.txt', 'utf8').trim();
 const VAULT = `${HOME}/StratumVault`;
 const VAULT_FILE = `${VAULT}/notes/f1-editor.md`;

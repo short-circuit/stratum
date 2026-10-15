@@ -2,7 +2,7 @@
 // Focused SR-01 probe: type 'monad', click Search, wait longer, dump the FULL result region HTML
 import WebDriver from 'webdriver';
 import fs from 'fs';
-const APP = 'target/debug/stratum-tauri';
+const APP = process.env.STRATUM_APP || fileURLToPath(new URL('../target/debug/stratum-tauri', import.meta.url));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function main() {

@@ -2,7 +2,7 @@
 /** E7.F1 probe3: ground truth — invoke backend get_blocks + open_page through Tauri internals. */
 import WebDriver from 'webdriver';
 import fs from 'fs';
-const APP = 'target/debug/stratum-tauri';
+const APP = process.env.STRATUM_APP || fileURLToPath(new URL('../../target/debug/stratum-tauri', import.meta.url));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function main() {
   const driver = await WebDriver.newSession({

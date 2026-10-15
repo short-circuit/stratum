@@ -10,11 +10,11 @@
  */
 import WebDriver from 'webdriver';
 import fs from 'fs';
-const APP = 'target/debug/stratum-tauri';
+const APP = process.env.STRATUM_APP || fileURLToPath(new URL('../../target/debug/stratum-tauri', import.meta.url));
 const HOME = fs.readFileSync('/tmp/f5dir.txt', 'utf8').trim();
 const VAULT = `${HOME}/StratumVault`;
 const F = `${VAULT}/notes/f1-editor.md`;
-const OUT = 'e2e/f1/.evidence/probe9';
+const OUT = fileURLToPath(new URL('../../e2e/f1/.evidence/probe9', import.meta.url));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 fs.mkdirSync(OUT, { recursive: true });
 const r = [];
