@@ -223,7 +223,7 @@ mod tests {
             std::path::Path::new("/vault"),
         );
         notes_page.frontmatter.title = Some("Notes".into());
-        notes_page.set_blocks(&[b4.clone()]);
+        notes_page.set_blocks(std::slice::from_ref(&b4));
         store.upsert_page(&notes_page).unwrap();
         drop(store);
 
