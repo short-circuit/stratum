@@ -2674,30 +2674,36 @@
 <tr>
 <td>Linux</td>
 <td>AppImage</td>
-<td><code>stratum_&lt;version&gt;_amd64.AppImage</code></td>
+<td><code>stratum-pkm-linux.AppImage</code></td>
 </tr>
 <tr>
 <td>Linux</td>
 <td>Debian</td>
-<td><code>stratum_&lt;version&gt;_amd64.deb</code></td>
+<td><code>stratum-pkm-linux.deb</code></td>
+</tr>
+<tr>
+<td>Linux</td>
+<td>RPM</td>
+<td><code>stratum-pkm-linux.rpm</code></td>
 </tr>
 <tr>
 <td>Windows</td>
-<td>MSI</td>
-<td><code>stratum_&lt;version&gt;_x64.msi</code></td>
-</tr>
-<tr>
-<td>Windows</td>
-<td>NSIS</td>
-<td><code>stratum_&lt;version&gt;_x64-setup.exe</code></td>
+<td>Portable exe</td>
+<td><code>stratum-pkm-windows.exe</code></td>
 </tr>
 <tr>
 <td>macOS</td>
-<td>DMG</td>
-<td><code>stratum_&lt;version&gt;_x64.dmg</code></td>
+<td>App bundle</td>
+<td><code>stratum-pkm-macos.zip</code></td>
+</tr>
+<tr>
+<td>Android</td>
+<td>APK / AAB</td>
+<td><code>stratum-pkm-android.apk</code> / <code>stratum-pkm-android.aab</code></td>
 </tr>
 </tbody>
 </table>
+<p>Every release ships a <code>sha256sums.txt</code> with checksums for all artifacts.</p>
 <div class="admonition note">
 <p class="admonition-title">Linux Dependencies</p>
 <p>The AppImage bundles most dependencies. For other Linux formats you need WebKitGTK libraries:
