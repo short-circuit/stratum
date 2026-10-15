@@ -660,6 +660,8 @@
       
         
       
+        
+      
     
     
     
@@ -863,6 +865,34 @@
     
   
     Tasks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reminders/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reminders
   
 
     
@@ -1361,6 +1391,45 @@
     <span class="md-ellipsis">
       
         JSON Export
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pdf-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PDF Export
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PDF Export">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chromium-runtime-dependency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chromium runtime dependency
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zip-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ZIP Export
       
     </span>
   </a>
@@ -1888,6 +1957,8 @@
       
         
       
+        
+      
     
     
     
@@ -2329,6 +2400,100 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_8" id="__nav_7_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007 Cloud Backup
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ADR-0007 Cloud Backup
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/adr/0007-cloud-backup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007 — Cloud Backup (WebDAV + Folder-watch)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2424,6 +2589,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#pdf-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PDF Export
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PDF Export">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chromium-runtime-dependency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chromium runtime dependency
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zip-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ZIP Export
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#use-cases" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2460,10 +2664,19 @@
 
 <h2 id="exporting">Exporting<a class="headerlink" href="#exporting" title="Permanent link">&para;</a></h2>
 <h3 id="from-the-interface">From the Interface<a class="headerlink" href="#from-the-interface" title="Permanent link">&para;</a></h3>
-<ol>
-<li>Click the <strong>Export</strong> button in the sidebar</li>
-<li>The vault exports to <code>export.html</code> in your vault directory</li>
-</ol>
+<p>The export actions are available in <strong>Settings → Vault → Export</strong> (desktop) and
+under the <strong>Vault</strong> section on mobile. The sidebar <strong>Export</strong> button still
+exports HTML to a temp folder (<code>/tmp/stratum-export</code>), and the CLI writes
+<code>export.html</code> into the vault directory.</p>
+<p>The Export section provides four actions, each with an output-path field, a
+<strong>Browse</strong> button to choose the destination, and an <strong>Open folder</strong> button on
+success:</p>
+<ul>
+<li><strong>Export HTML</strong> — static HTML snapshot (optionally into a chosen directory)</li>
+<li><strong>Export JSON</strong> — structured JSON data (optionally into a chosen directory)</li>
+<li><strong>Export page as PDF</strong> — the currently open page (requires a page to be open)</li>
+<li><strong>Export vault as ZIP</strong> — portable vault archive</li>
+</ul>
 <h3 id="from-the-cli">From the CLI<a class="headerlink" href="#from-the-cli" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Export to HTML (default)</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>stratum<span class="w"> </span><span class="nb">export</span><span class="w"> </span>html
@@ -2471,6 +2684,7 @@
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Export to JSON</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>stratum<span class="w"> </span><span class="nb">export</span><span class="w"> </span>json
 </code></pre></div>
+<p>PDF and ZIP export are available from the app UI only — not from the CLI.</p>
 <h2 id="html-export">HTML Export<a class="headerlink" href="#html-export" title="Permanent link">&para;</a></h2>
 <p>The HTML export generates a single-page document with all notes:</p>
 <ul>
@@ -2524,10 +2738,58 @@
 </tr>
 </tbody>
 </table>
+<h2 id="pdf-export">PDF Export<a class="headerlink" href="#pdf-export" title="Permanent link">&para;</a></h2>
+<p>Exports the currently open page to a single PDF file named
+<code>export-&lt;slug&gt;.pdf</code> in the vault directory.</p>
+<ul>
+<li><strong>Renderer</strong>: Stratum shells out to a headless Chromium binary to print the
+  page. This is a <em>runtime</em> dependency, not a bundled library.</li>
+<li><strong>Math</strong>: LaTeX is pre-rendered to MathML (<code>$…$</code> and <code>$$…$$</code> both supported)
+  so equations appear as real math, not raw markup.</li>
+<li><strong>Mermaid</strong>: <code>```mermaid</code> fenced blocks are rendered by the embedded
+  Mermaid runtime.</li>
+<li><strong>Images</strong>: <code>![[assets/…]]</code> embeds are resolved against the vault <code>assets/</code>
+  directory and included in the output.</li>
+</ul>
+<h3 id="chromium-runtime-dependency">Chromium runtime dependency<a class="headerlink" href="#chromium-runtime-dependency" title="Permanent link">&para;</a></h3>
+<p>A Chromium-compatible binary must be installed and discoverable on the system.
+Stratum looks for it, in order:</p>
+<ol>
+<li>The <code>STRATUM_CHROMIUM</code> environment variable (explicit path)</li>
+<li><code>chromium</code>, <code>chromium-browser</code>, <code>google-chrome</code>, or <code>google-chrome-stable</code>
+   on your <code>PATH</code></li>
+<li><code>/usr/bin/chromium</code>, <code>/usr/bin/google-chrome</code>, <code>/usr/bin/google-chrome-stable</code></li>
+<li>A Chromium in Playwright's cache (<code>~/.cache/ms-playwright/</code>)</li>
+</ol>
+<p>If none is found the export reports an error telling you to install Chromium or
+set <code>STRATUM_CHROMIUM</code>.</p>
+<h2 id="zip-export">ZIP Export<a class="headerlink" href="#zip-export" title="Permanent link">&para;</a></h2>
+<p>Exports the whole vault to a portable <code>export.zip</code> archive for backup or
+transfer.</p>
+<ul>
+<li>Includes all user content: plain <code>.md</code> files, <code>assets/</code>, <code>templates/</code>, and a
+  <code>manifest.json</code> describing the archive.</li>
+<li><strong>Excludes</strong> the <code>.pkm/</code> and <code>.git/</code> directories (rebuildable cache and
+  version history) and any prior <code>export.html</code>/<code>export.json</code>/<code>export.zip</code>/
+  <code>export.pdf</code> artifacts at the vault root.</li>
+<li>The archive is re-importable via the <a href="../importers/">importers</a>.</li>
+</ul>
+<p>The <code>manifest.json</code> lists the format, version, export timestamp, page count,
+and file count:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"stratum-vault-zip"</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">"exported_at"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-10-14T00:00:00Z"</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">"page_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="nt">"file_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">34</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">}</span>
+</code></pre></div>
 <h2 id="use-cases">Use Cases<a class="headerlink" href="#use-cases" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>JSON export</strong> — import into other tools, build custom views, analyze your knowledge graph</li>
 <li><strong>HTML export</strong> — share a readable snapshot of your vault with others</li>
+<li><strong>PDF export</strong> — share a single note as a fixed-format document</li>
+<li><strong>ZIP export</strong> — portable backup or vault transfer</li>
 <li><strong>Plain .md files</strong> — the files themselves are the most portable format. Just copy them.</li>
 </ul>
 

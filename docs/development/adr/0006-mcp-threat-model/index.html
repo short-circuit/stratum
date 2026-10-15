@@ -16,6 +16,8 @@
         <link rel="prev" href="../0005-mcp-server-contract/">
       
       
+        <link rel="next" href="../0007-cloud-backup/">
+      
       
         
       
@@ -656,6 +658,8 @@
       
         
       
+        
+      
     
     
     
@@ -858,6 +862,34 @@
     
   
     Tasks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guide/reminders/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reminders
   
 
     
@@ -1766,6 +1798,8 @@
       
         
       
+        
+      
     
     
     
@@ -2391,6 +2425,103 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_8" id="__nav_7_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007 Cloud Backup
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ADR-0007 Cloud Backup
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0007-cloud-backup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007 — Cloud Backup (WebDAV + Folder-watch)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2947,7 +3078,7 @@ the control crate + its tests are the reference acceptance payload.</p>
 <ul>
 <li>Rust: <code>cargo audit</code> runs in CI (job <code>security-audit</code>) with a pinned baseline
   in <code>.cargo/audit.toml</code>. Baseline covers the pre-existing transitive cluster
-  (wasmtime / cap-std / unic-<em> / glib / lru / chacha20); any </em><em>new</em>* advisory
+  (wasmtime / cap-std / unic-* / glib / lru / chacha20); any <strong>new</strong> advisory
   fails the pipeline.</li>
 <li>npm: <code>npm audit</code> runs report-only in the same job; 3 known production <code>high</code>
   findings are pinned by transitive <code>@blocknote</code> / <code>@excalidraw</code> deps and

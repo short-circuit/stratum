@@ -16,7 +16,7 @@
         <link rel="prev" href="../tags/">
       
       
-        <link rel="next" href="../graph-view/">
+        <link rel="next" href="../reminders/">
       
       
         
@@ -660,6 +660,8 @@
       
         
       
+        
+      
     
     
     
@@ -1037,6 +1039,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#reminders-on-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reminders on Tasks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#task-workflow-tips" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1051,6 +1064,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reminders/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reminders
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1949,6 +1990,8 @@
       
         
       
+        
+      
     
     
     
@@ -2390,6 +2433,100 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_8" id="__nav_7_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007 Cloud Backup
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ADR-0007 Cloud Backup
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/adr/0007-cloud-backup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007 — Cloud Backup (WebDAV + Folder-watch)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2546,6 +2683,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#reminders-on-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reminders on Tasks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#task-workflow-tips" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2681,6 +2829,14 @@
 <p>See the <a href="../datalog-queries/">Datalog Queries</a> guide for more examples.</p>
 <h3 id="pre-built-queries">Pre-built Queries<a class="headerlink" href="#pre-built-queries" title="Permanent link">&para;</a></h3>
 <p>The <strong>Query</strong> panel has a reset button that provides example queries. Modify them to suit your workflow.</p>
+<h2 id="reminders-on-tasks">Reminders on Tasks<a class="headerlink" href="#reminders-on-tasks" title="Permanent link">&para;</a></h2>
+<p>Any task block can also carry a <strong>reminder</strong>. Add a <code>.due</code> property with an
+RFC3339 timestamp to schedule a notification for when the task is due:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">-</span><span class="w"> </span>DOING Write docs
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  .due: 2026-10-15T09:00:00+00:00
+</code></pre></div>
+<p>When the time arrives, Stratum notifies you and takes you to the block. See the
+<a href="../reminders/">Reminders</a> guide for full details.</p>
 <h2 id="task-workflow-tips">Task Workflow Tips<a class="headerlink" href="#task-workflow-tips" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Use <code>DOING</code> to track work-in-progress — limits multitasking</li>

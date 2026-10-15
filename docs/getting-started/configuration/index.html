@@ -677,6 +677,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Export
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#theme-tab" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -742,6 +753,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#notifications-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notifications Tab
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -782,6 +804,8 @@
   
     
     
+      
+        
       
         
       
@@ -1037,6 +1061,34 @@
     
   
     Tasks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/reminders/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reminders
   
 
     
@@ -1943,6 +1995,8 @@
       
         
       
+        
+      
     
     
     
@@ -2384,6 +2438,100 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_8" id="__nav_7_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007 Cloud Backup
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ADR-0007 Cloud Backup
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/adr/0007-cloud-backup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007 — Cloud Backup (WebDAV + Folder-watch)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2463,6 +2611,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Export
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#theme-tab" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2522,6 +2681,17 @@
     <span class="md-ellipsis">
       
         Tray Tab
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notifications-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notifications Tab
       
     </span>
   </a>
@@ -2701,6 +2871,12 @@ The configuration file is also directly editable — Stratum auto-reloads on cha
 <a id="__codelineno-0-129" name="__codelineno-0-129" href="#__codelineno-0-129"></a><span class="n">capture_target</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"journal"</span>
 <a id="__codelineno-0-130" name="__codelineno-0-130" href="#__codelineno-0-130"></a><span class="c1"># Vault-relative path of the inbox page (when capture_target = "inbox")</span>
 <a id="__codelineno-0-131" name="__codelineno-0-131" href="#__codelineno-0-131"></a><span class="n">inbox_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"Inbox.md"</span>
+<a id="__codelineno-0-132" name="__codelineno-0-132" href="#__codelineno-0-132"></a>
+<a id="__codelineno-0-133" name="__codelineno-0-133" href="#__codelineno-0-133"></a><span class="k">[reminders]</span>
+<a id="__codelineno-0-134" name="__codelineno-0-134" href="#__codelineno-0-134"></a><span class="c1"># Enable the block-reminder scheduler + notifications</span>
+<a id="__codelineno-0-135" name="__codelineno-0-135" href="#__codelineno-0-135"></a><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-0-136" name="__codelineno-0-136" href="#__codelineno-0-136"></a><span class="c1"># Play a sound when a reminder becomes due</span>
+<a id="__codelineno-0-137" name="__codelineno-0-137" href="#__codelineno-0-137"></a><span class="n">sound</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </code></pre></div>
 <h2 id="settings-panel-reference">Settings Panel Reference<a class="headerlink" href="#settings-panel-reference" title="Permanent link">&para;</a></h2>
 <h3 id="vault-tab">Vault Tab<a class="headerlink" href="#vault-tab" title="Permanent link">&para;</a></h3>
@@ -2718,6 +2894,48 @@ The configuration file is also directly editable — Stratum auto-reloads on cha
 </tr>
 </tbody>
 </table>
+<h3 id="export">Export<a class="headerlink" href="#export" title="Permanent link">&para;</a></h3>
+<p>The Export subsection (under the Vault Tab / Vault section) provides four
+export actions, each with an output path, a <strong>Browse</strong> button, and an
+<strong>Open folder</strong> button on success:</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Description</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Export HTML</td>
+<td>Static HTML snapshot of the vault</td>
+<td>chosen directory (<code>export.html</code>/mirrored files)</td>
+</tr>
+<tr>
+<td>Export JSON</td>
+<td>Structured JSON data</td>
+<td>chosen directory (<code>&lt;page&gt;.json</code> files)</td>
+</tr>
+<tr>
+<td>Export page as PDF</td>
+<td>The currently open page (disabled when no page is open)</td>
+<td><code>export-&lt;slug&gt;.pdf</code> in the vault</td>
+</tr>
+<tr>
+<td>Export vault as ZIP</td>
+<td>Portable vault archive</td>
+<td><code>export.zip</code> in the vault</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">PDF runtime dependency</p>
+<p>PDF export requires a headless Chromium binary on the system. Set the
+<code>STRATUM_CHROMIUM</code> environment variable to an explicit path if the
+auto-detection does not find one. See
+<a href="../../guide/export/#pdf-export">Export → PDF Export</a> for details.</p>
+</div>
 <h3 id="theme-tab">Theme Tab<a class="headerlink" href="#theme-tab" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -2977,6 +3195,27 @@ commit log.</p>
 icon and closing the app quits it.</p>
 </div>
 <p>See <a href="../../guide/quick-capture/">Quick Capture</a> for usage and troubleshooting.</p>
+<h3 id="notifications-tab">Notifications Tab<a class="headerlink" href="#notifications-tab" title="Permanent link">&para;</a></h3>
+<p>The Notifications tab controls block reminders (see the <a href="../../guide/reminders/">Reminders</a>
+guide). These settings are stored in the vault config under <code>[reminders]</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Enable reminders</td>
+<td>Turn the reminder scheduler + notifications on or off. Reminders already set are kept; they just stop notifying until re-enabled.</td>
+</tr>
+<tr>
+<td>Notification sound</td>
+<td>Play a sound when a reminder becomes due.</td>
+</tr>
+</tbody>
+</table>
 <div class="admonition note">
 <p class="admonition-title">Mobile accessibility</p>
 <p>On mobile, reindex <strong>progress</strong> is displayed live under the Developer section.

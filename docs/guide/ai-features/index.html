@@ -660,6 +660,8 @@
       
         
       
+        
+      
     
     
     
@@ -863,6 +865,34 @@
     
   
     Tasks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reminders/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reminders
   
 
     
@@ -1241,6 +1271,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#discovering-local-ai-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovering Local AI Endpoints
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1954,6 +1995,8 @@
       
         
       
+        
+      
     
     
     
@@ -2395,6 +2438,100 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_8" id="__nav_7_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007 Cloud Backup
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ADR-0007 Cloud Backup
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/adr/0007-cloud-backup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007 — Cloud Backup (WebDAV + Folder-watch)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2475,6 +2612,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#discovering-local-ai-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovering Local AI Endpoints
+      
+    </span>
+  </a>
   
 </li>
       
@@ -2718,6 +2866,28 @@ section of <code>.pkm/config.toml</code>).</p>
 <p>All three flags are additive and backward compatible (<code>serde(default) =
 false</code>): existing <code>.pkm/config.toml</code> files without the keys keep working
 unchanged.</p>
+<h2 id="discovering-local-ai-endpoints">Discovering Local AI Endpoints<a class="headerlink" href="#discovering-local-ai-endpoints" title="Permanent link">&para;</a></h2>
+<p>If you run a local model server, Stratum can auto-discover it instead of
+hand-typing the base URL. Open <strong>Settings → AI → Discover local models</strong>. The
+probe checks the well-known local endpoints <strong>http://127.0.0.1:11434</strong>
+(Ollama), <strong>http://127.0.0.1:1234</strong> (LM Studio) and <strong>http://127.0.0.1:8081</strong>
+(LocalAI), plus any extra hosts you list in the <strong>Extra local hosts</strong> field
+(one <code>host:port</code> per line).</p>
+<p>Each detected endpoint is shown with its name, host, status and model count
+where available. The <strong>Use this endpoint</strong> button switches the AI provider and
+sets the base URL for you:</p>
+<ul>
+<li>An Ollama endpoint (<strong>kind <code>ollama</code></strong>) sets the provider to <strong>Ollama</strong> and
+  the base URL as detected.</li>
+<li>Any OpenAI-compatible endpoint (LM Studio, LocalAI, or an unknown server that
+  responded) sets the provider to <strong>Custom OpenAI-compatible</strong> and the base URL
+  to the detected <code>/v1</code> address.</li>
+</ul>
+<p>After adopting an endpoint, click <strong>Save</strong> to persist it. A discovered host
+that differs from your currently selected endpoint is shown as a hint. The list
+of results is cached server-side in <code>ai.last_discovered</code> so the previous scan
+is still visible on the next visit, and your extra hosts are persisted in
+<code>ai.extra_local_hosts</code>.</p>
 <h2 id="embeddings-rag">Embeddings &amp; RAG<a class="headerlink" href="#embeddings-rag" title="Permanent link">&para;</a></h2>
 <p>Embedding generation (used by RAG to retrieve and re-rank your notes by
 semantic similarity) calls the <strong>same configured AI endpoint</strong> you set up

@@ -660,6 +660,8 @@
       
         
       
+        
+      
     
     
     
@@ -863,6 +865,34 @@
     
   
     Tasks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reminders/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reminders
   
 
     
@@ -1278,6 +1308,17 @@
     <span class="md-ellipsis">
       
         Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#public-searxng-instances" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Public SearXNG Instances
       
     </span>
   </a>
@@ -1899,6 +1940,8 @@
       
         
       
+        
+      
     
     
     
@@ -2340,6 +2383,100 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_8" id="__nav_7_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007 Cloud Backup
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ADR-0007 Cloud Backup
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/adr/0007-cloud-backup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007 — Cloud Backup (WebDAV + Folder-watch)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2401,6 +2538,17 @@
     <span class="md-ellipsis">
       
         Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#public-searxng-instances" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Public SearXNG Instances
       
     </span>
   </a>
@@ -2495,6 +2643,22 @@
 <li>Adjust <strong>Max Results</strong> (1–10) and <strong>Research Depth</strong> (1–5)</li>
 <li>Click <strong>Save</strong></li>
 </ol>
+<h3 id="public-searxng-instances">Public SearXNG Instances<a class="headerlink" href="#public-searxng-instances" title="Permanent link">&para;</a></h3>
+<p><strong>Settings → Research</strong> also lists four community-run public SearXNG
+instances with per-instance <strong>Test instance</strong> and <strong>Use this instance</strong>
+buttons:</p>
+<ul>
+<li><code>https://searx.be</code></li>
+<li><code>https://search.bus-hit.me</code></li>
+<li><code>https://priv.au</code></li>
+<li><code>https://searx.tiekoetter.com</code></li>
+</ul>
+<p>These are <strong>static presets</strong> — Stratum never auto-detects a public instance, so
+the list is fixed and not reordered by connectivity. Public instances are
+community-run and their availability varies, so test one before relying on it.
+A rate-limited instance (HTTP 429) still counts as <strong>reachable</strong> for the ping —
+it is available, just throttled. If you self-host SearXNG, ignore the presets
+and enter your own URL in the endpoint field, which remains fully supported.</p>
 <h2 id="how-research-works">How Research Works<a class="headerlink" href="#how-research-works" title="Permanent link">&para;</a></h2>
 <p>Stratum's research engine performs iterative depth-first search:</p>
 <ol>

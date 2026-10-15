@@ -660,6 +660,8 @@
       
         
       
+        
+      
     
     
     
@@ -863,6 +865,34 @@
     
   
     Tasks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reminders/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reminders
   
 
     
@@ -1389,6 +1419,17 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-directory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin Directory
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#installing-a-plugin" class="md-nav__link">
@@ -2092,6 +2133,8 @@
       
         
       
+        
+      
     
     
     
@@ -2533,6 +2576,100 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_8" id="__nav_7_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007 Cloud Backup
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    ADR-0007 Cloud Backup
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/adr/0007-cloud-backup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0007 — Cloud Backup (WebDAV + Folder-watch)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2565,6 +2702,17 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-directory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin Directory
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#installing-a-plugin" class="md-nav__link">
@@ -2880,6 +3028,36 @@ and open a pull request.</p>
 embedded JSON manifest in the custom section named <code>stratum:manifest</code>. A legacy
 sidecar manifest (<code>plugin.wasm.manifest.json</code> beside the <code>.wasm</code>) is still
 accepted for reading, but new plugins must embed the manifest.</p>
+<h2 id="plugin-directory">Plugin Directory<a class="headerlink" href="#plugin-directory" title="Permanent link">&para;</a></h2>
+<p>The in-app Plugin Directory (Plugins panel → <strong>Directory</strong> tab) lists plugins
+from the community catalog at
+<code>https://raw.githubusercontent.com/short-circuit/stratum-plugins/main/plugins/index.json</code>.</p>
+<ul>
+<li><strong>Fetch + cache:</strong> the catalog is fetched on first open of the tab and cached
+  in local storage. Later opens revalidate in the background (stale-while-
+  revalidate).</li>
+<li><strong>Offline fallback:</strong> when the direct repo fetch fails, the last successful
+  cached catalog is shown with an <strong>Offline</strong> badge and a Retry action — the
+  panel never breaks on network failure.</li>
+<li><strong>Verified installs:</strong> each entry shows its version, description, declared
+  permissions, and verified <code>sha256</code> digest. <strong>Install</strong> downloads the WASM
+  bytes, verifies the digest (crypto.subtle + a backend re-check in
+  <code>plugins_install_url</code>), stages, and installs into
+  <code>&lt;vault&gt;/.pkm/plugins/&lt;id&gt;/</code> using the same pipeline as manual installs.</li>
+<li><strong>Status reflection:</strong> installed entries immediately show an <em>Installed</em>
+  badge; uninstall uses the same <code>plugins_uninstall</code> command and removes the
+  plugin dir + config entry.</li>
+<li><strong>Theme Hub:</strong> the <strong>Themes</strong> tab lists themes from
+  <code>themes/index.json</code> in the same repo. Installing downloads the theme
+  document, verifies its sha256, persists it locally, and applies it via
+  <code>applyTheme</code> + the settings store. Uninstalling the active theme falls back
+  to the built-in theme.</li>
+</ul>
+<blockquote>
+<p>Catalog install requires the <code>https://raw.githubusercontent.com</code> origin in
+the Tauri CSP <code>connect-src</code> (already configured). No other network origin is
+contacted unless a plugin declares the <code>network</code> permission.</p>
+</blockquote>
 <!-- SCREENSHOT: [plugins-panel] Plugins panel listing installed plugins with status -->
 
 <h2 id="installing-a-plugin">Installing a Plugin<a class="headerlink" href="#installing-a-plugin" title="Permanent link">&para;</a></h2>
