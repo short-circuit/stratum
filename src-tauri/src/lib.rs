@@ -440,6 +440,7 @@ pub fn run() {
             commands::page::create_page,
             commands::page::ensure_today_journal,
             commands::page::delete_page,
+            commands::page::move_page,
             commands::page::reindex_vault,
             commands::page::reindex_page,
             commands::page::repair_db_from_disk,

@@ -118,6 +118,156 @@ pub fn extract_asset_links(text: &str) -> Vec<String> {
         .collect()
 }
 
+/// Rewrite the targets of wiki-links in `text` according to a rename/relocation
+/// map, leaving every other character byte-identical.
+///
+/// `map` holds `(old_target, new_target)` pairs. Each `[[...]]` span is scanned
+/// with the same nested-bracket depth logic as [`extract_links`]. Only spans whose
+/// RAW target matches a `map` key (case-insensitively, exact match only — no prefix
+/// matching) are replaced; the whole inner span is rewritten as:
+/// `escaped-new-target` + (if a display existed) `|` + the raw display unchanged.
+///
+/// Matching is case-insensitive. If the matched old target began with an uppercase
+/// character, the first character of the replacement target is capitalized
+/// (`[[B]]` -> `[[C]]`, `[[b]]` -> `[[c]]`). Path-type entries (keys containing a
+/// `/`) are always emitted verbatim, preserving the caller-supplied casing. New
+/// targets that themselves contain a `|` are re-escaped to `\|`.
+///
+/// Returns `(new_text, changed)`. When nothing changed, `new_text` is the original
+/// `text` clone and `changed` is `false`.
+pub fn rewrite_link_targets(text: &str, map: &[(&str, &str)]) -> (String, bool) {
+    let pairs: Vec<(usize, char)> = text.char_indices().collect();
+    let len = pairs.len();
+    let mut out = String::with_capacity(text.len());
+    let mut changed = false;
+    let mut i = 0;
+    // Byte offset in `text` up to which content has already been copied to `out`.
+    let mut copied_up_to = 0usize;
+
+    while i < len {
+        if i + 1 < len && pairs[i].1 == '[' && pairs[i + 1].1 == '[' {
+            let open_byte = pairs[i].0;
+            let inner_start = open_byte + 2;
+            i += 2;
+            let mut depth: i32 = 2;
+            let mut close_byte: Option<usize> = None;
+            while i < len {
+                if i + 1 < len && pairs[i].1 == ']' && pairs[i + 1].1 == ']' {
+                    depth -= 2;
+                    if depth == 0 {
+                        close_byte = Some(pairs[i + 1].0 + 1);
+                        i += 2;
+                        break;
+                    }
+                    i += 2;
+                } else if i + 1 < len && pairs[i].1 == '[' && pairs[i + 1].1 == '[' {
+                    depth += 2;
+                    i += 2;
+                } else {
+                    i += 1;
+                }
+            }
+            let close_byte = match close_byte {
+                Some(b) => b,
+                // Unclosed `[[` — copy the rest verbatim.
+                None => break,
+            };
+            let inner_end = close_byte - 2;
+            if inner_end <= inner_start {
+                // Empty `[[]]` — nothing to match, leave untouched.
+                continue;
+            }
+            let inner = &text[inner_start..inner_end];
+            if let Some(new_inner) = rewrite_link_inner(inner, map) {
+                if new_inner != inner {
+                    out.push_str(&text[copied_up_to..open_byte]);
+                    out.push_str("[[");
+                    out.push_str(&new_inner);
+                    out.push_str("]]");
+                    copied_up_to = close_byte;
+                    changed = true;
+                }
+            }
+        } else {
+            i += 1;
+        }
+    }
+
+    if changed {
+        out.push_str(&text[copied_up_to..]);
+        (out, true)
+    } else {
+        (text.to_string(), false)
+    }
+}
+
+/// Compute the replacement inner content for a `[[...]]` span, or `None` when the
+/// span's target does not match any `map` entry. Matching uses the raw target with
+/// escaped pipes `\|` unescaped, and is case-insensitive.
+fn rewrite_link_inner(inner: &str, map: &[(&str, &str)]) -> Option<String> {
+    let pipe = find_last_unescaped_pipe(inner);
+    let (target_raw, display) = match pipe {
+        Some(p) => (&inner[..p], Some(&inner[p + 1..])),
+        None => (inner, None),
+    };
+    let target = target_raw.replace("\\|", "|").trim().to_string();
+    if target.is_empty() {
+        return None;
+    }
+    let entry = map.iter().find(|(k, _)| k.eq_ignore_ascii_case(&target))?;
+    let new_target_escaped = entry.1.replace('|', "\\|");
+    let is_path = entry.0.contains('/');
+    let starts_upper = target_raw
+        .trim()
+        .chars()
+        .next()
+        .map(|c| c.is_uppercase())
+        .unwrap_or(false);
+    let new_target = if is_path || !starts_upper {
+        new_target_escaped
+    } else {
+        capitalize_first(&new_target_escaped)
+    };
+    let mut new_inner = new_target;
+    if let Some(d) = display {
+        new_inner.push('|');
+        new_inner.push_str(d);
+    }
+    Some(new_inner)
+}
+
+/// Find the byte index of the last `|` in `s` that is not escaped (not preceded by
+/// an odd number of backslashes).
+fn find_last_unescaped_pipe(s: &str) -> Option<usize> {
+    let bytes = s.as_bytes();
+    let mut last = None;
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'|' {
+            let mut backslashes = 0;
+            let mut j = i;
+            while j > 0 && bytes[j - 1] == b'\\' {
+                backslashes += 1;
+                j -= 1;
+            }
+            if backslashes % 2 == 0 {
+                last = Some(i);
+            }
+        }
+        i += 1;
+    }
+    last
+}
+
+/// Uppercase the first character of `s`, leaving the rest unchanged.
+fn capitalize_first(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(c) => c.to_uppercase().collect::<String>() + chars.as_str(),
+        None => String::new(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
