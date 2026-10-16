@@ -534,7 +534,7 @@ When in doubt, flag the dependency for review before adding it.
 | Path | Purpose | Committed? |
 |------|---------|------------|
 | `crates/`, `src/`, `src-tauri/`, `e2e/`, `scripts/`, `nix/`, `deploy/`, `*` config | Real code, tests, tooling | ✅ yes |
-| `docs/` only `docs/guide/`, `docs/development/`, `docs/getting-started/`, `docs/advanced/`, `docs/cli/`, `docs/development/adr/`, `docs/index.md`, `docs/contributing.md`, `docs/assets/`, `docs/landing/` | Shipped user/dev reference docs (each must be in a mkdocs nav entry or referenced by another shipped doc) | ✅ yes |
+| `docs/` only `docs/guide/`, `docs/development/`, `docs/getting-started/`, `docs/advanced/`, `docs/cli/`, `docs/development/adr/`, `docs/index.md`, `docs/contributing.md`, `docs/announcement.md`, `docs/assets/`, `docs/landing/` | Shipped user/dev reference docs (each must be in a mkdocs nav entry or referenced by another shipped doc) | ✅ yes |
 | `verification/cdp_probe.mjs` | Reusable live-probe reference (cited by `docs/development/mobile-guide.md`) | ✅ yes (only file under `verification/`) |
 | `.hermes/` (plans, reports), `.omo/`, `.opencode/`, `.sisyphus/`, `.worktrees/`, `.screenshots/`, `e2e/**/.evidence/`, `verification/` (except cdp_probe), `docs/qa/`, `test-results/`, `dist/`, `target/`, `node_modules/` | Plans, QA reports, findings, audits, repros, evidence, screenshots, build output | ❌ never |
 
