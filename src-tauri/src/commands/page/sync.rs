@@ -105,6 +105,50 @@ pub fn reconcile_page_links(
     Ok(())
 }
 
+/// Heal pages that own blocks but have no `page_ref` rows in the `links` table.
+///
+/// Pre-existing vaults (or vaults written by versions before `reconcile_page_links`
+/// was wired into every write path) may own blocks whose `links` rows were never
+/// populated, leaving the graph edge-less even though the `.md` files contain
+/// `[[wiki-links]]`. This re-runs [`reconcile_page_links`] for exactly those pages.
+///
+/// Idempotency (see e188c56): a page with no extractable `[[wikilink]]` can never
+/// produce `page_ref` rows — it is a legitimately zero-link (orphan/isolated) note
+/// and must not be recounted as "healed" on every boot. Likewise, a page that
+/// already owns `page_ref` rows is skipped. A converged vault therefore returns 0.
+pub fn heal_missing_page_links(store: &pkm_block::BlockStore) -> Result<usize, String> {
+    // Pages that already own at least one page_ref row must not be re-reconciled
+    // (they would otherwise be counted every boot — idempotency).
+    let pages_with_rows: std::collections::HashSet<String> = store
+        .get_page_ref_edges()
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .map(|(s, _)| s)
+        .collect();
+
+    let mut healed = 0usize;
+    for rel in store.list_pages().map_err(|e| e.to_string())? {
+        if pages_with_rows.contains(&rel) {
+            continue;
+        }
+        let blocks = store.get_blocks_by_page(&rel).unwrap_or_default();
+        if blocks.is_empty() {
+            continue;
+        }
+        // Zero-link page: legitimately no rows, must not be counted as healed.
+        let has_links = blocks
+            .iter()
+            .any(|b| !pkm_markdown::linker::extract_links(&b.content).is_empty());
+        if !has_links {
+            continue;
+        }
+        if reconcile_page_links(store, &rel, &blocks).is_ok() {
+            healed += 1;
+        }
+    }
+    Ok(healed)
+}
+
 /// Scan the vault filesystem for .md files and upsert any missing or empty ones into SQLite.
 /// Called once at app startup to import pre-existing pages.
 /// Pages already in SQLite with zero blocks are also re-synced from disk to recover from
@@ -145,6 +189,14 @@ pub fn sync_filesystem_to_db(vault_path: &Path, db_path: &Path) -> Result<usize,
     if let Some(ref mut bi) = block_index {
         let _ = bi.flush();
     }
+
+    // Self-healing backfill: pre-existing vaults (or earlier versions) may have
+    // pages whose blocks predate `reconcile_page_links` wiring, leaving their
+    // `links` rows empty. The graph reads the `links` table as its authoritative
+    // edge source, so heal any page that owns blocks but has no `page_ref` links.
+    // Pages with no `[[wikilink]]` anywhere are legitimately zero-link and are
+    // skipped (idempotency: a converged vault returns 0 on re-sync).
+    count += heal_missing_page_links(&store)?;
 
     for rel in &db_paths {
         if rel.starts_with(".git/") || rel.contains("/.git/") {

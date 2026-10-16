@@ -118,9 +118,12 @@ fn build_adjacency_list(
         // graph semantic. A target that was written as raw `[[Text]]` (because the
         // page did not exist at write time) resolves once that page exists; dead
         // targets (never a page) resolve to nothing and are dropped.
+        // Belt-and-braces: stale pre-fix rows may store bracket-wrapped targets
+        // (`[[Text]]`); strip the wrapping before resolution.
+        let clean_ref = crate::commands::graph::meta::strip_wiki_brackets(target_ref);
         let target_slug = meta
-            .slug_for_path(target_ref)
-            .or_else(|| meta.resolve_slug(target_ref));
+            .slug_for_path(&clean_ref)
+            .or_else(|| meta.resolve_slug(&clean_ref));
         let Some(target_slug) = target_slug else {
             continue;
         };

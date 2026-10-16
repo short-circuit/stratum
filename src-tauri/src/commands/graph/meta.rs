@@ -17,6 +17,23 @@ pub(crate) fn slug_from_path(path: &str) -> String {
         .to_string()
 }
 
+/// Strip surrounding `[`/`]` characters from a wiki-link target reference.
+///
+/// Stale `links` rows written by pre-fix versions may store bracket-wrapped
+/// targets (`[[Docker]]`) because the old extractor leaked the wrapping into the
+/// target. Resolution must tolerate that so a vault upgrades gracefully and its
+/// edges appear on the first graph load, before any write/self-heal run.
+pub(crate) fn strip_wiki_brackets(target: &str) -> String {
+    let mut t = target.trim();
+    while t.starts_with('[') {
+        t = &t[1..];
+    }
+    while t.ends_with(']') {
+        t = &t[..t.len() - 1];
+    }
+    t.to_string()
+}
+
 /// Pre-built index of all pages in the vault for fast slug/title/path resolution.
 /// Eliminates duplicated map-building across graph, connected components, orphans, and link resolution.
 pub(crate) struct PageMetaIndex {
