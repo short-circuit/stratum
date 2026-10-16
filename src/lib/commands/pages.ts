@@ -31,6 +31,10 @@ export async function deletePage(path: string): Promise<void> {
   return invoke('delete_page', { path });
 }
 
+export async function movePage(oldPath: string, newPath: string): Promise<PageDto> {
+  return invoke('move_page', { oldPath, newPath });
+}
+
 export async function buildMarkdown(
   blocks: BlockDto[],
   title?: string,

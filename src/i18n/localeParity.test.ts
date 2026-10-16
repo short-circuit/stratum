@@ -55,6 +55,8 @@ const IDENTICAL_OK = new Set([
   'Notifications', // identical word in en/fr (valid French)
   'notes)', '[[wiki-links]]', '~/.pkm/plugins', '~/.pkm/plugins.',
   'Query', // Datalog "query" is used untranslated as a loanword in de/it/fr/es UIs
+  // Path fragments / placeholders that legitimately stay identical in all languages
+  'pages/projects/my-note.md',
   // Symbol / layout fragments
   'n ·', 'b ·', 'a\n─\nb', '&quot;?', 'T): Promise',
   '>', '<', '≥', '≤', '=', 'AND', 'OR', // builder operator symbols / combiner labels (pure symbols and standard loanwords)
