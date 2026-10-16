@@ -240,8 +240,12 @@ pkm-ai         →  pkm-core, pkm-index
 pkm-plugin     →  pkm-core
 pkm-mcp        →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query
 pkm-mcp-security →  (standalone security primitives)
+pkm-audio      →  pkm-core
+pkm-stt        →  pkm-core, pkm-audio
+pkm-dictation  →  pkm-core, pkm-audio, pkm-stt
+pkm-tests      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-sync, pkm-query, pkm-ai, pkm-plugin, stratum-tauri
 pkm-cli        →  pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
-src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm-sync, pkm-watcher, pkm-ai
+src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-dictation
 ```
 
 **NOTE**: `src-tauri` does NOT currently depend on `pkm-plugin`. The CLI does NOT depend on `pkm-block` or `pkm-query`.
@@ -294,6 +298,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `RemindersPanel` | `/reminders` | Overdue/today/upcoming reminder list + snooze/complete/open | `docs/guide/reminders.md` |
 | `SettingsPage` | `/settings` | 6-tab app configuration | `docs/getting-started/configuration.md` |
 | `BackupSettingsPanel` | `SyncTab` (SettingsPage) | Cloud/folder backup (WebDAV + folder) config, test-connection, run-now + status | `docs/guide/git-sync.md` |
+| `AskNotesPanel` | `/ask` | AI Q&A over the knowledge base (chat with notes, citations, follow-up) | `docs/guide/ai-features.md` |
 
 ### Editor Sub-components
 
