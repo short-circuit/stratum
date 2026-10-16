@@ -290,9 +290,15 @@ more). The docs are also mirrored in this repository under
 
 ## Get Involved
 
-Contributions welcome. See
-[CONTRIBUTING](https://short-circuit.github.io/stratum/docs/contributing/) for
-the development workflow and conventions.
+Contributions welcome — bug reports, translations, docs, and code. Before
+your first PR, read the
+[CONTRIBUTING guide](https://short-circuit.github.io/stratum/docs/contributing/):
+fork → branch off `master` with a Conventional Commit `feat(scope): …`,
+verify with `cargo test --workspace` + `npm run test && npm run lint`, follow
+the documentation rules, and submit a pull request. Good first issues are
+labelled [good first issue](https://github.com/short-circuit/stratum/labels/good%20first%20issue).
+WASM plugins go to the [stratum-plugins](https://github.com/short-circuit/stratum-plugins)
+repository (`PLUGIN_TEMPLATE.md`).
 
 ## License
 
