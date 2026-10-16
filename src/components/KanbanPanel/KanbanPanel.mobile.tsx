@@ -20,7 +20,7 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core';
 import KanbanEditDialog from '../KanbanEditDialog';
-import { COLUMNS, COLUMN_CONFIG, type ColumnId } from './constants';
+import { COLUMNS, COLUMN_CONFIG, columnLabel, type ColumnId } from './constants';
 import { useKanbanPanel } from './KanbanPanel.shared';
 import Section from './KanbanSection';
 import CardContextMenu from './CardContextMenu';
@@ -224,7 +224,7 @@ export default function KanbanPanelMobile() {
                   },
                 }}
               >
-                {COLUMN_CONFIG[col].label}
+                {columnLabel(col, t)}
               </Button>
             ))}
           </Box>

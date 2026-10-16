@@ -12,7 +12,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import KanbanCard from './KanbanCard';
-import { COLUMN_CONFIG, type ColumnId } from './constants';
+import { COLUMN_CONFIG, columnLabel, type ColumnId } from './constants';
 import { useTranslation } from 'react-i18next';
 import type { KanbanBlockDto } from '../../lib/types';
 
@@ -92,7 +92,7 @@ export default function KanbanColumn({
               }}
             />
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              {config.label}
+              {columnLabel(columnId, t)}
             </Typography>
           </Box>
           <Chip

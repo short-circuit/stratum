@@ -29,7 +29,7 @@ test.describe('Voice capture big button (E9.F4)', () => {
 
     // Stop → transcribe runs and the memo is inserted into the journal.
     await stop.click();
-    await expect(page.getByText('## Voice Memo')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Voice Memo', { exact: true })).toBeVisible({ timeout: 10000 });
 
     const calls = await page.evaluate(() => (window as any).__mockVoice);
     expect(calls.transcribeCalls).toBe(1);
@@ -69,9 +69,9 @@ test.describe('Voice capture big button (E9.F4)', () => {
     expect(afterFail.clipCalls).toBe(1);
     expect(afterFail.transcribeCalls).toBe(1);
 
-    // Retry transcription now succeeds.
+    // Retry transcription now succeeds — the real memo heading appears.
     await retry.click();
-    await expect(page.getByText('## Voice Memo')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Voice Memo', { exact: true })).toBeVisible({ timeout: 10000 });
     const calls = await page.evaluate(() => (window as any).__mockVoice);
     expect(calls.transcribeCalls).toBe(2);
     expect(calls.clipCalls).toBe(1);

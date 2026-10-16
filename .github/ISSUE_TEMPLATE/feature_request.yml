@@ -1,0 +1,47 @@
+name: Feature request
+description: Suggest a new feature or improvement
+title: ""
+labels: enhancement
+assignees: ""
+
+body:
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What problem does this solve? What workflow is missing?
+    validations:
+      required: true
+  - type: textarea
+    id: design
+    attributes:
+      label: Proposed design
+      description: How should it work from the user's perspective? UI/UX sketch is fine.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What else could solve this? Why not those?
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Impact
+      options:
+        - label: Existing users (migration / behavior change)
+        - label: Performance (which metric? see AGENTS.md targets)
+        - label: Mobile (desktop + Android/iOS parity)
+        - label: i18n (new user-facing strings → all locales)
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Anything else — related issues, RFC needed?, docs to update?
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched for existing issues before opening this one
+          required: true

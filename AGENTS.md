@@ -240,8 +240,12 @@ pkm-ai         →  pkm-core, pkm-index
 pkm-plugin     →  pkm-core
 pkm-mcp        →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query
 pkm-mcp-security →  (standalone security primitives)
+pkm-audio      →  pkm-core
+pkm-stt        →  pkm-core, pkm-audio
+pkm-dictation  →  pkm-core, pkm-audio, pkm-stt
+pkm-tests      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-sync, pkm-query, pkm-ai, pkm-plugin, stratum-tauri
 pkm-cli        →  pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
-src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm-sync, pkm-watcher, pkm-ai
+src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-dictation
 ```
 
 **NOTE**: `src-tauri` does NOT currently depend on `pkm-plugin`. The CLI does NOT depend on `pkm-block` or `pkm-query`.
@@ -294,6 +298,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `RemindersPanel` | `/reminders` | Overdue/today/upcoming reminder list + snooze/complete/open | `docs/guide/reminders.md` |
 | `SettingsPage` | `/settings` | 6-tab app configuration | `docs/getting-started/configuration.md` |
 | `BackupSettingsPanel` | `SyncTab` (SettingsPage) | Cloud/folder backup (WebDAV + folder) config, test-connection, run-now + status | `docs/guide/git-sync.md` |
+| `AskNotesPanel` | `/ask` | AI Q&A over the knowledge base (chat with notes, citations, follow-up) | `docs/guide/ai-features.md` |
 
 ### Editor Sub-components
 
@@ -529,7 +534,7 @@ When in doubt, flag the dependency for review before adding it.
 | Path | Purpose | Committed? |
 |------|---------|------------|
 | `crates/`, `src/`, `src-tauri/`, `e2e/`, `scripts/`, `nix/`, `deploy/`, `*` config | Real code, tests, tooling | ✅ yes |
-| `docs/` only `docs/guide/`, `docs/development/`, `docs/getting-started/`, `docs/advanced/`, `docs/cli/`, `docs/development/adr/`, `docs/index.md`, `docs/contributing.md`, `docs/assets/`, `docs/landing/` | Shipped user/dev reference docs (each must be in a mkdocs nav entry or referenced by another shipped doc) | ✅ yes |
+| `docs/` only `docs/guide/`, `docs/development/`, `docs/getting-started/`, `docs/advanced/`, `docs/cli/`, `docs/development/adr/`, `docs/index.md`, `docs/contributing.md`, `docs/announcement.md`, `docs/assets/`, `docs/landing/` | Shipped user/dev reference docs (each must be in a mkdocs nav entry or referenced by another shipped doc) | ✅ yes |
 | `verification/cdp_probe.mjs` | Reusable live-probe reference (cited by `docs/development/mobile-guide.md`) | ✅ yes (only file under `verification/`) |
 | `.hermes/` (plans, reports), `.omo/`, `.opencode/`, `.sisyphus/`, `.worktrees/`, `.screenshots/`, `e2e/**/.evidence/`, `verification/` (except cdp_probe), `docs/qa/`, `test-results/`, `dist/`, `target/`, `node_modules/` | Plans, QA reports, findings, audits, repros, evidence, screenshots, build output | ❌ never |
 

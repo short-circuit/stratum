@@ -13,6 +13,7 @@ import type {
   GraphEdgeDto,
   AutocompleteItem,
   KanbanBlockDto,
+  ReminderDto,
   SavedQuery,
 } from '../../src/lib/types';
 
@@ -38,17 +39,17 @@ export const MOCK_BLOCKS: Record<string, BlockDto[]> = {
     { id: 'blk-4', content: '![[assets/foo-abc.png]]', parent_id: null, left_id: 'blk-3', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
   ],
   'Projects': [
-    { id: 'blk-10', content: '## Active Projects', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 1 },
+    { id: 'blk-10', content: 'Active Projects', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 1 },
     { id: 'blk-11', content: 'Build the [[PKM Guide]] with best practices.', parent_id: null, left_id: 'blk-10', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
     { id: 'blk-12', content: 'TODO: Review [[Getting Started]] documentation', parent_id: null, left_id: 'blk-11', properties: [], marker: 'TODO', priority: null, collapsed: false, heading_level: null },
     { id: 'blk-13', content: 'DOING: Refactor search index', parent_id: null, left_id: 'blk-12', properties: [], marker: 'DOING', priority: 'A', collapsed: false, heading_level: null },
   ],
   'Meeting Notes': [
-    { id: 'blk-20', content: '## Sprint Review', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 2 },
+    { id: 'blk-20', content: 'Sprint Review', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 2 },
     { id: 'blk-21', content: 'Discussed [[Projects]] roadmap for Q3.', parent_id: null, left_id: 'blk-20', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
   ],
   'Getting Started': [
-    { id: 'blk-30', content: '# Getting Started Guide', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 1 },
+    { id: 'blk-30', content: 'Getting Started Guide', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 1 },
     { id: 'blk-31', content: 'Wiki-links let you connect ideas: [[Welcome]]', parent_id: null, left_id: 'blk-30', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
     { id: 'blk-32', content: 'Use #tags to categorize your notes.', parent_id: null, left_id: 'blk-31', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
   ],
@@ -343,6 +344,51 @@ export const MOCK_SAVED_QUERIES_DTO: SavedQuery[] = [
   },
 ];
 
+/**
+ * Seed data for the mocked reminder commands (E10.F4 block reminders).
+ * Mirrors the real `ReminderDto` shape (docs/guide/reminders.md, planned task
+ * t_5774176b README screenshots). Due values are relative to a fixed anchor so
+ * the panel always shows Overdue / Today / Upcoming sections deterministically.
+ */
+export function buildMockReminders(now: Date): ReminderDto[] {
+  const iso = (d: Date) => d.toISOString();
+  const daysFromNow = (n: number) => {
+    const d = new Date(now);
+    d.setUTCDate(d.getUTCDate() + n);
+    return iso(d);
+  };
+  const at = (offsetMin: number) => iso(new Date(now.getTime() + offsetMin * 60_000));
+  return [
+    {
+      block_id: 'blk-r-1',
+      page_path: 'tasks/launch-checklist.md',
+      content: 'Ship release notes to the community',
+      due: daysFromNow(-2),
+      marker: 'TODO',
+      priority: 'A',
+      page_title: 'Launch Checklist',
+    },
+    {
+      block_id: 'blk-r-2',
+      page_path: 'projects/stratum-1.0.md',
+      content: 'Follow up with Ana about the migration',
+      due: at(20),
+      marker: null,
+      priority: null,
+      page_title: 'Stratum 1.0',
+    },
+    {
+      block_id: 'blk-r-3',
+      page_path: 'tasks/renew-domain.md',
+      content: 'Renew the domain registration',
+      due: daysFromNow(5),
+      marker: 'DOING',
+      priority: 'B',
+      page_title: 'Renew Domain',
+    },
+  ];
+}
+
 
 // ---------------------------------------------------------------------------
 // Config object for tests to control mock behavior
@@ -366,6 +412,8 @@ export interface MockConfig {
    * command succeeds normally.
    */
   dictationTranscribeFailures?: number;
+  /** When true, `get_onboarding_state` returns true so the first-run wizard renders. */
+  onboardingPending?: boolean;
 }
 
 /** Default: vault configured, no errors */
@@ -459,6 +507,20 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
       // (the editor remounts after a memo is inserted and re-fetches blocks).
       let blockStore = {};
       for (var bk in MOCK_BLOCKS_DATA) blockStore[bk] = MOCK_BLOCKS_DATA[bk].map(function (b) { return Object.assign({}, b); });
+      // Seed today's journal with a starter entry so the journal panel and any
+      // screenshot capture show meaningful content (the real backend creates
+      // today's journal on ensure_today_journal, and it is initially empty).
+      (function () {
+        var d = new Date();
+        var path = 'journals/' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.md';
+        if (!blockStore[path]) {
+          blockStore[path] = [
+            { id: 'blk-j-1', content: 'Daily Notes', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 2 },
+            { id: 'blk-j-2', content: 'Reviewed the [[PKM Guide]] and planned today\\'s focus.', parent_id: null, left_id: 'blk-j-1', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
+            { id: 'blk-j-3', content: 'TODO: Ship the release notes', parent_id: null, left_id: 'blk-j-2', properties: [], marker: 'TODO', priority: 'A', collapsed: false, heading_level: null },
+          ];
+        }
+      })();
       function appendBlocks(pagePath, blocks) {
         if (!blockStore[pagePath]) blockStore[pagePath] = [];
         var anchor = blockStore[pagePath].length ? blockStore[pagePath][blockStore[pagePath].length - 1].id : null;
@@ -474,7 +536,7 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
       // Voice-capture call counters, readable from the test via page.evaluate.
       window.__mockVoice = { transcribeCalls: 0, clipCalls: 0, transcribeFailures: (config.dictationTranscribeFailures || 0) };
       const memoBlocks = [
-        { id: 'blk-memo-1', content: '## Voice Memo', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 2 },
+        { id: 'blk-memo-1', content: 'Voice Memo', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 2 },
         { id: 'blk-memo-2', content: 'Alice: hello there', parent_id: null, left_id: 'blk-memo-1', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
         { id: 'blk-memo-3', content: 'Bob: how are you', parent_id: null, left_id: 'blk-memo-2', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
       ];
@@ -513,9 +575,14 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
           };
         },
         save_page: () => {},
-        list_reminders: () => [],
+        list_reminders: () => (${JSON.stringify(buildMockReminders(new Date()))}),
         snooze_reminder: () => null,
         clear_reminder: () => null,
+        get_onboarding_state: () => !!config.onboardingPending,
+        mark_onboarding_done: () => null,
+        set_onboarding_pending: () => null,
+        install_starter_templates: () => [],
+        install_starter_sample: () => [],
         create_page: (args) => ({
           path: args.path,
           slug: (args.path || '').toLowerCase().replace(/\\s+/g, '-'),
@@ -719,7 +786,7 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
           window.__mockVoice.clipCalls += 1;
           const page = args && args.pagePath;
           const clipBlock = [
-            { id: 'blk-clip-1', content: '## 🎙️ Voice Memo', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 2 },
+            { id: 'blk-clip-1', content: '🎙️ Voice Memo', parent_id: null, left_id: null, properties: [], marker: null, priority: null, collapsed: false, heading_level: 2 },
             { id: 'blk-clip-2', content: '> _transcription pending — retry_', parent_id: null, left_id: 'blk-clip-1', properties: [], marker: null, priority: null, collapsed: false, heading_level: null },
           ];
           return page ? appendBlocks(page, clipBlock) : [];

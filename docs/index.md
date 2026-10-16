@@ -1,5 +1,3 @@
----
-
 # Stratum
 
 **A privacy-first, offline-capable personal knowledge management system.**
@@ -64,7 +62,7 @@ See the [Installation Guide](getting-started/installation.md) for detailed setup
 
 | Feature | Description |
 |---------|-------------|
-| :material-format-list-bulleted: **Block Outliner** | Every paragraph is a UUID-addressed block. Indent, outdent, drag, collapse. |
+| :material-format-list-bulleted: **Block Outliner** | Every paragraph is a UUID-addressed block. Indent, outdent, drag, collapse. Prose View (Read Mode) for distraction-free reading. |
 | :material-link-variant: **Wiki-Links** | `[[Page Name]]`, `[[Target\|Display]]`, `((block-ref))`, `{{embed}}` |
 | :material-pound: **Tags** | `#tag` inline and YAML frontmatter tags |
 | :material-checkbox-marked: **Tasks** | `TODO`, `DOING`, `DONE` markers with priorities |
@@ -77,12 +75,14 @@ See the [Installation Guide](getting-started/installation.md) for detailed setup
 | :material-draw: **Whiteboards** | Excalidraw spatial canvas |
 | :material-sigma: **Math** | KaTeX inline and display equations with symbol palette |
 | :material-graph: **Mermaid** | Flowcharts, sequence diagrams, Gantt charts inline |
-| :material-brain: **AI** | Rewrite, structure, summarize, connect with AI. RAG chat |
+| :material-brain: **AI** | Rewrite, structure, summarize, connect with AI. RAG chat. Voice dictation |
 | :material-web: **Web Research** | SearXNG-powered multi-depth research |
-| :material-source-branch: **Git Sync** | Auto-commit, remote push/pull, conflict detection |
-| :material-export: **Export** | HTML and JSON export |
+| :material-source-branch: **Git Sync** | Auto-commit, remote push/pull, conflict detection, WebDAV/folder backup |
+| :material-export: **Export** | HTML, JSON, PDF, and portable ZIP export |
 | :material-console: **CLI** | Full CLI: init, list, search, stats, graph, sync, export |
-| :material-puzzle: **Plugins** | WASM plugin runtime |
+| :material-puzzle: **Plugins** | WASM plugin runtime + Plugin Directory + Theme Hub |
+| :material-account-group: **Localization** | English, German, Italian, French, Spanish (fully translated); zh/ja/el in progress |
+| :material-import: **Importers** | One-click Obsidian / Logseq / generic Markdown import |
 
 ---
 
@@ -104,3 +104,5 @@ Stratum is in active development. Version 1.0.0-beta.2. All core features are im
 
 - **License:** AGPL-3.0-only
 - **Repository:** [github.com/short-circuit/stratum](https://github.com/short-circuit/stratum)
+- **README:** [GitHub README](https://github.com/short-circuit/stratum/blob/master/README.md)
+- **Contributing:** [contributing.md](contributing.md)
