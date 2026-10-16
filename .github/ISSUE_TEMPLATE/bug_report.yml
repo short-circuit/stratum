@@ -1,0 +1,68 @@
+name: Bug report
+description: Report a bug or regression
+title: ""
+labels: bug
+assignees: ""
+
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See error ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include screenshots/GIFs if possible.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Stratum version
+      placeholder: v1.0.0-beta.2
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Linux (deb/rpm/AppImage)
+        - macOS
+        - Windows
+        - Android (mobile)
+      default: 0
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / reproduction
+      description: Paste console output, error messages, or a minimal reproduction. Check Settings → Diagnostics for the app log.
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched for existing issues before opening this one
+          required: true
