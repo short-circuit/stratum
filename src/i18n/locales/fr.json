@@ -333,7 +333,8 @@
     "refresh": "Actualiser",
     "task_description": "Description de la tâche...",
     "to_do": "À faire",
-    "today_apos_s_journal": "Le journal d'aujourd'hui"
+    "today_apos_s_journal": "Le journal d'aujourd'hui",
+    "done": "Terminé"
   },
   "kanban_edit_dialog": {
     "cancel": "Annuler",
@@ -413,7 +414,8 @@
     "search": "Recherche",
     "settings": "Paramètres",
     "templates": "Modèles",
-    "whiteboards": "Tableaux blancs"
+    "whiteboards": "Tableaux blancs",
+    "reminders": "Rappels"
   },
   "page": {
     "actions": "Actions",

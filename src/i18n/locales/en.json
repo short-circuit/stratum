@@ -333,7 +333,8 @@
     "refresh": "Refresh",
     "task_description": "Task description...",
     "to_do": "To Do",
-    "today_apos_s_journal": "Today&apos;s Journal"
+    "today_apos_s_journal": "Today's Journal",
+    "done": "Done"
   },
   "kanban_edit_dialog": {
     "cancel": "Cancel",
@@ -413,7 +414,8 @@
     "search": "Search",
     "settings": "Settings",
     "templates": "Templates",
-    "whiteboards": "Whiteboards"
+    "whiteboards": "Whiteboards",
+    "reminders": "Reminders"
   },
   "page": {
     "actions": "Actions",

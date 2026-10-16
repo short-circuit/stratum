@@ -3,7 +3,7 @@ import Typography from '@mui/material/Typography';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import KanbanCard from './KanbanCard';
-import { COLUMN_CONFIG, type ColumnId } from './constants';
+import { COLUMN_CONFIG, columnLabel, type ColumnId } from './constants';
 import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
@@ -50,7 +50,7 @@ export default function Section({
           }}
         />
         <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-          {config.label}
+          {columnLabel(columnId, t)}
         </Typography>
         <Typography variant="caption" color="text.secondary">
           {blocks.length}
