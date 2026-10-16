@@ -16,7 +16,7 @@
         <link rel="prev" href="../advanced/mcp/">
       
       
-        <link rel="next" href="../development/frontend-guide/">
+        <link rel="next" href="../announcement/">
       
       
         
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#contributing" class="md-skip">
+        <a href="#contributing-to-stratum" class="md-skip">
           Skip to content
         </a>
       
@@ -345,6 +345,25 @@
     
   
   Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../announcement/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Announcement
 
       </a>
     </li>
@@ -1813,22 +1832,33 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
+  <a href="#before-you-start" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Getting Started
+        Before you start
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Getting Started">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting started
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Getting started">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#nix-recommended" class="md-nav__link">
+  <a href="#fork-clone" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Nix (recommended)
+        Fork + clone
       
     </span>
   </a>
@@ -1836,10 +1866,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#manual-setup" class="md-nav__link">
+  <a href="#development-environment" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Manual Setup
+        Development environment
       
     </span>
   </a>
@@ -1852,13 +1882,80 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#development-workflow" class="md-nav__link">
+  <a href="#branch-naming-commit-conventions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Development Workflow
+        Branch naming + commit conventions
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Branch naming + commit conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#branch-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Branch names
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#conventional-commits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conventional commits
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-style" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code style
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code style">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rust" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rust
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typescript-react" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeScript / React
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1891,33 +1988,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#project-conventions" class="md-nav__link">
+  <a href="#documentation-rules-mandatory" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Project Conventions
+        Documentation rules (MANDATORY)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Project Conventions">
+    <nav class="md-nav" aria-label="Documentation rules (MANDATORY)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#rust" class="md-nav__link">
+  <a href="#repo-hygiene-what-gets-committed" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Rust
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#typescript-react" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        TypeScript / React
+        Repo hygiene — what gets committed
       
     </span>
   </a>
@@ -1930,10 +2016,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#code-review" class="md-nav__link">
+  <a href="#plugin-submission" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Code Review
+        Plugin submission
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pull-requests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pull requests
       
     </span>
   </a>
@@ -1944,7 +2041,7 @@
   <a href="#rfc-process" class="md-nav__link">
     <span class="md-ellipsis">
       
-        RFC Process
+        RFC process
       
     </span>
   </a>
@@ -1952,10 +2049,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#cicd" class="md-nav__link">
+  <a href="#license-dependency-policy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CI/CD
+        License &amp; dependency policy
       
     </span>
   </a>
@@ -1963,10 +2060,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#license" class="md-nav__link">
+  <a href="#getting-help" class="md-nav__link">
     <span class="md-ellipsis">
       
-        License
+        Getting help
       
     </span>
   </a>
@@ -1977,6 +2074,33 @@
   
 </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../announcement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Announcement
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -2021,10 +2145,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
             
   
   
@@ -2042,8 +2166,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2191,10 +2315,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_5" id="__nav_8_5_label" tabindex="0">
             
   
   
@@ -2212,8 +2336,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_5">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2285,10 +2409,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_6" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8_6" >
         
           
-          <label class="md-nav__link" for="__nav_7_6" id="__nav_7_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_6" id="__nav_8_6_label" tabindex="0">
             
   
   
@@ -2306,8 +2430,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_6">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2379,10 +2503,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_7" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_7" id="__nav_8_7_label" tabindex="0">
             
   
   
@@ -2400,8 +2524,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_7">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2473,10 +2597,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_8" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8_8" >
         
           
-          <label class="md-nav__link" for="__nav_7_8" id="__nav_7_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_8" id="__nav_8_8_label" tabindex="0">
             
   
   
@@ -2494,8 +2618,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_8">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2575,22 +2699,33 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
+  <a href="#before-you-start" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Getting Started
+        Before you start
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Getting Started">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting started
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Getting started">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#nix-recommended" class="md-nav__link">
+  <a href="#fork-clone" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Nix (recommended)
+        Fork + clone
       
     </span>
   </a>
@@ -2598,10 +2733,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#manual-setup" class="md-nav__link">
+  <a href="#development-environment" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Manual Setup
+        Development environment
       
     </span>
   </a>
@@ -2614,13 +2749,80 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#development-workflow" class="md-nav__link">
+  <a href="#branch-naming-commit-conventions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Development Workflow
+        Branch naming + commit conventions
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Branch naming + commit conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#branch-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Branch names
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#conventional-commits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conventional commits
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-style" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code style
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code style">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rust" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rust
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typescript-react" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeScript / React
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2653,33 +2855,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#project-conventions" class="md-nav__link">
+  <a href="#documentation-rules-mandatory" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Project Conventions
+        Documentation rules (MANDATORY)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Project Conventions">
+    <nav class="md-nav" aria-label="Documentation rules (MANDATORY)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#rust" class="md-nav__link">
+  <a href="#repo-hygiene-what-gets-committed" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Rust
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#typescript-react" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        TypeScript / React
+        Repo hygiene — what gets committed
       
     </span>
   </a>
@@ -2692,10 +2883,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#code-review" class="md-nav__link">
+  <a href="#plugin-submission" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Code Review
+        Plugin submission
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pull-requests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pull requests
       
     </span>
   </a>
@@ -2706,7 +2908,7 @@
   <a href="#rfc-process" class="md-nav__link">
     <span class="md-ellipsis">
       
-        RFC Process
+        RFC process
       
     </span>
   </a>
@@ -2714,10 +2916,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#cicd" class="md-nav__link">
+  <a href="#license-dependency-policy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CI/CD
+        License &amp; dependency policy
       
     </span>
   </a>
@@ -2725,10 +2927,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#license" class="md-nav__link">
+  <a href="#getting-help" class="md-nav__link">
     <span class="md-ellipsis">
       
-        License
+        Getting help
       
     </span>
   </a>
@@ -2755,163 +2957,266 @@
   
 
 
-<h1 id="contributing">Contributing<a class="headerlink" href="#contributing" title="Permanent link">&para;</a></h1>
-<p>We welcome contributions! This guide covers development setup, conventions, and the PR workflow.</p>
-<h2 id="getting-started">Getting Started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h2>
-<h3 id="nix-recommended">Nix (recommended)<a class="headerlink" href="#nix-recommended" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Enter dev shell with all dependencies</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>nix<span class="w"> </span>develop<span class="w"> </span>./nix
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Or use direnv for automatic activation</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>direnv<span class="w"> </span>allow
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Build everything</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>cargo<span class="w"> </span>build<span class="w"> </span>--workspace
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--workspace
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>npm<span class="w"> </span>install
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>npm<span class="w"> </span>run<span class="w"> </span>build
-</code></pre></div>
-<h3 id="manual-setup">Manual Setup<a class="headerlink" href="#manual-setup" title="Permanent link">&para;</a></h3>
-<p>Requires:
-- Rust 1.75+ (MSRV) — <a href="https://rustup.rs">rustup.rs</a>
-- Node.js 22+
-- Tauri v2 system libraries:
-  - Linux: <code>webkitgtk_4_1</code>, <code>gtk3</code>, <code>glib</code>, <code>libsoup_3</code>, <code>openssl</code>, <code>dbus</code>, <code>librsvg</code>, <code>libayatana-appindicator</code>
-  - macOS: Xcode Command Line Tools
-  - Windows: WebView2 runtime (bundled with Windows 11)</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cargo<span class="w"> </span>build<span class="w"> </span>--workspace
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--workspace
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>npm<span class="w"> </span>install
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>npm<span class="w"> </span>run<span class="w"> </span>tauri:dev
-</code></pre></div>
-<h2 id="development-workflow">Development Workflow<a class="headerlink" href="#development-workflow" title="Permanent link">&para;</a></h2>
-<ol>
-<li>Create a feature branch from <code>master</code></li>
-<li>Make changes (Rust and/or TypeScript)</li>
-<li>Run tests</li>
-<li>Open a pull request</li>
-</ol>
-<p>Branch names generally follow <code>fix/&lt;slug&gt;-t_&lt;task-id&gt;</code> or task-scoped
-<code>stratum/t_&lt;task-id&gt;-&lt;slug&gt;</code> conventions. See
-<a href="../development/branch-policy/"><code>development/branch-policy.md</code></a> for the full
-branch naming, protection, and cleanup policy — including the list of
-protected branches (<code>master</code>, <code>gh-pages</code>, <code>release/*</code>, live integration
-branches, <code>backup/*</code>) and the recorded cleanup history.</p>
-<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Run all Rust tests</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--workspace
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Run tests for a specific crate</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-p<span class="w"> </span>pkm-index
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># Run a specific test</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-p<span class="w"> </span>pkm-index<span class="w"> </span>--<span class="w"> </span>graph::tests::test_get_backlinks
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="c1"># Run the MCP server test suite</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-p<span class="w"> </span>pkm-mcp<span class="w"> </span>--all-targets
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="c1"># Run the MCP coverage gate (&gt;=80% line coverage of the MCP crates)</span>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>bash<span class="w"> </span>scripts/mcp-coverage-gate.sh
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="c1"># Run frontend tests</span>
-<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>npm<span class="w"> </span>run<span class="w"> </span><span class="nb">test</span>
-<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>
-<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="c1"># Frontend linting</span>
-<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>npm<span class="w"> </span>run<span class="w"> </span>lint
-<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>
-<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="c1"># Run the tauri-driver E2E harness (requires: the app built to</span>
-<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="c1"># target/debug/stratum-tauri, tauri-driver, WebKitWebDriver, Xvfb)</span>
-<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>npm<span class="w"> </span>run<span class="w"> </span>test:e2e:harness
-</code></pre></div>
-<p>The <code>test:e2e:harness</code> suite runs automatically in CI (<code>.github/workflows/ci.yml</code>,
-<code>e2e-harness</code> job) on every push to <code>master</code>, on every PR to <code>master</code>, and on a
-<strong>weekly schedule</strong> (drift check against the latest <code>master</code>; manually too via
-<code>workflow_dispatch</code>) — no manual E2E step is required for normal PRs. The
-<code>e2e-harness</code> check is <strong>required</strong> for merges to <code>master</code> (alongside
-<code>frontend-test</code>), and the job uploads <code>test-results/*</code>, the built binary, and a
-last-frame screenshot as <code>e2e-harness-artifacts</code> when it fails.</p>
-<h3 id="running-the-real-e2e-locally">Running the real E2E locally<a class="headerlink" href="#running-the-real-e2e-locally" title="Permanent link">&para;</a></h3>
-<p>The real E2E drives the <strong>compiled app</strong> (<code>target/debug/stratum-tauri</code>, which
-must be built with the <code>custom-protocol</code> feature — see <code>e2e/harness/README.md</code>)
-over the WebDriver protocol; no mocks.</p>
-<p>Prerequisites:</p>
+<h1 id="contributing-to-stratum">Contributing to Stratum<a class="headerlink" href="#contributing-to-stratum" title="Permanent link">&para;</a></h1>
+<p>Stratum is AGPL-3.0-only and community-driven. Contributions of any size are
+welcome — bug reports, documentation fixes, translations, tests, and new
+features.</p>
+<p>By contributing, you agree that your contributions are licensed under the
+same <a href="https://github.com/short-circuit/stratum/blob/master/LICENSE">AGPL-3.0-only</a>
+license as the project.</p>
+<h2 id="before-you-start">Before you start<a class="headerlink" href="#before-you-start" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>tauri-driver</code> — <code>cargo install tauri-driver</code></li>
-<li><code>WebKitWebDriver</code>:</li>
-<li><strong>Arch:</strong> <code>sudo pacman -S webkit2gtk</code> (binary ships inside <code>webkit2gtk-4.1</code> as
-    <code>/usr/lib/webkit2gtk-4.1/WebKitWebDriver</code>)</li>
-<li><strong>Ubuntu/Debian:</strong> <code>webkit2gtk-driver</code> (the <code>WebKitWebDriver</code> binary ships in
-    this package, not <code>libwebkit2gtk-4.1-dev</code>) + <code>libwebkit2gtk-4.1-dev</code></li>
-<li>If the binary is anywhere else on your machine, set <code>HARNESS_DRIVER</code> to its
-    absolute path</li>
-<li><code>Xvfb</code> — Arch: <code>sudo pacman -S xorg-server-xvfb</code>; Ubuntu: <code>apt install xvfb</code></li>
+<li><strong>Check the kanban board</strong> — most work is tracked as task-scoped cards
+  (<code>t_&lt;task-id&gt;</code>). Look for open cards before starting something big.</li>
+<li><strong>Check existing issues</strong> — a bug may already be reported or in progress.</li>
+<li><strong>Run the tests</strong> — see <a href="#testing">Testing</a> below. They must pass before
+  you open a PR.</li>
 </ul>
-<p>Then:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>npm<span class="w"> </span>run<span class="w"> </span>build
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>cargo<span class="w"> </span>build<span class="w"> </span>-p<span class="w"> </span>stratum-tauri
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>npm<span class="w"> </span>run<span class="w"> </span>test:e2e:harness
+<h2 id="getting-started">Getting started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h2>
+<h3 id="fork-clone">Fork + clone<a class="headerlink" href="#fork-clone" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># 1. Fork https://github.com/short-circuit/stratum (GitHub → Fork)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="c1"># 2. Clone your fork and add upstream:</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:&lt;your-username&gt;/stratum.git
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nb">cd</span><span class="w"> </span>stratum
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>upstream<span class="w"> </span>https://github.com/short-circuit/stratum.git
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># 3. Always branch off the latest master:</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>git<span class="w"> </span>fetch<span class="w"> </span>upstream
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>feat/my-feature<span class="w"> </span>upstream/master
 </code></pre></div>
-<h2 id="project-conventions">Project Conventions<a class="headerlink" href="#project-conventions" title="Permanent link">&para;</a></h2>
+<p>Note: this repository works from <strong>worktrees</strong>. If you are an existing
+contributor, task-scoped branches are usually created as Git worktrees
+(<code>.worktrees/t_&lt;task-id&gt;</code>); follow the current convention of the board.</p>
+<h3 id="development-environment">Development environment<a class="headerlink" href="#development-environment" title="Permanent link">&para;</a></h3>
+<p><strong>Nix (recommended)</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>nix<span class="w"> </span>develop<span class="w"> </span>./nix<span class="w">          </span><span class="c1"># enter dev shell with all dependencies</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>direnv<span class="w"> </span>allow<span class="w">               </span><span class="c1"># or auto-activate via direnv</span>
+</code></pre></div>
+<p><strong>Manual setup</strong> requires: Rust 1.75+ (MSRV), Node.js 22+, and Tauri v2
+system libraries:</p>
+<ul>
+<li>Linux: <code>webkitgtk_4_1</code>, <code>gtk3</code>, <code>glib</code>, <code>libsoup_3</code>, <code>openssl</code>, <code>dbus</code>,
+  <code>librsvg</code>, <code>libayatana-appindicator</code></li>
+<li>macOS: Xcode Command Line Tools</li>
+<li>Windows: WebView2 runtime (bundled with Windows 11)</li>
+</ul>
+<h2 id="branch-naming-commit-conventions">Branch naming + commit conventions<a class="headerlink" href="#branch-naming-commit-conventions" title="Permanent link">&para;</a></h2>
+<h3 id="branch-names">Branch names<a class="headerlink" href="#branch-names" title="Permanent link">&para;</a></h3>
+<p>Follow one of these patterns (see
+<a href="../development/branch-policy/"><code>docs/development/branch-policy.md</code></a>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>feature/&lt;slug&gt;
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>fix/&lt;slug&gt;-t_&lt;task-id&gt;
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>stratum/t_&lt;task-id&gt;-&lt;slug&gt;      # task-scoped (prepared by the board)
+</code></pre></div>
+<h3 id="conventional-commits">Conventional commits<a class="headerlink" href="#conventional-commits" title="Permanent link">&para;</a></h3>
+<p>This repository uses <a href="https://www.conventionalcommits.org/en/v1.0.0/">Conventional Commits</a>.
+Commit messages follow:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>&lt;type&gt;(&lt;scope&gt;): &lt;short summary&gt;
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>&lt;body — optional&gt;
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>&lt;footer — optional&gt;
+</code></pre></div>
+<p>Allowed <code>type</code>s: <code>feat</code>, <code>fix</code>, <code>docs</code>, <code>test</code>, <code>chore</code>, <code>refactor</code>,
+<code>perf</code>, <code>style</code>, <code>build</code>, <code>ci</code>, <code>revert</code>.</p>
+<p>Scope is the crate/component it affects (<code>pkm-index</code>, <code>graph</code>, <code>sync</code>,
+<code>ui</code>, <code>docs</code>, ...).</p>
+<p>Examples (from recent history):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>feat(E10.F7): Plugin Directory + Theme Hub — install from stratum-plugins
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>fix(clippy): resolve -D warnings in pkm-block assets
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>docs: fix stale endpoint-validation ref and LICENSE 404 on gh-pages
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>chore(repo-hygiene): e2e probe paths portable via import.meta.url
+</code></pre></div>
+<p><strong>Rules:</strong>
+- Imperative, lowercase, no trailing period.
+- Keep the subject under ~72 characters.
+- Reference the related task id in the footer if applicable: <code>(t_&lt;task-id&gt;)</code>.</p>
+<h2 id="code-style">Code style<a class="headerlink" href="#code-style" title="Permanent link">&para;</a></h2>
 <h3 id="rust">Rust<a class="headerlink" href="#rust" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Edition 2021</li>
-<li><code>cargo fmt</code> for formatting</li>
-<li><code>cargo clippy</code> for linting</li>
-<li>Unit tests in <code>#[cfg(test)]</code> modules alongside implementation</li>
-<li>Use <code>tempfile</code> for filesystem tests</li>
-<li>Use <code>thiserror</code> for error types</li>
-<li>Use <code>anyhow</code> for application-level error handling</li>
+<li>Edition 2021. <code>cargo fmt</code> for formatting, <code>cargo clippy</code> for linting.</li>
+<li>Tests as <code>#[cfg(test)]</code> modules alongside implementation.</li>
+<li>Use <code>tempfile</code> for filesystem tests.</li>
+<li>The single error type is <code>PkmError</code> from <code>pkm-core</code> — do <strong>not</strong> create
+  new error types in individual crates; extend <code>PkmError</code> variants instead
+  (use <code>#[from]</code> derives).</li>
+<li>Every source file must have a module-level doc comment (<code>//!</code>), and every
+  public function a doc comment (<code>///</code>), per the project standards in
+  <code>AGENTS.md</code>.</li>
+<li>Command handlers in <code>src-tauri/src/commands/</code> are <strong>thin glue layers</strong> —
+  business logic belongs in the corresponding crate
+  (<code>pkm-block</code>, <code>pkm-index</code>, <code>pkm-sync</code>, <code>pkm-core</code>, ...).</li>
 </ul>
 <h3 id="typescript-react">TypeScript / React<a class="headerlink" href="#typescript-react" title="Permanent link">&para;</a></h3>
 <ul>
-<li>TypeScript 6.0 strict mode</li>
-<li>React 19 with function components and hooks</li>
-<li><strong>MUI (Material UI)</strong> v6 for UI components — use <code>@mui/material</code> and <code>@mui/icons-material</code></li>
-<li>Use the <code>sx</code> prop for styling (not Tailwind)</li>
-<li>Icons from <code>@mui/icons-material</code> — match existing icon style and naming</li>
-<li>Use MUI's built-in <code>theme</code> (light/dark) via <code>useTheme()</code> hook</li>
-<li>Zustand for global state</li>
-<li>Tauri <code>invoke()</code> wrappers in <code>src/lib/commands.ts</code></li>
-<li>DTO types in <code>src/lib/types.ts</code></li>
+<li>TypeScript strict mode, React 19, function components + hooks.</li>
+<li><strong>MUI v6</strong> for UI — use <code>@mui/material</code> + <code>@mui/icons-material</code>, <code>sx</code>
+  prop for styling (no Tailwind).</li>
+<li>Zustand for state; <code>src/lib/commands.ts</code> wrappers for <code>tauri.invoke()</code>;
+  DTO types in <code>src/lib/types.ts</code> (must match the Rust <code>Serialize</code> structs).</li>
+<li>Component size limits (enforced by convention):</li>
+<li>File &lt; 500 lines, component JSX &lt; 50 lines, inline function &lt; 20 lines.</li>
+<li>Same logic in 2+ files → extract to <code>src/lib/</code> or <code>src/lib/hooks/</code>.</li>
+<li>Every component defines <code>interface Props</code>.</li>
+<li><strong>i18n:</strong> all user-facing strings go through <code>useTranslation()</code> —
+  never hardcode UI strings (the <code>i18nGate</code> test fails otherwise). Add a new
+  key to <strong>all</strong> locale files under <code>src/i18n/locales/</code> (not only <code>en.json</code>)
+  or the <code>localeParity</code> test fails.</li>
 </ul>
-<h2 id="code-review">Code Review<a class="headerlink" href="#code-review" title="Permanent link">&para;</a></h2>
-<p>All PRs need:
-1. Clean CI (build + test + clippy for Rust, build + lint for frontend)
-2. At least one reviewer
-3. Documentation updates if API changes</p>
-<h2 id="rfc-process">RFC Process<a class="headerlink" href="#rfc-process" title="Permanent link">&para;</a></h2>
-<p>Major features require an RFC. Open an issue with:</p>
-<ul>
-<li><strong>Motivation</strong>: Why this feature?</li>
-<li><strong>Design</strong>: How does it work?</li>
-<li><strong>Alternatives</strong>: What else was considered?</li>
-<li><strong>Migration</strong>: Impact on existing users</li>
-</ul>
-<h2 id="cicd">CI/CD<a class="headerlink" href="#cicd" title="Permanent link">&para;</a></h2>
-<p>The project uses GitHub Actions:</p>
+<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
+<p>Run these <strong>before</strong> opening a pull request:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Rust (workspace)</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>cargo<span class="w"> </span>build<span class="w"> </span>--workspace
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--workspace
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># Specific crate / test</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-p<span class="w"> </span>pkm-index
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-p<span class="w"> </span>pkm-index<span class="w"> </span>--<span class="w"> </span>graph::tests::test_get_backlinks
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="c1"># MCP server suite + coverage gate (&gt;=80%)</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-p<span class="w"> </span>pkm-mcp<span class="w"> </span>--all-targets
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>bash<span class="w"> </span>scripts/mcp-coverage-gate.sh
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="c1"># Frontend</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>npm<span class="w"> </span>install
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>npm<span class="w"> </span>run<span class="w"> </span><span class="nb">test</span><span class="w">          </span><span class="c1"># unit + component tests (vitest + jsdom)</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>npm<span class="w"> </span>run<span class="w"> </span>lint<span class="w">          </span><span class="c1"># ESLint (no Prettier — formatting is Rust-only)</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>npm<span class="w"> </span>run<span class="w"> </span>build<span class="w">         </span><span class="c1"># tsc -b &amp;&amp; vite build</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="c1"># E2E harness (requires: app built to target/debug/stratum-tauri,</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="c1"># tauri-driver, WebKitWebDriver, Xvfb)</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>npm<span class="w"> </span>run<span class="w"> </span>test:e2e:harness
+</code></pre></div>
+<p>The <code>e2e-harness</code> job in CI (<code>.github/workflows/ci.yml</code>) runs on every push
+to <code>master</code>, on every PR, and on a weekly schedule — you do not need to run
+the harness locally for normal PRs, but it is <strong>required</strong> (with
+<code>frontend-test</code>) for merges to <code>master</code>.</p>
+<h3 id="running-the-real-e2e-locally">Running the real E2E locally<a class="headerlink" href="#running-the-real-e2e-locally" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>npm<span class="w"> </span>run<span class="w"> </span>build
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>cargo<span class="w"> </span>build<span class="w"> </span>-p<span class="w"> </span>stratum-tauri<span class="w">      </span><span class="c1"># must include the custom-protocol feature</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>npm<span class="w"> </span>run<span class="w"> </span>test:e2e:harness
+</code></pre></div>
+<p>Prerequisites: <code>cargo install tauri-driver</code>, WebKitWebDriver
+(Arch: <code>webkit2gtk-4.1</code> → <code>/usr/lib/webkit2gtk-4.1/WebKitWebDriver</code>;
+Ubuntu/Debian: <code>webkit2gtk-driver</code>), and Xvfb
+(Arch: <code>xorg-server-xvfb</code>; Ubuntu: <code>xvfb</code>). Set <code>HARNESS_DRIVER</code> to the
+WebKitWebDriver absolute path if it's elsewhere.</p>
+<h2 id="documentation-rules-mandatory">Documentation rules (MANDATORY)<a class="headerlink" href="#documentation-rules-mandatory" title="Permanent link">&para;</a></h2>
+<p>Every code change must update the docs for the affected area — see
+<code>AGENTS.md</code> and the table below. CI (planned) and review enforce this.</p>
 <table>
 <thead>
 <tr>
-<th>Workflow</th>
-<th>Trigger</th>
-<th>What it does</th>
+<th>Change</th>
+<th>Required action</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>CI</td>
-<td>Push/PR to master, weekly schedule, manual</td>
-<td>Build, test, clippy, fmt, lint, frontend unit tests, tauri-driver E2E harness (artifact-uploading on failure)</td>
+<td>New component</td>
+<td>Add to <code>Frontend Components</code> table in <code>AGENTS.md</code> + <code>docs/guide/</code> entry if user-facing</td>
 </tr>
 <tr>
-<td>Release</td>
-<td>Tag <code>v*</code></td>
-<td>Build and publish binaries</td>
+<td>Renamed component</td>
+<td>Update <code>AGENTS.md</code> table; update all user docs</td>
+</tr>
+<tr>
+<td>Component &gt; 400 lines</td>
+<td>Split into sub-components</td>
+</tr>
+<tr>
+<td>New hook/utility</td>
+<td>Add to <code>Custom Hooks</code> table in <code>AGENTS.md</code>; update <code>docs/development/frontend-guide.md</code></td>
+</tr>
+<tr>
+<td>Rust API changed</td>
+<td>Update doc comments; update <code>docs/development/rust-guide.md</code></td>
+</tr>
+<tr>
+<td>New crate/module</td>
+<td>Add to Crate Dependency Graph + Workspace Layout in <code>AGENTS.md</code>; add module docs</td>
+</tr>
+<tr>
+<td>New feature</td>
+<td>Add <code>docs/guide/</code> entry; update <code>contributing.md</code> if dev workflow changes</td>
+</tr>
+<tr>
+<td>Behavior change</td>
+<td>Update relevant <code>docs/guide/</code> entry</td>
+</tr>
+<tr>
+<td>UI changed</td>
+<td>Verify screenshots in docs still match; update if needed</td>
+</tr>
+<tr>
+<td>Mobile change</td>
+<td>Update <code>docs/development/mobile-guide.md</code></td>
+</tr>
+<tr>
+<td>New dependency</td>
+<td>Verify AGPL-3.0 compatibility (see policy below)</td>
+</tr>
+<tr>
+<td><code>Cargo.toml</code> changed</td>
+<td>Verify the dependency graph in <code>AGENTS.md</code> matches</td>
 </tr>
 </tbody>
 </table>
-<h2 id="license">License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h2>
-<p>Stratum is licensed under AGPL-3.0-only. By contributing, you agree that your contributions will be licensed under the same license.</p>
+<p>The docs are built with <strong>MkDocs Material</strong> (<code>docs/mkdocs.yml</code>). Validate
+with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>mkdocs<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>docs/mkdocs.yml<span class="w"> </span>--strict
+</code></pre></div>
+<h3 id="repo-hygiene-what-gets-committed">Repo hygiene — what gets committed<a class="headerlink" href="#repo-hygiene-what-gets-committed" title="Permanent link">&para;</a></h3>
+<p>See <code>AGENTS.md</code> → "Repo Hygiene". In short: shipped code and user docs only.
+Plans, QA reports, findings, evidence, screenshots → <code>.hermes/</code> (gitignored).
+Never commit an implementation aid to repo root, <code>docs/</code> (except
+<code>docs/development/</code>), or <code>verification/</code> (except <code>verification/cdp_probe.mjs</code>).</p>
+<h2 id="plugin-submission">Plugin submission<a class="headerlink" href="#plugin-submission" title="Permanent link">&para;</a></h2>
+<p>WASM plugins for Stratum live in the
+<a href="https://github.com/short-circuit/stratum-plugins">stratum-plugins repository</a>.
+To submit a plugin:</p>
+<ol>
+<li>Follow
+   <a href="https://github.com/short-circuit/stratum-plugins/blob/master/PLUGIN_TEMPLATE.md">PLUGIN_TEMPLATE.md</a>
+   to scaffold your plugin.</li>
+<li>Open a PR against <code>stratum-plugins</code> (the catalog index is generated
+   automatically).</li>
+<li>Mention the plugin in the in-app Plugin Directory / Theme Hub.</li>
+</ol>
+<h2 id="pull-requests">Pull requests<a class="headerlink" href="#pull-requests" title="Permanent link">&para;</a></h2>
+<p>Open a PR against <code>master</code> from your branch. All PRs need:</p>
+<ol>
+<li>Clean CI (build + test + clippy Rust; build + lint frontend; E2E harness).</li>
+<li>At least one reviewer.</li>
+<li>Documentation updates if APIs change.</li>
+</ol>
+<p><strong>PR template</strong> (<code>.github/PULL_REQUEST_TEMPLATE.md</code>):</p>
+<ul>
+<li>What does this change do and why?</li>
+<li>Does it fix a bug or add a feature? Reference issue/task id.</li>
+<li>Which tests were run, and what was the result?</li>
+<li>Docs updated? (if needed)</li>
+</ul>
+<h2 id="rfc-process">RFC process<a class="headerlink" href="#rfc-process" title="Permanent link">&para;</a></h2>
+<p>Major features require an RFC. Open an issue with:</p>
+<ul>
+<li><strong>Motivation</strong> — why this feature?</li>
+<li><strong>Design</strong> — how does it work?</li>
+<li><strong>Alternatives</strong> — what else was considered?</li>
+<li><strong>Migration</strong> — impact on existing users.</li>
+</ul>
+<h2 id="license-dependency-policy">License &amp; dependency policy<a class="headerlink" href="#license-dependency-policy" title="Permanent link">&para;</a></h2>
+<p>Stratum is <strong>AGPL-3.0-only</strong>. Every new dependency (Rust crate, npm package)
+must be license-compatible with AGPL-3.0 (MIT, Apache-2.0, BSD-2/3, ISC,
+Zlib, Unlicense, CC0, MPL-2.0, ... — see <code>AGENTS.md</code> for the full list).
+Flag any non-obvious license for review before adding the dependency.</p>
+<h2 id="getting-help">Getting help<a class="headerlink" href="#getting-help" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Issues: https://github.com/short-circuit/stratum/issues</li>
+<li>Discussions: https://github.com/short-circuit/stratum/discussions</li>
+<li>Good first issues: https://github.com/short-circuit/stratum/labels/good%20first%20issue</li>
+<li>Docs: https://short-circuit.github.io/stratum/docs/</li>
+</ul>
 
 
 

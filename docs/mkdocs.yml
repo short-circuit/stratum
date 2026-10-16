@@ -118,6 +118,7 @@ nav:
     - advanced/mcp-deployment.md
     - advanced/mcp.md
   - Contributing: contributing.md
+  - Announcement: announcement.md
   - Development:
     - development/frontend-guide.md
     - development/rust-guide.md
