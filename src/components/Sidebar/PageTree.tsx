@@ -13,6 +13,7 @@ import ArticleIcon from '@mui/icons-material/Article';
 import DeleteIcon from '@mui/icons-material/Delete';
 import type { PageDto } from '../../lib/types';
 import ConfirmDialog from '../ui/ConfirmDialog';
+import PageTreeGrouped from './PageTreeGrouped';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
@@ -28,6 +29,8 @@ interface Props {
   onDeletePage: (path: string) => void;
   onNavigate: (path: string) => void;
   onNavigateHome?: () => void;
+  /** Which page-list presentation to use: 'flat' (default) or 'tree'. */
+  pagesView?: string;
 }
 
 const PageTree = memo(function PageTree({
@@ -43,11 +46,31 @@ const PageTree = memo(function PageTree({
   onDeletePage,
   onNavigate,
   onNavigateHome,
+  pagesView = 'flat',
 }: Props) {
   const { t } = useTranslation();
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   if (collapsed) return null;
+
+  if (pagesView === 'tree') {
+    return (
+      <PageTreeGrouped
+        pages={pages}
+        collapsed={collapsed}
+        showNew={showNew}
+        newPath={newPath}
+        newTitle={newTitle}
+        onShowNewChange={onShowNewChange}
+        onNewPathChange={onNewPathChange}
+        onNewTitleChange={onNewTitleChange}
+        onCreatePage={onCreatePage}
+        onDeletePage={onDeletePage}
+        onNavigate={onNavigate}
+        onNavigateHome={onNavigateHome}
+      />
+    );
+  }
 
   const recentPages = pages.filter(p => !p.path.startsWith('journals/'));
 

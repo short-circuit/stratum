@@ -9,11 +9,12 @@ import Button from '@mui/material/Button';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { usePagesHomeData } from './PagesHome.shared';
 import ImportDialog from '../ImportDialog';
+import { PageTreeList } from '../Sidebar/PageTreeGrouped';
 import { useTranslation } from 'react-i18next';
 
 export default function PagesHomeDesktop() {
   const { t } = useTranslation();
-  const { pages, vault, navigateToPage } = usePagesHomeData();
+  const { pages, vault, pagesView, navigateToPage } = usePagesHomeData();
   const [importOpen, setImportOpen] = useState(false);
 
   return (
@@ -37,25 +38,29 @@ export default function PagesHomeDesktop() {
       )}
 
       {pages.length > 0 ? (
-        <List disablePadding>
-          {pages.map(page => (
-            <ListItemButton
-              key={page.path}
-              onClick={() => navigateToPage(page.path)}
-              sx={{ borderRadius: 1, mb: 0.25 }}
-            >
-              <ListItemText
-                primary={page.title || page.slug}
-                secondary={page.path}
-                slotProps={{
-                  primary: { variant: 'body2', noWrap: true },
-                  secondary: { variant: 'caption' },
-                }}
-              />
-              <Chip label={`${page.block_count}b`} size="small" variant="outlined" sx={{ ml: 1 }} />
-            </ListItemButton>
-          ))}
-        </List>
+        pagesView === 'tree' ? (
+          <PageTreeList pages={pages} onNavigate={navigateToPage} showBlockCount />
+        ) : (
+          <List disablePadding>
+            {pages.map(page => (
+              <ListItemButton
+                key={page.path}
+                onClick={() => navigateToPage(page.path)}
+                sx={{ borderRadius: 1, mb: 0.25 }}
+              >
+                <ListItemText
+                  primary={page.title || page.slug}
+                  secondary={page.path}
+                  slotProps={{
+                    primary: { variant: 'body2', noWrap: true },
+                    secondary: { variant: 'caption' },
+                  }}
+                />
+                <Chip label={`${page.block_count}b`} size="small" variant="outlined" sx={{ ml: 1 }} />
+              </ListItemButton>
+            ))}
+          </List>
+        )
       ) : (
         <Box sx={{ textAlign: 'center', py: 6 }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>{t('pages_home.no_pages_yet')}</Typography>
