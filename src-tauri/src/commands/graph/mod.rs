@@ -1,4 +1,8 @@
 //! Graph visualization commands — expose note-level graph data to the frontend.
+//!
+//! Node identity is the **vault-relative page path** (one node per path), not
+//! the basename slug. Two notes with the same basename in different folders are
+//! distinct nodes, so duplicate slugs never collide.
 
 mod meta;
 
@@ -111,47 +115,44 @@ fn build_adjacency_list(
     let edges = store.get_page_ref_edges().map_err(|e| e.to_string())?;
 
     for (src_path, target_ref) in &edges {
-        let Some(source_slug) = meta.slug_for_path(src_path) else {
-            continue;
-        };
-        // Resolve the stored target against the CURRENT page set — the historical
-        // graph semantic. A target that was written as raw `[[Text]]` (because the
-        // page did not exist at write time) resolves once that page exists; dead
-        // targets (never a page) resolve to nothing and are dropped.
-        let target_slug = meta
-            .slug_for_path(target_ref)
-            .or_else(|| meta.resolve_slug(target_ref));
-        let Some(target_slug) = target_slug else {
+        // `src_path` is already the authoritative page path (from the `links`
+        // table), so no slug lookup is needed for the source.
+        // Resolve the stored target against the CURRENT page set — a target
+        // written as raw `[[Text]]` (page did not exist at write time) resolves
+        // once that page exists; dead targets resolve to nothing and are dropped.
+        // Ambiguous targets (multiple paths share a slug/title) also resolve to
+        // nothing and are dropped.
+        let Some(target_path) = meta.resolve_path(target_ref) else {
             continue;
         };
 
         outgoing
-            .entry(source_slug.clone())
+            .entry(src_path.clone())
             .or_default()
             .push(GraphEdgeDto {
-                source: source_slug.clone(),
-                target: target_slug.clone(),
+                source: src_path.clone(),
+                target: target_path.clone(),
                 label: None, // not consumed by the frontend; reserved
             });
 
         // Degree: source always +1, target +1 only if different (self-links never double-count)
-        *degree.entry(source_slug.clone()).or_default() += 1;
-        if target_slug != *source_slug {
-            *degree.entry(target_slug.clone()).or_default() += 1;
+        *degree.entry(src_path.clone()).or_default() += 1;
+        if target_path != *src_path {
+            *degree.entry(target_path.clone()).or_default() += 1;
         }
 
         // Bidirectional adjacency for BFS (self-links are harmless)
         adjacency
-            .entry(source_slug.clone())
+            .entry(src_path.clone())
             .or_default()
-            .push(target_slug.clone());
+            .push(target_path.clone());
         adjacency
-            .entry(target_slug.clone())
+            .entry(target_path.clone())
             .or_default()
-            .push(source_slug.clone());
+            .push(src_path.clone());
 
-        connected.insert(source_slug.clone());
-        connected.insert(target_slug.clone());
+        connected.insert(src_path.clone());
+        connected.insert(target_path.clone());
     }
 
     Ok(AdjacencyList {
@@ -169,11 +170,10 @@ fn build_graph_data_from_meta(
     vault_path: &str,
 ) -> Result<GraphDataDto, String> {
     let nodes: Vec<GraphNodeDto> = meta
-        .slug_to_path
-        .keys()
-        .map(|slug| {
-            let mut node = meta.get_node(slug);
-            node.degree = adj.degree.get(slug).copied().unwrap_or(0);
+        .all_paths()
+        .map(|path| {
+            let mut node = meta.get_node(path);
+            node.degree = adj.degree.get(path).copied().unwrap_or(0);
             node
         })
         .collect();
@@ -238,18 +238,18 @@ fn get_connected_components_from_meta(
     meta: &PageMetaIndex,
     adj: &AdjacencyList,
 ) -> Result<Vec<ComponentDto>, String> {
-    // BFS for connected components
+    // BFS for connected components over path-keyed adjacency.
     let mut visited: HashSet<String> = HashSet::new();
     let mut components: Vec<Vec<String>> = Vec::new();
 
-    for slug in meta.slug_to_path.keys() {
-        if visited.contains(slug) {
+    for path in meta.all_paths() {
+        if visited.contains(path) {
             continue;
         }
         let mut component = Vec::new();
         let mut queue = Vec::new();
-        queue.push(slug.clone());
-        visited.insert(slug.clone());
+        queue.push(path.to_string());
+        visited.insert(path.to_string());
 
         while let Some(current) = queue.pop() {
             component.push(current.clone());
@@ -270,9 +270,9 @@ fn get_connected_components_from_meta(
         .map(|group| {
             let nodes: Vec<GraphNodeDto> = group
                 .iter()
-                .map(|slug| {
-                    let mut node = meta.get_node(slug);
-                    node.degree = adj.adjacency.get(slug).map(|n| n.len()).unwrap_or(0);
+                .map(|path| {
+                    let mut node = meta.get_node(path);
+                    node.degree = adj.adjacency.get(path).map(|n| n.len()).unwrap_or(0);
                     node
                 })
                 .collect();
@@ -309,12 +309,12 @@ fn get_orphaned_notes_from_meta(
     adj: &AdjacencyList,
 ) -> Result<Vec<OrphanDto>, String> {
     let orphans: Vec<OrphanDto> = meta
-        .all_slugs()
-        .filter(|slug| !adj.connected.contains(*slug))
-        .map(|slug| OrphanDto {
-            slug: slug.to_string(),
-            title: meta.slug_to_title.get(slug).cloned().unwrap_or_default(),
-            path: meta.slug_to_path.get(slug).cloned().unwrap_or_default(),
+        .all_paths()
+        .filter(|path| !adj.connected.contains(*path))
+        .map(|path| OrphanDto {
+            slug: meta.slug_for_path(path).unwrap_or_default().to_string(),
+            title: meta.title_for_path(path).unwrap_or_default().to_string(),
+            path: path.to_string(),
         })
         .collect();
 
@@ -420,13 +420,12 @@ pub async fn resolve_link_target(
     let store = state.get_store().map_err(|e| e.to_string())?;
     let meta = PageMetaIndex::from_store(&store)?;
 
-    let resolved_slug = meta.resolve_slug(&target);
-    let result = resolved_slug.map(|slug| {
-        let page_path = meta.slug_to_path.get(&slug).cloned();
-        let title = meta.slug_to_title.get(&slug).cloned();
+    let resolved_path = meta.resolve_path(&target);
+    let result = resolved_path.map(|path| {
+        let title = meta.title_for_path(&path).map(|s| s.to_string());
         LinkTargetDto {
-            page_path,
-            slug: Some(slug),
+            page_path: Some(path.clone()),
+            slug: meta.slug_for_path(&path).map(|s| s.to_string()),
             title,
         }
     });

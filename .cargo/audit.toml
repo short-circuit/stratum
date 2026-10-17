@@ -11,4 +11,8 @@ ignore = [
   # known-unmaintained transitive deps (no patched release / not upgrade-worthy)
   "RUSTSEC-2025-0057",  # fxhash — no longer maintained
   "RUSTSEC-2024-0384",  # instant — unmaintained
+  # lru (transitive: tantivy 0.22 pins ^0.12, dav-server 0.11 pins ^0.16; both
+  # already at latest compatible, so no upgrade path) — unfixed upstream
+  "RUSTSEC-2026-0002",  # IterMut violates Stacked Borrows (invalidates internal pointer)
+  "RUSTSEC-2026-0253",  # LruCache::pop() lack of panic safety (use-after-free)
 ]

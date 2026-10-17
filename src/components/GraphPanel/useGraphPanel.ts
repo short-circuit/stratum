@@ -273,7 +273,7 @@ export function useGraphPanel(): UseGraphPanelReturn {
     }
     // View mode: orphans
     else if (viewMode === 'orphans') {
-      const orphanIds = new Set(orphans.map((o) => o.slug));
+      const orphanIds = new Set(orphans.map((o) => o.path));
       resultNodes = graphData.nodes.filter((n) => orphanIds.has(n.id));
       resultEdges = [];
     }
@@ -283,10 +283,10 @@ export function useGraphPanel(): UseGraphPanelReturn {
       if (!graphSettings.show_connected && !graphSettings.show_orphaned) {
         nodes = [];
       } else if (!graphSettings.show_connected && graphSettings.show_orphaned) {
-        const orphanIds = new Set(orphans.map((o) => o.slug));
+        const orphanIds = new Set(orphans.map((o) => o.path));
         nodes = graphData.nodes.filter((n) => orphanIds.has(n.id));
       } else if (graphSettings.show_connected && !graphSettings.show_orphaned) {
-        const orphanIds = new Set(orphans.map((o) => o.slug));
+        const orphanIds = new Set(orphans.map((o) => o.path));
         nodes = graphData.nodes.filter((n) => !orphanIds.has(n.id));
       }
 
