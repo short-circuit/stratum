@@ -122,7 +122,10 @@ fn build_adjacency_list(
         // once that page exists; dead targets resolve to nothing and are dropped.
         // Ambiguous targets (multiple paths share a slug/title) also resolve to
         // nothing and are dropped.
-        let Some(target_path) = meta.resolve_path(target_ref) else {
+        // Belt-and-braces: stale pre-fix rows may store bracket-wrapped targets
+        // (`[[Text]]`); strip the wrapping before resolution.
+        let clean_ref = crate::commands::graph::meta::strip_wiki_brackets(target_ref);
+        let Some(target_path) = meta.resolve_path(&clean_ref) else {
             continue;
         };
 

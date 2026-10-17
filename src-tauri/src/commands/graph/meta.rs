@@ -24,6 +24,27 @@ pub(crate) fn slug_from_path(path: &str) -> String {
         .to_string()
 }
 
+/// Strip surrounding `[`/`]` characters from a wiki-link target reference.
+///
+/// Stale `links` rows written by pre-fix versions may store bracket-wrapped
+/// targets (`[[Docker]]`) because the old extractor leaked the wrapping into the
+/// target. Resolution must tolerate that so a vault upgrades gracefully and its
+/// edges appear on the first graph load, before any write/self-heal run.
+///
+/// This is a belt-and-braces fallback applied before `resolve_path_candidates`;
+/// the extraction-level fix in `pkm-markdown::linker` prevents new rows from
+/// being written wrapped in the first place.
+pub(crate) fn strip_wiki_brackets(target: &str) -> String {
+    let mut t = target.trim();
+    while t.starts_with('[') {
+        t = &t[1..];
+    }
+    while t.ends_with(']') {
+        t = &t[..t.len() - 1];
+    }
+    t.to_string()
+}
+
 /// Pre-built index of all pages in the vault, keyed by vault-relative path.
 ///
 /// Each map uses the path as the primary identity so that duplicate basename

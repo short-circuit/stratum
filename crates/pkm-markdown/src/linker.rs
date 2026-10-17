@@ -32,9 +32,11 @@ pub fn extract_links(text: &str) -> Vec<Link> {
                         let line = text[..link_start_byte].matches('\n').count() + 1;
 
                         if let Some(parsed) = parse_link_inner(&inner) {
+                            let (target, display_text) =
+                                unwrap_bracket_target(&parsed.0, parsed.1.as_deref());
                             links.push(Link {
-                                target: parsed.0,
-                                display_text: parsed.1,
+                                target,
+                                display_text,
                                 resolved: false,
                                 line,
                             });
@@ -86,6 +88,77 @@ fn parse_link_inner(inner: &str) -> Option<(String, Option<String>)> {
         let target = processed.replace(sentinel, "|").trim().to_string();
         Some((target, None))
     }
+}
+
+/// If `s` is exactly `[[<content>]]` (one full wrapping), return `<content>`.
+fn fully_wrapped(s: &str) -> Option<&str> {
+    if s.starts_with("[[") && s.ends_with("]]") && s.len() >= 4 {
+        Some(&s[2..s.len() - 2])
+    } else {
+        None
+    }
+}
+
+/// Collapse a bracket-wrapped wiki-link target to its bare inner target.
+///
+/// Corrupted/legacy content can leak `[[...]]` wrapping into a link target
+/// (e.g. `[[[[Docker]]]]` is scanned as target `[[Docker]]`, and the piped
+/// double-wrap `[[[[Alpha Project|display]]|display]]` as target
+/// `[[Alpha Project|display]]`). This normalizes a parsed target so graph
+/// resolution (`resolve_slug`) can match it, returning the normalized target
+/// plus its (possibly re-derived) display text.
+///
+/// The unwrap is structural, not a naive char strip of every `[`/`]`: it only
+/// collapses a target that is EXACTLY one full `[[...]]` wrapping whose middle
+/// is itself a single parseable link (no stray leading/trailing text). This leaves
+/// legitimately nested targets like `[[Outer [[Inner]] rest]]` untouched. The
+/// piped double-wrap is only collapsed when the outer and inner displays match
+/// (the duplicated-display corruption); a mismatched display (`[[[[A|b]]|c]]`)
+/// keeps the wrapped target as-is, mirroring the frontend `normalizeContent`.
+fn unwrap_bracket_target(target: &str, display: Option<&str>) -> (String, Option<String>) {
+    let mut cur = target.to_string();
+    let mut disp = display.map(|d| d.to_string());
+    let mut mismatch = false;
+
+    while let Some(middle) = fully_wrapped(&cur) {
+        // A legitimately nested target (`[[Outer [[Inner]] rest]]`, scanned as
+        // `Outer [[Inner]] rest`) is not a bare wrap — leave it untouched.
+        if middle.contains("[[") {
+            break;
+        }
+        // The middle must itself be parseable link content; an empty/whitespace
+        // middle parses to `None`, so keep the current target.
+        let Some((inner_target, inner_display)) = parse_link_inner(middle) else {
+            break;
+        };
+        // Piped double-wrap `[[[[A|b]]|c]]`: outer and inner displays disagree, so
+        // keep the wrapped target as-is (`[[A|b]]` raw). The frontend leaves this
+        // `full` match unchanged too.
+        if let (Some(d), Some(id)) = (disp.as_deref(), inner_display.as_deref()) {
+            if d != id {
+                mismatch = true;
+                break;
+            }
+        }
+        // Collapse one layer: adopt the inner target and display, then re-check —
+        // the inner target may itself be one more wrap deep (e.g. `[[[[Docker]]]]`).
+        cur = inner_target;
+        disp = inner_display;
+    }
+
+    // Defensive edge-strip for odd bracket counts (e.g. `[[[Docker]]]` scans as
+    // target `[Docker]`, which is not a full `[[...]]` wrap). Skipped when we kept
+    // a wrapped target for a mismatched display, which must stay wrapped.
+    if !mismatch {
+        while cur.starts_with('[') {
+            cur = cur[1..].to_string();
+        }
+        while cur.ends_with(']') {
+            cur = cur[..cur.len() - 1].to_string();
+        }
+    }
+
+    (cur, disp)
 }
 
 /// Resolve links against a set of known note slugs.
@@ -430,5 +503,29 @@ mod tests {
     fn test_extract_asset_links_no_assets() {
         let links = extract_asset_links("Just [[Note]] here");
         assert!(links.is_empty());
+    }
+
+    #[test]
+    fn test_strip_bracket_wrapped_target_double() {
+        let links = extract_links("See [[[[Docker]]]] for docs");
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0].target, "Docker");
+        assert!(links[0].display_text.is_none());
+    }
+
+    #[test]
+    fn test_strip_bracket_wrapped_target_triple() {
+        let links = extract_links("[[[Docker]]]");
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0].target, "Docker");
+        assert!(links[0].display_text.is_none());
+    }
+
+    #[test]
+    fn test_strip_bracket_wrapped_target_piped_double_wrap() {
+        let links = extract_links("[[[[Alpha Project|display]]|display]]");
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0].target, "Alpha Project");
+        assert_eq!(links[0].display_text.as_deref(), Some("display"));
     }
 }
