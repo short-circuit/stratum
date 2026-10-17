@@ -83,6 +83,7 @@ stratum/
 │   │   ├── theme.ts            # CSS variable generation (--primary-* shades)
 │   │   ├── muiTheme.ts         # MUI theme creation from config
 │   │   ├── wikiLinks.ts        # Wiki-link parsing/serialization
+│   │   ├── pageTree.ts          # Folder-tree grouping util (pages_view="tree")
 │   │   ├── libraryStore.ts     # Module-level library JSON cache
 │   │   ├── useCtrlHeld.ts      # Hook: Ctrl/Meta key tracking
 │   │   ├── useMathInline.tsx   # Hook: ProseMirror inline KaTeX plugin
@@ -112,6 +113,7 @@ stratum/
 │   │   │   ├── index.tsx
 │   │   │   ├── NavItemList.tsx
 │   │   │   ├── PageTree.tsx
+│   │   │   ├── PageTreeGrouped.tsx
 │   │   │   └── SidebarFooter.tsx
 │   │   ├── PageView/
 │   │   ├── OutlinerEditor/
@@ -325,6 +327,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `Sidebar` (`index.tsx`) | Drawer wrapper with collapse state, vault info, header |
 | `NavItemList` | Navigation items list (Journal, Graph, Kanban, etc.) |
 | `PageTree` | Page list with create/delete and new-page form |
+| `PageTreeGrouped` | Folder-tree variant of the page list when `pages_view = "tree"` |
 | `SidebarFooter` | Refresh/export/version footer |
 | `VaultPicker` | Landing page when no vault is configured |
 | `StratumIcon` | App icon SVG renderer |

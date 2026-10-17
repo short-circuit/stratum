@@ -822,7 +822,9 @@
     "path_e_g_pages_my_note_md": "Ruta (p. ej. pages/my-note.md)",
     "recent": "Recientes",
     "refresh": "Actualizar",
-    "title_optional": "Título (opcional)"
+    "title_optional": "Título (opcional)",
+    "expand_folder": "Expandir carpeta",
+    "collapse_folder": "Contraer carpeta"
   },
   "suggested_connections": {
     "add_wiki_link_to_this_page": "Añadir [[wiki-link]] a esta página",

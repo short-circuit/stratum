@@ -822,7 +822,9 @@
     "path_e_g_pages_my_note_md": "Path (e.g., pages/my-note.md)",
     "recent": "Recent",
     "refresh": "Refresh",
-    "title_optional": "Title (optional)"
+    "title_optional": "Title (optional)",
+    "expand_folder": "Expand folder",
+    "collapse_folder": "Collapse folder"
   },
   "suggested_connections": {
     "add_wiki_link_to_this_page": "Add [[wiki-link]] to this page",
