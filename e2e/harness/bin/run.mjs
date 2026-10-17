@@ -29,6 +29,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createSession, waitForApp, deleteSession, sleep } from '../lib/driver.js';
 import { beginRun, recordTest, writeResults, resultsPaths } from '../lib/results.js';
+import { runFlatTreeTests } from '../tests/flatTreeNavigation.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '../../..');
@@ -700,11 +701,15 @@ async function runTests(driver) {
     ok('get_blocks block ids unchanged after prose toggle cycle (no UUID churn)');
   } else {
     bad('get_blocks block ids unchanged after prose toggle cycle', `before=${JSON.stringify(preIds)} after=${JSON.stringify(postIds)}`);
-    await testExports(driver);
+  }
+
+  // ── Flat/Tree navigation E2E (t_8b845f80 acceptance coverage) ──
+  await runFlatTreeTests(driver, { ok, bad });
+
+  await testExports(driver);
 }
 
 async function testExports(driver) {
-  console.log('\n── Test 8: Export PDF / ZIP ──');
   const fs = await import('fs');
 
   const settingsRes = await driver.executeScript(
@@ -770,7 +775,7 @@ async function testExports(driver) {
   sec
     ? ok('settings export section renders PDF + ZIP actions')
     : bad('settings export section renders PDF + ZIP actions', exportBody.slice(0, 200));
-}}
+}
 
 async function main() {
   console.log('=== Stratum Automated E2E Harness ===');
