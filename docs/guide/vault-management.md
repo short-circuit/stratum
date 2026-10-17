@@ -168,9 +168,8 @@ Consequence: **moving a note inside the vault never breaks name links.** Path li
 
 If you rename or move a `.md` file **outside** Stratum (file manager, terminal, Obsidian, git pull):
 
-1. Stratum's file watcher picks up the change and re-indexes.
-2. The old page row disappears — no stale "ghost" page remains.
-3. **Name links** stay intact (name identity). **Path links** to the old path dangle until you either update them manually or use **Move / rename…** in the UI — which rewrites them for you.
+1. The stale row is cleaned up: while the app is running, the file watcher purges the old page's database rows and index entries (live, debounced); if Stratum was closed, the startup heal does the same at next launch.
+2. **Name links** stay intact (name identity). **Path links** to the old path dangle until you either update them manually or use **Move / rename…** in the UI — which rewrites them for you.
 
 !!! tip "Prefer the in-app move"
     For renames, use **Move / rename…** instead of an external `mv`: it is the only path that rewrites inbound links automatically. For folder-only moves (filename unchanged), an external `mv` is safe — name links are not affected.

@@ -53,7 +53,7 @@ Stratum deliberately uses **name identity** (not path identity) as the primary k
 3. **Path-qualified targets are never ambiguous** — they match exactly one path.
 4. **Block references `((uuid))` are path-independent** — moving or renaming a page never affects them.
 
-If you move a page, Stratum rewrites all inbound path/slug links automatically (see `move_page`). If you move the page's *file* outside Stratum, name links keep working; path links dangle until you run **Move / rename…** from within the app.
+If you move a page, Stratum rewrites all inbound path/slug links automatically (see `move_page`). If you move the page's *file* outside Stratum, name links keep working (and the stale row is purged by the watcher or at next launch); path links dangle until you run **Move / rename…** from within the app.
 
 ### Navigating
 
