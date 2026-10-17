@@ -112,6 +112,18 @@ pub struct VaultLayout {
     pub journals_dir: String,
     /// Vault-relative directory for voice memo audio clips.
     pub recordings_dir: String,
+    /// Page list rendering mode: "flat" (default, current behavior) or "tree" (folder hierarchy).
+    #[serde(default = "default_pages_view")]
+    pub pages_view: String,
+}
+
+/// Default page-list rendering mode: `"flat"` (the current behavior).
+///
+/// A dedicated `#[serde(default = ...)]` function (rather than relying on the
+/// struct-level `#[serde(default)]`) is required so configs written before this
+/// field existed load with `"flat"` instead of an empty string.
+fn default_pages_view() -> String {
+    "flat".to_string()
 }
 
 impl Default for VaultLayout {
@@ -120,6 +132,7 @@ impl Default for VaultLayout {
             pages_dir: "pages".to_string(),
             journals_dir: "journals".to_string(),
             recordings_dir: "assets/recordings".to_string(),
+            pages_view: "flat".to_string(),
         }
     }
 }

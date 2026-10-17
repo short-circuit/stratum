@@ -10,6 +10,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '../../stores/appStore';
 import { useRecentsStore } from '../../stores/recentsStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 import * as api from '../../lib/commands';
 import StratumIcon from '../StratumIcon';
 import NavItemList, { type TabId } from './NavItemList';
@@ -32,6 +33,7 @@ export default function Sidebar() {
   // watcher). The store applies the same journal exclusion + ordering the
   // list previously derived ad hoc from the full page list.
   const recents = useRecentsStore(s => s.recents);
+  const pagesView = useSettingsStore(s => s.settings?.layout?.pages_view ?? 'flat');
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -151,6 +153,7 @@ export default function Sidebar() {
           onDeletePage={handleDelete}
           onNavigate={navigate}
           onNavigateHome={handleNavigateHome}
+          pagesView={pagesView}
         />
       </Box>
 
