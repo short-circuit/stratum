@@ -183,3 +183,178 @@ fn sync_filesystem_to_db_heals_bracket_wrapped_links_clean() {
     assert_eq!(rows.len(), 1, "row count stable across re-sync");
     assert_eq!(rows[0].1, "Docker");
 }
+
+/// Task acceptance (t_03247cfb): corrupted quad-bracket wiki-links must heal into
+/// clean `links` rows AND produce real graph edges through the actual Tauri IPC
+/// command path. This is the end-to-end shape the acceptance card demands:
+/// A.md with `See [[[[Docker]]]]` + Docker.md page → sync → heal → graph command
+/// returns source == "a" / target == "docker", with idempotent re-heal.
+#[test]
+fn corrupted_quad_bracket_links_produce_graph_edges() {
+    let tv = common::create_test_vault();
+    seed_page(
+        &tv,
+        "pages/docker.md",
+        "Docker",
+        &[],
+        "---\ntitle: Docker\n---\n- Docker basics\n",
+    );
+    seed_page(
+        &tv,
+        "pages/a.md",
+        "A",
+        &[],
+        "---\ntitle: A\n---\n- See [[[[Docker]]]] for details\n",
+    );
+
+    // Corrupt state: blocks exist but the links table has no rows for the source
+    // page (simulates a pre-fix vault where reconcile never ran).
+    tv.store.delete_links_for_page("pages/a.md").unwrap();
+    let before = tv.store.get_page_ref_edges().unwrap();
+    assert_eq!(before.len(), 0, "pre-heal: no page_ref rows at all");
+
+    // Boot-time heal restores the row with a CLEAN target.
+    let healed = app_lib::commands::page::heal_missing_page_links(&tv.store).unwrap();
+    assert_eq!(healed, 1, "exactly one page owns a recoverable link");
+
+    let rows = tv.store.get_page_ref_edges().unwrap();
+    assert_eq!(rows.len(), 1, "links table: exactly 1 page_ref row");
+    assert_eq!(rows[0].0, "pages/a.md");
+    assert_eq!(rows[0].1, "Docker", "target stored clean — no brackets");
+
+    // Idempotency: re-run must heal nothing and change no rows.
+    let healed2 = app_lib::commands::page::heal_missing_page_links(&tv.store).unwrap();
+    assert_eq!(healed2, 0, "second heal run: nothing new to heal");
+    let rows2 = tv.store.get_page_ref_edges().unwrap();
+    assert_eq!(rows2.len(), 1, "row count unchanged after re-heal");
+    assert_eq!(rows2[0].1, "Docker");
+
+    // The graph command (real IPC dispatch) returns the healed edge with clean slugs.
+    graph::invalidate_graph_cache();
+    let app = build_app(&tv);
+    let wv = webview(&app);
+    let resp = invoke(&wv, "get_graph_panel_data", json!({})).expect("graph loads");
+    let edges = resp["graph"]["edges"].as_array().expect("edges array");
+    assert_eq!(edges.len(), 1, "graph must expose the healed edge");
+    assert_eq!(
+        edges[0]["source"], "a",
+        "source slug resolved from pages/a.md"
+    );
+    assert_eq!(edges[0]["target"], "docker", "target slug resolved cleanly");
+}
+
+/// Acceptance smoke (t_03247cfb job 2): drive the REAL `sync_filesystem_to_db`
+/// and `get_page_ref_edges` path against a copy of the live vault at
+/// `/home/shrtcrct/StratumVault`. Gated `#[ignore]`; run manually with the test
+/// command `cargo test -p stratum-tauri --test graph_link_healing -- --ignored
+/// real_vault_copy_heals_corrupted_links_and_restores_edges --nocapture`.
+///
+/// The live vault is ALREADY healed (its `links` table has 5,082 page_ref rows
+/// from a prior boot), so to reproduce the CORRUPT state the harness copies the
+/// vault, nulls the `links` table (the pre-fix state), then runs the sync/heal
+/// path. It asserts:
+///   * before: 0 page_ref rows (simulated corruption),
+///   * after:   ≥ 500 rows, exact count reported,
+///   * the known edge `Networking.md → Docker` (Networking.md:15) resolves with
+///     clean target `Docker` (no brackets),
+///   * idempotent re-run: 0 new rows.
+#[test]
+#[ignore]
+fn real_vault_copy_heals_corrupted_links_and_restores_edges() {
+    let mut src = std::path::PathBuf::from("/home/shrtcrct/StratumVault");
+    if let Ok(alt) = std::env::var("STRATUM_REAL_VAULT") {
+        src = alt.into();
+    }
+    assert!(src.exists(), "live vault must exist");
+
+    let tmp = tempfile::tempdir().expect("temp dir");
+    let copy = tmp.path().join("vault-copy");
+
+    // Copy the LIVE vault's blocks.db (it already holds the page/block rows) and
+    // the .md tree. Then clear the `links` table to reproduce the PRE-FIX
+    // corrupted state (blocks exist but no link rows).
+    std::fs::create_dir_all(copy.join(".pkm")).expect("create .pkm");
+    std::fs::copy(
+        src.join(".pkm").join("blocks.db"),
+        copy.join(".pkm").join("blocks.db"),
+    )
+    .expect("copy blocks.db");
+    copy_tree(&src, &copy);
+
+    let db_path = copy.join(".pkm").join("blocks.db");
+    // Reproduce the corrupted state: pre-fix DBs have empty `links` tables.
+    {
+        let store = pkm_block::BlockStore::open(&db_path).expect("open fresh db");
+        store
+            .execute_batch("DELETE FROM links")
+            .expect("clear links");
+        let before = store.get_page_ref_edges().expect("edges pre-heal");
+        assert_eq!(before.len(), 0, "corrupted state: no edges");
+        println!("BEFORE: 0 page_ref rows (links table cleared to pre-fix state)");
+    }
+
+    let synced = app_lib::commands::page::sync_filesystem_to_db(&copy, &db_path)
+        .expect("sync_filesystem_to_db");
+    println!("SYNCED pages/blocks count: {synced}");
+
+    let store = pkm_block::BlockStore::open(&db_path).expect("reopen db");
+    let edges = store.get_page_ref_edges().expect("edges post-heal");
+    println!("AFTER: {} page_ref rows", edges.len());
+    assert!(
+        edges.len() >= 500,
+        "expected >= 500 recovered page_ref edges for the real vault, got {}",
+        edges.len()
+    );
+
+    // Known edge: Networking.md:15 has `[[Docker]]` (in the real vault the file
+    // uses clean `[[Docker]]`; the corrupting path is the pre-fix extractor that
+    // stored `[[Docker]]`). What we assert here is the row resolves with a CLEAN
+    // target so the graph slug resolution can match `Docker.md`.
+    let net_docker: Vec<_> = edges
+        .iter()
+        .filter(|(s, t)| s.ends_with("Networking.md") && t == "Docker")
+        .collect();
+    assert_eq!(
+        net_docker.len(),
+        1,
+        "exactly one Networking.md -> Docker edge, got {:?}",
+        net_docker
+    );
+    println!("KNOWN EDGE: Networking.md -> Docker present, clean target");
+
+    // Idempotency: re-running sync must not inflate the count.
+    let synced2 =
+        app_lib::commands::page::sync_filesystem_to_db(&copy, &db_path).expect("second sync");
+    println!("SYNCED (2nd run): {synced2} (expect 0 new)");
+    let edges2 = store.get_page_ref_edges().expect("edges after 2nd sync");
+    assert_eq!(
+        edges2.len(),
+        edges.len(),
+        "row count must be stable across re-sync"
+    );
+}
+
+/// Copy a directory tree (files + subdirs) preserving relative structure.
+/// Skips `.git` and Tantivy `search` dirs to keep the copy light; `MdCollector`
+/// only reads `.md` files, so the search index is irrelevant for the sync path.
+fn copy_tree(src: &std::path::Path, dst: &std::path::Path) {
+    std::fs::create_dir_all(dst).expect("create dst");
+    for entry in std::fs::read_dir(src).expect("read src dir") {
+        let entry = entry.expect("entry");
+        let name = entry.file_name();
+        let name_str = name.to_string_lossy().to_string();
+        if name_str == ".git" || name_str == "search" || name_str == "search.idx" {
+            continue;
+        }
+        let from = entry.path();
+        let to = dst.join(&name);
+        if from.is_dir() {
+            copy_tree(&from, &to);
+        } else {
+            if let Some(parent) = to.parent() {
+                std::fs::create_dir_all(parent).ok();
+            }
+            std::fs::copy(&from, &to).expect("copy file");
+        }
+    }
+}
