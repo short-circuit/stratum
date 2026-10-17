@@ -6,6 +6,8 @@ import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import TextField from '@mui/material/TextField';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import ToggleButton from '@mui/material/ToggleButton';
 import { useTranslation } from 'react-i18next';
 import { useSettingsPage } from './SettingsPage.shared';
 import MobileThemeSection from './MobileThemeSection';
@@ -67,6 +69,8 @@ export default function SettingsPageMobile() {
     updateVoice,
     reminders,
     updateReminders,
+    layout,
+    updateLayout,
     // Sync
     syncSettings,
     updateSync,
@@ -145,6 +149,24 @@ export default function SettingsPageMobile() {
           >
             {t('importers.import_notes')}
           </Button>
+          <Box sx={{ mt: 2 }}>
+            <Typography
+              variant="caption"
+              sx={{ display: 'block', color: 'text.secondary', fontWeight: 500, mb: 0.75 }}
+            >
+              {t('settings.pages_view')}
+            </Typography>
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              value={layout?.pages_view ?? 'flat'}
+              onChange={(_, v) => v && updateLayout({ pages_view: v })}
+              sx={{ mb: 1 }}
+            >
+              <ToggleButton value="flat">{t('settings.pages_view_flat')}</ToggleButton>
+              <ToggleButton value="tree">{t('settings.pages_view_tree')}</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
         </Box>
         <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
         <Box sx={{ px: 2, pt: 2 }}>

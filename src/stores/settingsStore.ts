@@ -82,6 +82,7 @@ export interface AppSettings {
   tray: TraySettings;
   voice: VoiceSettings;
   reminders: ReminderSettings;
+  layout?: { pages_view: string };
   [key: string]: unknown;
 }
 
@@ -222,6 +223,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   tray: DEFAULT_TRAY,
   voice: DEFAULT_VOICE,
   reminders: DEFAULT_REMINDERS,
+  layout: { pages_view: 'flat' } as { pages_view: string },
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({

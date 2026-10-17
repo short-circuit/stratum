@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 pub struct SettingsDto {
     pub vault_path: String,
     pub locale: String,
+    #[serde(default)]
+    pub layout: LayoutSettingsDto,
     pub theme: ThemeSettingsDto,
     pub ai: AiSettingsDto,
     pub research: ResearchSettingsDto,
@@ -20,6 +22,22 @@ pub struct SettingsDto {
     pub voice: VoiceSettingsDto,
     #[serde(default)]
     pub reminders: ReminderSettingsDto,
+}
+
+/// Vault layout settings, mirroring the `layout` section of `pkm_core::Config`.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(default)]
+pub struct LayoutSettingsDto {
+    /// "flat" | "tree" — page list rendering mode for the current vault.
+    pub pages_view: String,
+}
+
+impl Default for LayoutSettingsDto {
+    fn default() -> Self {
+        Self {
+            pages_view: "flat".to_string(),
+        }
+    }
 }
 
 /// Block reminder settings, mirroring `pkm_core::ReminderConfig`.
@@ -290,6 +308,9 @@ pub async fn get_settings(state: tauri::State<'_, AppState>) -> Result<SettingsD
     Ok(SettingsDto {
         vault_path: config.vault_path.to_string_lossy().to_string(),
         locale: config.locale.clone(),
+        layout: LayoutSettingsDto {
+            pages_view: config.layout.pages_view.clone(),
+        },
         theme: ThemeSettingsDto {
             dark_mode: config.theme.dark_mode,
             primary_color: config.theme.primary_color.clone(),
@@ -463,6 +484,24 @@ pub async fn save_settings<R: tauri::Runtime>(
         _ => pkm_core::CaptureTarget::Journal,
     };
 
+    // Preserve custom layout directories (pages_dir/journals_dir/recordings_dir)
+    // that are not exposed in the DTO. When a config already exists, load its
+    // `layout` and overwrite only `pages_view`; otherwise start from defaults.
+    let pages_view = settings.layout.pages_view.clone();
+    let layout = if config_path.exists() {
+        let mut existing = pkm_core::Config::load(&config_path)
+            .ok()
+            .map(|c| c.layout)
+            .unwrap_or_default();
+        existing.pages_view = pages_view;
+        existing
+    } else {
+        pkm_core::VaultLayout {
+            pages_view,
+            ..Default::default()
+        }
+    };
+
     let config = pkm_core::Config {
         vault_path: std::path::PathBuf::from(&settings.vault_path),
         locale: settings.locale.clone(),
@@ -628,6 +667,7 @@ pub async fn save_settings<R: tauri::Runtime>(
             enabled: settings.reminders.enabled,
             sound: settings.reminders.sound,
         },
+        layout,
         ..pkm_core::Config::default()
     };
 

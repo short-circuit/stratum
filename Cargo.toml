@@ -68,7 +68,7 @@ base64 = "0.22"
 url = "2"
 
 # Export (PDF/ZIP)
-zip = "4"
+zip = "9"
 latex2mathml = "0.2"
 
 # Plugin
