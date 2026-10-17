@@ -250,8 +250,11 @@ pub fn run() {
                                     Err(_) => return,
                                 };
                                 let vp = state.vault_path.clone();
-                                // Sync page data into SQLite
-                                let _ = crate::commands::page::sync_page_from_disk(
+                                // Sync page data into SQLite; if the file is
+                                // gone (old-path half of a rename, or a delete
+                                // surfaced as Modify) this deletes the stale
+                                // rows instead of failing on the missing file.
+                                let synced = crate::commands::page::handle_renamed_or_created(
                                     &store, &rel, &vp, None,
                                 );
                                 // Drop BlockStore and cached BlockIndex before
@@ -259,7 +262,22 @@ pub fn run() {
                                 drop(store);
                                 drop(state.block_index.take());
                                 if let Ok(ie) = state.ensure_index() {
-                                    let _ = ie.refresh_page(&rel, &vp);
+                                    match synced {
+                                        // File is gone: purge search index
+                                        // (mirrors the Deleted arm).
+                                        Ok(false) => {
+                                            tracing::debug!(
+                                                "[stratum] watcher: {} gone, purging stale rows + index",
+                                                rel
+                                            );
+                                            let _ = ie.remove_note(&rel);
+                                        }
+                                        // File present (synced) or transient
+                                        // read error: refresh as before.
+                                        Ok(true) | Err(_) => {
+                                            let _ = ie.refresh_page(&rel, &vp);
+                                        }
+                                    }
                                 }
                             }
                             pkm_core::FileEvent::Deleted => {
