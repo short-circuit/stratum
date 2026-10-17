@@ -112,6 +112,8 @@ stratum/
 │   │   ├── Sidebar/
 │   │   │   ├── index.tsx
 │   │   │   ├── NavItemList.tsx
+│   │   │   ├── MovePageDialog.tsx
+│   │   │   ├── MovePageDialog.test.tsx
 │   │   │   ├── PageTree.tsx
 │   │   │   ├── PageTreeGrouped.tsx
 │   │   │   └── SidebarFooter.tsx
@@ -326,8 +328,9 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 |-----------|---------|
 | `Sidebar` (`index.tsx`) | Drawer wrapper with collapse state, vault info, header |
 | `NavItemList` | Navigation items list (Journal, Graph, Kanban, etc.) |
-| `PageTree` | Page list with create/delete and new-page form |
+| `PageTree` | Page list with create/delete, move/rename dialog, new-page form |
 | `PageTreeGrouped` | Folder-tree variant of the page list when `pages_view = "tree"` |
+| `MovePageDialog` | PageTree (Sidebar) / PageView desktop | Rename/move a page by path — calls move_page; inbound wiki-links rewritten by backend | docs/guide/vault-management.md |
 | `SidebarFooter` | Refresh/export/version footer |
 | `VaultPicker` | Landing page when no vault is configured |
 | `StratumIcon` | App icon SVG renderer |

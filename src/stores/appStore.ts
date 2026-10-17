@@ -57,6 +57,9 @@ export interface AppState {
   openPage: (path: string) => Promise<void>;
   createPage: (path: string, title?: string) => Promise<void>;
   deletePage: (path: string) => Promise<void>;
+  /** Move/rename a page (backend rewrites inbound wiki-links). Returns true on success,
+   *  false on failure (error surfaced via showError). */
+  movePage: (oldPath: string, newPath: string) => Promise<boolean>;
   pickVaultDirectory: () => Promise<void>;
   setThemeConfig: (config: ThemeConfig) => void;
   setHighlightBlock: (payload: { pagePath: string; blockId: string } | null) => void;
@@ -182,6 +185,19 @@ export const useStore = create<AppState>((set, get) => ({
       useRecentsStore.getState().refresh();
     } catch (e) {
       get().showError(String(e));
+    }
+  },
+
+  movePage: async (oldPath: string, newPath: string) => {
+    try {
+      await api.movePage(oldPath, newPath);
+      await get().loadPages();
+      get().clearTransientError();
+      useRecentsStore.getState().refresh();
+      return true;
+    } catch (e) {
+      get().showError(String(e));
+      return false;
     }
   },
 

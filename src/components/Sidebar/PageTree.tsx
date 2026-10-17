@@ -11,9 +11,11 @@ import Tooltip from '@mui/material/Tooltip';
 import AddIcon from '@mui/icons-material/Add';
 import ArticleIcon from '@mui/icons-material/Article';
 import DeleteIcon from '@mui/icons-material/Delete';
+import DriveFileMoveIcon from '@mui/icons-material/DriveFileMove';
 import type { PageDto } from '../../lib/types';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import PageTreeGrouped from './PageTreeGrouped';
+import MovePageDialog from './MovePageDialog';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
@@ -27,6 +29,7 @@ interface Props {
   onNewTitleChange: (v: string) => void;
   onCreatePage: () => Promise<void>;
   onDeletePage: (path: string) => void;
+  onMovePage: (oldPath: string, newPath: string) => Promise<boolean>;
   onNavigate: (path: string) => void;
   onNavigateHome?: () => void;
   /** Which page-list presentation to use: 'flat' (default) or 'tree'. */
@@ -44,12 +47,14 @@ const PageTree = memo(function PageTree({
   onNewTitleChange,
   onCreatePage,
   onDeletePage,
+  onMovePage,
   onNavigate,
   onNavigateHome,
   pagesView = 'flat',
 }: Props) {
   const { t } = useTranslation();
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [moveTarget, setMoveTarget] = useState<PageDto | null>(null);
 
   if (collapsed) return null;
 
@@ -130,7 +135,7 @@ const PageTree = memo(function PageTree({
               key={page.path}
               dense
               onClick={() => onNavigate(`/page/${encodeURIComponent(page.path)}`)}
-              sx={{ borderRadius: 1, '&:hover .delete-btn': { opacity: 1 } }}
+              sx={{ borderRadius: 1, '&:hover .delete-btn': { opacity: 1 }, '&:hover .move-btn': { opacity: 1 } }}
             >
               <ListItemText
                 primary={page.title || page.slug}
@@ -140,6 +145,25 @@ const PageTree = memo(function PageTree({
                 }}
                 secondary={page.block_count ? `${page.block_count}b` : undefined}
               />
+              <IconButton
+                size="small"
+                className="move-btn"
+                sx={{
+                  opacity: 0,
+                  color: 'text.secondary',
+                  ml: 0.5,
+                  p: 0.25,
+                  '&:hover': { bgcolor: 'action.hover', color: 'primary.main' },
+                }}
+                onClick={e => {
+                  e.stopPropagation();
+                  setMoveTarget(page);
+                }}
+                aria-label={t('sidebar.move_rename')}
+                title={t('sidebar.move_rename')}
+              >
+                <DriveFileMoveIcon fontSize="inherit" />
+              </IconButton>
               <IconButton
                 size="small"
                 className="delete-btn"
@@ -178,6 +202,14 @@ const PageTree = memo(function PageTree({
           setDeleteTarget(null);
         }}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <MovePageDialog
+        open={moveTarget !== null}
+        page={moveTarget}
+        pages={pages}
+        onClose={() => setMoveTarget(null)}
+        onSubmit={onMovePage}
       />
     </>
   );
