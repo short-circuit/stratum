@@ -10,7 +10,9 @@
 //!   * the boot-time `heal_missing_page_links` restores the missing `links` row
 //!     with a CLEAN target,
 //!   * the heal is idempotent (a converged vault returns 0 on re-run),
-//!   * the graph command returns the healed edge with clean slugs.
+//!   * the graph command returns the healed edge with clean path-identity
+//!     endpoints (post-disambiguation node identity: one node per vault-relative
+//!     path).
 //!
 //! NOTE on the process-global cache: `get_graph_panel_data` caches its result in a
 //! process-global `OnceLock` (`GRAPH_CACHE`) that is NOT keyed by vault. The mock
@@ -133,15 +135,15 @@ fn sync_heals_bracket_wrapped_links_and_graph_returns_edge() {
     assert_eq!(rows[0].0, "pages/source.md");
     assert_eq!(rows[0].1, "Docker", "target stored clean, no brackets");
 
-    // The graph command returns the edge with clean slugs.
+    // The graph command returns the edge with clean path-identity endpoints.
     graph::invalidate_graph_cache();
     let app = build_app(&tv);
     let wv = webview(&app);
     let resp = invoke(&wv, "get_graph_panel_data", json!({})).expect("graph loads");
     let edges = resp["graph"]["edges"].as_array().expect("edges array");
     assert_eq!(edges.len(), 1, "graph must return the healed edge");
-    assert_eq!(edges[0]["source"], "source");
-    assert_eq!(edges[0]["target"], "docker");
+    assert_eq!(edges[0]["source"], "pages/source.md");
+    assert_eq!(edges[0]["target"], "pages/docker.md");
 }
 
 /// Full boot-path regression: the production `sync_filesystem_to_db` (startup
@@ -229,7 +231,8 @@ fn corrupted_quad_bracket_links_produce_graph_edges() {
     assert_eq!(rows2.len(), 1, "row count unchanged after re-heal");
     assert_eq!(rows2[0].1, "Docker");
 
-    // The graph command (real IPC dispatch) returns the healed edge with clean slugs.
+    // The graph command (real IPC dispatch) returns the healed edge with
+    // path-identity endpoints (post-disambiguation node identity).
     graph::invalidate_graph_cache();
     let app = build_app(&tv);
     let wv = webview(&app);
@@ -237,10 +240,10 @@ fn corrupted_quad_bracket_links_produce_graph_edges() {
     let edges = resp["graph"]["edges"].as_array().expect("edges array");
     assert_eq!(edges.len(), 1, "graph must expose the healed edge");
     assert_eq!(
-        edges[0]["source"], "a",
-        "source slug resolved from pages/a.md"
+        edges[0]["source"], "pages/a.md",
+        "source path resolved from pages/a.md"
     );
-    assert_eq!(edges[0]["target"], "docker", "target slug resolved cleanly");
+    assert_eq!(edges[0]["target"], "pages/docker.md", "target path resolved cleanly");
 }
 
 /// Acceptance smoke (t_03247cfb job 2): drive the REAL `sync_filesystem_to_db`
