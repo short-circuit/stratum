@@ -18,9 +18,11 @@ import SuggestedConnectionsPanel from '../SuggestedConnectionsPanel';
 import DictationPanel from '../DictationPanel';
 import AttachmentPanel, { FILE_INPUT_ID } from '../AttachmentPanel';
 import ProseView from './prose';
+import MovePageDialog from '../Sidebar/MovePageDialog';
 import { usePageView } from './shared';
 import * as api from '../../lib/commands';
 import { useStore } from '../../stores/appStore';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 export default function PageViewDesktop() {
@@ -28,6 +30,10 @@ export default function PageViewDesktop() {
   const { pagePath, currentPage, editorKey, reindexing, handleReindex, handleDelete, prose, setProse, focusBlockId, setFocusBlockId } = usePageView();
   const [noteMenuAnchor, setNoteMenuAnchor] = useState<HTMLElement | null>(null);
   const [dictationOpen, setDictationOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const movePage = useStore(s => s.movePage);
+  const pages = useStore(s => s.pages);
+  const navigate = useNavigate();
 
   // Reminder highlight-on-open: capture a pending highlight for THIS page once,
   // pass it to the editor, then immediately consume it from the global store so
@@ -56,6 +62,18 @@ export default function PageViewDesktop() {
   }, [currentPage, t]);
 
   const closeMenu = () => setNoteMenuAnchor(null);
+
+  const handleMovePage = useCallback(async (oldPath: string, newPath: string): Promise<boolean> => {
+    const ok = await movePage(oldPath, newPath);
+    if (ok) {
+      useStore.getState().showError(
+        t('sidebar.move_page_success', { old: oldPath, new: newPath }),
+        { autoDismissMs: 2000 },
+      );
+      navigate(`/page/${encodeURIComponent(newPath)}`);
+    }
+    return ok;
+  }, [movePage, navigate, t]);
 
   if (!pagePath) {
     return (
@@ -133,6 +151,7 @@ export default function PageViewDesktop() {
           <ListSubheader sx={{ lineHeight: '28px', fontSize: '0.7rem', color: 'text.disabled' }}>{t('page.actions')}</ListSubheader>
           <MenuItem onClick={() => { handleReindex(); closeMenu(); }} disabled={reindexing} dense>{t('page.reindex_note')}</MenuItem>
           <MenuItem onClick={() => { handleNormalizeFile(); closeMenu(); }} dense>{t('page.normalize_file')}</MenuItem>
+          <MenuItem onClick={() => { setMoveOpen(true); closeMenu(); }} dense>{t('sidebar.move_rename')}</MenuItem>
           <Divider />
           <MenuItem onClick={() => { handleDelete(); closeMenu(); }} dense sx={{ color: 'error.main' }}>{t('page.delete_page')}</MenuItem>
         </Menu>
@@ -163,6 +182,13 @@ export default function PageViewDesktop() {
       <AttachmentPanel pagePath={currentPage.path} />
       <BacklinksPanel pagePath={currentPage.path} />
       <SuggestedConnectionsPanel pagePath={currentPage.path} />
+      <MovePageDialog
+        open={moveOpen}
+        page={currentPage}
+        pages={pages}
+        onClose={() => setMoveOpen(false)}
+        onSubmit={handleMovePage}
+      />
     </Box>
   );
 }

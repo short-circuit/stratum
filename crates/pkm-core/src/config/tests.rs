@@ -469,3 +469,44 @@ fn test_old_config_without_discovery_fields_loads() {
     assert_eq!(loaded.ai.extra_local_hosts, Vec::<String>::new());
     assert_eq!(loaded.ai.last_discovered, Vec::<DiscoveredEndpoint>::new());
 }
+
+#[test]
+fn test_vault_layout_pages_view_default_is_flat() {
+    assert_eq!(VaultLayout::default().pages_view, "flat");
+}
+
+#[test]
+fn test_vault_layout_pages_view_serde_roundtrip() {
+    let dir = TempDir::new().unwrap();
+    let config_path = dir.path().join("config.toml");
+
+    let cfg = Config {
+        layout: VaultLayout {
+            pages_view: "tree".into(),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    cfg.save(&config_path).unwrap();
+
+    let loaded = Config::load(&config_path).unwrap();
+    assert_eq!(loaded.layout.pages_view, "tree");
+}
+
+#[test]
+fn test_old_config_without_pages_view_loads_flat() {
+    // A config that omits the [layout] table entirely must load pages_view="flat".
+    let dir = TempDir::new().unwrap();
+    let config_path = dir.path().join("config.toml");
+    std::fs::write(&config_path, "[theme]\ndark_mode = false\n").unwrap();
+    let loaded = Config::load(&config_path).unwrap();
+    assert_eq!(loaded.layout.pages_view, "flat");
+
+    // A config with a [layout] table that predates pages_view must load "flat"
+    // while preserving any configured layout directories.
+    let config_path2 = dir.path().join("config2.toml");
+    std::fs::write(&config_path2, "[layout]\npages_dir = \"docs\"\n").unwrap();
+    let loaded2 = Config::load(&config_path2).unwrap();
+    assert_eq!(loaded2.layout.pages_view, "flat");
+    assert_eq!(loaded2.layout.pages_dir, "docs");
+}

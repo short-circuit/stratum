@@ -12,6 +12,7 @@ vi.mock('../lib/commands', () => ({
   openPage: vi.fn(),
   createPage: vi.fn(),
   deletePage: vi.fn(),
+  movePage: vi.fn(),
 }));
 
 const PAGE: PageDto = {
@@ -81,6 +82,25 @@ describe('appStore — recents refresh wiring (page ops)', () => {
 
     await useStore.getState().createPage('pages/a.md');
 
+    expect(refreshSpy).not.toHaveBeenCalled();
+  });
+
+  it('movePage triggers a recents refresh after the page is moved', async () => {
+    (api.movePage as ReturnType<typeof vi.fn>).mockResolvedValue({ ...PAGE, path: 'pages/b.md' });
+
+    const ok = await useStore.getState().movePage('pages/a.md', 'pages/b.md');
+
+    expect(api.movePage).toHaveBeenCalledWith('pages/a.md', 'pages/b.md');
+    expect(ok).toBe(true);
+    expect(refreshSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not refresh when movePage fails (no stale-list churn on error)', async () => {
+    (api.movePage as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('boom'));
+
+    const ok = await useStore.getState().movePage('pages/a.md', 'pages/b.md');
+
+    expect(ok).toBe(false);
     expect(refreshSpy).not.toHaveBeenCalled();
   });
 });

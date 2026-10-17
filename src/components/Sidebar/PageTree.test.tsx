@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import PageTree from './PageTree';
 import type { PageDto } from '../../lib/types';
@@ -17,6 +17,13 @@ const PAGE_B: PageDto = {
   block_count: 0,
   modified_at: '2026-09-22T11:00:00Z',
 };
+const PAGE_NESTED: PageDto = {
+  path: 'pages/projects/b.md',
+  slug: 'b',
+  title: null,
+  block_count: 0,
+  modified_at: '2026-09-22T12:00:00Z',
+};
 
 function renderPageTree(pages: PageDto[]) {
   const props = {
@@ -30,6 +37,7 @@ function renderPageTree(pages: PageDto[]) {
     onNewTitleChange: vi.fn(),
     onCreatePage: vi.fn(),
     onDeletePage: vi.fn(),
+    onMovePage: vi.fn(() => Promise.resolve(true)),
     onNavigate: vi.fn(),
     onNavigateHome: vi.fn(),
   };
@@ -78,5 +86,31 @@ describe('PageTree — sidebar recents list consumer', () => {
     expect(props.onDeletePage).not.toHaveBeenCalled();
     fireEvent.click(screen.getAllByText('Delete')[0]);
     expect(props.onDeletePage).toHaveBeenCalledWith('pages/a.md');
+  });
+
+  it('renders the flat list when pagesView is "flat" (default)', () => {
+    const { props } = renderPageTree([PAGE_NESTED]);
+    // With the default (flat) view a nested path stays a single flat item and
+    // navigates straight to the encoded path — it is not grouped into folders.
+    expect(screen.getByText('b')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('b'));
+    expect(props.onNavigate).toHaveBeenCalledWith('/page/pages%2Fprojects%2Fb.md');
+  });
+
+  it('opens the move dialog from the row move button and submits the new path', async () => {
+    const { props } = renderPageTree([PAGE_A]);
+    const moveBtn = screen.getByText('Alpha')
+      .closest('.MuiListItemButton-root')!
+      .querySelector('.move-btn') as HTMLElement;
+    fireEvent.click(moveBtn);
+    expect(screen.getByText('Move page')).toBeInTheDocument();
+    const input = screen.getByLabelText('New path') as HTMLInputElement;
+    await waitFor(() => expect(input.value).toBe('pages/a.md'));
+    fireEvent.change(input, { target: { value: 'pages/moved.md' } });
+    fireEvent.click(screen.getByText('Move'));
+    await waitFor(() =>
+      expect(props.onMovePage).toHaveBeenCalledWith('pages/a.md', 'pages/moved.md'),
+    );
+    await waitFor(() => expect(screen.queryByText('Move page')).toBeNull());
   });
 });

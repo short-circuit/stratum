@@ -10,6 +10,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '../../stores/appStore';
 import { useRecentsStore } from '../../stores/recentsStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 import * as api from '../../lib/commands';
 import StratumIcon from '../StratumIcon';
 import NavItemList, { type TabId } from './NavItemList';
@@ -23,8 +24,8 @@ const DRAWER_COLLAPSED = 52;
 
 export default function Sidebar() {
   const { t } = useTranslation();
-  const { vault, loadPages, createPage, deletePage } = useStore(useShallow(
-    s => ({ vault: s.vault, loadPages: s.loadPages, createPage: s.createPage, deletePage: s.deletePage }),
+  const { vault, loadPages, createPage, deletePage, movePage } = useStore(useShallow(
+    s => ({ vault: s.vault, loadPages: s.loadPages, createPage: s.createPage, deletePage: s.deletePage, movePage: s.movePage }),
   ));
   // The sidebar "Recent" list is backed by the recents store: it is the
   // canonical, debounced, journal-filtered source of recent pages and is
@@ -32,6 +33,7 @@ export default function Sidebar() {
   // watcher). The store applies the same journal exclusion + ordering the
   // list previously derived ad hoc from the full page list.
   const recents = useRecentsStore(s => s.recents);
+  const pagesView = useSettingsStore(s => s.settings?.layout?.pages_view ?? 'flat');
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -67,6 +69,21 @@ export default function Sidebar() {
   }, [navigate]);
 
   const handleDelete = useCallback((path: string) => deletePage(path), [deletePage]);
+
+  const handleMovePage = useCallback(async (oldPath: string, newPath: string): Promise<boolean> => {
+    const ok = await movePage(oldPath, newPath);
+    if (ok) {
+      useStore.getState().showError(
+        t('sidebar.move_page_success', { old: oldPath, new: newPath }),
+        { autoDismissMs: 2000 },
+      );
+      if (useStore.getState().currentPage?.path === oldPath) {
+        navigate(`/page/${encodeURIComponent(newPath)}`);
+      }
+    }
+    return ok;
+  }, [movePage, navigate, t]);
+
   const handleNavigateHome = useCallback(() => navigate('/'), [navigate]);
 
   const { isMobile } = useResponsive();
@@ -149,8 +166,10 @@ export default function Sidebar() {
           onNewTitleChange={setNewTitle}
           onCreatePage={handleCreate}
           onDeletePage={handleDelete}
+          onMovePage={handleMovePage}
           onNavigate={navigate}
           onNavigateHome={handleNavigateHome}
+          pagesView={pagesView}
         />
       </Box>
 

@@ -4,6 +4,7 @@
 //! `commands::page::<name>` (lib.rs registrations, cross-module callers).
 
 mod journal;
+mod r#move;
 mod normalize;
 mod reindex;
 mod repair;
@@ -11,6 +12,7 @@ mod sync;
 
 pub use journal::*;
 pub use normalize::*;
+pub use r#move::*;
 pub use reindex::*;
 pub use repair::*;
 pub use sync::*;
@@ -78,7 +80,7 @@ pub(crate) fn resolve_safe_write_path(
 /// RFC 3339 string. Falls back to `Utc::now()` if the file doesn't exist or
 /// metadata can't be read (e.g. the file was just created and hasn't been
 /// flushed to disk yet).
-fn get_file_mtime(full_path: &std::path::Path) -> String {
+pub(crate) fn get_file_mtime(full_path: &std::path::Path) -> String {
     std::fs::metadata(full_path)
         .and_then(|m| m.modified())
         .map(|t| {

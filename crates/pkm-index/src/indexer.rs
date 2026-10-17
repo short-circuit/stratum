@@ -61,19 +61,18 @@ impl IndexEngine {
         // Add/update node in graph
         self.graph.add_node(note);
 
-        // Add edges for each link
+        // Add edges for each link, resolving the raw `[[target]]` to a node PATH.
+        // Ambiguous or dead targets resolve to nothing and are skipped.
         for link in &note.links {
-            let target_slug = link.target.replace(' ', "-").to_lowercase();
-            if self.graph.get_node(&target_slug).is_some()
-                || self.graph.get_node(&link.target).is_some()
-            {
+            if let Some(target_path) = self.graph.resolve_target(&link.target) {
                 self.graph
-                    .add_edge(&note.slug, &link.target, link.display_text.clone());
+                    .add_edge(&rel_path, &target_path, link.display_text.clone());
             }
         }
 
-        // Update tag aggregator: decrement old tags, then add new ones
-        self.tags.decrement_note(&note.slug);
+        // Update tag aggregator: decrement old tags, then add new ones.
+        // Tags are keyed by page path so duplicate slugs never collide.
+        self.tags.decrement_note(&rel_path);
         self.tags.aggregate(std::slice::from_ref(note));
 
         // Update meta
@@ -94,15 +93,8 @@ impl IndexEngine {
 
     /// Remove a note from the index by its vault-relative path.
     pub fn remove_note(&mut self, path: &str) -> PkmResult<()> {
-        // Derive slug from path (e.g. "subdir/note.md" -> "note")
-        let slug = std::path::Path::new(path)
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("")
-            .to_string();
-
-        // Decrement tag counts for this note
-        self.tags.decrement_note(&slug);
+        // Decrement tag counts for this note (tags are keyed by path).
+        self.tags.decrement_note(path);
 
         self.block_index.delete_blocks_by_page(path)?;
         self.block_index.flush()?;
@@ -415,7 +407,44 @@ mod tests {
         engine.index_note(&orphan).unwrap();
 
         let orphans = engine.find_orphaned_notes();
-        assert!(orphans.contains(&"orphan".to_string()));
-        assert!(!orphans.contains(&"connected".to_string()));
+        assert!(orphans.contains(&"orphan.md".to_string()));
+        assert!(!orphans.contains(&"connected.md".to_string()));
+    }
+
+    #[test]
+    fn test_duplicate_slugs_distinct_nodes() {
+        let dir = TempDir::new().unwrap();
+        let mut engine = IndexEngine::new(dir.path()).unwrap();
+
+        let mut note_x = make_note("a/dup", "Dup A", "Body A.", vec!["b/dup"]);
+        note_x.tags = vec![Tag {
+            name: "shared".to_string(),
+            source: TagSource::Frontmatter,
+            line: 0,
+        }];
+        let mut note_y = make_note("b/dup", "Dup B", "Body B.", vec![]);
+        note_y.tags = vec![Tag {
+            name: "shared".to_string(),
+            source: TagSource::Frontmatter,
+            line: 0,
+        }];
+
+        // Index the target first so the path-qualified link resolves.
+        engine.index_note(&note_y).unwrap();
+        engine.index_note(&note_x).unwrap();
+
+        // Both duplicate-slug notes are distinct nodes (keyed by path).
+        assert_eq!(engine.meta.note_count, 2, "both paths are distinct nodes");
+        let graph = engine.get_graph();
+        assert_eq!(graph.node_count(), 2);
+
+        // Edge resolves to the path-qualified target.
+        assert_eq!(graph.get_outgoing_links("a/dup.md").len(), 1);
+        assert_eq!(graph.get_outgoing_links("a/dup.md")[0].target, "b/dup.md");
+
+        // Tags are counted per path: the shared tag appears twice.
+        let cloud = engine.get_tag_cloud();
+        let shared_count = cloud.iter().find(|(t, _)| t == "shared").map(|(_, c)| *c);
+        assert_eq!(shared_count, Some(2), "tags are counted per distinct path");
     }
 }

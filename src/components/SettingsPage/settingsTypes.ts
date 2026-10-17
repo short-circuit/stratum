@@ -8,6 +8,7 @@ export type SettingsTab = 'vault' | 'theme' | 'ai' | 'research' | 'developer' | 
 
 export interface SettingsData {
   vault_path?: string;
+  layout?: { pages_view: string };
   ai?: {
     provider: string;
     endpoint: string | null;

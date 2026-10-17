@@ -51,7 +51,7 @@ your-vault/
     You can safely delete the `.pkm/` directory at any time. Stratum rebuilds it from your `.md` files. No data loss — just a brief reindexing delay.
 
 !!! note "Stale cache self-heals"
-    If a page or the journal ever shows stale or empty content (for example after an external edit or a git pull while the app was closed), close and reopen the page or journal — current content is now loaded from your `.md` files automatically, no app restart needed. If you want a forced full rebuild, use **Settings → Developer → Repair DB from disk** or **Reindex All**; the page list refreshes immediately after either one.
+    If a page or the journal ever shows stale or empty content (for example after an external edit or a git pull while the app was closed), close and reopen the page or journal — current content is now loaded from your `.md` files automatically, no app restart needed. Pages moved or deleted outside Stratum (for example with `mv` or `git mv`) are also cleaned up: on the next app start Stratum removes their old database entries, so the page list never shows a stale "ghost" page. If you want a forced full rebuild, use **Settings → Developer → Repair DB from disk** or **Reindex All**; the page list refreshes immediately after either one.
 
 ## Vault Information
 

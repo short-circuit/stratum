@@ -166,6 +166,60 @@ pub fn map_store_err(e: pkm_core::PkmError) -> KbError {
     }
 }
 
+/// Resolve a `[[wiki-link]]` target to a unique vault-relative path within a
+/// set of indexed paths, or `None` when ambiguous or dead. Precedence: exact
+/// path, path-minus-`.md`, suffix path match, slugified basename, exact slug,
+/// then title match.
+fn resolve_target_in(
+    paths: &[String],
+    slug_to_paths: &HashMap<String, Vec<String>>,
+    title_to_paths: &HashMap<String, Vec<String>>,
+    target: &str,
+) -> Option<String> {
+    let mut raw: Vec<String> = Vec::new();
+    let stripped_target = target.strip_suffix(".md").unwrap_or(target);
+
+    for p in paths {
+        let p_stripped = p.strip_suffix(".md").unwrap_or(p);
+        if p == target || p_stripped == target || p == stripped_target {
+            raw.push(p.clone());
+        }
+    }
+    let suffix_a = format!("/{target}");
+    let suffix_b = format!("/{stripped_target}");
+    for p in paths {
+        let p_stripped = p.strip_suffix(".md").unwrap_or(p);
+        if p_stripped.ends_with(&suffix_a) || p_stripped.ends_with(&suffix_b) {
+            raw.push(p.clone());
+        }
+    }
+    if !target.contains('/') {
+        let slugified = target.replace(' ', "-").to_lowercase();
+        if let Some(v) = slug_to_paths.get(&slugified) {
+            raw.extend(v.iter().cloned());
+        }
+        if let Some(v) = slug_to_paths.get(target) {
+            raw.extend(v.iter().cloned());
+        }
+        if let Some(v) = title_to_paths.get(&target.to_lowercase()) {
+            raw.extend(v.iter().cloned());
+        }
+    }
+
+    let mut seen: HashSet<String> = HashSet::new();
+    let mut candidates: Vec<String> = Vec::new();
+    for p in raw {
+        if seen.insert(p.clone()) {
+            candidates.push(p);
+        }
+    }
+    if candidates.len() == 1 {
+        candidates.into_iter().next()
+    } else {
+        None
+    }
+}
+
 /// The write argument guards: all reads are lock-free; all writes go through
 /// `write` variants that hold the vault write mutex and use the atomic save
 /// path.
@@ -549,18 +603,21 @@ impl SharedVault {
     }
 
     /// `kb_graph`: whole-graph or neighborhood subgraph.
+    ///
+    /// Nodes are keyed by vault-relative path so duplicate basename slugs in
+    /// different folders are distinct nodes; the emitted node `id` stays the
+    /// slug (path with `.md` removed) for MCP output compatibility.
     pub fn graph(&self, path: Option<&str>, depth: usize) -> Result<GraphData, KbError> {
         let store = self.store()?;
-        let paths = store.list_pages().map_err(map_store_err)?;
-        let mut nodes = Vec::new();
-        let mut edges = Vec::new();
-        let mut slug_to_path: HashMap<String, String> = HashMap::new();
-        let mut slug_to_title: HashMap<String, String> = HashMap::new();
+        let mut paths = store.list_pages().map_err(map_store_err)?;
+        paths.retain(|p| !p.starts_with(".git/") && !p.contains("/.git/"));
+
+        let mut path_to_slug: HashMap<String, String> = HashMap::new();
+        let mut path_to_title: HashMap<String, String> = HashMap::new();
+        let mut slug_to_paths: HashMap<String, Vec<String>> = HashMap::new();
+        let mut title_to_paths: HashMap<String, Vec<String>> = HashMap::new();
 
         for p in &paths {
-            if p.starts_with(".git/") || p.contains("/.git/") {
-                continue;
-            }
             let slug = p.trim_end_matches(".md").to_string();
             let title = store
                 .get_page(p)
@@ -568,8 +625,17 @@ impl SharedVault {
                 .flatten()
                 .and_then(|fm| fm.title)
                 .unwrap_or_else(|| slug.replace('-', " "));
-            slug_to_path.insert(slug.clone(), p.clone());
-            slug_to_title.insert(slug.clone(), title);
+            path_to_slug.insert(p.clone(), slug.clone());
+            path_to_title.insert(p.clone(), title.clone());
+            // PUSH into the Vecs — never overwrite — so duplicates are preserved.
+            slug_to_paths
+                .entry(slug.clone())
+                .or_default()
+                .push(p.clone());
+            title_to_paths
+                .entry(title.to_lowercase())
+                .or_default()
+                .push(p.clone());
         }
 
         let center = match path {
@@ -579,48 +645,37 @@ impl SharedVault {
             }
             None => None,
         };
+        // Center resolves to a page PATH; ambiguous/dead centers act as absent.
+        let center_path = center
+            .as_ref()
+            .and_then(|c| resolve_target_in(&paths, &slug_to_paths, &title_to_paths, c));
 
-        // Resolve the target slug (title -> slug).
-        let center_slug = center.as_ref().and_then(|c| {
-            if slug_to_path.contains_key(c) {
-                Some(c.clone())
-            } else {
-                // title lookup
-                slug_to_title
-                    .iter()
-                    .find(|(_, t)| t.to_lowercase() == c.to_lowercase())
-                    .map(|(s, _)| s.clone())
-            }
-        });
-
-        if let Some(c) = &center_slug {
-            if !slug_to_path.contains_key(c) {
-                return Err(ErrorDataExt::not_found(path.unwrap_or_default()));
-            }
-            // BFS neighborhood
-            let mut adj: HashMap<String, Vec<String>> = HashMap::new();
-            for p in &paths {
-                if let Ok(blocks) = store.get_blocks_by_page(p) {
-                    let src = p.trim_end_matches(".md").to_string();
-                    for b in &blocks {
-                        for link in pkm_markdown::linker::extract_links(&b.content) {
-                            let mut target = link.target.replace(' ', "-").to_lowercase();
-                            if slug_to_path.contains_key(&target) {
-                                // ok
-                            } else if let Some(t) = slug_to_title
-                                .iter()
-                                .find(|(_, t)| t.to_lowercase() == link.target.to_lowercase())
-                                .map(|(s, _)| s.clone())
-                            {
-                                target = t;
-                            } else {
-                                continue;
-                            }
-                            adj.entry(src.clone()).or_default().push(target.clone());
+        // Path-keyed adjacency built from block content. Ambiguous targets are
+        // skipped so duplicate slugs never collide.
+        let mut adj: HashMap<String, Vec<String>> = HashMap::new();
+        for p in &paths {
+            if let Ok(blocks) = store.get_blocks_by_page(p) {
+                let src = p.clone();
+                for b in &blocks {
+                    for link in pkm_markdown::linker::extract_links(&b.content) {
+                        if let Some(t) =
+                            resolve_target_in(&paths, &slug_to_paths, &title_to_paths, &link.target)
+                        {
+                            adj.entry(src.clone()).or_default().push(t);
                         }
                     }
                 }
             }
+        }
+
+        let mut nodes: Vec<GraphNode> = Vec::new();
+        let mut edges: Vec<GraphEdge> = Vec::new();
+
+        if let Some(c) = &center_path {
+            if !paths.contains(c) {
+                return Err(ErrorDataExt::not_found(path.unwrap_or_default()));
+            }
+            // BFS neighborhood, keyed by path.
             let mut in_set: HashSet<String> = HashSet::new();
             in_set.insert(c.clone());
             let mut frontier: Vec<String> = vec![c.clone()];
@@ -640,22 +695,23 @@ impl SharedVault {
             let mut ns: Vec<String> = in_set.into_iter().collect();
             ns.sort();
             for s in &ns {
-                let path = slug_to_path.get(s).cloned().unwrap_or_default();
+                let slug = path_to_slug.get(s).cloned().unwrap_or_default();
+                let title = path_to_title.get(s).cloned().unwrap_or_default();
                 // Degree counts only edges within the returned neighborhood.
                 let in_set_degree = ns
                     .iter()
                     .filter(|n| adj.get(s).map(|v| v.contains(n)).unwrap_or(false))
                     .count();
                 let tags = store
-                    .get_page(&path)
+                    .get_page(s)
                     .ok()
                     .flatten()
                     .map(|fm| fm.tags)
                     .unwrap_or_default();
                 nodes.push(GraphNode {
-                    id: s.clone(),
-                    title: slug_to_title.get(s).cloned().unwrap_or_default(),
-                    path: path.clone(),
+                    id: slug,
+                    title,
+                    path: s.clone(),
                     tags,
                     degree: in_set_degree,
                 });
@@ -665,8 +721,8 @@ impl SharedVault {
                     for nb in neighbors {
                         if ns.contains(nb) {
                             edges.push(GraphEdge {
-                                source: s.clone(),
-                                target: nb.clone(),
+                                source: path_to_slug.get(s).cloned().unwrap_or_default(),
+                                target: path_to_slug.get(nb).cloned().unwrap_or_default(),
                                 label: None,
                             });
                         }
@@ -674,55 +730,32 @@ impl SharedVault {
                 }
             }
         } else {
-            // Whole graph.
-            let mut adj: HashMap<String, Vec<String>> = HashMap::new();
-            for p in &paths {
-                if let Ok(blocks) = store.get_blocks_by_page(p) {
-                    let src = p.trim_end_matches(".md").to_string();
-                    for b in &blocks {
-                        for link in pkm_markdown::linker::extract_links(&b.content) {
-                            let mut target = link.target.replace(' ', "-").to_lowercase();
-                            if slug_to_path.contains_key(&target) {
-                            } else if let Some(t) = slug_to_title
-                                .iter()
-                                .find(|(_, t)| t.to_lowercase() == link.target.to_lowercase())
-                                .map(|(s, _)| s.clone())
-                            {
-                                target = t;
-                            } else {
-                                continue;
-                            }
-                            adj.entry(src.clone()).or_default().push(target.clone());
-                        }
-                    }
-                }
-            }
-            for (src, neighbors) in &adj {
-                let degree = neighbors.len();
+            // Whole graph: emit every distinct path as a node (id: slug for compat).
+            for src in &paths {
+                let degree = adj.get(src).map(|v| v.len()).unwrap_or(0);
+                let slug = path_to_slug.get(src).cloned().unwrap_or_default();
+                let title = path_to_title.get(src).cloned().unwrap_or_default();
                 let tags = store
-                    .get_page(
-                        slug_to_path
-                            .get(src)
-                            .map(|s| s.as_str())
-                            .unwrap_or_default(),
-                    )
+                    .get_page(src)
                     .ok()
                     .flatten()
                     .map(|fm| fm.tags)
                     .unwrap_or_default();
                 nodes.push(GraphNode {
-                    id: src.clone(),
-                    title: slug_to_title.get(src).cloned().unwrap_or_default(),
-                    path: slug_to_path.get(src).cloned().unwrap_or_default(),
+                    id: slug.clone(),
+                    title,
+                    path: src.clone(),
                     tags,
                     degree,
                 });
-                for nb in neighbors {
-                    edges.push(GraphEdge {
-                        source: src.clone(),
-                        target: nb.clone(),
-                        label: None,
-                    });
+                if let Some(neighbors) = adj.get(src) {
+                    for nb in neighbors {
+                        edges.push(GraphEdge {
+                            source: slug.clone(),
+                            target: path_to_slug.get(nb).cloned().unwrap_or_default(),
+                            label: None,
+                        });
+                    }
                 }
             }
         }
@@ -1398,5 +1431,47 @@ mod tests {
         assert!(info.page_count >= 1);
         let status = vault.index_status().unwrap();
         assert!(status.total_pages >= 1);
+    }
+
+    #[test]
+    fn test_graph_duplicate_slugs_are_distinct_nodes() {
+        let (_dir, _cfg, vault) = test_vault();
+        seed_page(
+            &vault,
+            "pages/a/hub.md",
+            "---\ntitle: Hub\n---\n- [[b/note]]",
+        )
+        .unwrap();
+        seed_page(
+            &vault,
+            "pages/b/note.md",
+            "---\ntitle: Note B\n---\n- self [[note]] x",
+        )
+        .unwrap();
+        seed_page(
+            &vault,
+            "pages/a/note.md",
+            "---\ntitle: Note A\n---\n- lonely",
+        )
+        .unwrap();
+
+        let g = vault.graph(None, 3).unwrap();
+        // Each duplicate-slug path is a distinct node (emitted slug as id).
+        assert_eq!(
+            g.node_count, 3,
+            "each duplicate slug path is a distinct node"
+        );
+        let hub_edges: Vec<_> = g
+            .edges
+            .iter()
+            .filter(|e| e.source == "pages/a/hub")
+            .collect();
+        assert_eq!(hub_edges.len(), 1, "hub has exactly one outgoing edge");
+        assert_eq!(hub_edges[0].target, "pages/b/note");
+        // The ambiguous `[[note]]` link resolves to nothing → no edge.
+        assert!(
+            !g.edges.iter().any(|e| e.source == "pages/b/note"),
+            "ambiguous [[note]] produces no edge"
+        );
     }
 }
