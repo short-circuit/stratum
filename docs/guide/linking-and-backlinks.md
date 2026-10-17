@@ -25,11 +25,35 @@ Wiki-links connect pages together. They format as `[[Page Name]]` or `[[Page Nam
 [[Target Page|Display Text]]
 
 # Link to a page by its file path
-[[notes/my-page]]
+[[pages/notes/my-page]]
 
 # Inline in text
 See [[Related Concept]] for more details.
 ```
+
+### Link Targets: Name vs. Path
+
+A wiki-link target can refer to a page in two ways, and they are resolved very differently:
+
+| Target form | Example | Resolution | Breaks on move/rename? |
+|-------------|---------|------------|------------------------|
+| **Name link** | `[[Target Page]]` | Resolved by note *name* (slug or title). If two pages share a name, the link is ambiguous and resolves to nothing (`0` matches) unless qualified. | ❌ No — works regardless of folder |
+| **Path link** | `[[pages/folder/target]]` | Resolved by the *exact vault-relative path* (with optional `.md` suffix). Path-qualified targets are authoritative for disambiguation. | ✅ Yes — rewritten by **Move / rename…** |
+
+Stratum deliberately uses **name identity** (not path identity) as the primary key. This is the robustness-first choice:
+
+- Moving a note between folders never breaks `[[Some Note]]` name links — no rewrite needed.
+- Two notes with the same base name in different folders are allowed; both remain distinct pages and distinct graph nodes. To link to one of them unambiguously, use a path link (`[[pages/folder/note]]`).
+- Renamed files dangle name links until you use **Move / rename…**, which rewrites every inbound link (see [Moving and Renaming Pages](vault-management.md#moving-and-renaming-pages)).
+
+### Page Identity Rules
+
+1. **A page's path is its true identity** (`pages/<path>/<name>.md`). Each path is one page and one graph node; duplicate base names in different folders are separate nodes.
+2. **A bare `[[Name]]` resolves to exactly one page only if unique** across the vault. Ambiguous (or dead) targets resolve to nothing, and autocomplete shows all candidates.
+3. **Path-qualified targets are never ambiguous** — they match exactly one path.
+4. **Block references `((uuid))` are path-independent** — moving or renaming a page never affects them.
+
+If you move a page, Stratum rewrites all inbound path/slug links automatically (see `move_page`). If you move the page's *file* outside Stratum, name links keep working (and the stale row is purged by the watcher or at next launch); path links dangle until you run **Move / rename…** from within the app.
 
 ### Navigating
 

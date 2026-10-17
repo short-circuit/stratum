@@ -106,7 +106,8 @@ Components **never** call `invoke()` directly — always through `commands.ts`. 
 | `MermaidBlock` | `OutlinerEditor` | Custom BlockNote block for Mermaid diagrams |
 | `AISlashMenu` | `OutlinerEditor` | Slash menu with AI actions |
 | `AIFormattingToolbar` | `OutlinerEditor` | Formatting toolbar with AI buttons |
-| `AutocompletePopup` | `OutlinerEditor` | Popover for wiki-link autocomplete |
+| `AutocompletePopup` | `OutlinerEditor` | Popover for wiki-link autocomplete (legacy, unused — superseded by `WikiLinkAutocomplete`) |
+| `WikiLinkAutocomplete` | `OutlinerEditor` | BlockNote `SuggestionMenuController` wiki-link autocomplete (`[[` → search pages → insert slug/path link; path-qualified for duplicate slugs) |
 | `LinkPreviewPopup` | `OutlinerEditor` | Hover preview for wiki-links |
 | `MathEditorModal` | `OutlinerEditor` | LaTeX editor with live KaTeX preview |
 | `MathSymbolPalette` | `MathEditorModal` | Tabbed symbol palette |
@@ -118,6 +119,9 @@ Components **never** call `invoke()` directly — always through `commands.ts`. 
 | Component | Purpose |
 |-----------|---------|
 | `Sidebar` | Collapsible navigation + page tree + create/delete/export |
+| `PageTree` | Page list with create/delete and new-page form (flat list, default) |
+| `PageTreeGrouped` | Folder-tree variant of the page list when `pages_view = "tree"` (sidebar + PagesHome) |
+| `MovePageDialog` | Rename/move a page by path (sidebar row action / PageView menu); calls `move_page`, backend rewrites inbound links |
 | `VaultPicker` | Landing page when no vault is configured |
 | `StratumIcon` | App icon SVG renderer |
 
