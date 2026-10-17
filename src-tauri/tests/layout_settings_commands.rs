@@ -101,8 +101,7 @@ fn save_settings_round_trips_pages_view() {
         "get_settings must return the saved pages_view"
     );
 
-    let on_disk =
-        std::fs::read_to_string(tv.vault_path.join(".pkm").join("config.toml")).unwrap();
+    let on_disk = std::fs::read_to_string(tv.vault_path.join(".pkm").join("config.toml")).unwrap();
     assert!(
         on_disk.contains("pages_view = \"tree\""),
         "on-disk config must persist pages_view = \"tree\": {on_disk}"
