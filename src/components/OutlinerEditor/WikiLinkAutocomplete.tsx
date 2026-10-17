@@ -4,6 +4,7 @@ import { SuggestionMenuController, type DefaultReactSuggestionItem } from '@bloc
 import { filterSuggestionItems } from '@blocknote/core';
 import * as api from '../../lib/commands';
 import type { PageDto } from '../../lib/types';
+import { computeWikiLinkTarget } from './wikiLinkTargets';
 
 interface Props {
   pagePath: string;
@@ -20,17 +21,25 @@ export default function WikiLinkAutocomplete({ pagePath }: Props) {
 
   const getItems = useCallback(
     async (query: string): Promise<DefaultReactSuggestionItem[]> => {
-      let pages: PageDto[];
+      let fullPages: PageDto[];
       try {
         const res = await api.listPages();
-        pages = res.pages || [];
+        fullPages = res.pages || [];
       } catch (e) {
         console.error('[WikiLinkAutocomplete] listPages failed:', e);
         return [];
       }
+      // Basename-slug occurrence counts across the FULL page list. Used to
+      // detect duplicate slugs: only those pages need a path-qualified link.
+      const slugCounts = new Map<string, number>();
+      for (const p of fullPages) {
+        const slug = (p.slug || '').trim();
+        if (slug) slugCounts.set(slug, (slugCounts.get(slug) ?? 0) + 1);
+      }
       // Exclude the page currently being edited (self-links add no value).
+      let pages = fullPages;
       if (pagePath) {
-        pages = pages.filter((p) => p.path !== pagePath);
+        pages = fullPages.filter((p) => p.path !== pagePath);
       }
       const q = query.trim().toLowerCase();
       const items: DefaultReactSuggestionItem[] = pages
@@ -53,9 +62,9 @@ export default function WikiLinkAutocomplete({ pagePath }: Props) {
             ),
             onItemClick: () => {
               try {
-                const slug = (p.slug || p.title || '').trim();
-                if (!slug) return;
-                editor.createLink('stratum:' + slug, display);
+                const target = computeWikiLinkTarget(p, slugCounts);
+                if (!target) return;
+                editor.createLink('stratum:' + target, display);
                 editor.focus();
               } catch (e) {
                 console.error('[WikiLinkAutocomplete] insert link failed:', e);

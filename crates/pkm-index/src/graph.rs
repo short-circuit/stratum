@@ -19,11 +19,17 @@ pub struct Edge {
 }
 
 /// The note graph structure with nodes and directed edges.
+///
+/// Node identity is the vault-relative page path, NOT the basename slug: two
+/// notes with the same basename in different folders are distinct nodes. The
+/// `path`/`slug`/`title` resolution helpers that back `get_backlinks`,
+/// `get_outgoing_links`, and `get_node` accept either a registered path or a
+/// slug; a slug shared by multiple paths is treated as ambiguous (empty / None).
 #[derive(Debug, Clone)]
 pub struct Graph {
-    nodes: HashMap<String, Node>,         // slug -> Node
-    outgoing: HashMap<String, Vec<Edge>>, // source slug -> edges
-    incoming: HashMap<String, Vec<Edge>>, // target slug -> edges (backlinks)
+    nodes: HashMap<String, Node>,         // path -> Node
+    outgoing: HashMap<String, Vec<Edge>>, // source path -> edges
+    incoming: HashMap<String, Vec<Edge>>, // target path -> edges (backlinks)
 }
 
 impl Graph {
@@ -36,63 +42,146 @@ impl Graph {
         }
     }
 
-    /// Add or update a node in the graph.
+    /// Resolve a slug-or-path argument to a unique registered node path.
+    ///
+    /// If the argument is already a registered path, it is used directly.
+    /// Otherwise the set of nodes whose basename slug equals the argument's
+    /// basename is collected; if exactly one matches it is returned, and if
+    /// multiple share the slug the match is ambiguous and `None` is returned.
+    fn resolve_key_to_path(&self, key: &str) -> Option<String> {
+        if self.nodes.contains_key(key) {
+            return Some(key.to_string());
+        }
+        let basename = std::path::Path::new(key)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or(key);
+        let mut matches = self
+            .nodes
+            .iter()
+            .filter(|(_, n)| n.slug == basename)
+            .map(|(p, _)| p.clone());
+        let first = matches.next();
+        match first {
+            Some(p) if matches.next().is_none() => Some(p),
+            _ => None,
+        }
+    }
+
+    /// Resolve a `[[wiki-link]]` target to a unique node path, or `None` when
+    /// ambiguous or dead. Precedence: exact path, path-minus-`.md`, suffix path
+    /// match, slugified basename, exact basename slug, then title match.
+    pub fn resolve_target(&self, target: &str) -> Option<String> {
+        let mut raw: Vec<String> = Vec::new();
+        let stripped_target = target.strip_suffix(".md").unwrap_or(target);
+
+        // Exact path match (with .md) and path-minus-.md.
+        for path in self.nodes.keys() {
+            let p_stripped = path.strip_suffix(".md").unwrap_or(path);
+            if path == target || p_stripped == target || path == stripped_target {
+                raw.push(path.clone());
+            }
+        }
+        // Suffix path match.
+        let suffix = format!("/{stripped_target}");
+        for path in self.nodes.keys() {
+            let p_stripped = path.strip_suffix(".md").unwrap_or(path);
+            if p_stripped.ends_with(&suffix) || p_stripped.ends_with(&format!("/{target}")) {
+                raw.push(path.clone());
+            }
+        }
+        // Unqualified targets also match by slug and title.
+        if !target.contains('/') {
+            let slugified = target.replace(' ', "-").to_lowercase();
+            let title_lower = target.to_lowercase();
+            for (path, node) in &self.nodes {
+                if node.slug == slugified
+                    || node.slug == target
+                    || node.title.to_lowercase() == title_lower
+                {
+                    raw.push(path.clone());
+                }
+            }
+        }
+
+        let mut seen: HashSet<String> = HashSet::new();
+        let mut candidates: Vec<String> = Vec::new();
+        for p in raw {
+            if seen.insert(p.clone()) {
+                candidates.push(p);
+            }
+        }
+        if candidates.len() == 1 {
+            candidates.into_iter().next()
+        } else {
+            None
+        }
+    }
+
+    /// Add or update a node in the graph, keyed by its vault-relative path.
     pub fn add_node(&mut self, note: &Note) {
+        let rel_path = note.rel_path.to_string_lossy().to_string();
         let slug = note.slug.clone();
         let title = note.derive_title();
         let tags: Vec<String> = note.tags.iter().map(|t| t.name.clone()).collect();
 
         self.nodes.insert(
-            slug.clone(),
+            rel_path.clone(),
             Node {
-                path: note.rel_path.to_string_lossy().to_string(),
+                path: rel_path.clone(),
                 title,
-                slug: slug.clone(),
+                slug,
                 tags,
             },
         );
 
         // Ensure edge lists exist
-        self.outgoing.entry(slug.clone()).or_default();
-        self.incoming.entry(slug).or_default();
+        self.outgoing.entry(rel_path.clone()).or_default();
+        self.incoming.entry(rel_path).or_default();
     }
 
-    /// Add an edge representing a wiki-link from source to target.
-    pub fn add_edge(&mut self, source_slug: &str, target_slug: &str, display_text: Option<String>) {
+    /// Add an edge representing a wiki-link from source path to target path.
+    ///
+    /// Both arguments are page PATHS (the stable node identity).
+    pub fn add_edge(&mut self, source: &str, target: &str, display_text: Option<String>) {
         let edge = Edge {
-            source: source_slug.to_string(),
-            target: target_slug.to_string(),
+            source: source.to_string(),
+            target: target.to_string(),
             display_text,
         };
 
         self.outgoing
-            .entry(source_slug.to_string())
+            .entry(source.to_string())
             .or_default()
             .push(edge.clone());
 
         self.incoming
-            .entry(target_slug.to_string())
+            .entry(target.to_string())
             .or_default()
             .push(edge);
     }
 
-    /// Get backlinks (notes that link to the given target slug).
-    pub fn get_backlinks(&self, target_slug: &str) -> Vec<Backlink> {
+    /// Get backlinks (notes that link to the given target).
+    ///
+    /// `key` may be a registered path or a slug; ambiguous slugs return no
+    /// backlinks.
+    pub fn get_backlinks(&self, key: &str) -> Vec<Backlink> {
+        let Some(target_path) = self.resolve_key_to_path(key) else {
+            return Vec::new();
+        };
         let mut backlinks = Vec::new();
 
-        if let Some(edges) = self.incoming.get(target_slug) {
+        if let Some(edges) = self.incoming.get(&target_path) {
             for edge in edges {
                 if let Some(source_node) = self.nodes.get(&edge.source) {
-                    let target_node = self.nodes.get(target_slug);
+                    let target_node = self.nodes.get(&target_path);
                     backlinks.push(Backlink {
                         source: std::path::PathBuf::from(&source_node.path),
                         source_title: source_node.title.clone(),
                         target: target_node
                             .map(|n| std::path::PathBuf::from(&n.path))
-                            .unwrap_or_else(|| std::path::PathBuf::from(target_slug)),
-                        target_title: target_node
-                            .map(|n| n.title.clone())
-                            .unwrap_or_else(|| target_slug.to_string()),
+                            .unwrap_or_else(|| std::path::PathBuf::from(&target_path)),
+                        target_title: target_node.map(|n| n.title.clone()).unwrap_or_default(),
                         display_text: edge.display_text.clone(),
                         context_snippet: String::new(), // Would need full text to populate
                         line: 0,
@@ -104,9 +193,15 @@ impl Graph {
         backlinks
     }
 
-    /// Get outgoing links from a source slug.
-    pub fn get_outgoing_links(&self, source_slug: &str) -> Vec<Edge> {
-        self.outgoing.get(source_slug).cloned().unwrap_or_default()
+    /// Get outgoing links from a source node.
+    ///
+    /// `key` may be a registered path or a slug; ambiguous slugs return no
+    /// outgoing links.
+    pub fn get_outgoing_links(&self, key: &str) -> Vec<Edge> {
+        let Some(path) = self.resolve_key_to_path(key) else {
+            return Vec::new();
+        };
+        self.outgoing.get(&path).cloned().unwrap_or_default()
     }
 
     /// Find text that matches a note title but isn't linked (unlinked mentions).
@@ -115,12 +210,13 @@ impl Graph {
         let body = note.body.to_lowercase();
         let existing_targets: HashSet<String> =
             note.links.iter().map(|l| l.target.to_lowercase()).collect();
+        let note_path = note.rel_path.to_string_lossy().to_string();
 
         let mut mentions = Vec::new();
 
-        for (slug, node) in &self.nodes {
-            // Skip self-references
-            if slug == &note.slug {
+        for node in self.nodes.values() {
+            // Skip self-references (by path; paths are the node identity).
+            if node.path == note_path {
                 continue;
             }
 
@@ -128,7 +224,7 @@ impl Graph {
             let title_lower = node.title.to_lowercase();
             if !title_lower.is_empty() && body.contains(&title_lower) {
                 // Check if it's already linked (by slug match or title match)
-                let slug_lower = slug.to_lowercase();
+                let slug_lower = node.slug.to_lowercase();
                 if !existing_targets.contains(&slug_lower)
                     && !existing_targets.contains(&title_lower)
                 {
@@ -140,21 +236,21 @@ impl Graph {
         mentions
     }
 
-    /// Compute connected components. Returns groups of connected note slugs.
+    /// Compute connected components. Returns groups of connected node paths.
     pub fn connected_components(&self) -> Vec<Vec<String>> {
         let mut visited: HashSet<String> = HashSet::new();
         let mut components = Vec::new();
 
-        for slug in self.nodes.keys() {
-            if visited.contains(slug) {
+        for path in self.nodes.keys() {
+            if visited.contains(path) {
                 continue;
             }
 
             // BFS
             let mut component = Vec::new();
             let mut queue = VecDeque::new();
-            queue.push_back(slug.clone());
-            visited.insert(slug.clone());
+            queue.push_back(path.clone());
+            visited.insert(path.clone());
 
             while let Some(current) = queue.pop_front() {
                 component.push(current.clone());
@@ -185,18 +281,19 @@ impl Graph {
     }
 
     /// Find orphaned notes (notes with no incoming or outgoing links).
+    /// Returns the vault-relative PATHS of orphaned nodes.
     pub fn find_orphaned_notes(&self) -> Vec<String> {
         self.nodes
             .keys()
-            .filter(|slug| {
+            .filter(|path| {
                 let has_outgoing = self
                     .outgoing
-                    .get(*slug)
+                    .get(*path)
                     .map(|e| !e.is_empty())
                     .unwrap_or(false);
                 let has_incoming = self
                     .incoming
-                    .get(*slug)
+                    .get(*path)
                     .map(|e| !e.is_empty())
                     .unwrap_or(false);
                 !has_outgoing && !has_incoming
@@ -210,9 +307,10 @@ impl Graph {
         self.nodes.values().collect()
     }
 
-    /// Get a node by slug.
-    pub fn get_node(&self, slug: &str) -> Option<&Node> {
-        self.nodes.get(slug)
+    /// Get a node by key (registered path, or a unique slug).
+    pub fn get_node(&self, key: &str) -> Option<&Node> {
+        let path = self.resolve_key_to_path(key)?;
+        self.nodes.get(&path)
     }
 
     /// Get total node count.
@@ -305,10 +403,13 @@ mod tests {
         graph.add_node(&note_b);
         graph.add_node(&note_c);
 
-        // Add edges from links
+        // Add edges from links, resolving targets to node paths.
         for note in &[&note_a, &note_b] {
+            let src = note.rel_path.to_string_lossy().to_string();
             for link in &note.links {
-                graph.add_edge(&note.slug, &link.target, link.display_text.clone());
+                if let Some(target) = graph.resolve_target(&link.target) {
+                    graph.add_edge(&src, &target, link.display_text.clone());
+                }
             }
         }
 
@@ -340,8 +441,9 @@ mod tests {
         let graph = build_test_graph();
         let edges = graph.get_outgoing_links("note-a");
         assert_eq!(edges.len(), 2);
-        assert_eq!(edges[0].target, "note-b");
-        assert_eq!(edges[1].target, "note-c");
+        // Edge endpoints are node paths, not slugs.
+        assert_eq!(edges[0].target, "note-b.md");
+        assert_eq!(edges[1].target, "note-c.md");
     }
 
     #[test]
@@ -349,13 +451,13 @@ mod tests {
         let mut graph = build_test_graph();
         // Note C has no outgoing links and is only a target
         let orphans = graph.find_orphaned_notes();
-        assert!(!orphans.contains(&"note-c".to_string())); // C has incoming links
+        assert!(!orphans.contains(&"note-c.md".to_string())); // C has incoming links
 
         // Add an orphan
         let orphan = make_note("/vault/orphan.md", "Orphan", "orphan", vec![], vec![]);
         graph.add_node(&orphan);
         let orphans = graph.find_orphaned_notes();
-        assert!(orphans.contains(&"orphan".to_string()));
+        assert!(orphans.contains(&"orphan.md".to_string()));
     }
 
     #[test]
@@ -408,8 +510,50 @@ mod tests {
     #[test]
     fn test_node_tags() {
         let graph = build_test_graph();
+        // get_node resolves a slug to a unique path, so this still works.
         let node = graph.get_node("note-a").unwrap();
         assert!(node.tags.contains(&"tag1".to_string()));
         assert_eq!(node.slug, "note-a");
+    }
+
+    #[test]
+    fn test_duplicate_slugs_distinct_nodes() {
+        let mut graph = Graph::new();
+
+        let note_x = make_note(
+            "/vault/a/dup.md",
+            "Dup A",
+            "dup",
+            vec!["b/dup"],
+            vec!["tag1"],
+        );
+        let note_y = make_note("/vault/b/dup.md", "Dup B", "dup", vec![], vec!["tag2"]);
+        graph.add_node(&note_x);
+        graph.add_node(&note_y);
+
+        // Both distinct paths are distinct nodes despite the same basename slug.
+        assert_eq!(graph.node_count(), 2, "duplicate slugs are distinct nodes");
+
+        // Path-qualified resolution disambiguates the target.
+        assert_eq!(graph.resolve_target("b/dup").as_deref(), Some("b/dup.md"));
+        graph.add_edge("a/dup.md", "b/dup.md", None);
+        assert_eq!(graph.edge_count(), 1);
+
+        // The bare slug "dup" is ambiguous -> no backlinks on either path.
+        assert!(graph.get_backlinks("dup").is_empty());
+        assert!(graph.get_backlinks("a/dup.md").is_empty()); // no incoming
+        assert_eq!(graph.get_backlinks("b/dup.md").len(), 1); // incoming from a/dup.md
+
+        // Tags are per-path.
+        assert!(graph
+            .get_node("a/dup.md")
+            .unwrap()
+            .tags
+            .contains(&"tag1".to_string()));
+        assert!(graph
+            .get_node("b/dup.md")
+            .unwrap()
+            .tags
+            .contains(&"tag2".to_string()));
     }
 }

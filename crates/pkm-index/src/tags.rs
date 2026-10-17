@@ -2,13 +2,16 @@ use pkm_core::Note;
 use std::collections::HashMap;
 
 /// Tag aggregation across notes.
+///
+/// Notes are identified by their vault-relative PATH (not basename slug), so
+/// duplicate slugs in different folders are counted as distinct notes.
 #[derive(Debug, Clone)]
 pub struct TagAggregator {
     /// tag_name -> count of notes having this tag
     counts: HashMap<String, usize>,
-    /// tag_name -> list of note slugs having this tag
+    /// tag_name -> list of note paths having this tag
     notes_by_tag: HashMap<String, Vec<String>>,
-    /// slug -> list of tag names for that note (reverse mapping for decrement)
+    /// path -> list of tag names for that note (reverse mapping for decrement)
     note_tags: HashMap<String, Vec<String>>,
 }
 
@@ -25,7 +28,7 @@ impl TagAggregator {
     /// Aggregate tags from a collection of notes.
     pub fn aggregate(&mut self, notes: &[Note]) {
         for note in notes {
-            let slug = note.slug.clone();
+            let path = note.rel_path.to_string_lossy().to_string();
             let unique_tags: std::collections::HashSet<String> =
                 note.tags.iter().map(|t| t.name.clone()).collect();
 
@@ -34,16 +37,16 @@ impl TagAggregator {
                 self.notes_by_tag
                     .entry(tag_name.clone())
                     .or_default()
-                    .push(slug.clone());
+                    .push(path.clone());
             }
 
             // Store reverse mapping for later decrement
             self.note_tags
-                .insert(slug, unique_tags.into_iter().collect());
+                .insert(path, unique_tags.into_iter().collect());
         }
     }
 
-    /// Get notes that have a specific tag.
+    /// Get the vault-relative paths of notes that have a specific tag.
     pub fn filter_by_tag(&self, tag_name: &str) -> Vec<String> {
         self.notes_by_tag.get(tag_name).cloned().unwrap_or_default()
     }
@@ -67,18 +70,18 @@ impl TagAggregator {
 
     /// Decrement tag counts for a note that was removed or had its tags changed.
     ///
-    /// Removes the note slug from `notes_by_tag`, decrements each tag's count,
+    /// Removes the note path from `notes_by_tag`, decrements each tag's count,
     /// and cleans up any tag that reaches zero.
-    pub fn decrement_note(&mut self, slug: &str) {
-        let old_tags = match self.note_tags.remove(slug) {
+    pub fn decrement_note(&mut self, path: &str) {
+        let old_tags = match self.note_tags.remove(path) {
             Some(tags) => tags,
             None => return, // No tags to decrement
         };
 
         for tag_name in old_tags {
-            // Remove slug from the per-tag note list
+            // Remove path from the per-tag note list
             if let Some(notes) = self.notes_by_tag.get_mut(&tag_name) {
-                notes.retain(|n| n != slug);
+                notes.retain(|n| n != path);
                 if notes.is_empty() {
                     self.notes_by_tag.remove(&tag_name);
                 }
@@ -244,8 +247,8 @@ mod tests {
 
         let tagged_with_1 = agg.filter_by_tag("tag1");
         assert_eq!(tagged_with_1.len(), 2);
-        assert!(tagged_with_1.contains(&"note-1".to_string()));
-        assert!(tagged_with_1.contains(&"note-2".to_string()));
+        assert!(tagged_with_1.contains(&"note-1.md".to_string()));
+        assert!(tagged_with_1.contains(&"note-2.md".to_string()));
 
         let tagged_with_nonexistent = agg.filter_by_tag("nonexistent");
         assert!(tagged_with_nonexistent.is_empty());
@@ -328,15 +331,15 @@ mod tests {
         assert_eq!(agg.counts.get("tag3"), Some(&1));
 
         // Remove note-1 (had tag1, tag2)
-        agg.decrement_note("note-1");
+        agg.decrement_note("note-1.md");
         assert_eq!(agg.unique_tag_count(), 3); // all 3 tags still present
         assert_eq!(agg.counts.get("tag1"), Some(&1)); // note-3 still has it
         assert_eq!(agg.counts.get("tag2"), Some(&1)); // note-2 still has it
-        assert_eq!(agg.filter_by_tag("tag1"), vec!["note-3"]);
-        assert!(agg.filter_by_tag("tag2").iter().any(|n| n == "note-2"));
+        assert_eq!(agg.filter_by_tag("tag1"), vec!["note-3.md"]);
+        assert!(agg.filter_by_tag("tag2").iter().any(|n| n == "note-2.md"));
 
         // Remove note-3 (had tag1) — tag1 should be cleaned up
-        agg.decrement_note("note-3");
+        agg.decrement_note("note-3.md");
         assert_eq!(agg.unique_tag_count(), 2); // tag1 removed
         assert!(!agg.counts.contains_key("tag1"));
         assert!(agg.filter_by_tag("tag1").is_empty());
@@ -353,17 +356,20 @@ mod tests {
         assert_eq!(agg.counts.get("tag2"), Some(&2));
 
         // Simulate an update: note-1 changes tags from [tag1, tag2] to [tag3]
-        agg.decrement_note("note-1");
+        agg.decrement_note("note-1.md");
         // Now note-1's old tags are removed
         assert_eq!(agg.counts.get("tag1"), None); // only note-1 had it
         assert_eq!(agg.counts.get("tag2"), Some(&1)); // only note-2 remains
-        assert!(!agg.note_tags.contains_key("note-1"));
+        assert!(!agg.note_tags.contains_key("note-1.md"));
 
         // Now add new tags (simulating the new version of the note)
         let updated_note = make_note("note-1", "Note 1", vec!["tag3"]);
         agg.aggregate(std::slice::from_ref(&updated_note));
         assert_eq!(agg.counts.get("tag3"), Some(&1));
-        assert_eq!(agg.note_tags.get("note-1"), Some(&vec!["tag3".to_string()]));
+        assert_eq!(
+            agg.note_tags.get("note-1.md"),
+            Some(&vec!["tag3".to_string()])
+        );
         assert_eq!(agg.unique_tag_count(), 2); // tag2, tag3
     }
 
@@ -382,7 +388,7 @@ mod tests {
         agg.aggregate(&notes);
         assert_eq!(agg.unique_tag_count(), 1);
 
-        agg.decrement_note("lone");
+        agg.decrement_note("lone.md");
         assert_eq!(agg.unique_tag_count(), 0);
         assert!(agg.counts.is_empty());
         assert!(agg.notes_by_tag.is_empty());
