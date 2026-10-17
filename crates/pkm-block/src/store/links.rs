@@ -4,7 +4,7 @@ use super::BlockStore;
 use super::StoreResult;
 use crate::block::BlockId;
 use pkm_core::PkmError;
-use rusqlite::params;
+use rusqlite::{params, params_from_iter};
 
 impl BlockStore {
     pub fn insert_link(
@@ -51,6 +51,38 @@ impl BlockStore {
             .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?
             .filter_map(|r| r.ok())
             .collect();
+        Ok(sources)
+    }
+
+    /// Return the distinct page paths (via their block rows) that contain at least
+    /// one `page_ref` link whose target matches any of `targets`.
+    ///
+    /// Used by the page-move flow to find every page that must have its inbound
+    /// wiki-links rewritten when a page is renamed or relocated. The `target_page`
+    /// column is `COLLATE NOCASE`, so matching against the supplied identities is
+    /// case-insensitive for free.
+    pub fn get_source_pages_for_targets(&self, targets: &[String]) -> StoreResult<Vec<String>> {
+        if targets.is_empty() {
+            return Ok(Vec::new());
+        }
+        let placeholders: Vec<String> = targets.iter().map(|_| "?".to_string()).collect();
+        let sql = format!(
+            "SELECT DISTINCT sp.page_path FROM links l \
+             JOIN blocks sp ON l.source_block = sp.id \
+             WHERE l.link_type = 'page_ref' AND l.target_page IN ({})",
+            placeholders.join(", ")
+        );
+        let mut stmt = self
+            .conn
+            .prepare(&sql)
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+        let rows = stmt
+            .query_map(params_from_iter(targets.iter()), |row| row.get(0))
+            .map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?;
+        let mut sources = Vec::new();
+        for row in rows {
+            sources.push(row.map_err(|e| PkmError::Internal(format!("SQLite error: {e}")))?);
+        }
         Ok(sources)
     }
 
