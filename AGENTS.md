@@ -115,6 +115,9 @@ stratum/
 │   │   │   └── SidebarFooter.tsx
 │   │   ├── PageView/
 │   │   ├── OutlinerEditor/
+│   │   │   ├── WikiLinkAutocomplete.tsx
+│   │   │   ├── wikiLinkTargets.ts       # Duplicate-slug disambiguation util
+│   │   │   └── wikiLinkTargets.test.ts  # Unit tests for link-target selection
 │   │   ├── GraphPanel/
 │   │   ├── BacklinksPanel/
 │   │   ├── SearchPanel/
@@ -309,7 +312,8 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `MermaidBlock` | `OutlinerEditor` | Custom BlockNote block for Mermaid diagrams |
 | `AISlashMenu` | `OutlinerEditor` | Slash menu with AI actions (rewrite, summarize, etc.) |
 | `AIFormattingToolbar` | `OutlinerEditor` | Formatting toolbar with AI buttons |
-| `AutocompletePopup` | `OutlinerEditor` | Popover for wiki-link autocomplete |
+| `AutocompletePopup` | `OutlinerEditor` | Popover for wiki-link autocomplete (legacy, unused — superseded by `WikiLinkAutocomplete`; file kept pending cleanup) |
+| `WikiLinkAutocomplete` | `OutlinerEditor` | BlockNote `SuggestionMenuController` wiki-link autocomplete (`[[` → search pages → insert slug/path link; path-qualified for duplicate slugs) |
 | `LinkPreviewPopup` | `OutlinerEditor` | Hover preview for wiki-links |
 | `MathEditorModal` | `OutlinerEditor` | LaTeX editor with live KaTeX preview |
 | `MathSymbolPalette` | `MathEditorModal` | Tabbed symbol palette (Greek, Operators, etc.) |
