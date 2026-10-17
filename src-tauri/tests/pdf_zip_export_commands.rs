@@ -128,7 +128,7 @@ fn export_zip_core_contains_vault_files_and_manifest() {
     let file = File::open(&out).unwrap();
     let mut archive = ZipArchive::new(file).unwrap();
     let names: Vec<String> = (0..archive.len())
-        .map(|i| archive.name_for_index(i).unwrap().to_string())
+        .map(|i| archive.name_for_index(i).unwrap().unwrap().into_owned())
         .collect();
 
     for expected in [

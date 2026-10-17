@@ -184,9 +184,9 @@ fn graph_panel_data_returns_nodes_edges_and_labels_on_first_load() {
         );
         by_id.insert(id, n.clone());
     }
-    assert_eq!(by_id["alpha"]["title"], "Alpha");
-    assert_eq!(by_id["beta"]["title"], "Beta");
-    assert_eq!(by_id["orphan"]["title"], "Orphan");
+    assert_eq!(by_id["pages/alpha.md"]["title"], "Alpha");
+    assert_eq!(by_id["pages/beta.md"]["title"], "Beta");
+    assert_eq!(by_id["pages/orphan.md"]["title"], "Orphan");
 
     // Orphan detection: exactly the unlinked page.
     let orphans = resp["orphans"].as_array().expect("orphans array");
@@ -227,7 +227,7 @@ fn graph_node_tags_are_deterministic_and_derive_from_frontmatter() {
     for n in nodes {
         by_id.insert(n["id"].as_str().unwrap().to_string(), n.clone());
     }
-    let alpha_tags: Vec<String> = by_id["alpha"]["tags"]
+    let alpha_tags: Vec<String> = by_id["pages/alpha.md"]["tags"]
         .as_array()
         .unwrap()
         .iter()
@@ -241,7 +241,7 @@ fn graph_node_tags_are_deterministic_and_derive_from_frontmatter() {
         alpha_tags.iter().any(|t| t == "rust"),
         "frontmatter tag rust must be attached to alpha"
     );
-    let orphan_tags: Vec<String> = by_id["orphan"]["tags"]
+    let orphan_tags: Vec<String> = by_id["pages/orphan.md"]["tags"]
         .as_array()
         .unwrap()
         .iter()
@@ -259,7 +259,7 @@ fn graph_node_tags_are_deterministic_and_derive_from_frontmatter() {
     for n in nodes2 {
         by_id2.insert(n["id"].as_str().unwrap().to_string(), n["tags"].clone());
     }
-    assert_eq!(by_id2["alpha"], json!(["project", "rust"]));
+    assert_eq!(by_id2["pages/alpha.md"], json!(["project", "rust"]));
 }
 
 #[test]
@@ -301,7 +301,7 @@ fn graph_cache_is_invalidated_after_mutation() {
             .as_array()
             .unwrap()
             .iter()
-            .any(|n| n["id"] == "delta"),
+            .any(|n| n["id"] == "pages/delta.md"),
         "delta is present in the fresh graph"
     );
     // The new edge links alpha<->delta (delta links alpha; alpha does not link
@@ -310,7 +310,7 @@ fn graph_cache_is_invalidated_after_mutation() {
         .as_array()
         .unwrap()
         .iter()
-        .filter(|e| e["source"] == "delta")
+        .filter(|e| e["source"] == "pages/delta.md")
         .count();
     assert_eq!(
         delta_edges, 1,
@@ -418,20 +418,23 @@ fn graph_edges_are_read_from_links_table_not_block_content() {
     let resp2 = invoke(&wv, "get_graph_panel_data", json!({})).expect("after links rewrite");
     let edges2 = resp2["graph"]["edges"].as_array().unwrap();
     // alpha now points at orphan per the links table; beta's [[alpha]] is unchanged.
-    let alpha_out: Vec<_> = edges2.iter().filter(|e| e["source"] == "alpha").collect();
+    let alpha_out: Vec<_> = edges2
+        .iter()
+        .filter(|e| e["source"] == "pages/alpha.md")
+        .collect();
     assert_eq!(
         alpha_out.len(),
         1,
         "alpha still has exactly one outgoing edge"
     );
     assert_eq!(
-        alpha_out[0]["target"], "orphan",
+        alpha_out[0]["target"], "pages/orphan.md",
         "edge follows the links table (alpha→orphan), not block content ([[beta]])"
     );
     assert!(
         !edges2
             .iter()
-            .any(|e| e["source"] == "alpha" && e["target"] == "beta"),
+            .any(|e| e["source"] == "pages/alpha.md" && e["target"] == "pages/beta.md"),
         "block-content link [[beta]] is not surfaced when the links table contradicts it"
     );
 }
