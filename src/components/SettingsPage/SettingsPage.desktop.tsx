@@ -59,6 +59,8 @@ export default function SettingsPageDesktop() {
     updateVoice,
     reminders,
     updateReminders,
+    layout,
+    updateLayout,
     handleSave,
     handleFetchModels,
     handleReindex,
@@ -133,6 +135,8 @@ export default function SettingsPageDesktop() {
             vaultPath={settings.vault_path || ''}
             onVaultPathChange={path => updateVault({ vault_path: path })}
             onBrowse={handlePickVaultDirectory}
+            pagesView={layout?.pages_view ?? 'flat'}
+            onPagesViewChange={v => updateLayout({ pages_view: v })}
           />
         )}
         {tab === 'theme' && (
