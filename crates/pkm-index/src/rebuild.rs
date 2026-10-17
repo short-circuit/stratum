@@ -107,15 +107,12 @@ pub fn rebuild_all(
     }
 
     for note in &indexed_notes {
+        let rel_path = note.rel_path.to_string_lossy().to_string();
         for link in &note.links {
-            let target_slug = link.target.replace(' ', "-").to_lowercase();
-            // Check if target exists in graph and use its actual slug
-            let target_slug_owned = graph
-                .get_node(&target_slug)
-                .or_else(|| graph.get_node(&link.target))
-                .map(|n| n.slug.clone());
-            if let Some(ref target_slug_resolved) = target_slug_owned {
-                graph.add_edge(&note.slug, target_slug_resolved, link.display_text.clone());
+            // Resolve the raw `[[target]]` to a node PATH; ambiguous or dead
+            // targets resolve to nothing and the edge is skipped.
+            if let Some(target_path) = graph.resolve_target(&link.target) {
+                graph.add_edge(&rel_path, &target_path, link.display_text.clone());
             }
         }
     }

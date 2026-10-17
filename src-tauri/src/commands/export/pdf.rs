@@ -251,14 +251,25 @@ fn render_pdf(html_path: &Path, output: &Path) -> Result<(), String> {
         "chromium not found; install chromium or set STRATUM_CHROMIUM".to_string()
     })?;
 
+    // Chromium derives its profile/singleton socket `$TMPDIR`/`$HOME` dirs,
+    // which under a long nix-shell temp path exceeds the Unix socket path
+    // limit and aborts. Point the relevant dirs at a short, unique path under
+    // `/tmp` so the socket path stays short.
+    let short_dir =
+        std::path::Path::new("/tmp").join(format!("stratum-pdf-chrom-{}", uuid::Uuid::new_v4()));
+
     let status = std::process::Command::new(&chrom)
         .arg("--headless=new")
         .arg("--no-sandbox")
         .arg("--disable-gpu")
         .arg("--no-pdf-header-footer")
         .arg("--virtual-time-budget=15000")
+        .arg(format!("--user-data-dir={}", short_dir.display()))
         .arg(format!("--print-to-pdf={}", output.display()))
         .arg(html_path)
+        .env("HOME", &short_dir)
+        .env("XDG_CONFIG_HOME", &short_dir)
+        .env("TMPDIR", &short_dir)
         .output()
         .map_err(|e| format!("failed to run {}: {}", chrom.display(), e))?;
 
