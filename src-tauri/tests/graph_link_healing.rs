@@ -243,7 +243,10 @@ fn corrupted_quad_bracket_links_produce_graph_edges() {
         edges[0]["source"], "pages/a.md",
         "source path resolved from pages/a.md"
     );
-    assert_eq!(edges[0]["target"], "pages/docker.md", "target path resolved cleanly");
+    assert_eq!(
+        edges[0]["target"], "pages/docker.md",
+        "target path resolved cleanly"
+    );
 }
 
 /// Acceptance smoke (t_03247cfb job 2): drive the REAL `sync_filesystem_to_db`
