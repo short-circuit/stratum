@@ -4072,7 +4072,12 @@
 <tr>
 <td><code>AutocompletePopup</code></td>
 <td><code>OutlinerEditor</code></td>
-<td>Popover for wiki-link autocomplete</td>
+<td>Popover for wiki-link autocomplete (legacy, unused — superseded by <code>WikiLinkAutocomplete</code>)</td>
+</tr>
+<tr>
+<td><code>WikiLinkAutocomplete</code></td>
+<td><code>OutlinerEditor</code></td>
+<td>BlockNote <code>SuggestionMenuController</code> wiki-link autocomplete (<code>[[</code> → search pages → insert slug/path link; path-qualified for duplicate slugs)</td>
 </tr>
 <tr>
 <td><code>LinkPreviewPopup</code></td>
@@ -4113,6 +4118,18 @@
 <tr>
 <td><code>Sidebar</code></td>
 <td>Collapsible navigation + page tree + create/delete/export</td>
+</tr>
+<tr>
+<td><code>PageTree</code></td>
+<td>Page list with create/delete and new-page form (flat list, default)</td>
+</tr>
+<tr>
+<td><code>PageTreeGrouped</code></td>
+<td>Folder-tree variant of the page list when <code>pages_view = "tree"</code> (sidebar + PagesHome)</td>
+</tr>
+<tr>
+<td><code>MovePageDialog</code></td>
+<td>Rename/move a page by path (sidebar row action / PageView menu); calls <code>move_page</code>, backend rewrites inbound links</td>
 </tr>
 <tr>
 <td><code>VaultPicker</code></td>

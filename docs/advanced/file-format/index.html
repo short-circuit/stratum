@@ -1788,6 +1788,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#per-vault-configuration-configtoml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-Vault Configuration (config.toml)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#page-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Page Identity
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#round-trip-fidelity" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2618,6 +2640,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#per-vault-configuration-configtoml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-Vault Configuration (config.toml)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#page-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Page Identity
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#round-trip-fidelity" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2763,15 +2807,46 @@
 </code></pre></div>
 <h2 id="file-organization">File Organization<a class="headerlink" href="#file-organization" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>vault/
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>├── any-page.md               # Pages can be at any depth
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>├── journals/
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>│   └── YYYY-MM-DD.md         # Daily notes
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>├── templates/
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>│   └── template-name.md      # Reusable templates
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>├── whiteboards/
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>│   └── name.excalidraw       # Excalidraw data (JSON)
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>└── .pkm/                     # Cache (ignore in Git)
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>├── pages/                      # Knowledge pages — can be at any depth
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>│   ├── any-page.md
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>│   └── projects/
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>│       └── nested/note.md
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>├── journals/
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>│   └── YYYY-MM-DD.md           # Daily notes (not shown in the page tree)
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>├── templates/
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>│   └── template-name.md        # Reusable templates
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>├── whiteboards/
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>│   └── name.excalidraw         # Excalidraw data (JSON)
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>└── .pkm/                       # Cache (ignore in Git)
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    └── config.toml             # Per-vault configuration (see below)
 </code></pre></div>
+<p>Storage rules:</p>
+<ul>
+<li><strong>Pages live under <code>pages/</code>.</strong> Every page is addressed by its vault-relative path <code>pages/&lt;subfolder&gt;/&lt;note&gt;.md</code>. Nested paths are allowed; parent folders are created automatically on create/move.</li>
+<li><strong>Journals live under <code>journals/</code></strong> and are excluded from the page list tree (use the Journal panel).</li>
+<li><strong>No maximum nesting depth.</strong> Any path under <code>pages/</code> is valid; the tree view is presentation-only and never re-orders files on disk.</li>
+</ul>
+<h2 id="per-vault-configuration-configtoml">Per-Vault Configuration (<code>config.toml</code>)<a class="headerlink" href="#per-vault-configuration-configtoml" title="Permanent link">&para;</a></h2>
+<p>Stratum stores per-vault settings in <code>.pkm/config.toml</code>. Relevant keys:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">[layout]</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="c1"># Directory where knowledge pages are stored (vault-relative).</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">pages_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"pages"</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Journal files directory (vault-relative).</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">journals_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"journals"</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="c1"># Recording clips directory (vault-relative).</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="n">recordings_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"assets/recordings"</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="c1"># Page list rendering mode: "flat" (default) or "tree" (folder hierarchy).</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="c1"># Existing vaults load as "flat" unless this key was set explicitly.</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="n">pages_view</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"flat"</span>
+</code></pre></div>
+<p><code>pages_view</code> does not change the file layout — it only controls how the page list is rendered (flat list vs. folder tree). It is also editable from the UI under <strong>Settings → Vault → Pages layout</strong>.</p>
+<h2 id="page-identity">Page Identity<a class="headerlink" href="#page-identity" title="Permanent link">&para;</a></h2>
+<p>A page's identity is its <strong>vault-relative path</strong> — not its title. Details:</p>
+<ul>
+<li>One page = one path = one graph node. Two notes with the same base name in different folders are distinct nodes.</li>
+<li><code>[[wiki-links]]</code> by bare name resolve to exactly one page only when unique; path-qualified targets (<code>[[pages/folder/note]]</code>) are always unambiguous (see <a href="../../guide/linking-and-backlinks/">Links and Backlinks</a>).</li>
+<li>Moving/renaming a page (in-app <strong>Move / rename…</strong>) rewrites inbound path/slug links; external <code>mv</code> does not (name links survive, path links dangle until rewritten).</li>
+</ul>
 <h2 id="round-trip-fidelity">Round-Trip Fidelity<a class="headerlink" href="#round-trip-fidelity" title="Permanent link">&para;</a></h2>
 <p>Stratum guarantees round-trip fidelity:</p>
 <ol>

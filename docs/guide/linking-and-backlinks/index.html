@@ -886,6 +886,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#link-targets-name-vs-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Link Targets: Name vs. Path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#page-identity-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Page Identity Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#navigating" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2647,6 +2669,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#link-targets-name-vs-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Link Targets: Name vs. Path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#page-identity-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Page Identity Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#navigating" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2803,11 +2847,51 @@
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>[[Target Page|Display Text]]
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="gh"># Link to a page by its file path</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>[[notes/my-page]]
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>[[pages/notes/my-page]]
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="gh"># Inline in text</span>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>See [[Related Concept]] for more details.
 </code></pre></div>
+<h3 id="link-targets-name-vs-path">Link Targets: Name vs. Path<a class="headerlink" href="#link-targets-name-vs-path" title="Permanent link">&para;</a></h3>
+<p>A wiki-link target can refer to a page in two ways, and they are resolved very differently:</p>
+<table>
+<thead>
+<tr>
+<th>Target form</th>
+<th>Example</th>
+<th>Resolution</th>
+<th>Breaks on move/rename?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Name link</strong></td>
+<td><code>[[Target Page]]</code></td>
+<td>Resolved by note <em>name</em> (slug or title). If two pages share a name, the link is ambiguous and resolves to nothing (<code>0</code> matches) unless qualified.</td>
+<td>❌ No — works regardless of folder</td>
+</tr>
+<tr>
+<td><strong>Path link</strong></td>
+<td><code>[[pages/folder/target]]</code></td>
+<td>Resolved by the <em>exact vault-relative path</em> (with optional <code>.md</code> suffix). Path-qualified targets are authoritative for disambiguation.</td>
+<td>✅ Yes — rewritten by <strong>Move / rename…</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Stratum deliberately uses <strong>name identity</strong> (not path identity) as the primary key. This is the robustness-first choice:</p>
+<ul>
+<li>Moving a note between folders never breaks <code>[[Some Note]]</code> name links — no rewrite needed.</li>
+<li>Two notes with the same base name in different folders are allowed; both remain distinct pages and distinct graph nodes. To link to one of them unambiguously, use a path link (<code>[[pages/folder/note]]</code>).</li>
+<li>Renamed files dangle name links until you use <strong>Move / rename…</strong>, which rewrites every inbound link (see <a href="../vault-management/#moving-and-renaming-pages">Moving and Renaming Pages</a>).</li>
+</ul>
+<h3 id="page-identity-rules">Page Identity Rules<a class="headerlink" href="#page-identity-rules" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>A page's path is its true identity</strong> (<code>pages/&lt;path&gt;/&lt;name&gt;.md</code>). Each path is one page and one graph node; duplicate base names in different folders are separate nodes.</li>
+<li><strong>A bare <code>[[Name]]</code> resolves to exactly one page only if unique</strong> across the vault. Ambiguous (or dead) targets resolve to nothing, and autocomplete shows all candidates.</li>
+<li><strong>Path-qualified targets are never ambiguous</strong> — they match exactly one path.</li>
+<li><strong>Block references <code>((uuid))</code> are path-independent</strong> — moving or renaming a page never affects them.</li>
+</ol>
+<p>If you move a page, Stratum rewrites all inbound path/slug links automatically (see <code>move_page</code>). If you move the page's <em>file</em> outside Stratum, name links keep working (and the stale row is purged by the watcher or at next launch); path links dangle until you run <strong>Move / rename…</strong> from within the app.</p>
 <h3 id="navigating">Navigating<a class="headerlink" href="#navigating" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Ctrl+click</strong> (or Cmd+click) a wiki-link to navigate to the target page</li>

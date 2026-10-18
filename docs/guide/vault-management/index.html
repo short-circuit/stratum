@@ -862,6 +862,106 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#page-storage-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Page Storage Layout
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Page Storage Layout">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#page-path-syntax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Page Path Syntax
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#page-list-views" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Page List Views
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-pages-in-subfolders" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating Pages in Subfolders
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#moving-and-renaming-pages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Moving and Renaming Pages
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Moving and Renaming Pages">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-move-rewrites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Move Rewrites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#name-vs-path-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Name vs. Path Identity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#external-moves-renames" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        External Moves / Renames
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#moving-a-vault" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2606,6 +2706,106 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#page-storage-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Page Storage Layout
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Page Storage Layout">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#page-path-syntax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Page Path Syntax
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#page-list-views" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Page List Views
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-pages-in-subfolders" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating Pages in Subfolders
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#moving-and-renaming-pages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Moving and Renaming Pages
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Moving and Renaming Pages">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-move-rewrites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Move Rewrites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#name-vs-path-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Name vs. Path Identity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#external-moves-renames" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        External Moves / Renames
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#moving-a-vault" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2679,7 +2879,7 @@
 </div>
 <div class="admonition note">
 <p class="admonition-title">Stale cache self-heals</p>
-<p>If a page or the journal ever shows stale or empty content (for example after an external edit or a git pull while the app was closed), close and reopen the page or journal — current content is now loaded from your <code>.md</code> files automatically, no app restart needed. If you want a forced full rebuild, use <strong>Settings → Developer → Repair DB from disk</strong> or <strong>Reindex All</strong>; the page list refreshes immediately after either one.</p>
+<p>If a page or the journal ever shows stale or empty content (for example after an external edit or a git pull while the app was closed), close and reopen the page or journal — current content is now loaded from your <code>.md</code> files automatically, no app restart needed. Pages moved or deleted outside Stratum (for example with <code>mv</code> or <code>git mv</code>) are also cleaned up: on the next app start Stratum removes their old database entries, so the page list never shows a stale "ghost" page. If you want a forced full rebuild, use <strong>Settings → Developer → Repair DB from disk</strong> or <strong>Reindex All</strong>; the page list refreshes immediately after either one.</p>
 </div>
 <h2 id="vault-information">Vault Information<a class="headerlink" href="#vault-information" title="Permanent link">&para;</a></h2>
 <p>The sidebar header shows your vault stats:</p>
@@ -2691,6 +2891,145 @@
 
 <h2 id="multiple-vaults">Multiple Vaults<a class="headerlink" href="#multiple-vaults" title="Permanent link">&para;</a></h2>
 <p>Stratum works with one vault at a time, but you can switch between vaults at any time through Settings. Each vault is completely independent with its own configuration, cache, and Git repository.</p>
+<h2 id="page-storage-layout">Page Storage Layout<a class="headerlink" href="#page-storage-layout" title="Permanent link">&para;</a></h2>
+<p>Stratum stores pages under a fixed <code>pages/</code> directory inside the vault. The <code>pages/</code> prefix is <em>not</em> part of a page's title — it is only the storage location:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>your-vault/
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>├── pages/                       # All your knowledge pages
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>│   ├── note-a.md
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>│   ├── projects/
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>│   │   ├── project-x.md
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>│   │   └── archives/
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>│   │       └── old-note.md
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>├── journals/                    # Auto-created daily notes
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>└── .pkm/                        # Cache directory (rebuildable)
+</code></pre></div>
+<h3 id="page-path-syntax">Page Path Syntax<a class="headerlink" href="#page-path-syntax" title="Permanent link">&para;</a></h3>
+<p>Every page is identified by a <strong>vault-relative path</strong> of the form <code>pages/&lt;subfolder&gt;/&lt;note-name&gt;.md</code>. Nested folders are allowed and created automatically when you create a page with a slash in its path.</p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pages/</code></td>
+<td>Required storage prefix — always present</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>&lt;subfolder&gt;/</code></td>
+<td>Optional folders (table of contents by topic)</td>
+<td><code>projects/</code></td>
+</tr>
+<tr>
+<td><code>&lt;note-name&gt;</code></td>
+<td>Base name — becomes the slug</td>
+<td><code>project-x</code></td>
+</tr>
+<tr>
+<td><code>.md</code></td>
+<td>Required extension — appended if omitted</td>
+<td><code>page.md</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="page-list-views">Page List Views<a class="headerlink" href="#page-list-views" title="Permanent link">&para;</a></h3>
+<p>The page list (sidebar <strong>Recent</strong> section and the <strong>Home</strong> page) can be displayed in two layouts. Choose the one you prefer in <strong>Settings → Vault → Pages layout</strong>:</p>
+<ul>
+<li><strong>Flat list</strong> — every page appears as a flat list, sorted by last modified. This is the default.</li>
+<li><strong>Folder tree</strong> — pages are grouped into a collapsible folder tree based on their path under <code>pages/</code>. Folders are shown first (alphabetical), then pages (alphabetical). Pages in <code>journals/</code> are never shown here — use the <strong>Journal</strong> panel for those.</li>
+</ul>
+<p>The setting is stored per-vault in <code>.pkm/config.toml</code> under <code>[layout]</code>, as <code>pages_view = "flat"</code> or <code>pages_view = "tree"</code>. Changing it takes effect immediately; no reindex is needed.</p>
+<div class="admonition note">
+<p class="admonition-title">The tree is presentation-only</p>
+<p>The tree view groups whatever paths you create — it does not enforce that a note "belongs" to a folder. Any valid page exists in both views, and both views operate on exactly the same page set. Both layouts coexist: pages created in tree mode can still be opened and edited in flat mode and vice versa.</p>
+</div>
+<h3 id="creating-pages-in-subfolders">Creating Pages in Subfolders<a class="headerlink" href="#creating-pages-in-subfolders" title="Permanent link">&para;</a></h3>
+<p>Use the <strong>New page</strong> form and type a full path:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>projects/quarterly-review
+</code></pre></div>
+<p>Stratum creates <code>pages/projects/quarterly-review.md</code> and the <code>projects/</code> folder automatically. The title is optional; if omitted, the page uses the base name as its title.</p>
+<div class="admonition tip">
+<p class="admonition-title">Dead-link creation stays flat</p>
+<p>Creating a page by clicking a dead <code>[[wiki-link]]</code> still creates it at <code>pages/&lt;name&gt;.md</code> (flat), not inside the current folder. This avoids surprise path splits — folder placement remains a deliberate choice.</p>
+</div>
+<h2 id="moving-and-renaming-pages">Moving and Renaming Pages<a class="headerlink" href="#moving-and-renaming-pages" title="Permanent link">&para;</a></h2>
+<p>Use <strong>Move / rename…</strong> from:</p>
+<ul>
+<li>the page-row hover actions in the sidebar page list (the move icon), or</li>
+<li>the page <strong>⋯ actions menu</strong> in the top-right of an open page (desktop).</li>
+</ul>
+<p>The dialog asks for the new vault-relative path, e.g. <code>pages/projects/review-2026.md</code>. It validates that:</p>
+<ul>
+<li>the path is non-empty and starts with <code>pages/</code>,</li>
+<li>no other page already exists at the target path,</li>
+<li>the target path is inside the vault (no traversal).</li>
+</ul>
+<p>On move, Stratum:</p>
+<ol>
+<li>Renames the file on disk (creating parent folders as needed) and updates its database rows and search index,</li>
+<li><strong>Rewrites every inbound wiki-link</strong> across the whole vault — including in sources you did not ask to touch — to the new path or slug,</li>
+<li>Refreshes the page list, graph, and backlinks.</li>
+</ol>
+<p>Both the page row and the open-page menu run the same backend <code>move_page</code> command.</p>
+<div class="admonition warning">
+<p class="admonition-title">Moving across devices</p>
+<p>If the source and destination are on different filesystems (e.g. a symlinked subfolder pointing to another drive), the rename fails with "source and destination are on different filesystems". Move the folder on the same filesystem instead; a copy+delete fallback is planned.</p>
+</div>
+<h3 id="what-move-rewrites">What Move Rewrites<a class="headerlink" href="#what-move-rewrites" title="Permanent link">&para;</a></h3>
+<p><code>move_page</code> rewrites links that refer to the moved page under any of its old identities — but only where the destination identity actually changed:</p>
+<table>
+<thead>
+<tr>
+<th>Identity</th>
+<th>Rewritten?</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Path links (<code>[[old/path]]</code>)</td>
+<td>✅ yes → new path</td>
+<td><code>[[pages/old/note]]</code> → <code>[[pages/new/note]]</code></td>
+</tr>
+<tr>
+<td>Slug links (<code>[[old-slug]]</code>)</td>
+<td>✅ if slug changed, → new slug</td>
+<td><code>[[old-slug]]</code> → <code>[[new-slug]]</code></td>
+</tr>
+<tr>
+<td>Title links (<code>[[Old Title]]</code>)</td>
+<td>➖ unchanged (title is preserved verbatim on move)</td>
+<td><code>[[Old Title]]</code> stays <code>[[Old Title]]</code></td>
+</tr>
+<tr>
+<td>Block references <code>((uuid))</code></td>
+<td>➖ never rewritten (UUID-based)</td>
+<td>stays</td>
+</tr>
+</tbody>
+</table>
+<p>Cases, piped/display forms (<code>[[old|display]]</code>), and escaped pipes are handled by the parser. Links in YAML frontmatter are rewritten too. If neither the slug nor the path changed (moving between folders with the same filename), nothing downstream is rewritten — link integrity is already preserved.</p>
+<h3 id="name-vs-path-identity">Name vs. Path Identity<a class="headerlink" href="#name-vs-path-identity" title="Permanent link">&para;</a></h3>
+<p>This is the key link-integrity model:</p>
+<ul>
+<li><strong>Name links</strong> (<code>[[Some Note]]</code>) resolve by <em>note name</em> (slug/title), NOT by folder. You can move a note between folders and every <code>[[Some Note]]</code> link keeps working without any rewrite.</li>
+<li><strong>Path links</strong> (<code>[[pages/folder/note]]</code>) resolve by <em>exact path</em> — they break if the note is moved.</li>
+</ul>
+<p>Consequence: <strong>moving a note inside the vault never breaks name links.</strong> Path links are the only ones that can break, and <code>move_page</code> rewrites them for you. Duplicate note names are allowed (in different folders); when the name is ambiguous, both the autocomplete and any resolution treat <strong>path-qualified</strong> targets as authoritative — use <code>[[pages/folder/note]]</code> to disambiguate.</p>
+<h3 id="external-moves-renames">External Moves / Renames<a class="headerlink" href="#external-moves-renames" title="Permanent link">&para;</a></h3>
+<p>If you rename or move a <code>.md</code> file <strong>outside</strong> Stratum (file manager, terminal, Obsidian, git pull):</p>
+<ol>
+<li>The stale row is cleaned up: while the app is running, the file watcher purges the old page's database rows and index entries (live, debounced); if Stratum was closed, the startup heal does the same at next launch.</li>
+<li><strong>Name links</strong> stay intact (name identity). <strong>Path links</strong> to the old path dangle until you either update them manually or use <strong>Move / rename…</strong> in the UI — which rewrites them for you.</li>
+</ol>
+<div class="admonition tip">
+<p class="admonition-title">Prefer the in-app move</p>
+<p>For renames, use <strong>Move / rename…</strong> instead of an external <code>mv</code>: it is the only path that rewrites inbound links automatically. For folder-only moves (filename unchanged), an external <code>mv</code> is safe — name links are not affected.</p>
+</div>
 <h2 id="moving-a-vault">Moving a Vault<a class="headerlink" href="#moving-a-vault" title="Permanent link">&para;</a></h2>
 <p>To move a vault:</p>
 <ol>
@@ -2699,7 +3038,7 @@
 <li>Open Stratum, go to <strong>Settings → Vault</strong>, and update the vault path</li>
 <li>Stratum re-indexes and reloads</li>
 </ol>
-<p>All your notes and metadata are preserved.</p>
+<p>All your notes and metadata are preserved. (Moving a vault directory ≠ moving pages — page paths are always vault-relative, so they do not change.)</p>
 
 
 
