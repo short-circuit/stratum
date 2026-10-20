@@ -1,13 +1,13 @@
 # Stratum v1.0 beta — announcement kit
 
-Ready-to-post copy for Stratum v1.0.0-beta.2. Publish where you like; every
+Ready-to-post copy for Stratum v1.0.0-beta.3. Publish where you like; every
 snippet is self-contained and can be copy-pasted verbatim.
 
 - Repo: https://github.com/short-circuit/stratum
 - Docs: https://short-circuit.github.io/stratum/docs/
-- Download: https://github.com/short-circuit/stratum/releases/tag/v1.0.0-beta.2
+- Download: https://github.com/short-circuit/stratum/releases/tag/v1.0.0-beta.3
 - License: AGPL-3.0-only
-- Version: v1.0.0-beta.2 (2026-10-15)
+- Version: v1.0.0-beta.3 (2026-10-20)
 
 ---
 
@@ -40,7 +40,7 @@ so the story is not self-promotional-flavored only):
 > It is AGPL-3.0, and the whole pipeline — parsing, indexing, graph, search,
 > sync — runs in Rust. Desktop (Linux/macOS/Windows) and Android build
 > targets exist; the UI is localized in en/de/it/fr/es (zh/ja/el in progress).
-> v1.0.0-beta.2 ships Linux .deb/.rpm/.AppImage + checksums, macOS and
+> v1.0.0-beta.3 ships Linux .deb/.rpm/.AppImage + checksums, macOS and
 > Windows bundles.
 >
 > Happy to answer anything — especially if you're coming from Obsidian or
@@ -57,7 +57,7 @@ Stratum — offline-first PKM with plain .md files and Git sync (AGPL)
 Body:
 
 > Hi all — I've been developing Stratum for a couple of years and just put
-> out v1.0.0-beta.2. It's a privacy-first personal knowledge management
+> out v1.0.0-beta.3. It's a privacy-first personal knowledge management
 > system that does NOT lock you in: every note is a plain Markdown file on
 > disk, so if the app disappeared tomorrow you'd lose nothing. No cloud
 > dependency, fully offline, AI optional (Ollama/LM Studio/LocalAI).
@@ -96,7 +96,7 @@ Title:
 Body:
 
 > Not a replacement pitch — I use both, but I've been working on Stratum as
-> an experiment in what "no lock-in" really means, and v1.0.0-beta.2 is out.
+> an experiment in what "no lock-in" really means, and v1.0.0-beta.3 is out.
 >
 > The core difference from Obsidian: notes are stored as plain Markdown on
 > disk, but the editor is a **block outliner** (Logseq-style). Every
@@ -139,7 +139,7 @@ Description field:
 > where every paragraph has a UUID and can be linked/queried individually;
 > wiki-links, backlinks, knowledge graph, Datalog queries, full-text search,
 > Git sync, MCP server, WASM plugin runtime, and an optional local AI stack.
-> Rust core (Tantivy, git2, SQLite), AGPL-3.0, v1.0.0-beta.2. Desktop
+> Rust core (Tantivy, git2, SQLite), AGPL-3.0, v1.0.0-beta.3. Desktop
 > bundles for Linux/macOS/Windows plus Android build.
 
 ## Mastodon — short posts (<=500 chars each)
@@ -147,7 +147,7 @@ Description field:
 Post 1:
 
 ```
-Stratum v1.0.0-beta.2 is out — an offline-first PKM that stores every note
+Stratum v1.0.0-beta.3 is out — an offline-first PKM that stores every note
 as a plain .md file on disk.
 
 • Block outliner, every block addressable
@@ -177,7 +177,7 @@ Docs: https://short-circuit.github.io/stratum/docs/
 - Fully offline; AI optional via local endpoints (Ollama, LM Studio, LocalAI, SearXNG research)
 - v1.0 features: block outliner, wiki-links + backlinks + unlinked mentions, graph (connected components/orphans), Datalog queries (EDN + JSON), journal, templates, flashcards, whiteboards, KaTeX + Mermaid, attachments, reminders, plugins (WASM + directory), MCP server, voice dictation, export (PDF/ZIP), git sync
 - i18n: en/de/it/fr/es complete; zh/ja/el placeholders in progress
-- Release: v1.0.0-beta.2 — Linux .deb/.rpm/.AppImage + SHA256SUMS, macOS .zip, Windows .exe, Android .apk/.aab
+- Release: v1.0.0-beta.3 — Linux .deb/.rpm/.AppImage + SHA256SUMS, macOS .zip, Windows .exe, Android .apk/.aab
 - Performance: <100ms search at 10k notes, <80MB idle memory
 - Honest caveats: beta (API may shift), mobile is Android-first, no end-to-end encryption on sync (git-level), no collaborative editing
 
