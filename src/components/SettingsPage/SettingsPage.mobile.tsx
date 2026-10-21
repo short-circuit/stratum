@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Divider from '@mui/material/Divider';
 import Button from '@mui/material/Button';
+import { SettingsSection } from '../ui/settings';
 import Alert from '@mui/material/Alert';
 import TextField from '@mui/material/TextField';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
@@ -124,11 +124,7 @@ export default function SettingsPageMobile() {
       {/* Scrollable content */}
       <Box sx={{ flex: 1 }}>
         {/* ─── Vault Section ─── */}
-        <Box sx={{ px: 2, pt: 2 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-            {t('settings.vault')}
-          </Typography>
-          <Divider sx={{ mb: 1.5 }} />
+        <SettingsSection title={t('settings.vault')} variant="mobile" divider sx={{ pt: 2 }}>
           <TextField
             label={t('settings.vault_path')}
             value={settings.vault_path || ''}
@@ -167,7 +163,7 @@ export default function SettingsPageMobile() {
               <ToggleButton value="tree">{t('settings.pages_view_tree')}</ToggleButton>
             </ToggleButtonGroup>
           </Box>
-        </Box>
+        </SettingsSection>
         <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
         <Box sx={{ px: 2, pt: 2 }}>
           <ExportSection vaultPath={settings.vault_path || ''} />
@@ -197,11 +193,7 @@ export default function SettingsPageMobile() {
         />
 
         {/* ─── Research Section ─── */}
-        <Box sx={{ px: 2, pt: 3 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-            {t('settings.research')}
-          </Typography>
-          <Divider sx={{ mb: 1.5 }} />
+        <SettingsSection title={t('settings.research')} variant="mobile" divider>
           <TextField
             label={t('settings.searxng_endpoint')}
             placeholder="http://localhost:8888"
@@ -232,7 +224,7 @@ export default function SettingsPageMobile() {
           <Box sx={{ mt: 2 }}>
             <ResearchPresetsSection research={research} onResearchChange={updateResearch} />
           </Box>
-        </Box>
+        </SettingsSection>
 
         {/* ─── Developer Section ─── */}
         <MobileDeveloperSection

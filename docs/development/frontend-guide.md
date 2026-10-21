@@ -94,7 +94,7 @@ Components **never** call `invoke()` directly — always through `commands.ts`. 
 | `FlashcardsPanel` | `/flashcards` | SRS card review (SM-2) |
 | `KanbanPanel` | `/kanban` | Drag-and-drop Kanban board |
 | `WhiteboardPanel` | `/whiteboards` | Excalidraw spatial canvas |
-| `SettingsPage` | `/settings` | 6-tab app configuration |
+| `SettingsPage` | `/settings` | 8-tab app configuration |
 
 ### Editor Sub-components
 
@@ -288,8 +288,41 @@ The `ui/` directory holds reusable, presentation-only components. They have no b
 | `PageHeader` | `title`, `actions?`, `onBack?` | Consistent header bar |
 | `ConfirmDialog` | `open`, `title`, `message`, `onConfirm`, `onCancel` | Confirmation dialog |
 | `SliderRow` | `label`, `value`, `min`, `max`, `onChange` | Label + slider + display value |
+| `SettingsSection` | `title?`, `description?`, `divider?`, `variant` | Settings section wrapper (desktop/mobile parity) |
+| `SettingsTab` | `value`, `onChange`, `tabs` | Settings tab bar (desktop SettingsPage) |
+| `SettingsAccordion` | `summary`, `expanded`, `onChange` | Collapsible settings accordion (mobile) |
+| `SettingsRow` | `label`, `description?`, `control?` / `checked` + `onCheckedChange` | Labeled settings row (toggle or generic control) |
+| `ThemeColorEditor` | `label`, `value`, `presets`, `onChange`, `variant?` | Theme color presets + custom picker + hex field |
+| `ThemeFontSizeSlider` | `value`, `onChange`, `variant?` | Theme font-size slider with scale captions |
 | `PassphraseModal` | — | SSH key passphrase input |
 | `ConflictModal` | — | Git conflict resolution |
+
+### Settings primitives (`src/components/ui/settings/`)
+
+The `settings/` sub-folder holds the shared settings primitives that the
+desktop SettingsPage tabs and the mobile settings sections both build on, so
+the two surfaces stay in visual and behavioral parity.
+
+Components available: `SettingsSection`, `SettingsTab`, `SettingsAccordion`,
+`SettingsRow`, `ThemeColorEditor`, and `ThemeFontSizeSlider`. All theme-related
+sizing (swatch width/height, color-input width, slider max width, presets, and
+spacing) lives in `themeConstants.ts` — the single source of truth shared by
+the desktop and mobile theme editors. Do not hardcode a swatch size or preset
+elsewhere; add it to `themeConstants.ts` instead.
+
+Usage example:
+
+```typescript
+import { SettingsSection, SettingsRow, SETTINGS_LOCALES } from '../ui/settings';
+
+<SettingsSection title={t('settings.theme')} variant="desktop">
+  <SettingsRow
+    label={t('settings.dark_mode')}
+    checked={theme.dark_mode}
+    onCheckedChange={v => onThemeChange({ dark_mode: v })}
+  />
+</SettingsSection>
+```
 
 ### Usage Examples
 

@@ -1,19 +1,17 @@
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import Divider from '@mui/material/Divider';
-import Switch from '@mui/material/Switch';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Slider from '@mui/material/Slider';
-import TextField from '@mui/material/TextField';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import ToggleButton from '@mui/material/ToggleButton';
+import { useTranslation } from 'react-i18next';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
-import { useTranslation } from 'react-i18next';
-
-const LOCALES = ['en', 'de', 'it', 'fr', 'es', 'zh', 'ja', 'el'];
+import {
+  SettingsSection,
+  SettingsRow,
+  ThemeColorEditor,
+  ThemeFontSizeSlider,
+  SETTINGS_LOCALES,
+  THEME_PRIMARY_PRESETS,
+  THEME_SECONDARY_PRESETS,
+} from '../ui/settings';
 
 // ---------------------------------------------------------------------------
 // Mobile theme settings section.
@@ -24,16 +22,6 @@ const LOCALES = ['en', 'de', 'it', 'fr', 'es', 'zh', 'ja', 'el'];
 // field for both primary and secondary, and the font-size scale labels.
 // Stacked vertically for touch usability.
 // ---------------------------------------------------------------------------
-
-const PRIMARY_SWATCHES = [
-  '#f97316', '#ef4444', '#3b82f6', '#8b5cf6',
-  '#10b981', '#f59e0b', '#ec4899', '#06b6d4',
-];
-
-const SECONDARY_SWATCHES = [
-  '#6b7280', '#78716c', '#a1a1aa', '#71717a',
-  '#52525b', '#3f3f46', '#27272a',
-];
 
 export interface MobileThemeSectionProps {
   theme: {
@@ -47,47 +35,10 @@ export interface MobileThemeSectionProps {
   onLocaleChange: (locale: string) => void;
 }
 
-function CustomColorRow({
-  color,
-  onChange,
-}: {
-  color: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-      <TextField
-        type="color"
-        value={color}
-        onChange={e => onChange(e.target.value)}
-        sx={{
-          width: 44,
-          '& .MuiInputBase-root': { p: 0.25 },
-          '& input': { cursor: 'pointer', height: 32, p: 0 },
-        }}
-      />
-      <TextField
-        size="small"
-        value={color}
-        onChange={e => onChange(e.target.value)}
-        placeholder="#f97316"
-        sx={{
-          flex: 1,
-          '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.75rem' },
-        }}
-      />
-    </Box>
-  );
-}
-
 export default function MobileThemeSection({ theme, updateTheme, locale, onLocaleChange }: MobileThemeSectionProps) {
   const { t } = useTranslation();
   return (
-    <Box sx={{ px: 2, pt: 3 }}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-        {t('settings.theme')}
-      </Typography>
-      <Divider sx={{ mb: 1.5 }} />
+    <SettingsSection title={t('settings.theme')} variant="mobile" divider>
       <FormControl size="small" fullWidth sx={{ mb: 1.5 }}>
         <InputLabel>{t('settings.language_label')}</InputLabel>
         <Select
@@ -95,94 +46,40 @@ export default function MobileThemeSection({ theme, updateTheme, locale, onLocal
           value={locale}
           onChange={e => onLocaleChange(e.target.value as string)}
         >
-          {LOCALES.map(code => (
+          {SETTINGS_LOCALES.map(code => (
             <MenuItem key={code} value={code}>
               {t(`settings.langs.${code}`)}
             </MenuItem>
           ))}
         </Select>
       </FormControl>
-      <FormControlLabel
-        control={
-          <Switch
-            checked={theme.dark_mode}
-            onChange={e => updateTheme({ dark_mode: e.target.checked })}
-          />
-        }
+      <SettingsRow
         label={t('settings.dark_mode')}
+        checked={theme.dark_mode}
+        onCheckedChange={v => updateTheme({ dark_mode: v })}
         sx={{ mb: 1.5 }}
       />
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-        {t('settings.primary_buttons_accents')}
-      </Typography>
-      <ToggleButtonGroup
+      <ThemeColorEditor
+        label={t('settings.primary_buttons_accents')}
         value={theme.primary_color}
-        exclusive
-        onChange={(_, v) => v && updateTheme({ primary_color: v })}
-        sx={{ flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}
-      >
-        {PRIMARY_SWATCHES.map(color => (
-          <ToggleButton
-            key={color}
-            value={color}
-            size="small"
-            sx={{
-              width: 28, height: 28, minWidth: 28, p: 0, borderRadius: '50%!important',
-              border: 2, borderColor: theme.primary_color === color ? 'text.primary' : 'transparent',
-              bgcolor: color, '&:hover': { bgcolor: color },
-              '&.Mui-selected': { bgcolor: color, '&:hover': { bgcolor: color } },
-            }}
-          />
-        ))}
-      </ToggleButtonGroup>
-      <CustomColorRow
-        color={theme.primary_color}
+        presets={THEME_PRIMARY_PRESETS}
         onChange={v => updateTheme({ primary_color: v })}
+        variant="mobile"
+        sx={{ mb: 1.5 }}
       />
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-        {t('settings.secondary_backgrounds_borders')}
-      </Typography>
-      <ToggleButtonGroup
+      <ThemeColorEditor
+        label={t('settings.secondary_backgrounds_borders')}
         value={theme.secondary_color}
-        exclusive
-        onChange={(_, v) => v && updateTheme({ secondary_color: v })}
-        sx={{ flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}
-      >
-        {SECONDARY_SWATCHES.map(color => (
-          <ToggleButton
-            key={color}
-            value={color}
-            size="small"
-            sx={{
-              width: 28, height: 28, minWidth: 28, p: 0, borderRadius: '50%!important',
-              border: 2, borderColor: theme.secondary_color === color ? 'text.primary' : 'transparent',
-              bgcolor: color, '&:hover': { bgcolor: color },
-              '&.Mui-selected': { bgcolor: color, '&:hover': { bgcolor: color } },
-            }}
-          />
-        ))}
-      </ToggleButtonGroup>
-      <CustomColorRow
-        color={theme.secondary_color}
+        presets={THEME_SECONDARY_PRESETS}
         onChange={v => updateTheme({ secondary_color: v })}
+        variant="mobile"
+        sx={{ mb: 1.5 }}
       />
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-        {t('settings.font_size')} {theme.font_size || 16}px
-      </Typography>
-      <Slider
+      <ThemeFontSizeSlider
         value={theme.font_size || 16}
-        min={12}
-        max={28}
-        step={1}
-        onChange={(_, v) => updateTheme({ font_size: v as number })}
-        valueLabelDisplay="auto"
-        sx={{ mb: 0.5, maxWidth: 300 }}
+        onChange={v => updateTheme({ font_size: v })}
+        variant="mobile"
       />
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 300 }}>
-        <Typography variant="caption" color="text.disabled">12px</Typography>
-        <Typography variant="caption" color="text.disabled">20px</Typography>
-        <Typography variant="caption" color="text.disabled">28px</Typography>
-      </Box>
-    </Box>
+    </SettingsSection>
   );
 }

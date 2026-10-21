@@ -185,6 +185,10 @@ export actions, each with an output path, a **Browse** button, and an
 | Secondary Color | Color for backgrounds, borders, UI chrome |
 | Font Size | Base editor font size (12–28px) |
 
+The theme controls are built on the shared settings primitives in
+`src/components/ui/settings/` so the desktop and mobile theme sections stay
+visually and behaviorally consistent across platforms.
+
 ### AI Tab
 
 | Setting | Description |

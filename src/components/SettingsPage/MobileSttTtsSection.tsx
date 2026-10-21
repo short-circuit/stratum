@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Divider from '@mui/material/Divider';
 import TextField from '@mui/material/TextField';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import { SettingsSection } from '../ui/settings';
 import { SttTestButton, TtsTestButton } from './AiTestButtons';
 import VoiceCaptureSection from './VoiceCaptureSection';
 import { useTranslation } from 'react-i18next';
@@ -45,11 +45,7 @@ export default function MobileSttTtsSection({ stt, updateStt, tts, updateTts, vo
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <Box sx={{ px: 2, pt: 3 }}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-        {t('settings.speech_amp_audio')}
-      </Typography>
-      <Divider sx={{ mb: 1 }} />
+    <SettingsSection title={t('settings.speech_amp_audio')} variant="mobile" divider>
       <Box
         component="button"
         onClick={() => setExpanded(!expanded)}
@@ -194,6 +190,6 @@ export default function MobileSttTtsSection({ stt, updateStt, tts, updateTts, vo
           <VoiceCaptureSection voice={voice} onVoiceChange={updateVoice} />
         </Box>
       )}
-    </Box>
+    </SettingsSection>
   );
 }

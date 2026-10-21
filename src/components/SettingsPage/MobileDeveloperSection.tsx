@@ -1,9 +1,9 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Divider from '@mui/material/Divider';
 import Button from '@mui/material/Button';
 import LinearProgress from '@mui/material/LinearProgress';
 import { useTranslation } from 'react-i18next';
+import { SettingsSection } from '../ui/settings';
 
 // ---------------------------------------------------------------------------
 // Mobile developer tools section.
@@ -35,11 +35,7 @@ export default function MobileDeveloperSection({
 }: MobileDeveloperSectionProps) {
   const { t } = useTranslation();
   return (
-    <Box sx={{ px: 2, pt: 3 }}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-        {t('settings.developer')}
-      </Typography>
-      <Divider sx={{ mb: 1.5 }} />
+    <SettingsSection title={t('settings.developer')} variant="mobile" divider>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
         {t('settings.re_sync_all_pages_from_disk_into_the_database')}
       </Typography>
@@ -119,6 +115,6 @@ export default function MobileDeveloperSection({
           {installing ? t('onboarding.installing') : t('settings.install_starter_templates')}
         </Button>
       </Box>
-    </Box>
+    </SettingsSection>
   );
 }
