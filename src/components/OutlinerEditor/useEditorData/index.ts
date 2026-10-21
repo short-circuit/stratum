@@ -99,6 +99,11 @@ export function useEditorData(
 
   const [deadLinkPopup, setDeadLinkPopup] = useState<DeadLinkPopupState>(null);
 
+  // Stable bump for metaVersion: passed into the extracted save/load hooks so
+  // persistBlocks keeps the original stable identity ([pagePath, performSave]
+  // pre-split) instead of being recreated every render via an inline arrow.
+  const bumpMetaVersion = useCallback(() => setMetaVersion((v) => v + 1), []);
+
   const editor = useCreateBlockNote({
     schema,
     links: buildEditorLinks({
@@ -121,7 +126,7 @@ export function useEditorData(
     setStatus,
     setError,
     setPageMarkers,
-    onLoaded: () => setMetaVersion((v) => v + 1),
+    onLoaded: bumpMetaVersion,
   });
 
   // -----------------------------------------------------------------------
@@ -134,7 +139,7 @@ export function useEditorData(
     loadedSnapshotRef,
     status,
     isProcessingRef,
-    onPersistScheduled: () => setMetaVersion((v) => v + 1),
+    onPersistScheduled: bumpMetaVersion,
   });
 
   // -----------------------------------------------------------------------
