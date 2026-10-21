@@ -2,10 +2,9 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
-import Switch from '@mui/material/Switch';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import Alert from '@mui/material/Alert';
 import { useTranslation } from 'react-i18next';
+import { SettingsSection, SettingsRow } from '../ui/settings';
 import type { BackupSettings, BackupStatusDto } from '../../lib/types';
 
 interface BackupSettingsPanelProps {
@@ -42,20 +41,12 @@ export default function BackupSettingsPanel({
   const usesWebdav = backup.mode === 'webdav' || backup.mode === 'both';
 
   return (
-    <Box sx={{ mt: 1.5 }}>
-      <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-        {t('settings.backup')}
-      </Typography>
-
+    <SettingsSection title={t('settings.backup')} sx={{ mt: 1.5 }}>
       {/* Enable */}
-      <FormControlLabel
-        control={
-          <Switch
-            checked={backup.enabled}
-            onChange={e => onBackupChange({ enabled: e.target.checked })}
-          />
-        }
+      <SettingsRow
         label={t('settings.backup_enable')}
+        checked={backup.enabled}
+        onCheckedChange={v => onBackupChange({ enabled: v })}
       />
 
       {/* Mode */}
@@ -236,6 +227,6 @@ export default function BackupSettingsPanel({
       <Typography variant="caption" color="text.disabled" sx={{ display: 'block' }}>
         {t('settings.backup_manual_note')}
       </Typography>
-    </Box>
+    </SettingsSection>
   );
 }

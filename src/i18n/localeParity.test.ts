@@ -112,6 +112,8 @@ const IDENTICAL_OK = new Set([
   '日本語', '中文',
   // Provider / brand names
   'OpenAI', 'Anthropic', 'Google AI', 'Z.AI', 'Agent',
+  // 'Manual' is a Spanish cognate (settings sync mode label)
+  'Manual',
   // Technical loanwords / cognates that are standard in all target languages
   'Sync', 'Auto-Commit', 'Auto-Sync', 'Remote & Branch', 'Remote &amp; Branch',
   'Backup', 'WebDAV', 'Password', 'Offline', 'Directory',

@@ -1,7 +1,7 @@
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
 import { useTranslation } from 'react-i18next';
+import { SettingsSection } from '../ui/settings';
 import ResearchPresetsSection from './ResearchPresetsSection';
 
 interface ResearchTabProps {
@@ -12,11 +12,7 @@ interface ResearchTabProps {
 export default function ResearchTab({ research, onResearchChange }: ResearchTabProps) {
   const { t } = useTranslation();
   return (
-    <Box>
-      <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>
-        {t('settings.web_research_searxng')}
-      </Typography>
-
+    <SettingsSection title={t('settings.research')}>
       <Box sx={{ maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <TextField
           label={t('settings.searxng_endpoint_url')}
@@ -48,9 +44,9 @@ export default function ResearchTab({ research, onResearchChange }: ResearchTabP
         />
       </Box>
 
-      <Box sx={{ mt: 2 }}>
+      <Box sx={{ mt: 3 }}>
         <ResearchPresetsSection research={research} onResearchChange={onResearchChange} />
       </Box>
-    </Box>
+    </SettingsSection>
   );
 }

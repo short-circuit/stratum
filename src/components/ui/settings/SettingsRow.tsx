@@ -32,13 +32,25 @@ export default function SettingsRow({
   sx,
 }: SettingsRowProps) {
   if (checked !== undefined && onCheckedChange) {
-    return (
+    const control = (
       <FormControlLabel
         control={<Switch checked={checked} onChange={e => onCheckedChange(e.target.checked)} />}
         label={label}
-        sx={sx}
       />
     );
+    if (description) {
+      // Preserve the description caption below a toggle row (e.g. the voice
+      // capture target / notification sound note) while keeping the switch.
+      return (
+        <Box sx={sx}>
+          {control}
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4 }}>
+            {description}
+          </Typography>
+        </Box>
+      );
+    }
+    return <Box sx={sx}>{control}</Box>;
   }
   return (
     <Box

@@ -191,6 +191,10 @@ visually and behaviorally consistent across platforms.
 
 ### AI Tab
 
+The AI tab is organized into subsections (provider configuration, voice
+dictation, text-to-speech, voice-capture button) with consistent styling
+shared across all settings tabs.
+
 | Setting | Description |
 |---------|-------------|
 | Provider | LLM backend: Ollama (local), OpenAI, Anthropic, Google AI, Z.AI, Custom |
@@ -217,6 +221,9 @@ for the full behavior of the `use_llm_gateway_and_auth` settings.
     The AI, Speech & Audio (STT/TTS), and model-capability settings are available on
     **both** the desktop and mobile settings screens. On mobile these appear as a
     collapsible accordion under the **AI** and **Speech & Audio** sections.
+
+All desktop settings tabs share the same section/toggle-row primitives
+(`src/components/ui/settings/`) and consistent spacing and typography.
 
 ### Research Tab
 

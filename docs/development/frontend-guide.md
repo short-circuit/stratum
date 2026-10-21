@@ -310,6 +310,9 @@ spacing) lives in `themeConstants.ts` — the single source of truth shared by
 the desktop and mobile theme editors. Do not hardcode a swatch size or preset
 elsewhere; add it to `themeConstants.ts` instead.
 
+All desktop SettingsPage tabs are built on these primitives, and the AI tab is
+decomposed into `AiConfigSection` / `SttConfigSection` / `TtsConfigSection`.
+
 Usage example:
 
 ```typescript

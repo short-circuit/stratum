@@ -315,6 +315,9 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `RemindersPanel` | `/reminders` | Overdue/today/upcoming reminder list + snooze/complete/open | `docs/guide/reminders.md` |
 | `SettingsPage` | `/settings` | 8-tab app configuration | `docs/getting-started/configuration.md` |
 | `BackupSettingsPanel` | `SyncTab` (SettingsPage) | Cloud/folder backup (WebDAV + folder) config, test-connection, run-now + status | `docs/guide/git-sync.md` |
+| `AiConfigSection` | `AITab` (SettingsPage) | AI provider/API/model configuration (+ local endpoint discovery) | `docs/getting-started/configuration.md` |
+| `SttConfigSection` | `AITab` (SettingsPage) | Voice dictation (STT) configuration | `docs/getting-started/configuration.md` |
+| `TtsConfigSection` | `AITab` (SettingsPage) | Text-to-speech configuration | `docs/getting-started/configuration.md` |
 | `AskNotesPanel` | `/ask` | AI Q&A over the knowledge base (chat with notes, citations, follow-up) | `docs/guide/ai-features.md` |
 
 ### Editor Sub-components
