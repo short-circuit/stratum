@@ -275,8 +275,11 @@ All desktop settings tabs share the same section/toggle-row primitives
 | Inbox page path | Vault-relative path of the inbox page — shown only when the target is `inbox` |
 
 !!! note "Tray availability"
-    The tray and Quick Capture are **desktop-only**. On mobile there is no tray
-    icon and closing the app quits it.
+    The tray **icon** and **close-to-tray** behavior remain **desktop-only**. On
+    mobile there is no tray icon and closing the app quits it. However, mobile
+    now exposes the tray **settings** (quick-capture shortcut, capture target,
+    inbox page path) in a collapsible Tray section, so the configuration is
+    reachable on a touch device even though the runtime behavior is desktop-only.
 
 See [Quick Capture](../guide/quick-capture.md) for usage and troubleshooting.
 
@@ -293,7 +296,11 @@ guide). These settings are stored in the vault config under `[reminders]`:
 !!! note "Mobile accessibility"
     On mobile, reindex **progress** is displayed live under the Developer section.
     The mobile settings screen mirrors the desktop settings surface; each desktop
-    tab has a corresponding section on the mobile screen.
+    tab has a corresponding section on the mobile screen. Every mobile settings
+    section (Vault, Theme, AI, Speech & Audio, Research, Developer, Sync, Tray,
+    Notifications) is a **collapsible accordion** — tap the "Configure …" summary
+    to expand it and "Hide … configuration" to collapse it again. Tray now has a
+    mobile equivalent as well.
 
 ## File Structure
 

@@ -4,7 +4,7 @@ import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import { SettingsSection } from '../ui/settings';
+import { SettingsSection, SettingsAccordion } from '../ui/settings';
 import { SttTestButton, TtsTestButton } from './AiTestButtons';
 import VoiceCaptureSection from './VoiceCaptureSection';
 import { useTranslation } from 'react-i18next';
@@ -46,28 +46,15 @@ export default function MobileSttTtsSection({ stt, updateStt, tts, updateTts, vo
 
   return (
     <SettingsSection title={t('settings.speech_amp_audio')} variant="mobile" divider>
-      <Box
-        component="button"
-        onClick={() => setExpanded(!expanded)}
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 0.5,
-          bgcolor: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          color: 'text.secondary',
-          fontSize: '0.8rem',
-          fontWeight: 500,
-          p: 0,
-          '&:hover': { color: 'text.primary' },
-        }}
+      <SettingsAccordion
+        summary={
+          <Typography variant="body2" color="text.secondary">
+            {expanded ? t('settings.hide_dictation_voice_config') : t('settings.configure_dictation_voice')}
+          </Typography>
+        }
+        expanded={expanded}
+        onChange={setExpanded}
       >
-        <Typography variant="body2" color="text.secondary">
-          {expanded ? t('settings.hide_dictation_voice_config') : t('settings.configure_dictation_voice')}
-        </Typography>
-      </Box>
-      {expanded && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 1 }}>
           {/* STT */}
           <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', display: 'block', mt: 1 }}>
@@ -189,7 +176,7 @@ export default function MobileSttTtsSection({ stt, updateStt, tts, updateTts, vo
           {/* Voice capture toggle */}
           <VoiceCaptureSection voice={voice} onVoiceChange={updateVoice} />
         </Box>
-      )}
+      </SettingsAccordion>
     </SettingsSection>
   );
 }

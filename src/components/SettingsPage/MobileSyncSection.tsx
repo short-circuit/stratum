@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import TextField from '@mui/material/TextField';
 import type { SyncStatusDto, CommitLogEntry, BackupSettings, BackupStatusDto } from '../../lib/types';
 import { useTranslation } from 'react-i18next';
-import { SettingsSection } from '../ui/settings';
+import { SettingsSection, SettingsAccordion } from '../ui/settings';
 import CommitLogPanel from './CommitLogPanel';
 import SyncControlsPanel from './SyncControlsPanel';
 import BackupSettingsPanel from './BackupSettingsPanel';
@@ -78,6 +79,7 @@ export default function MobileSyncSection({
   webdavTestResult,
 }: MobileSyncSectionProps) {
   const { t } = useTranslation();
+  const [syncExpanded, setSyncExpanded] = useState(false);
   const insertPlaceholder = (placeholder: string) => {
     // Insert the placeholder at the current cursor of the template field via a
     // data attribute lookup (mirrors SyncTab behavior but on the mobile field).
@@ -111,7 +113,17 @@ export default function MobileSyncSection({
 
   return (
     <SettingsSection title={t('settings.sync')} variant="mobile" divider sx={{ pb: 3 }}>
-      {/* Sync mode selector */}
+      <SettingsAccordion
+        summary={
+          <Typography variant="body2" color="text.secondary">
+            {syncExpanded ? t('settings.hide_sync_config') : t('settings.configure_sync')}
+          </Typography>
+        }
+        expanded={syncExpanded}
+        onChange={setSyncExpanded}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          {/* Sync mode selector */}
       <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}>
         {t('settings.sync_mode')}
       </Typography>
@@ -328,6 +340,8 @@ export default function MobileSyncSection({
         running={running}
         webdavTestResult={webdavTestResult}
       />
+        </Box>
+      </SettingsAccordion>
     </SettingsSection>
   );
 }
