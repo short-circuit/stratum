@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as api from '../../lib/commands';
 import { useStore } from '../../stores/appStore';
@@ -95,6 +95,8 @@ describe('SettingsPageMobile — parity with desktop Settings', () => {
     expect(screen.getByText('Research')).toBeInTheDocument();
     expect(screen.getByText('Developer')).toBeInTheDocument();
     expect(screen.getByText('Sync')).toBeInTheDocument();
+    expect(screen.getByText('Tray')).toBeInTheDocument();
+    expect(screen.getByText('Enable tray icon')).toBeInTheDocument();
   });
 
   it('exposes the full sync configuration (mode, remote, intervals) on mobile', async () => {
@@ -132,5 +134,26 @@ describe('SettingsPageMobile — parity with desktop Settings', () => {
       .getAllByDisplayValue(5)
       .find(el => (el as HTMLInputElement).max === '20') as HTMLInputElement | undefined;
     expect(chunkInput).toBeDefined();
+  });
+
+  it('expands and collapses the Sync section via the accordion summary', async () => {
+    render(<SettingsPageMobile />);
+    await waitFor(() => {
+      expect(screen.getByText('Save')).toBeInTheDocument();
+    });
+
+    // Collapsed by default: the 'Configure sync' summary is shown and the
+    // section children stay in the DOM (children are not unmounted on collapse).
+    expect(screen.getByText('Configure sync')).toBeInTheDocument();
+
+    // Expand: summary flips to 'Hide sync configuration' and the children
+    // (e.g. the Auto-Commit mode toggle) remain present.
+    fireEvent.click(screen.getByText('Configure sync'));
+    expect(screen.getByText('Hide sync configuration')).toBeInTheDocument();
+    expect(screen.getByText('Auto-Commit')).toBeInTheDocument();
+
+    // Collapse again: summary returns to 'Configure sync'.
+    fireEvent.click(screen.getByText('Hide sync configuration'));
+    expect(screen.getByText('Configure sync')).toBeInTheDocument();
   });
 });
