@@ -147,7 +147,13 @@ export default function MobileSyncSection({
               '&:hover': { opacity: 0.85 },
             }}
           >
-            {mode === 'auto_commit' ? t('settings.auto_commit') : mode === 'auto_sync' ? t('settings.auto_sync') : mode}
+            {mode === 'manual'
+              ? t('settings.sync_mode_manual')
+              : mode === 'auto_commit'
+                ? t('settings.auto_commit')
+                : mode === 'auto_sync'
+                  ? t('settings.auto_sync')
+                  : t('settings.sync_mode_background')}
           </Box>
         ))}
       </Box>
@@ -211,7 +217,7 @@ export default function MobileSyncSection({
             flexShrink: 0,
           }}
         >
-          {syncSettings.ssh_key_path ? t('settings.set') : t('settings.agent')}
+          {syncSettings.ssh_key_path ? t('settings.ssh_key_set') : t('settings.ssh_key_agent')}
         </Box>
       </Box>
       <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 2 }}>

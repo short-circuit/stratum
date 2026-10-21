@@ -66,6 +66,9 @@ test.describe('QA parity — Settings', () => {
           }
           // The mobile section layout must not be just a copy of the tab bar:
           // it must expose the actual form fields for the primary surfaces.
+          // F3: mobile sections are collapsible accordions (default collapsed) —
+          // expand Vault before asserting field visibility.
+          await page.getByText('Configure vault').first().click();
           await expect(page.getByLabel('Vault Path')).toBeVisible();
           await expect(page.getByRole('button', { name: /Browse/i }).first()).toBeVisible();
           await expect(page.getByRole('button', { name: /^Save$/ })).toBeVisible();
@@ -86,6 +89,10 @@ test.describe('QA parity — Settings', () => {
         // the default active tab. 'Vault Path' is the highest-value persistence
         // probe shared by both layouts.
         const vault = page.getByLabel('Vault Path');
+        if (label !== 'desktop') {
+          // Vault is a collapsible accordion on mobile — expand it before filling.
+          await page.getByText('Configure vault').first().click();
+        }
         await expect(vault).toBeVisible();
         await vault.fill('/storage/emulated/0/QA-Vault');
         await page.getByRole('button', { name: /^Save$/ }).click();

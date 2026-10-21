@@ -50,8 +50,8 @@ const SETTINGS = {
     ssh_key_path: null,
     commit_template: 'chore: update vault {datetime}',
   },
-  stt: { endpoint: '', api_key: null, model: '', diarize_model: '', language: null, diarize: false, auto_summarize: false, auto_identify: false },
-  tts: { endpoint: '', api_key: null, voice: 'alloy', format: 'mp3', speed: 1.0 },
+  stt: { endpoint: '', api_key: null, model: '', diarize_model: '', language: null, diarize: false, auto_summarize: false, auto_identify: false, use_llm_gateway_and_auth: false },
+  tts: { endpoint: '', api_key: null, voice: 'alloy', format: 'mp3', speed: 1.0, use_llm_gateway_and_auth: false },
 };
 
 describe('SettingsPageMobile — parity with desktop Settings', () => {
@@ -108,7 +108,7 @@ describe('SettingsPageMobile — parity with desktop Settings', () => {
     // Sync mode controls
     expect(screen.getByText('Auto-Commit')).toBeInTheDocument();
     expect(screen.getByText('Auto-Sync')).toBeInTheDocument();
-    expect(screen.getByText('background')).toBeInTheDocument();
+    expect(screen.getByText('Background')).toBeInTheDocument();
 
     // Remote & SSH fields
     expect(screen.getByDisplayValue('git@github.com:user/vault.git')).toBeInTheDocument();
@@ -134,6 +134,9 @@ describe('SettingsPageMobile — parity with desktop Settings', () => {
       .getAllByDisplayValue(5)
       .find(el => (el as HTMLInputElement).max === '20') as HTMLInputElement | undefined;
     expect(chunkInput).toBeDefined();
+
+    // Parity: the STT/TTS gateway-auth toggles (desktop parity) render on mobile too.
+    expect(screen.getAllByText('Use gateway and auth from LLM').length).toBeGreaterThanOrEqual(3);
   });
 
   it('expands and collapses the Sync section via the accordion summary', async () => {

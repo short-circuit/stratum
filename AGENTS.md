@@ -318,6 +318,13 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `AiConfigSection` | `AITab` (SettingsPage) | AI provider/API/model configuration (+ local endpoint discovery) | `docs/getting-started/configuration.md` |
 | `SttConfigSection` | `AITab` (SettingsPage) | Voice dictation (STT) configuration | `docs/getting-started/configuration.md` |
 | `TtsConfigSection` | `AITab` (SettingsPage) | Text-to-speech configuration | `docs/getting-started/configuration.md` |
+| `MobileAiAccordion` | `SettingsPage.mobile` | AI provider/API/model accordion (mobile) | `docs/getting-started/configuration.md` |
+| `MobileSttTtsSection` | `SettingsPage.mobile` | STT/TTS + voice-capture accordion (mobile) | `docs/getting-started/configuration.md` |
+| `MobileThemeSection` | `SettingsPage.mobile` | Theme settings accordion (mobile) | `docs/getting-started/configuration.md` |
+| `MobileDeveloperSection` | `SettingsPage.mobile` | Developer tools accordion (mobile) | `docs/getting-started/configuration.md` |
+| `MobileSyncSection` | `SettingsPage.mobile` | Sync configuration accordion (mobile) | `docs/getting-started/configuration.md` |
+| `MobileTraySection` | `SettingsPage.mobile` | Tray settings accordion (mobile) | `docs/getting-started/configuration.md` |
+| `MobileNotificationsSection` | `SettingsPage.mobile` | Notification settings accordion (mobile) | `docs/getting-started/configuration.md` |
 | `AskNotesPanel` | `/ask` | AI Q&A over the knowledge base (chat with notes, citations, follow-up) | `docs/guide/ai-features.md` |
 
 ### Editor Sub-components

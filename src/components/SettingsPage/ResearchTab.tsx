@@ -30,7 +30,6 @@ export default function ResearchTab({ research, onResearchChange }: ResearchTabP
           onChange={e => onResearchChange({ max_results: parseInt(e.target.value) || 3 })}
           size="small"
           slotProps={{ htmlInput: { min: 1, max: 10 } }}
-          sx={{ width: 200 }}
         />
 
         <TextField
@@ -40,7 +39,6 @@ export default function ResearchTab({ research, onResearchChange }: ResearchTabP
           onChange={e => onResearchChange({ max_depth: parseInt(e.target.value) || 2 })}
           size="small"
           slotProps={{ htmlInput: { min: 1, max: 5 } }}
-          sx={{ width: 200 }}
         />
       </Box>
 

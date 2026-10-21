@@ -4,7 +4,7 @@ import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import { SettingsSection, SettingsAccordion } from '../ui/settings';
+import { SettingsSection, SettingsAccordion, SettingsRow } from '../ui/settings';
 import { SttTestButton, TtsTestButton } from './AiTestButtons';
 import VoiceCaptureSection from './VoiceCaptureSection';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +26,7 @@ export interface MobileSttTtsSectionProps {
     diarize: boolean;
     auto_summarize: boolean;
     auto_identify: boolean;
+    use_llm_gateway_and_auth: boolean;
   };
   updateStt: (patch: any) => void;
   tts: {
@@ -34,6 +35,7 @@ export interface MobileSttTtsSectionProps {
     voice: string;
     format: string;
     speed: number;
+    use_llm_gateway_and_auth: boolean;
   };
   updateTts: (patch: any) => void;
   voice?: { enabled: boolean; target: string };
@@ -124,6 +126,11 @@ export default function MobileSttTtsSection({ stt, updateStt, tts, updateTts, vo
             }
             label={t('settings.auto_identify_speakers')}
           />
+          <SettingsRow
+            label={t('settings.use_gateway_and_auth_from_llm')}
+            checked={stt.use_llm_gateway_and_auth ?? false}
+            onCheckedChange={v => updateStt({ use_llm_gateway_and_auth: v })}
+          />
           <SttTestButton />
 
           {/* TTS */}
@@ -131,8 +138,8 @@ export default function MobileSttTtsSection({ stt, updateStt, tts, updateTts, vo
             {t('settings.text_to_speech')}
           </Typography>
           <TextField
-            label={t('settings.tts_endpoint')}
-            placeholder="http://localhost:8081"
+            label={t('settings.tts_endpoint_optional')}
+            placeholder={t('settings.uses_the_ai_endpoint_when_empty')}
             value={tts.endpoint}
             onChange={e => updateTts({ endpoint: e.target.value })}
             size="small"
@@ -171,6 +178,11 @@ export default function MobileSttTtsSection({ stt, updateStt, tts, updateTts, vo
           <Typography variant="caption" color="text.disabled">
             {t('settings.speed_is_applied_at_play_time_a_value_of_1_0_is_normal_speed')}
           </Typography>
+          <SettingsRow
+            label={t('settings.use_gateway_and_auth_from_llm')}
+            checked={tts.use_llm_gateway_and_auth ?? false}
+            onCheckedChange={v => updateTts({ use_llm_gateway_and_auth: v })}
+          />
           <TtsTestButton />
 
           {/* Voice capture toggle */}
