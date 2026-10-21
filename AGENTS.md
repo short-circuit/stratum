@@ -330,7 +330,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 
 | Component | Parent | Purpose |
 |-----------|--------|---------|
-| `OutlinerEditor` | `PageView` | BlockNote-based outliner with auto-save, markers, wiki-links — decomposed into `index.tsx` + `dtoConverters.ts` + `markerDetection.ts` |
+| `OutlinerEditor` | `PageView` | BlockNote-based outliner with auto-save, markers, wiki-links — decomposed into `index.tsx` + `dtoConverters.ts` + `markerDetection.ts` + shared sub-components (EditorStates, SaveStatusChip, MarkerBadgeRow, DeadLinkCreatePopup) and per-platform menus/hooks |
 | `BacklinksPanel` | `PageView` | Linked references + unlinked mentions + hover preview; Ctrl+hover snippet popup + Ctrl+click navigation via `useBacklinkNavigation` |
 | `ProseView` | `PageView` (desktop/mobile) | Read-mode prose renderer (files `prose.tsx` + `proseRenderer.ts`); renders blocks as clean read-only prose that never modifies the file |
 | `BacklinkSnippetBody` | `BacklinksPanel` | Renders backlinked block snippet (title, context, anchor highlight, loading/error) |
@@ -347,6 +347,14 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `MathSymbolPalette` | `MathEditorModal` | Tabbed symbol palette (Greek, Operators, etc.) |
 | `MarkerBadge` | `OutlinerEditor` | Colored chip for task markers (TODO/DOING/DONE) |
 | `MarkerSuggestMenu` | `OutlinerEditor` | Autocomplete popup for markers and priorities |
+| `EditorLoadingState` / `EditorErrorState` | `OutlinerEditor` (desktop & mobile) | Shared loading / error placeholders (file `EditorStates.tsx`) |
+| `SaveStatusChip` | `OutlinerEditor` (desktop & mobile) | Floating save-status chip (saving / saved-at label) |
+| `MarkerBadgeRow` | `OutlinerEditor` (desktop & mobile) | Page marker badge strip (task markers on the page) |
+| `DeadLinkCreatePopup` | `OutlinerEditor` (desktop & mobile) | "Create page" popover for unresolved [[wiki-links]] |
+| `DesktopBlockContextMenu` | `OutlinerEditor` (desktop) | Right-click block menu (read aloud / set-change-clear reminder) |
+| `MobileInsertMenu` | `OutlinerEditor` (mobile) | Floating insert menu (paragraph/headings/code/mermaid/math) |
+| `MobileMarkerMenu` | `OutlinerEditor` (mobile) | Floating marker menu (TODO..CANCELLED) |
+| `MobileBlockActionsMenu` | `OutlinerEditor` (mobile) | Long-press block menu (cut/copy/read-aloud/delete) |
 | `KanbanEditDialog` | `KanbanPanel` | Edit card content, marker, priority |
 | `ReminderDialog` | `OutlinerEditor` / `RemindersPanel` | Set/change/clear a block reminder (date-time picker + quick options) |
 
@@ -404,6 +412,12 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `useLongPress` | Detect long-press gestures | MobileNav, MobileLayout |
 | `useMarkerDecorations` | ProseMirror decorations for inline marker/priority badges | OutlinerEditor |
 | `useOnboarding` | First-run wizard step/install orchestration (in `Onboarding.shared.tsx`) | Onboarding desktop/mobile |
+| `useEditorReminders` | Reminder dialog state + applyDue + reminder-chip click delegation | OutlinerEditor (desktop & mobile) |
+| `useDesktopBlockMenu` | Desktop right-click block menu + read-aloud + reminder actions | OutlinerEditor (desktop) |
+| `useMobileBlockContextMenu` | Mobile long-press context menu (cut/copy/speak/delete) | OutlinerEditor (mobile) |
+| `useEditorAutoSave` | Debounced auto-save with ED-07 no-op skip + flush-on-unmount | OutlinerEditor (via useEditorData) |
+| `useWikiLinkInteractions` | Dead-link detection + Ctrl-hover preview + link click delegation | OutlinerEditor (via useEditorData) |
+| `useBlockLoading` | Backend block load + DTO conversion + marker extraction | OutlinerEditor (via useEditorData) |
 
 ### Component Sizing Rules
 

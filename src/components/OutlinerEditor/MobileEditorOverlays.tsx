@@ -6,6 +6,11 @@
  * floating insert/marker FABs, all three menus, the wiki-link preview popup,
  * the dead-link "create page" popover, and the full-screen math editor modal.
  *
+ * Decomposed further during the t_dc58c24c sizing-gate refactor: the long-press
+ * context menu state/actions, the insert/marker/actions menus, and the dead-link
+ * popover were extracted into hooks and sub-components so this file stays under
+ * the 400-line component gate.
+ *
  * The parent renders the marker-badge row and passes the memoised BlockNoteView
  * as `children`, which is rendered inside the long-press editor container.
  */
@@ -13,34 +18,15 @@
 import { useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import Fab from '@mui/material/Fab';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import Popover from '@mui/material/Popover';
-import IconButton from '@mui/material/IconButton';
-import Tooltip from '@mui/material/Tooltip';
 import AddIcon from '@mui/icons-material/Add';
-import TextFieldsIcon from '@mui/icons-material/TextFields';
-import LooksOneIcon from '@mui/icons-material/LooksOne';
-import LooksTwoIcon from '@mui/icons-material/LooksTwo';
-import Looks3Icon from '@mui/icons-material/Looks3';
-import FunctionsIcon from '@mui/icons-material/Functions';
-import CodeIcon from '@mui/icons-material/Code';
-import DiagramIcon from '@mui/icons-material/Schema';
 import FlagIcon from '@mui/icons-material/Flag';
-import ContentCutIcon from '@mui/icons-material/ContentCut';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddCircleIcon from '@mui/icons-material/AddCircle';
-import VolumeUpIcon from '@mui/icons-material/VolumeUp';
-import * as api from '../../lib/commands';
-import { useRecentsStore } from '../../stores/recentsStore';
-import { speakText, textFromBlock } from '../../lib/audio';
 import LinkPreviewPopup from '../LinkPreviewPopup';
 import MathEditorModal from '../MathEditorModal';
-import MarkerBadge from '../MarkerBadge';
-import { useLongPress } from '../../lib/hooks/useLongPress';
+import { MobileInsertMenu } from './MobileInsertMenu';
+import { MobileMarkerMenu } from './MobileMarkerMenu';
+import { MobileBlockActionsMenu } from './MobileBlockActionsMenu';
+import { DeadLinkCreatePopup } from './DeadLinkCreatePopup';
+import { useMobileBlockContextMenu } from './useMobileBlockContextMenu';
 import { useTranslation } from 'react-i18next';
 import type {
   MathEditState,
@@ -48,8 +34,6 @@ import type {
   DeadLinkPopupState,
   EditorData,
 } from './useEditorData';
-
-const MARKER_OPTIONS = ['TODO', 'DOING', 'DONE', 'NOW', 'LATER', 'WAITING', 'CANCELLED'];
 
 export interface MobileEditorOverlaysProps {
   editor: EditorData['editor'];
@@ -96,86 +80,8 @@ export default function MobileEditorOverlays({
   // -----------------------------------------------------------------------
   // Long-press context menu
   // -----------------------------------------------------------------------
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    blockId: string;
-  } | null>(null);
-
-  const longPressHandlers = useLongPress({
-    onLongPress: (e) => {
-      const target = e.target as HTMLElement;
-      const blockEl = target.closest('[data-block-id]');
-      if (blockEl) {
-        const blockId = blockEl.getAttribute('data-block-id') || '';
-        if ('touches' in e && e.touches.length > 0) {
-          setContextMenu({ x: e.touches[0].clientX, y: e.touches[0].clientY, blockId });
-        } else {
-          const me = e as React.MouseEvent;
-          setContextMenu({ x: me.clientX, y: me.clientY, blockId });
-        }
-      }
-    },
-    threshold: 600,
-  });
-
-  // -----------------------------------------------------------------------
-  // Context menu actions
-  // -----------------------------------------------------------------------
-  const handleContextAction = useCallback(
-    async (action: string) => {
-      if (!contextMenu || !editor) return;
-      const { blockId } = contextMenu;
-      setContextMenu(null);
-      const ed = editor;
-      switch (action) {
-        case 'delete':
-          ed.removeBlocks([blockId]);
-          break;
-        case 'copy': {
-          // BlockNote doesn't expose native copy for a single block;
-          // fall back to copying the text content
-          const doc = ed.document;
-          const block = doc.find((b: { id: string }) => b.id === blockId);
-          if (block) {
-            const text = block.content
-              ?.map((c: { text?: string }) => c.text || '')
-              .join('');
-            if (text) await navigator.clipboard.writeText(text);
-          }
-          break;
-        }
-        case 'cut': {
-          const doc2 = ed.document;
-          const block2 = doc2.find((b: { id: string }) => b.id === blockId);
-          if (block2) {
-            const text = block2.content
-              ?.map((c: { text?: string }) => c.text || '')
-              .join('');
-            if (text) await navigator.clipboard.writeText(text);
-          }
-          ed.removeBlocks([blockId]);
-          break;
-        }
-        case 'speak': {
-          const doc3 = ed.document;
-          const block3 = doc3.find((b: { id: string }) => b.id === blockId);
-          const text = block3
-            ? textFromBlock(block3 as { id: string; content?: unknown })
-            : '';
-          if (!text.trim()) return;
-          try {
-            await speakText(text);
-          } catch (e) {
-            console.error('[TTS] read-aloud failed:', e);
-            alert(`${t('aiformatting_toolbar.read_aloud_failed')} ${String(e)}`);
-          }
-          break;
-        }
-      }
-    },
-    [contextMenu, editor, t],
-  );
+  const { contextMenu, longPressHandlers, handleContextAction, closeContextMenu } =
+    useMobileBlockContextMenu({ editor });
 
   const onCloseMath = useCallback(() => setMathEdit(null), [setMathEdit]);
 
@@ -250,88 +156,24 @@ export default function MobileEditorOverlays({
           <FlagIcon fontSize="small" />
         </Fab>
 
-        {/* Insert menu */}
-        <Menu
-          open={Boolean(insertAnchor)}
-          anchorEl={insertAnchor}
+        <MobileInsertMenu
+          anchor={insertAnchor}
           onClose={() => setInsertAnchor(null)}
-          anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
-          transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-          slotProps={{ paper: { sx: { minWidth: 180 } } }}
-        >
-          <MenuItem onClick={() => onInsert('paragraph')}>
-            <ListItemIcon><TextFieldsIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>{t('editor.paragraph')}</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => onInsert('heading', 1)}>
-            <ListItemIcon><LooksOneIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>{t('editor.heading_1')}</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => onInsert('heading', 2)}>
-            <ListItemIcon><LooksTwoIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>{t('editor.heading_2')}</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => onInsert('heading', 3)}>
-            <ListItemIcon><Looks3Icon fontSize="small" /></ListItemIcon>
-            <ListItemText>{t('editor.heading_3')}</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => onInsert('codeBlock')}>
-            <ListItemIcon><CodeIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>{t('editor.code_block')}</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => onInsert('mermaid')}>
-            <ListItemIcon><DiagramIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>{t('editor.mermaid_diagram')}</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={onInsertMath}>
-            <ListItemIcon><FunctionsIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>{t('editor.math_equation')}</ListItemText>
-          </MenuItem>
-        </Menu>
+          onInsert={onInsert}
+          onInsertMath={onInsertMath}
+        />
 
-        {/* Marker menu */}
-        <Menu
-          open={Boolean(markerAnchor)}
-          anchorEl={markerAnchor}
+        <MobileMarkerMenu
+          anchor={markerAnchor}
           onClose={() => setMarkerAnchor(null)}
-          anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
-          transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        >
-          {MARKER_OPTIONS.map((m) => (
-            <MenuItem key={m} onClick={() => onApplyMarker(m)}>
-              <MarkerBadge marker={m} />
-            </MenuItem>
-          ))}
-        </Menu>
+          onApplyMarker={onApplyMarker}
+        />
 
-        {/* Long-press context menu */}
-        <Menu
-          open={Boolean(contextMenu)}
-          onClose={() => setContextMenu(null)}
-          anchorReference="anchorPosition"
-          anchorPosition={
-            contextMenu
-              ? { left: contextMenu.x, top: contextMenu.y }
-              : undefined
-          }
-        >
-          <MenuItem onClick={() => handleContextAction('cut')}>
-            <ListItemIcon><ContentCutIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>{t('editor.cut')}</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => handleContextAction('copy')}>
-            <ListItemIcon><ContentCopyIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>{t('editor.copy')}</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => handleContextAction('speak')}>
-            <ListItemIcon><VolumeUpIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>{t('editor.read_aloud')}</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => handleContextAction('delete')}>
-            <ListItemIcon><DeleteIcon fontSize="small" /></ListItemIcon>
-            <ListItemText>{t('editor.delete')}</ListItemText>
-          </MenuItem>
-        </Menu>
+        <MobileBlockActionsMenu
+          menu={contextMenu}
+          onClose={closeContextMenu}
+          onAction={handleContextAction}
+        />
       </div>
 
       {/* Wiki-link preview popup */}
@@ -347,48 +189,11 @@ export default function MobileEditorOverlays({
       )}
 
       {/* Dead link popup */}
-      <Popover
-        open={Boolean(deadLinkPopup)}
-        anchorReference="anchorPosition"
-        anchorPosition={
-          deadLinkPopup
-            ? {
-                left: deadLinkPopup.position.x,
-                top: deadLinkPopup.position.y,
-              }
-            : undefined
-        }
+      <DeadLinkCreatePopup
+        popup={deadLinkPopup}
         onClose={() => setDeadLinkPopup(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-        disableScrollLock
-        slotProps={{ paper: { sx: { p: 0.5 } } }}
-      >
-        <Tooltip title={t('editor.create_page')}>
-          <IconButton
-            size="small"
-            color="primary"
-            onClick={async () => {
-              if (!deadLinkPopup) return;
-              const slug = deadLinkPopup.target;
-              try {
-                await api.createPage(slug);
-                useRecentsStore.getState().refresh();
-              } catch (e) {
-                if (!String(e).includes(t('editor.already_exists'))) {
-                  console.error(t('editor.failed_to_create_page'), e);
-                  setDeadLinkPopup(null);
-                  return;
-                }
-              }
-              navigateRef.current('/page/' + encodeURIComponent(slug));
-              setDeadLinkPopup(null);
-            }}
-          >
-            <AddCircleIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Popover>
+        navigateRef={navigateRef}
+      />
 
       {/* Full-screen math editor modal */}
       {mathEdit && (
