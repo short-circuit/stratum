@@ -106,6 +106,16 @@ stratum/
 │   │   │   ├── PageHeader.tsx
 │   │   │   ├── ConfirmDialog.tsx
 │   │   │   ├── SliderRow.tsx
+│   │   │   ├── settings/
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── themeConstants.ts
+│   │   │   │   ├── SettingsSection.tsx
+│   │   │   │   ├── SettingsTab.tsx
+│   │   │   │   ├── SettingsAccordion.tsx
+│   │   │   │   ├── SettingsRow.tsx
+│   │   │   │   ├── ThemeColorEditor.tsx
+│   │   │   │   ├── ThemeFontSizeSlider.tsx
+│   │   │   │   └── settingsPrimitives.test.tsx
 │   │   │   ├── PassphraseModal.tsx
 │   │   │   ├── ConflictModal.tsx
 │   │   │   └── index.ts
@@ -303,8 +313,18 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `WhiteboardPanel` | `/whiteboards` | Excalidraw spatial canvas | `docs/guide/whiteboards.md` |
 | `PluginsPanel` | `/plugins` | Installed plugins + Plugin Directory / Theme Hub (desktop/mobile; shared hook `PluginsPanel.shared.tsx`) | `docs/guide/plugins.md` |
 | `RemindersPanel` | `/reminders` | Overdue/today/upcoming reminder list + snooze/complete/open | `docs/guide/reminders.md` |
-| `SettingsPage` | `/settings` | 6-tab app configuration | `docs/getting-started/configuration.md` |
+| `SettingsPage` | `/settings` | 8-tab app configuration | `docs/getting-started/configuration.md` |
 | `BackupSettingsPanel` | `SyncTab` (SettingsPage) | Cloud/folder backup (WebDAV + folder) config, test-connection, run-now + status | `docs/guide/git-sync.md` |
+| `AiConfigSection` | `AITab` (SettingsPage) | AI provider/API/model configuration (+ local endpoint discovery) | `docs/getting-started/configuration.md` |
+| `SttConfigSection` | `AITab` (SettingsPage) | Voice dictation (STT) configuration | `docs/getting-started/configuration.md` |
+| `TtsConfigSection` | `AITab` (SettingsPage) | Text-to-speech configuration | `docs/getting-started/configuration.md` |
+| `MobileAiAccordion` | `SettingsPage.mobile` | AI provider/API/model accordion (mobile) | `docs/getting-started/configuration.md` |
+| `MobileSttTtsSection` | `SettingsPage.mobile` | STT/TTS + voice-capture accordion (mobile) | `docs/getting-started/configuration.md` |
+| `MobileThemeSection` | `SettingsPage.mobile` | Theme settings accordion (mobile) | `docs/getting-started/configuration.md` |
+| `MobileDeveloperSection` | `SettingsPage.mobile` | Developer tools accordion (mobile) | `docs/getting-started/configuration.md` |
+| `MobileSyncSection` | `SettingsPage.mobile` | Sync configuration accordion (mobile) | `docs/getting-started/configuration.md` |
+| `MobileTraySection` | `SettingsPage.mobile` | Tray settings accordion (mobile) | `docs/getting-started/configuration.md` |
+| `MobileNotificationsSection` | `SettingsPage.mobile` | Notification settings accordion (mobile) | `docs/getting-started/configuration.md` |
 | `AskNotesPanel` | `/ask` | AI Q&A over the knowledge base (chat with notes, citations, follow-up) | `docs/guide/ai-features.md` |
 
 ### Editor Sub-components
@@ -361,6 +381,12 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `PageHeader` | Consistent header bar (title + actions + back) | Shared pattern |
 | `ConfirmDialog` | Reusable confirmation dialog | Shared pattern |
 | `SliderRow` | Label + slider + display value | Extracted from GraphPanel |
+| `SettingsSection` | Shared settings section wrapper (title/description/divider, desktop+mobile variant) | New - settings primitives task |
+| `SettingsTab` | Shared settings tab bar (desktop SettingsPage) | New - settings primitives task |
+| `SettingsAccordion` | Shared collapsible settings accordion (mobile) | New - settings primitives task |
+| `SettingsRow` | Shared labeled settings row (toggle or generic control) | New - settings primitives task |
+| `ThemeColorEditor` | Shared theme color editor (preset swatches + custom picker) | New - settings primitives task |
+| `ThemeFontSizeSlider` | Shared theme font-size slider | New - settings primitives task |
 | `PassphraseModal` | SSH key passphrase input dialog | Extracted from SettingsPage |
 | `ConflictModal` | Git conflict resolution dialog | Extracted from SettingsPage |
 | `ResponsiveDialog` | Full-screen dialog on mobile, normal on desktop | Shared pattern |

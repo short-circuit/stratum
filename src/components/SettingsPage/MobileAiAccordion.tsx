@@ -1,23 +1,16 @@
 import { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Divider from '@mui/material/Divider';
 import Alert from '@mui/material/Alert';
 import TextField from '@mui/material/TextField';
-import Switch from '@mui/material/Switch';
-import Checkbox from '@mui/material/Checkbox';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Button from '@mui/material/Button';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import ToggleButton from '@mui/material/ToggleButton';
-import Accordion from '@mui/material/Accordion';
-import AccordionSummary from '@mui/material/AccordionSummary';
-import AccordionDetails from '@mui/material/AccordionDetails';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTranslation } from 'react-i18next';
 import type { DiscoveredEndpoint } from '../../lib/types';
+import { SettingsSection, SettingsAccordion, SettingsRow } from '../ui/settings';
 import LocalDiscoverySection from './LocalDiscoverySection';
 
 // ---------------------------------------------------------------------------
@@ -101,25 +94,17 @@ export default function MobileAiAccordion({
     (ai?.models || []).find(m => m.name === name)?.capabilities || [];
 
   return (
-    <Box sx={{ px: 2, pt: 3 }}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-        {t('settings.ai')}
-      </Typography>
-      <Divider sx={{ mb: 1 }} />
-      <Accordion
-        disableGutters
-        square
-        expanded={aiExpanded}
-        onChange={() => setAiExpanded(!aiExpanded)}
-        sx={{ boxShadow: 0, '&:before': { display: 'none' }, bgcolor: 'transparent' }}
-      >
-        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 0, minHeight: 36 }}>
+    <SettingsSection title={t('settings.ai')} variant="mobile" divider>
+      <SettingsAccordion
+        summary={
           <Typography variant="body2" color="text.secondary">
             {aiExpanded ? t('settings.hide_provider_config') : t('settings.configure_ai_provider')}
           </Typography>
-        </AccordionSummary>
-        <AccordionDetails sx={{ px: 0, pb: 1 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        }
+        expanded={aiExpanded}
+        onChange={setAiExpanded}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             {ai?.api_key_from_env && (
               <Alert severity="warning" sx={{ py: 0.5, px: 1.5, '& .MuiAlert-message': { py: 0.5 } }}>
                 <Typography variant="caption">
@@ -140,13 +125,19 @@ export default function MobileAiAccordion({
                 </MenuItem>
               ))}
             </Select>
-            <TextField
-              label={t('settings.api_endpoint')}
-              placeholder="http://localhost:11434"
-              value={ai?.endpoint || ''}
-              onChange={e => updateAi({ endpoint: e.target.value || null })}
-              size="small"
-            />
+            {(ai?.provider === 'ollama' ||
+              ai?.provider === 'custom' ||
+              ai?.provider === 'zai' ||
+              ai?.provider === 'custom-openai' ||
+              ai?.provider === 'custom-anthropic') && (
+              <TextField
+                label={t('settings.api_endpoint')}
+                placeholder="http://localhost:11434"
+                value={ai?.endpoint || ''}
+                onChange={e => updateAi({ endpoint: e.target.value || null })}
+                size="small"
+              />
+            )}
             <TextField
               label={t('settings.api_key')}
               type="password"
@@ -237,14 +228,10 @@ export default function MobileAiAccordion({
 
             {ai && <LocalDiscoverySection ai={ai} onAiChange={updateAi} />}
 
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={ai?.rag_enabled ?? false}
-                  onChange={e => updateAi({ rag_enabled: e.target.checked })}
-                />
-              }
+            <SettingsRow
               label={t('settings.enable_rag')}
+              checked={ai?.rag_enabled ?? false}
+              onCheckedChange={v => updateAi({ rag_enabled: v })}
             />
             {ai?.rag_enabled && (
               <TextField
@@ -258,14 +245,10 @@ export default function MobileAiAccordion({
               />
             )}
 
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={ai?.use_llm_gateway_and_auth ?? false}
-                  onChange={e => updateAi({ use_llm_gateway_and_auth: e.target.checked })}
-                />
-              }
+            <SettingsRow
               label={t('settings.use_gateway_and_auth_from_llm')}
+              checked={ai?.use_llm_gateway_and_auth ?? false}
+              onCheckedChange={v => updateAi({ use_llm_gateway_and_auth: v })}
             />
             <TextField
               label={t('settings.embedding_dimensions_0_auto')}
@@ -274,10 +257,10 @@ export default function MobileAiAccordion({
               onChange={e => updateAi({ embedding_dimensions: parseInt(e.target.value) || 0 })}
               size="small"
               slotProps={{ htmlInput: { min: 0, max: 4096 } }}
+              helperText={t('settings.leave_0_to_infer_the_vector_size_from_your_embed')}
             />
           </Box>
-        </AccordionDetails>
-      </Accordion>
-    </Box>
+      </SettingsAccordion>
+    </SettingsSection>
   );
 }

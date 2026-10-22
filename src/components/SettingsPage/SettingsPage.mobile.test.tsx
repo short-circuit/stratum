@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as api from '../../lib/commands';
 import { useStore } from '../../stores/appStore';
@@ -50,8 +50,8 @@ const SETTINGS = {
     ssh_key_path: null,
     commit_template: 'chore: update vault {datetime}',
   },
-  stt: { endpoint: '', api_key: null, model: '', diarize_model: '', language: null, diarize: false, auto_summarize: false, auto_identify: false },
-  tts: { endpoint: '', api_key: null, voice: 'alloy', format: 'mp3', speed: 1.0 },
+  stt: { endpoint: '', api_key: null, model: '', diarize_model: '', language: null, diarize: false, auto_summarize: false, auto_identify: false, use_llm_gateway_and_auth: false },
+  tts: { endpoint: '', api_key: null, voice: 'alloy', format: 'mp3', speed: 1.0, use_llm_gateway_and_auth: false },
 };
 
 describe('SettingsPageMobile — parity with desktop Settings', () => {
@@ -95,6 +95,8 @@ describe('SettingsPageMobile — parity with desktop Settings', () => {
     expect(screen.getByText('Research')).toBeInTheDocument();
     expect(screen.getByText('Developer')).toBeInTheDocument();
     expect(screen.getByText('Sync')).toBeInTheDocument();
+    expect(screen.getByText('Tray')).toBeInTheDocument();
+    expect(screen.getByText('Enable tray icon')).toBeInTheDocument();
   });
 
   it('exposes the full sync configuration (mode, remote, intervals) on mobile', async () => {
@@ -106,7 +108,7 @@ describe('SettingsPageMobile — parity with desktop Settings', () => {
     // Sync mode controls
     expect(screen.getByText('Auto-Commit')).toBeInTheDocument();
     expect(screen.getByText('Auto-Sync')).toBeInTheDocument();
-    expect(screen.getByText('background')).toBeInTheDocument();
+    expect(screen.getByText('Background')).toBeInTheDocument();
 
     // Remote & SSH fields
     expect(screen.getByDisplayValue('git@github.com:user/vault.git')).toBeInTheDocument();
@@ -132,5 +134,29 @@ describe('SettingsPageMobile — parity with desktop Settings', () => {
       .getAllByDisplayValue(5)
       .find(el => (el as HTMLInputElement).max === '20') as HTMLInputElement | undefined;
     expect(chunkInput).toBeDefined();
+
+    // Parity: the STT/TTS gateway-auth toggles (desktop parity) render on mobile too.
+    expect(screen.getAllByText('Use gateway and auth from LLM').length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('expands and collapses the Sync section via the accordion summary', async () => {
+    render(<SettingsPageMobile />);
+    await waitFor(() => {
+      expect(screen.getByText('Save')).toBeInTheDocument();
+    });
+
+    // Collapsed by default: the 'Configure sync' summary is shown and the
+    // section children stay in the DOM (children are not unmounted on collapse).
+    expect(screen.getByText('Configure sync')).toBeInTheDocument();
+
+    // Expand: summary flips to 'Hide sync configuration' and the children
+    // (e.g. the Auto-Commit mode toggle) remain present.
+    fireEvent.click(screen.getByText('Configure sync'));
+    expect(screen.getByText('Hide sync configuration')).toBeInTheDocument();
+    expect(screen.getByText('Auto-Commit')).toBeInTheDocument();
+
+    // Collapse again: summary returns to 'Configure sync'.
+    fireEvent.click(screen.getByText('Hide sync configuration'));
+    expect(screen.getByText('Configure sync')).toBeInTheDocument();
   });
 });

@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import TextField from '@mui/material/TextField';
 import type { SyncStatusDto, CommitLogEntry, BackupSettings, BackupStatusDto } from '../../lib/types';
 import { useTranslation } from 'react-i18next';
+import { SettingsSection, SettingsAccordion } from '../ui/settings';
 import CommitLogPanel from './CommitLogPanel';
 import SyncControlsPanel from './SyncControlsPanel';
 import BackupSettingsPanel from './BackupSettingsPanel';
@@ -77,6 +79,7 @@ export default function MobileSyncSection({
   webdavTestResult,
 }: MobileSyncSectionProps) {
   const { t } = useTranslation();
+  const [syncExpanded, setSyncExpanded] = useState(false);
   const insertPlaceholder = (placeholder: string) => {
     // Insert the placeholder at the current cursor of the template field via a
     // data attribute lookup (mirrors SyncTab behavior but on the mobile field).
@@ -109,13 +112,18 @@ export default function MobileSyncSection({
     .replace('{count}', '4');
 
   return (
-    <Box sx={{ px: 2, pt: 3, pb: 3 }}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-        {t('settings.sync')}
-      </Typography>
-      <Divider sx={{ mb: 1.5 }} />
-
-      {/* Sync mode selector */}
+    <SettingsSection title={t('settings.sync')} variant="mobile" divider sx={{ pb: 3 }}>
+      <SettingsAccordion
+        summary={
+          <Typography variant="body2" color="text.secondary">
+            {syncExpanded ? t('settings.hide_sync_config') : t('settings.configure_sync')}
+          </Typography>
+        }
+        expanded={syncExpanded}
+        onChange={setSyncExpanded}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          {/* Sync mode selector */}
       <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary', display: 'block', mb: 0.75 }}>
         {t('settings.sync_mode')}
       </Typography>
@@ -139,7 +147,13 @@ export default function MobileSyncSection({
               '&:hover': { opacity: 0.85 },
             }}
           >
-            {mode === 'auto_commit' ? t('settings.auto_commit') : mode === 'auto_sync' ? t('settings.auto_sync') : mode}
+            {mode === 'manual'
+              ? t('settings.sync_mode_manual')
+              : mode === 'auto_commit'
+                ? t('settings.auto_commit')
+                : mode === 'auto_sync'
+                  ? t('settings.auto_sync')
+                  : t('settings.sync_mode_background')}
           </Box>
         ))}
       </Box>
@@ -203,7 +217,7 @@ export default function MobileSyncSection({
             flexShrink: 0,
           }}
         >
-          {syncSettings.ssh_key_path ? t('settings.set') : t('settings.agent')}
+          {syncSettings.ssh_key_path ? t('settings.ssh_key_set') : t('settings.ssh_key_agent')}
         </Box>
       </Box>
       <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 2 }}>
@@ -332,6 +346,8 @@ export default function MobileSyncSection({
         running={running}
         webdavTestResult={webdavTestResult}
       />
-    </Box>
+        </Box>
+      </SettingsAccordion>
+    </SettingsSection>
   );
 }
