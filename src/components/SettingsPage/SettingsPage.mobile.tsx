@@ -11,8 +11,7 @@ import ToggleButton from '@mui/material/ToggleButton';
 import { useTranslation } from 'react-i18next';
 import { useSettingsPage } from './SettingsPage.shared';
 import MobileThemeSection from './MobileThemeSection';
-import MobileAiAccordion from './MobileAiAccordion';
-import MobileSttTtsSection from './MobileSttTtsSection';
+import MobileAiSection from './MobileAiSection';
 import MobileDeveloperSection from './MobileDeveloperSection';
 import MobileSyncSection from './MobileSyncSection';
 import MobileNotificationsSection from './MobileNotificationsSection';
@@ -32,7 +31,6 @@ import ExportSection from './ExportSection';
 export default function SettingsPageMobile() {
   const { t } = useTranslation();
   const [importOpen, setImportOpen] = useState(false);
-  const [vaultExpanded, setVaultExpanded] = useState(false);
   const [researchExpanded, setResearchExpanded] = useState(false);
   const {
     settings,
@@ -131,13 +129,14 @@ export default function SettingsPageMobile() {
         {/* ─── Vault Section ─── */}
         <SettingsSection title={t('settings.vault')} variant="mobile" divider sx={{ pt: 2 }}>
           <SettingsAccordion
-            summary={
-              <Typography variant="body2" color="text.secondary">
-                {vaultExpanded ? t('settings.hide_vault_config') : t('settings.configure_vault')}
-              </Typography>
+            defaultOpen
+            summary={open =>
+              open ? (
+                <Typography variant="body2" color="text.secondary">{t('settings.hide_vault_config')}</Typography>
+              ) : (
+                <Typography variant="body2" color="text.secondary">{t('settings.configure_vault')}</Typography>
+              )
             }
-            expanded={vaultExpanded}
-            onChange={setVaultExpanded}
           >
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               <TextField
@@ -189,18 +188,14 @@ export default function SettingsPageMobile() {
         {/* ─── Theme Section ─── */}
         <MobileThemeSection theme={theme} updateTheme={updateTheme} locale={locale} onLocaleChange={onLocaleChange} />
 
-        {/* ─── AI Section (collapsible) ─── */}
-        <MobileAiAccordion
+        {/* ─── AI Section (one accordion per desktop tab: provider + STT/TTS + voice) ─── */}
+        <MobileAiSection
           ai={ai}
           updateAi={updateAi}
           availableModels={availableModels}
           fetching={fetching}
           onFetchModels={handleFetchModels}
           onToggleModelCapability={toggleModelCapability}
-        />
-
-        {/* ─── STT / TTS Section ─── */}
-        <MobileSttTtsSection
           stt={stt}
           updateStt={updateStt}
           tts={tts}

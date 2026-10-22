@@ -66,9 +66,11 @@ test.describe('QA parity — Settings', () => {
           }
           // The mobile section layout must not be just a copy of the tab bar:
           // it must expose the actual form fields for the primary surfaces.
-          // F3: mobile sections are collapsible accordions (default collapsed) —
-          // expand Vault before asserting field visibility.
-          await page.getByText('Configure vault').first().click();
+          // E11.F3: mobile = one accordion per desktop tab (the AI accordion
+          // includes STT/TTS + voice capture). The Vault accordion is
+          // default-open on mobile, so only expand it if still collapsed.
+          const vaultSummary = page.getByText('Configure vault');
+          if ((await vaultSummary.count()) > 0) await vaultSummary.first().click();
           await expect(page.getByLabel('Vault Path')).toBeVisible();
           await expect(page.getByRole('button', { name: /Browse/i }).first()).toBeVisible();
           await expect(page.getByRole('button', { name: /^Save$/ })).toBeVisible();
@@ -79,6 +81,10 @@ test.describe('QA parity — Settings', () => {
           await expect(page.getByRole('combobox').first()).toBeVisible();
           await expect(page.getByLabel('API Endpoint')).toBeVisible();
           await expect(page.getByRole('button', { name: 'Fetch Available Models' })).toBeVisible();
+          // Desktop-parity: the AI accordion also contains the STT/TTS/voice surfaces.
+          await expect(page.getByText('Voice Dictation (STT)')).toBeVisible();
+          await expect(page.getByText('Text-to-Speech')).toBeVisible();
+          await expect(page.getByText('Voice-Capture Button')).toBeVisible();
         }
       });
 
@@ -90,8 +96,9 @@ test.describe('QA parity — Settings', () => {
         // probe shared by both layouts.
         const vault = page.getByLabel('Vault Path');
         if (label !== 'desktop') {
-          // Vault is a collapsible accordion on mobile — expand it before filling.
-          await page.getByText('Configure vault').first().click();
+          // Vault accordion is default-open on mobile — expand only if collapsed.
+          const vaultSummary = page.getByText('Configure vault');
+          if ((await vaultSummary.count()) > 0) await vaultSummary.first().click();
         }
         await expect(vault).toBeVisible();
         await vault.fill('/storage/emulated/0/QA-Vault');

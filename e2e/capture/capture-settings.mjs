@@ -82,6 +82,9 @@ function mockInitScript() {
       get_settings: () => mockSettings,
       save_settings: (args) => {},
       fetch_models: () => ['qwen2.5:7b', 'nomic-embed-text'],
+      get_onboarding_state: () => false,
+      mark_onboarding_done: () => {},
+      set_onboarding_pending: () => {},
       reindex_vault: () => ({ processed: 14, succeeded: 14, failed: 0, errors: [] }),
       repair_db_from_disk: () => ({ processed: 14, succeeded: 14, failed: 0, errors: [] }),
       normalize_all_files: () => 14,
@@ -94,6 +97,8 @@ function mockInitScript() {
       ],
       stt_test_connection: () => ({ ok: true, models: ['whisper-1'], latency_ms: 320, error: null }),
       tts_generate: () => ({ mime: 'audio/mpeg', audio_b64: '', byte_len: 0 }),
+      get_backup_status: () => ({ enabled: false, mode: 'folder', last_run: null, last_success: null, last_error: null, files_copied: null, files_deleted: null }),
+      list_reminders: () => [],
     };
     window.__TAURI_INTERNALS__ = {
       metadata: { currentWindow: { label: 'main' }, currentWebview: { windowLabel: 'main', label: 'main' } },
@@ -108,7 +113,11 @@ function mockInitScript() {
       runCallback: function() {},
       callbacks: new Map(),
     };
-    window.__TAURI_EVENT_PLUGIN_INTERNALS__ = {};
+    window.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+      registerListener: function () { return () => {}; },
+      unregisterListener: function () {},
+      removeAllListeners: function () {},
+    };
   })()`;
 }
 
@@ -172,8 +181,8 @@ async function main() {
       console.log(`captured: ${aiFile}`);
     }
 
-    // Expand Speech & Audio and capture the STT/TTS config area.
-    const sttHandle = page.getByText('Configure dictation & voice');
+    // STT/TTS + voice capture now live inside the AI accordion — capture that area.
+    const sttHandle = page.getByText('Voice Dictation (STT)');
     if (await sttHandle.count()) {
       await sttHandle.first().click();
       await page.waitForTimeout(400);
