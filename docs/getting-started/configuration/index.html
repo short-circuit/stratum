@@ -3009,7 +3009,13 @@ auto-detection does not find one. See
 </tr>
 </tbody>
 </table>
+<p>The theme controls are built on the shared settings primitives in
+<code>src/components/ui/settings/</code> so the desktop and mobile theme sections stay
+visually and behaviorally consistent across platforms.</p>
 <h3 id="ai-tab">AI Tab<a class="headerlink" href="#ai-tab" title="Permanent link">&para;</a></h3>
+<p>The AI tab is organized into subsections (provider configuration, voice
+dictation, text-to-speech, voice-capture button) with consistent styling
+shared across all settings tabs.</p>
 <table>
 <thead>
 <tr>
@@ -3092,6 +3098,8 @@ for the full behavior of the <code>use_llm_gateway_and_auth</code> settings.</p>
 <strong>both</strong> the desktop and mobile settings screens. On mobile these appear as a
 collapsible accordion under the <strong>AI</strong> and <strong>Speech &amp; Audio</strong> sections.</p>
 </div>
+<p>All desktop settings tabs share the same section/toggle-row primitives
+(<code>src/components/ui/settings/</code>) and consistent spacing and typography.</p>
 <h3 id="research-tab">Research Tab<a class="headerlink" href="#research-tab" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -3237,8 +3245,11 @@ commit log.</p>
 </table>
 <div class="admonition note">
 <p class="admonition-title">Tray availability</p>
-<p>The tray and Quick Capture are <strong>desktop-only</strong>. On mobile there is no tray
-icon and closing the app quits it.</p>
+<p>The tray <strong>icon</strong> and <strong>close-to-tray</strong> behavior remain <strong>desktop-only</strong>. On
+mobile there is no tray icon and closing the app quits it. However, mobile
+now exposes the tray <strong>settings</strong> (quick-capture shortcut, capture target,
+inbox page path) in a collapsible Tray section, so the configuration is
+reachable on a touch device even though the runtime behavior is desktop-only.</p>
 </div>
 <p>See <a href="../../guide/quick-capture/">Quick Capture</a> for usage and troubleshooting.</p>
 <h3 id="notifications-tab">Notifications Tab<a class="headerlink" href="#notifications-tab" title="Permanent link">&para;</a></h3>
@@ -3266,7 +3277,11 @@ guide). These settings are stored in the vault config under <code>[reminders]</c
 <p class="admonition-title">Mobile accessibility</p>
 <p>On mobile, reindex <strong>progress</strong> is displayed live under the Developer section.
 The mobile settings screen mirrors the desktop settings surface; each desktop
-tab has a corresponding section on the mobile screen.</p>
+tab has a corresponding section on the mobile screen. Every mobile settings
+section (Vault, Theme, AI, Speech &amp; Audio, Research, Developer, Sync, Tray,
+Notifications) is a <strong>collapsible accordion</strong> — tap the "Configure …" summary
+to expand it and "Hide … configuration" to collapse it again. Tray now has a
+mobile equivalent as well.</p>
 </div>
 <h2 id="file-structure">File Structure<a class="headerlink" href="#file-structure" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>your-vault/
