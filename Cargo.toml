@@ -80,7 +80,7 @@ wat = "1"
 flutter_rust_bridge = "2"
 
 # Block storage
-rusqlite = { version = "0.32", features = ["bundled", "serde_json"] }
+rusqlite = { version = "0.40", features = ["bundled", "serde_json"] }
 
 # MCP server
 rmcp = { version = "3.4.0", features = [
