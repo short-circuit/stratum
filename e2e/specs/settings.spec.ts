@@ -9,8 +9,8 @@ test.describe('Settings Page', () => {
     await expect(page.getByText('Vault').first()).toBeVisible({ timeout: 10000 });
   });
 
-  test('settings page renders all 6 tabs', async ({ page }) => {
-    const tabLabels = ['Vault', 'Theme', 'AI', 'Research', 'Developer', 'Sync'];
+  test('settings page renders all 8 tabs', async ({ page }) => {
+    const tabLabels = ['Vault', 'Theme', 'AI', 'Research', 'Developer', 'Sync', 'Tray', 'Notifications'];
     for (const label of tabLabels) {
       await expect(page.getByText(label).first()).toBeVisible();
     }
