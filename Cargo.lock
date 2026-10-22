@@ -1012,12 +1012,6 @@ checksum = "a6ef517f0926dd24a1582492c791b6a4818a4d94e789a334894aa15b0d12f55c"
 
 [[package]]
 name = "constant_time_eq"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
-
-[[package]]
-name = "constant_time_eq"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9eb6feb175df65d0a3ccd3e73484e940d0ac664e8034f0519fd49a93db3071d9"
@@ -5885,7 +5879,7 @@ name = "pkm-mcp-security"
 version = "1.0.0-beta.3"
 dependencies = [
  "base64 0.22.1",
- "constant_time_eq 0.3.1",
+ "constant_time_eq",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -10629,7 +10623,7 @@ checksum = "a954114b47a54df49f83d2722814e86b23d4bb1b54a1b90fb7d92b41619ddc22"
 dependencies = [
  "aes",
  "bzip2",
- "constant_time_eq 0.6.1",
+ "constant_time_eq",
  "crc32fast",
  "deflate64",
  "flate2",
