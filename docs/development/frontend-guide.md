@@ -328,13 +328,16 @@ import { SettingsSection, SettingsRow, SETTINGS_LOCALES } from '../ui/settings';
 ```
 
 The mobile settings page composes `SettingsSection` + `SettingsAccordion` for
-EVERY section (Vault, Theme, AI, Speech & Audio, Research, Developer, Sync,
-Tray, Notifications). Each section is a collapsible accordion whose summary
-toggles between a `settings.configure_*` ("Configure …") and
-`settings.hide_*_config` ("Hide … configuration") label, and all accordions are
-collapsed by default. Accordion children are kept in the DOM (no
-`unmountOnExit`) so the section contents remain queryable and testable while
-collapsed.
+EVERY section (Vault, Theme, AI, Research, Developer, Sync, Tray,
+Notifications) — one accordion per desktop tab. The AI accordion reuses the
+shared desktop AI sections (AiConfigSection / SttConfigSection /
+TtsConfigSection / VoiceCaptureSection) so mobile and desktop cannot drift.
+Each section is a collapsible accordion whose summary toggles between a
+`settings.configure_*` ("Configure …") and `settings.hide_*_config` ("Hide …
+configuration") label. The Vault accordion is open by default (`defaultOpen`
+prop); all other accordions start collapsed. Accordion children are kept in the
+DOM (no `unmountOnExit`) so the section contents remain queryable and testable
+while collapsed.
 
 ### Usage Examples
 
