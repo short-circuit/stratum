@@ -5,6 +5,7 @@ import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Alert from '@mui/material/Alert';
 import { useTranslation } from 'react-i18next';
+import { SettingsSection } from '../ui/settings';
 import * as api from '../../lib/commands';
 import type { DiscoveredEndpoint } from '../../lib/types';
 
@@ -74,9 +75,7 @@ export default function LocalDiscoverySection({ ai, onAiChange }: LocalDiscovery
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, maxWidth: 480 }}>
-      <Typography variant="subtitle2" color="text.secondary">
-        {t('settings.local_endpoints')}
-      </Typography>
+      <SettingsSection title={t('settings.local_endpoints')} />
 
       <Box>
         <Button variant="outlined" size="small" onClick={handleDiscover} disabled={scanning}>

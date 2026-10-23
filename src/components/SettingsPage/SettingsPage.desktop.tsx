@@ -1,7 +1,6 @@
 import Box from '@mui/material/Box';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
 import Button from '@mui/material/Button';
+import { SettingsTab as SettingsTabs } from '../ui/settings';
 import Alert from '@mui/material/Alert';
 import VaultTab from './VaultTab';
 import ThemeTab from './ThemeTab';
@@ -100,16 +99,20 @@ export default function SettingsPageDesktop() {
           flexShrink: 0,
         }}
       >
-        <Tabs value={tab} onChange={(_, v: SettingsTab) => setTab(v)} sx={{ minHeight: 40 }}>
-          <Tab label={t('settings.vault')} value="vault" sx={{ minHeight: 40, textTransform: 'none' }} />
-          <Tab label={t('settings.theme')} value="theme" sx={{ minHeight: 40, textTransform: 'none' }} />
-          <Tab label={t('settings.ai')} value="ai" sx={{ minHeight: 40, textTransform: 'none' }} />
-          <Tab label={t('settings.research')} value="research" sx={{ minHeight: 40, textTransform: 'none' }} />
-          <Tab label={t('settings.developer')} value="developer" sx={{ minHeight: 40, textTransform: 'none' }} />
-          <Tab label={t('settings.sync')} value="sync" sx={{ minHeight: 40, textTransform: 'none' }} />
-          <Tab label={t('settings.tray')} value="tray" sx={{ minHeight: 40, textTransform: 'none' }} />
-          <Tab label={t('settings.notifications.title')} value="notifications" sx={{ minHeight: 40, textTransform: 'none' }} />
-        </Tabs>
+        <SettingsTabs
+          value={tab}
+          onChange={v => setTab(v as SettingsTab)}
+          tabs={[
+            { value: 'vault', label: t('settings.vault') },
+            { value: 'theme', label: t('settings.theme') },
+            { value: 'ai', label: t('settings.ai') },
+            { value: 'research', label: t('settings.research') },
+            { value: 'developer', label: t('settings.developer') },
+            { value: 'sync', label: t('settings.sync') },
+            { value: 'tray', label: t('settings.tray') },
+            { value: 'notifications', label: t('settings.notifications.title') },
+          ]}
+        />
         <Box sx={{ flex: 1 }} />
         <Button
           variant="contained"

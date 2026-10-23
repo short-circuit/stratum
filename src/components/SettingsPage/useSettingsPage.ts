@@ -11,19 +11,18 @@ import * as api from '../../lib/commands';
 import { applyTheme } from '../../lib/theme';
 import i18n, { setLocale } from '../../i18n';
 import type { SettingsTab } from './settingsTypes';
-
+import {
+  DEFAULT_BACKUP,
+  DEFAULT_RESEARCH,
+  DEFAULT_THEME,
+  DEFAULT_SYNC,
+  DEFAULT_TTS,
+  DEFAULT_TRAY,
+  DEFAULT_VOICE,
+  DEFAULT_REMINDERS,
+  DEFAULT_LAYOUT,
+} from './settingsDefaults';
 export type { SettingsTab, SettingsData } from './settingsTypes';
-
-const DEFAULT_BACKUP = {
-  enabled: false,
-  mode: 'folder',
-  interval_minutes: 60,
-  exclude: ['.git', '.pkm/blocks.db', '.pkm/search', '.pkm/backup_state.json', '.pkm/sync_state.json', '.DS_Store'],
-  webdav_url: null,
-  webdav_username: null,
-  webdav_password: null,
-  folder_path: null,
-};
 
 export function useSettingsPage() {
   const { pickVaultDirectory, setThemeConfig, loadPages } = useStore(useShallow(
@@ -54,7 +53,6 @@ export function useSettingsPage() {
   const [testing, setTesting] = useState(false);
   const [running, setRunning] = useState(false);
   const [webdavTestResult, setWebdavTestResult] = useState<string | null>(null);
-
   const syncModal = useSyncModalStore();
 
   const syncMuiTheme = useCallback(
@@ -66,7 +64,6 @@ export function useSettingsPage() {
     },
     [setThemeConfig]
   );
-
   useEffect(() => {
     api
       .getSettings()
@@ -86,7 +83,6 @@ export function useSettingsPage() {
         setMsg(`${i18n.t('settings.load_failed')} ${err}`);
         setMsgSeverity('error');
       });
-
     useSyncStore.getState().fetchSyncStatus();
     useSyncStore.getState().fetchCommitLog();
     api.getBackupStatus().then(setBackupStatus).catch(() => {});
@@ -105,7 +101,6 @@ export function useSettingsPage() {
       if (muiSyncTimer.current) clearTimeout(muiSyncTimer.current);
     };
   }, [setThemeConfig]);
-
   // Listen for reindex progress events (throttled to prevent UI thrashing)
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -125,50 +120,17 @@ export function useSettingsPage() {
     });
     return () => { unlisten?.(); };
   }, []);
-
   // Derived settings slices with defaults
   const ai = settings?.ai;
-  const research = settings?.research || {
-    searxng_endpoint: 'http://localhost:8888',
-    max_results: 3,
-    max_depth: 2,
-  };
-  const theme = settings?.theme || {
-    dark_mode: true,
-    primary_color: '#f97316',
-    secondary_color: '#6b7280',
-    font_size: 16,
-  };
-  const syncSettings = settings?.sync || {
-    mode: 'manual',
-    remote_url: null,
-    branch: 'main',
-    auto_commit_interval_secs: 300,
-    auto_sync_interval_secs: 1800,
-    ssh_key_path: null,
-    commit_template:
-      'stratum({datetime}): {editedfiles} edited, {newfiles} added, {deletedfiles} deleted',
-  };
-  const tts = settings?.tts || {
-    endpoint: '',
-    api_key: null,
-    voice: 'alloy',
-    format: 'mp3',
-    speed: 1.0,
-    use_llm_gateway_and_auth: false,
-  };
-  const tray = settings?.tray || {
-    enabled: true,
-    close_to_tray: true,
-    quick_capture_shortcut: 'CmdOrCtrl+Shift+Space',
-    capture_target: 'journal',
-    inbox_path: 'Inbox.md',
-  };
-  const voice = settings?.voice || { enabled: true, target: 'journal:today' };
+  const research = settings?.research || DEFAULT_RESEARCH;
+  const theme = settings?.theme || DEFAULT_THEME;
+  const syncSettings = settings?.sync || DEFAULT_SYNC;
+  const tts = settings?.tts || DEFAULT_TTS;
+  const tray = settings?.tray || DEFAULT_TRAY;
+  const voice = settings?.voice || DEFAULT_VOICE;
   const backup = settings?.sync?.backup || DEFAULT_BACKUP;
-  const reminders = settings?.reminders || { enabled: true, sound: true };
-  const layout = settings?.layout || { pages_view: 'flat' };
-
+  const reminders = settings?.reminders || DEFAULT_REMINDERS;
+  const layout = settings?.layout || DEFAULT_LAYOUT;
   const updateAi = (patch: any) => setSettings({ ...settings, ai: { ...ai, ...patch } });
   const updateVault = (patch: any) => setSettings({ ...settings, ...patch });
   const updateResearch = (patch: any) =>
@@ -447,15 +409,9 @@ export function useSettingsPage() {
   };
 
   // Wrap the store's folder-pick action so the Settings form reflects the newly
-  // selected vault path immediately.
-  //
-  // The backend `pick_vault_directory` / `pick_android_directory` commands return
-  // a `VaultInfo` and update the in-memory `VaultState.vault_path`, and
-  // `appStore.pickVaultDirectory` persists that into the zustand `vault`. The
-  // local `settings` state (fetched once on mount) is stale after a pick, and a
-  // naive re-fetch of `get_settings` can still return the OLD path when a stale
-  // `.pkm/config.toml` exists in the previous vault. So the picked path is read
-  // from the store (the authoritative source) and merged into `settings`.
+  // selected vault path immediately. The picked path is read from the store
+  // (the authoritative source) and merged into `settings` (a re-fetch could
+  // return a stale path from a previous vault's config).
   const handlePickVaultDirectory = useCallback(async () => {
     try {
       await pickVaultDirectory();
