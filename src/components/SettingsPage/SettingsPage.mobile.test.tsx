@@ -7,6 +7,11 @@ import SettingsPageMobile from './SettingsPage.mobile';
 
 // The mobile page reuses the same `useSettingsPage` hook; mock the Tauri
 // command surface so the component can mount in jsdom.
+//
+// E11.F3: the mobile screen uses ONE collapsible accordion per desktop tab.
+// The AI accordion now groups the AI provider + STT/TTS + voice-capture
+// surfaces together (mirroring the desktop AITab), and the Vault accordion is
+// default-open. STT/TTS no longer has a dedicated accordion of its own.
 vi.mock('../../lib/commands', () => ({
   getSettings: vi.fn(),
   saveSettings: vi.fn(),
@@ -87,11 +92,14 @@ describe('SettingsPageMobile — parity with desktop Settings', () => {
       expect(screen.getByText('Save')).toBeInTheDocument();
     });
 
+    // Vault accordion is default-open (E11.F3) — its config is immediately visible.
+    expect(screen.getByText('Hide vault configuration')).toBeInTheDocument();
+    expect(screen.getByLabelText('Vault Path')).toBeInTheDocument();
+
     // Core sections
     expect(screen.getByText('Vault')).toBeInTheDocument();
     expect(screen.getByText('Theme')).toBeInTheDocument();
     expect(screen.getByText('AI')).toBeInTheDocument();
-    expect(screen.getByText('Speech & Audio')).toBeInTheDocument();
     expect(screen.getByText('Research')).toBeInTheDocument();
     expect(screen.getByText('Developer')).toBeInTheDocument();
     expect(screen.getByText('Sync')).toBeInTheDocument();
@@ -127,7 +135,10 @@ describe('SettingsPageMobile — parity with desktop Settings', () => {
       expect(screen.getByText('Save')).toBeInTheDocument();
     });
 
-    // Fetch models button is present (accordion collapsed)
+    // Expand the AI accordion (E11.F3: one accordion per desktop tab).
+    fireEvent.click(screen.getByText('Configure AI provider'));
+
+    // Fetch models button is present (accordion expanded)
     expect(screen.getByText('Fetch Available Models')).toBeInTheDocument();
     // RAG chunk count is shown because rag_enabled is true (max=20 input)
     const chunkInput = screen
@@ -137,6 +148,11 @@ describe('SettingsPageMobile — parity with desktop Settings', () => {
 
     // Parity: the STT/TTS gateway-auth toggles (desktop parity) render on mobile too.
     expect(screen.getAllByText('Use gateway and auth from LLM').length).toBeGreaterThanOrEqual(3);
+
+    // Parity: the AI accordion contains the STT/TTS/voice surfaces (desktop-parity grouping).
+    expect(screen.getByText('Voice Dictation (STT)')).toBeInTheDocument();
+    expect(screen.getByText('Text-to-Speech')).toBeInTheDocument();
+    expect(screen.getByText('Voice-Capture Button')).toBeInTheDocument();
   });
 
   it('expands and collapses the Sync section via the accordion summary', async () => {
