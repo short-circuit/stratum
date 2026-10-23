@@ -6,7 +6,7 @@ import TtsConfigSection from './TtsConfigSection';
 import VoiceCaptureSection from './VoiceCaptureSection';
 import type { DiscoveredEndpoint } from '../../lib/types';
 
-interface AITabProps {
+export interface AITabProps {
   ai: {
     provider: string;
     endpoint: string | null;

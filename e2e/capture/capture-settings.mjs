@@ -66,6 +66,14 @@ function buildMockSettings() {
       auto_identify: true,
     },
     tts: { endpoint: '', api_key: null, voice: 'alloy', format: 'mp3', speed: 1.0 },
+    tray: {
+      enabled: true,
+      close_to_tray: true,
+      quick_capture_shortcut: 'CmdOrCtrl+Shift+Space',
+      capture_target: 'journal',
+      inbox_path: 'Inbox.md',
+    },
+    reminders: { enabled: true, sound: true },
   };
 }
 
@@ -82,6 +90,9 @@ function mockInitScript() {
       get_settings: () => mockSettings,
       save_settings: (args) => {},
       fetch_models: () => ['qwen2.5:7b', 'nomic-embed-text'],
+      get_onboarding_state: () => false,
+      mark_onboarding_done: () => {},
+      set_onboarding_pending: () => {},
       reindex_vault: () => ({ processed: 14, succeeded: 14, failed: 0, errors: [] }),
       repair_db_from_disk: () => ({ processed: 14, succeeded: 14, failed: 0, errors: [] }),
       normalize_all_files: () => 14,
@@ -94,6 +105,8 @@ function mockInitScript() {
       ],
       stt_test_connection: () => ({ ok: true, models: ['whisper-1'], latency_ms: 320, error: null }),
       tts_generate: () => ({ mime: 'audio/mpeg', audio_b64: '', byte_len: 0 }),
+      get_backup_status: () => ({ enabled: false, mode: 'folder', last_run: null, last_success: null, last_error: null, files_copied: null, files_deleted: null }),
+      list_reminders: () => [],
     };
     window.__TAURI_INTERNALS__ = {
       metadata: { currentWindow: { label: 'main' }, currentWebview: { windowLabel: 'main', label: 'main' } },
@@ -108,14 +121,69 @@ function mockInitScript() {
       runCallback: function() {},
       callbacks: new Map(),
     };
-    window.__TAURI_EVENT_PLUGIN_INTERNALS__ = {};
+    window.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+      registerListener: function () { return () => {}; },
+      unregisterListener: function () {},
+      removeAllListeners: function () {},
+    };
   })()`;
 }
 
 const VIEWPORTS = [
   { name: 'small', width: 360, height: 740, isMobile: true },
   { name: 'large', width: 428, height: 900, isMobile: true },
+  { name: 'desktop', width: 1280, height: 720, isMobile: false },
 ];
+
+// Desktop tab labels, in the exact order of the SettingsPage tab bar.
+const DESKTOP_TABS = ['Vault', 'Theme', 'AI', 'Research', 'Developer', 'Sync', 'Tray', 'Notifications'];
+
+// Accumulated capture paths, printed at the end for the caller.
+const results = [];
+
+// Mobile accordion summaries, in page order (E11 normalized layout).
+const MOBILE_ACCORDION_SUMMARIES = [
+  'Configure vault',
+  'Configure theme',
+  'Configure AI provider',
+  'Configure research',
+  'Configure developer tools',
+  'Configure sync',
+  'Configure tray',
+  'Configure notifications',
+];
+
+async function captureDesktopTabs(page, outdir, phase) {
+  for (const tab of DESKTOP_TABS) {
+    // Clicking a tab re-renders the tab body — give the panel a moment.
+    await page.getByRole('tab', { name: tab }).click();
+    await page.waitForTimeout(400);
+    const file = path.join(
+      outdir,
+      `settings-${phase}-desktop-${tab.toLowerCase()}-${phase}-1280x720.png`
+    );
+    await page.screenshot({ path: file });
+    results.push(file);
+    console.log(`captured: ${file}`);
+  }
+}
+
+async function expandMobileAccordions(page, outdir, phase, vp) {
+  for (const summary of MOBILE_ACCORDION_SUMMARIES) {
+    const handle = page.getByText(summary);
+    if (await handle.count()) {
+      await handle.first().click();
+      await page.waitForTimeout(250);
+    }
+  }
+  const file = path.join(
+    outdir,
+    `settings-${phase}-${vp.name}-all-open-${vp.width}x${vp.height}.png`
+  );
+  await page.screenshot({ path: file, fullPage: true });
+  results.push(file);
+  console.log(`captured: ${file}`);
+}
 
 async function main() {
   const outdir = process.argv[2];
@@ -128,24 +196,34 @@ async function main() {
 
   const baseURL = process.env.CAPTURE_BASEURL || 'http://localhost:4173';
   const browser = await chromium.launch();
-  const results = [];
 
   for (const vp of VIEWPORTS) {
+    const mobile = vp.isMobile;
     const context = await browser.newContext({
       viewport: { width: vp.width, height: vp.height },
       // Force the mobile split: the app's useResponsive gates on getPlatform()
       // which reads the UA (android/ios) or width<768. For a webkit browser on
       // desktop we must emulate a mobile UA + touch so `isMobile` is true.
-      userAgent:
-        'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0 Mobile Safari/537.36 Stratum/0.7.1',
-      hasTouch: true,
-      isMobile: true,
-      deviceScaleFactor: 2,
+      // The desktop viewport keeps the default desktop UA (no UA gate).
+      userAgent: mobile
+        ? 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0 Mobile Safari/537.36 Stratum/0.7.1'
+        : undefined,
+      hasTouch: mobile,
+      isMobile: mobile,
+      deviceScaleFactor: mobile ? 2 : 1,
     });
     const page = await context.newPage();
     await page.addInitScript({ content: mockInitScript() });
     await page.goto(`${baseURL}/settings`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(1500);
+
+    // Desktop: the settings page is tabbed — capture every tab (E11.F4
+    // evidence: 8 tabs, Tray + Notifications included).
+    if (!mobile) {
+      await captureDesktopTabs(page, outdir, phase);
+      await context.close();
+      continue;
+    }
 
     const file = path.join(outdir, `settings-${phase}-${vp.name}-${vp.width}x${vp.height}.png`);
     await page.screenshot({ path: file, fullPage: true });
@@ -172,8 +250,8 @@ async function main() {
       console.log(`captured: ${aiFile}`);
     }
 
-    // Expand Speech & Audio and capture the STT/TTS config area.
-    const sttHandle = page.getByText('Configure dictation & voice');
+    // STT/TTS + voice capture now live inside the AI accordion — capture that area.
+    const sttHandle = page.getByText('Voice Dictation (STT)');
     if (await sttHandle.count()) {
       await sttHandle.first().click();
       await page.waitForTimeout(400);
@@ -210,6 +288,11 @@ async function main() {
     console.log(
       `captured: ${syncFile} (scrolled=${JSON.stringify(scrolled)})`
     );
+
+    // E11.F4 evidence: every mobile settings area is a collapsible — expand
+    // all accordions (Tray + Notifications included) and capture the full
+    // surface in its fully-open state.
+    await expandMobileAccordions(page, outdir, phase, vp);
 
     await context.close();
   }
