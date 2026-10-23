@@ -384,7 +384,7 @@ jobs:
   android:
     if: github.event_name == 'pull_request' || github.event_name == 'push' || startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v4
@@ -802,22 +802,22 @@ jobs:
         run: |
           mkdir -p assets
 
-          APPIMAGE=$(find linux-x86_64 -name '*.AppImage' -type f 2>/dev/null | head -1)
+          APPIMAGE=$(find linux-x86_64 -name '*.AppImage' -type f 2>/dev/null | head -1 || true)
           if [ -n "$APPIMAGE" ]; then
             cp "$APPIMAGE" assets/stratum-pkm-linux.AppImage
           fi
 
-          DEB=$(find linux-x86_64 -name '*.deb' -type f 2>/dev/null | head -1)
+          DEB=$(find linux-x86_64 -name '*.deb' -type f 2>/dev/null | head -1 || true)
           if [ -n "$DEB" ]; then
             cp "$DEB" assets/stratum-pkm-linux.deb
           fi
 
-          RPM=$(find linux-x86_64 -name '*.rpm' -type f 2>/dev/null | head -1)
+          RPM=$(find linux-x86_64 -name '*.rpm' -type f 2>/dev/null | head -1 || true)
           if [ -n "$RPM" ]; then
             cp "$RPM" assets/stratum-pkm-linux.rpm
           fi
 
-          MACOS_ZIP=$(find macos-x86_64 -name '*.zip' -type f 2>/dev/null | head -1)
+          MACOS_ZIP=$(find macos-x86_64 -name '*.zip' -type f 2>/dev/null | head -1 || true)
           if [ -n "$MACOS_ZIP" ]; then
             cp "$MACOS_ZIP" assets/stratum-pkm-macos.zip
           fi
@@ -826,18 +826,20 @@ jobs:
             cp windows-x86_64/stratum-tauri.exe assets/stratum-pkm-windows.exe
           fi
 
-          APK=$(find android -name '*.apk' -type f 2>/dev/null | head -1)
+          APK=$(find android -name '*.apk' -type f 2>/dev/null | head -1 || true)
           if [ -n "$APK" ]; then
             cp "$APK" assets/stratum-pkm-android.apk
           fi
 
-          AAB=$(find android -name '*.aab' -type f 2>/dev/null | head -1)
+          AAB=$(find android -name '*.aab' -type f 2>/dev/null | head -1 || true)
           if [ -n "$AAB" ]; then
             cp "$AAB" assets/stratum-pkm-android.aab
           fi
 
           # Checksums for every artifact (canonical release names)
-          (cd assets && sha256sum stratum-pkm-* > sha256sums.txt)
+          if ls assets/stratum-pkm-* >/dev/null 2>&1; then
+            (cd assets && sha256sum stratum-pkm-* > sha256sums.txt)
+          fi
 
           ls -la assets/
 
