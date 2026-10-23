@@ -219,8 +219,9 @@ for the full behavior of the `use_llm_gateway_and_auth` settings.
 
 !!! note "AI settings availability"
     The AI, Speech & Audio (STT/TTS), and model-capability settings are available on
-    **both** the desktop and mobile settings screens. On mobile these appear as a
-    collapsible accordion under the **AI** and **Speech & Audio** sections.
+    **both** the desktop and mobile settings screens. On mobile these appear inside
+    the single collapsible **AI** accordion (provider, STT/TTS and voice capture),
+    mirroring the desktop AI tab one-to-one.
 
 All desktop settings tabs share the same section/toggle-row primitives
 (`src/components/ui/settings/`) and consistent spacing and typography.
@@ -297,10 +298,12 @@ guide). These settings are stored in the vault config under `[reminders]`:
     On mobile, reindex **progress** is displayed live under the Developer section.
     The mobile settings screen mirrors the desktop settings surface; each desktop
     tab has a corresponding section on the mobile screen. Every mobile settings
-    section (Vault, Theme, AI, Speech & Audio, Research, Developer, Sync, Tray,
-    Notifications) is a **collapsible accordion** — tap the "Configure …" summary
-    to expand it and "Hide … configuration" to collapse it again. Tray now has a
-    mobile equivalent as well.
+    section (Vault, Theme, AI, Research, Developer, Sync, Tray, Notifications) —
+    one accordion per desktop tab, in the same order — is a **collapsible
+    accordion**: tap the "Configure …" summary to expand it and "Hide …
+    configuration" to collapse it again. Tray now has a mobile equivalent as well.
+    The Vault accordion is expanded by default; all other accordions start
+    collapsed.
 
 ## File Structure
 
