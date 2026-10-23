@@ -4392,13 +4392,16 @@ decomposed into <code>AiConfigSection</code> / <code>SttConfigSection</code> / <
 <a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="o">&lt;</span><span class="err">/SettingsSection&gt;</span>
 </code></pre></div>
 <p>The mobile settings page composes <code>SettingsSection</code> + <code>SettingsAccordion</code> for
-EVERY section (Vault, Theme, AI, Speech &amp; Audio, Research, Developer, Sync,
-Tray, Notifications). Each section is a collapsible accordion whose summary
-toggles between a <code>settings.configure_*</code> ("Configure …") and
-<code>settings.hide_*_config</code> ("Hide … configuration") label, and all accordions are
-collapsed by default. Accordion children are kept in the DOM (no
-<code>unmountOnExit</code>) so the section contents remain queryable and testable while
-collapsed.</p>
+EVERY section (Vault, Theme, AI, Research, Developer, Sync, Tray,
+Notifications) — one accordion per desktop tab. The AI accordion reuses the
+shared desktop AI sections (AiConfigSection / SttConfigSection /
+TtsConfigSection / VoiceCaptureSection) so mobile and desktop cannot drift.
+Each section is a collapsible accordion whose summary toggles between a
+<code>settings.configure_*</code> ("Configure …") and <code>settings.hide_*_config</code> ("Hide …
+configuration") label. The Vault accordion is open by default (<code>defaultOpen</code>
+prop); all other accordions start collapsed. Accordion children are kept in the
+DOM (no <code>unmountOnExit</code>) so the section contents remain queryable and testable
+while collapsed.</p>
 <h3 id="usage-examples">Usage Examples<a class="headerlink" href="#usage-examples" title="Permanent link">&para;</a></h3>
 <p><strong>LoadingOverlay</strong> — wraps any section that needs a loading state:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">import</span><span class="w"> </span><span class="nx">LoadingOverlay</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">'../ui/LoadingOverlay'</span><span class="p">;</span>

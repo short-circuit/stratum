@@ -3095,8 +3095,9 @@ for the full behavior of the <code>use_llm_gateway_and_auth</code> settings.</p>
 <div class="admonition note">
 <p class="admonition-title">AI settings availability</p>
 <p>The AI, Speech &amp; Audio (STT/TTS), and model-capability settings are available on
-<strong>both</strong> the desktop and mobile settings screens. On mobile these appear as a
-collapsible accordion under the <strong>AI</strong> and <strong>Speech &amp; Audio</strong> sections.</p>
+<strong>both</strong> the desktop and mobile settings screens. On mobile these appear inside
+the single collapsible <strong>AI</strong> accordion (provider, STT/TTS and voice capture),
+mirroring the desktop AI tab one-to-one.</p>
 </div>
 <p>All desktop settings tabs share the same section/toggle-row primitives
 (<code>src/components/ui/settings/</code>) and consistent spacing and typography.</p>
@@ -3278,10 +3279,12 @@ guide). These settings are stored in the vault config under <code>[reminders]</c
 <p>On mobile, reindex <strong>progress</strong> is displayed live under the Developer section.
 The mobile settings screen mirrors the desktop settings surface; each desktop
 tab has a corresponding section on the mobile screen. Every mobile settings
-section (Vault, Theme, AI, Speech &amp; Audio, Research, Developer, Sync, Tray,
-Notifications) is a <strong>collapsible accordion</strong> — tap the "Configure …" summary
-to expand it and "Hide … configuration" to collapse it again. Tray now has a
-mobile equivalent as well.</p>
+section (Vault, Theme, AI, Research, Developer, Sync, Tray, Notifications) —
+one accordion per desktop tab, in the same order — is a <strong>collapsible
+accordion</strong>: tap the "Configure …" summary to expand it and "Hide …
+configuration" to collapse it again. Tray now has a mobile equivalent as well.
+The Vault accordion is expanded by default; all other accordions start
+collapsed.</p>
 </div>
 <h2 id="file-structure">File Structure<a class="headerlink" href="#file-structure" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>your-vault/
