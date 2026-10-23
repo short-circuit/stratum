@@ -2,13 +2,20 @@ import { test, expect, type Page } from '@playwright/test';
 import { mockTauriInvoke, DEFAULT_MOCK_CONFIG } from '../mocks/tauri';
 
 // ---------------------------------------------------------------------------
-// Cross-platform parity QA for Settings + Journal (t_8b915df2).
+// Cross-platform parity QA for Settings (t_8b915df2, extended by E11.F4
+// t_e9f151d7).
 //
-// Contract (task body): verify mobile vs desktop parity for Settings and
-// Journal — fields, navigation, data persistence, error states, and visual
-// consistency — on at least one small AND one large mobile viewport, plus
-// desktop. Report pass/fail per item; file bugs for gaps; ensure no
-// regressions in adjacent screens.
+// Contract: verify mobile vs desktop parity for Settings — fields,
+// navigation, data persistence, error states, and visual consistency — on at
+// least one small AND one large mobile viewport, plus desktop. Report
+// pass/fail per item; file bugs for gaps; ensure no regressions in adjacent
+// screens.
+//
+// E11 normalized the surface: DESKTOP = 8 tabs (Vault, Theme, AI, Research,
+// Developer, Sync, Tray, Notifications) in the top tab bar; MOBILE = one
+// collapsible accordion per desktop tab, same order (Vault default-open, all
+// others collapsed). The mobile assertions below therefore expand every
+// accordion before asserting fields.
 //
 // The app selects its mobile flow via useResponsive (width < 768 in a
 // browser, or a mobile platform). Both the small (360x740) and large
@@ -24,13 +31,52 @@ const DESKTOP = { width: 1280, height: 720 };
 const MOBILE_UA =
   'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36';
 
-const SETTINGS_SECTIONS = ['Vault', 'Theme', 'AI', 'Research', 'Developer', 'Sync'] as const;
+// All 8 desktop tabs / mobile sections (E11.F4: Tray + Notifications are now
+// required parity surfaces).
+const SETTINGS_SECTIONS = [
+  'Vault',
+  'Theme',
+  'AI',
+  'Research',
+  'Developer',
+  'Sync',
+  'Tray',
+  'Notifications',
+] as const;
+type SettingsSectionName = (typeof SETTINGS_SECTIONS)[number];
+
+// Mobile accordion summary labels (English locale) per section. Since the
+// overview already asserts the section headers, we only need these to drive
+// expansion (E11.F3/F4: every mobile settings area is a collapsible).
+const MOBILE_ACCORDION_SUMMARY: Record<SettingsSectionName, string> = {
+  Vault: 'Configure vault',
+  Theme: 'Configure theme',
+  AI: 'Configure AI provider',
+  Research: 'Configure research',
+  Developer: 'Configure developer tools',
+  Sync: 'Configure sync',
+  Tray: 'Configure tray',
+  Notifications: 'Configure notifications',
+};
 
 // Wait for the settings form to be populated (both desktop tabs and the
 // mobile sectioned layout surface 'Save' once settings load).
 async function openSettings(page: Page) {
   await page.goto('/settings');
   await expect(page.getByRole('button', { name: /^Save$/ })).toBeVisible({ timeout: 15000 });
+}
+
+// Expand every mobile accordion. The Vault accordion is default-open on
+// mobile, so its 'Configure vault' summary is absent and the click is
+// skipped; the other seven start collapsed and must each be expanded before
+// their fields can be asserted.
+async function expandAllMobileAccordions(page: Page) {
+  for (const section of SETTINGS_SECTIONS) {
+    const summary = page.getByText(MOBILE_ACCORDION_SUMMARY[section]);
+    if ((await summary.count()) > 0) {
+      await summary.first().click();
+    }
+  }
 }
 
 test.describe('QA parity — Settings', () => {
@@ -50,35 +96,87 @@ test.describe('QA parity — Settings', () => {
         await openSettings(page);
 
         if (label === 'desktop') {
-          // Desktop: 6 tabs in the top tab bar.
+          // Desktop: all 8 tabs in the top tab bar (E11.F4 parity surface).
           for (const s of SETTINGS_SECTIONS) {
             await expect(page.getByRole('tab', { name: s })).toBeVisible();
           }
-          // Tab surfaces each expose their fields.
+          // Each tab surfaces its key fields.
           await page.getByRole('tab', { name: 'Vault' }).click();
           await expect(page.getByLabel('Vault Path')).toBeVisible();
           await expect(page.getByRole('button', { name: /Browse/i }).first()).toBeVisible();
+
+          await page.getByRole('tab', { name: 'Theme' }).click();
+          await expect(page.getByLabel('Pick color').first()).toBeVisible();
+          await expect(page.getByText('Primary (buttons, accents)').first()).toBeVisible();
+
+          await page.getByRole('tab', { name: 'AI' }).click();
+          await expect(page.getByRole('combobox').first()).toBeVisible();
+          await expect(page.getByLabel('API Endpoint URL').first()).toBeVisible();
+          await expect(page.getByRole('button', { name: 'Fetch Available Models' })).toBeVisible();
+
+          await page.getByRole('tab', { name: 'Research' }).click();
+          await expect(page.getByText('https://searx.be').first()).toBeVisible();
+          await expect(page.getByRole('button', { name: 'Test instance' }).first()).toBeVisible();
+
+          await page.getByRole('tab', { name: 'Developer' }).click();
+          await expect(page.getByRole('button', { name: 'Reindex All' })).toBeVisible();
+
+          await page.getByRole('tab', { name: 'Sync' }).click();
+          await expect(page.getByText('Sync Mode')).toBeVisible();
+          await expect(page.getByRole('button', { name: 'Sync Now' }).first()).toBeVisible();
+          await expect(page.getByRole('button', { name: 'Run backup now' })).toBeVisible();
+
+          await page.getByRole('tab', { name: 'Tray' }).click();
+          await expect(page.getByText('Enable tray icon')).toBeVisible();
+          await expect(page.getByText('Close to tray')).toBeVisible();
+          await expect(page.getByText('Quick capture target').first()).toBeVisible();
+          await expect(page.getByRole('switch').first()).toBeVisible();
+
+          await page.getByRole('tab', { name: 'Notifications' }).click();
+          await expect(page.getByText('Enable reminders')).toBeVisible();
+          await expect(page.getByText('Notification sound')).toBeVisible();
+          await expect(page.getByRole('switch').first()).toBeVisible();
           await expect(page.getByRole('button', { name: /^Save$/ })).toBeVisible();
         } else {
-          // Mobile: full vertical scroll of the same sections.
+          // Mobile: one collapsible accordion per desktop tab, in the same
+          // order. Assert the section headers, then expand every accordion
+          // before asserting the fields they gate (E11.F3/F4 layout).
           for (const s of SETTINGS_SECTIONS) {
             await expect(page.getByText(s, { exact: true }).first()).toBeVisible();
           }
-          // The mobile section layout must not be just a copy of the tab bar:
-          // it must expose the actual form fields for the primary surfaces.
-          // F3: mobile sections are collapsible accordions (default collapsed) —
-          // expand Vault before asserting field visibility.
-          await page.getByText('Configure vault').first().click();
+          await expandAllMobileAccordions(page);
+
+          // Vault path + browse.
           await expect(page.getByLabel('Vault Path')).toBeVisible();
           await expect(page.getByRole('button', { name: /Browse/i }).first()).toBeVisible();
-          await expect(page.getByRole('button', { name: /^Save$/ })).toBeVisible();
-          // AI provider accordion + STT/TTS + Research + Sync + Developer all
-          // exist as scrollable sections (already asserted via section titles);
-          // expand the AI accordion to confirm the provider surface renders.
-          await page.getByText('Configure AI provider').first().click();
+          // Theme colors (color picker + preset label).
+          await expect(page.getByLabel('Pick color').first()).toBeVisible();
+          await expect(page.getByText('Primary (buttons, accents)').first()).toBeVisible();
+          // AI provider surface + STT/TTS/voice (all inside the AI accordion).
           await expect(page.getByRole('combobox').first()).toBeVisible();
-          await expect(page.getByLabel('API Endpoint')).toBeVisible();
+          await expect(page.getByLabel('API Endpoint URL').first()).toBeVisible();
           await expect(page.getByRole('button', { name: 'Fetch Available Models' })).toBeVisible();
+          await expect(page.getByText('Voice Dictation (STT)')).toBeVisible();
+          await expect(page.getByText('Text-to-Speech')).toBeVisible();
+          await expect(page.getByText('Voice-Capture Button')).toBeVisible();
+          // Research presets + pinger.
+          await expect(page.getByText('Public SearXNG instances')).toBeVisible();
+          await expect(page.getByText('https://searx.be').first()).toBeVisible();
+          await expect(page.getByRole('button', { name: 'Test instance' }).first()).toBeVisible();
+          // Developer tools.
+          await expect(page.getByRole('button', { name: 'Reindex All' })).toBeVisible();
+          // Sync controls / status / backup.
+          await expect(page.getByText('Sync Mode')).toBeVisible();
+          await expect(page.getByRole('button', { name: 'Sync Now' }).first()).toBeVisible();
+          await expect(page.getByRole('button', { name: 'Run backup now' })).toBeVisible();
+          // Tray toggles.
+          await expect(page.getByText('Enable tray icon')).toBeVisible();
+          await expect(page.getByText('Close to tray')).toBeVisible();
+          // Notifications toggle.
+          await expect(page.getByText('Enable reminders')).toBeVisible();
+          await expect(page.getByText('Notification sound')).toBeVisible();
+          // Save bar.
+          await expect(page.getByRole('button', { name: /^Save$/ })).toBeVisible();
         }
       });
 
@@ -90,13 +188,22 @@ test.describe('QA parity — Settings', () => {
         // probe shared by both layouts.
         const vault = page.getByLabel('Vault Path');
         if (label !== 'desktop') {
-          // Vault is a collapsible accordion on mobile — expand it before filling.
-          await page.getByText('Configure vault').first().click();
+          // Vault accordion is default-open on mobile — expand only if collapsed.
+          const vaultSummary = page.getByText('Configure vault');
+          if ((await vaultSummary.count()) > 0) await vaultSummary.first().click();
         }
         await expect(vault).toBeVisible();
         await vault.fill('/storage/emulated/0/QA-Vault');
         await page.getByRole('button', { name: /^Save$/ }).click();
         await expect(page.getByText('Saved.')).toBeVisible({ timeout: 10000 });
+
+        // The mock Tauri surface captures save_settings by persisting the
+        // payload into localStorage — prove the save was actually delivered.
+        const persistedPath = await page.evaluate(() => {
+          const raw = window.localStorage.getItem('mock_settings');
+          return raw ? JSON.parse(raw).vault_path : null;
+        });
+        expect(persistedPath).toBe('/storage/emulated/0/QA-Vault');
 
         // Reload: the mock persists settings to localStorage, so the edited
         // value must come back (mirrors real backend disk persistence).
