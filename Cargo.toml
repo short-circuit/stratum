@@ -49,7 +49,7 @@ log = "0.4"
 tantivy = "0.22"
 
 # Sync
-gix = { version = "0.85", features = ["comfort", "blocking-network-client", "credentials", "status", "worktree-mutation", "blob-diff"] }
+gix = { version = "0.89", features = ["comfort", "blocking-network-client", "credentials", "status", "worktree-mutation", "blob-diff"] }
 
 # Watcher
 notify = { version = "7", features = ["macos_fsevent"] }
