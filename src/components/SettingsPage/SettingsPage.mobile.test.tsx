@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as api from '../../lib/commands';
 import { useStore } from '../../stores/appStore';
@@ -7,6 +7,11 @@ import SettingsPageMobile from './SettingsPage.mobile';
 
 // The mobile page reuses the same `useSettingsPage` hook; mock the Tauri
 // command surface so the component can mount in jsdom.
+//
+// E11.F3: the mobile screen uses ONE collapsible accordion per desktop tab.
+// The AI accordion now groups the AI provider + STT/TTS + voice-capture
+// surfaces together (mirroring the desktop AITab), and the Vault accordion is
+// default-open. STT/TTS no longer has a dedicated accordion of its own.
 vi.mock('../../lib/commands', () => ({
   getSettings: vi.fn(),
   saveSettings: vi.fn(),
@@ -50,8 +55,8 @@ const SETTINGS = {
     ssh_key_path: null,
     commit_template: 'chore: update vault {datetime}',
   },
-  stt: { endpoint: '', api_key: null, model: '', diarize_model: '', language: null, diarize: false, auto_summarize: false, auto_identify: false },
-  tts: { endpoint: '', api_key: null, voice: 'alloy', format: 'mp3', speed: 1.0 },
+  stt: { endpoint: '', api_key: null, model: '', diarize_model: '', language: null, diarize: false, auto_summarize: false, auto_identify: false, use_llm_gateway_and_auth: false },
+  tts: { endpoint: '', api_key: null, voice: 'alloy', format: 'mp3', speed: 1.0, use_llm_gateway_and_auth: false },
 };
 
 describe('SettingsPageMobile — parity with desktop Settings', () => {
@@ -87,14 +92,19 @@ describe('SettingsPageMobile — parity with desktop Settings', () => {
       expect(screen.getByText('Save')).toBeInTheDocument();
     });
 
+    // Vault accordion is default-open (E11.F3) — its config is immediately visible.
+    expect(screen.getByText('Hide vault configuration')).toBeInTheDocument();
+    expect(screen.getByLabelText('Vault Path')).toBeInTheDocument();
+
     // Core sections
     expect(screen.getByText('Vault')).toBeInTheDocument();
     expect(screen.getByText('Theme')).toBeInTheDocument();
     expect(screen.getByText('AI')).toBeInTheDocument();
-    expect(screen.getByText('Speech & Audio')).toBeInTheDocument();
     expect(screen.getByText('Research')).toBeInTheDocument();
     expect(screen.getByText('Developer')).toBeInTheDocument();
     expect(screen.getByText('Sync')).toBeInTheDocument();
+    expect(screen.getByText('Tray')).toBeInTheDocument();
+    expect(screen.getByText('Enable tray icon')).toBeInTheDocument();
   });
 
   it('exposes the full sync configuration (mode, remote, intervals) on mobile', async () => {
@@ -106,7 +116,7 @@ describe('SettingsPageMobile — parity with desktop Settings', () => {
     // Sync mode controls
     expect(screen.getByText('Auto-Commit')).toBeInTheDocument();
     expect(screen.getByText('Auto-Sync')).toBeInTheDocument();
-    expect(screen.getByText('background')).toBeInTheDocument();
+    expect(screen.getByText('Background')).toBeInTheDocument();
 
     // Remote & SSH fields
     expect(screen.getByDisplayValue('git@github.com:user/vault.git')).toBeInTheDocument();
@@ -125,12 +135,44 @@ describe('SettingsPageMobile — parity with desktop Settings', () => {
       expect(screen.getByText('Save')).toBeInTheDocument();
     });
 
-    // Fetch models button is present (accordion collapsed)
+    // Expand the AI accordion (E11.F3: one accordion per desktop tab).
+    fireEvent.click(screen.getByText('Configure AI provider'));
+
+    // Fetch models button is present (accordion expanded)
     expect(screen.getByText('Fetch Available Models')).toBeInTheDocument();
     // RAG chunk count is shown because rag_enabled is true (max=20 input)
     const chunkInput = screen
       .getAllByDisplayValue(5)
       .find(el => (el as HTMLInputElement).max === '20') as HTMLInputElement | undefined;
     expect(chunkInput).toBeDefined();
+
+    // Parity: the STT/TTS gateway-auth toggles (desktop parity) render on mobile too.
+    expect(screen.getAllByText('Use gateway and auth from LLM').length).toBeGreaterThanOrEqual(3);
+
+    // Parity: the AI accordion contains the STT/TTS/voice surfaces (desktop-parity grouping).
+    expect(screen.getByText('Voice Dictation (STT)')).toBeInTheDocument();
+    expect(screen.getByText('Text-to-Speech')).toBeInTheDocument();
+    expect(screen.getByText('Voice-Capture Button')).toBeInTheDocument();
+  });
+
+  it('expands and collapses the Sync section via the accordion summary', async () => {
+    render(<SettingsPageMobile />);
+    await waitFor(() => {
+      expect(screen.getByText('Save')).toBeInTheDocument();
+    });
+
+    // Collapsed by default: the 'Configure sync' summary is shown and the
+    // section children stay in the DOM (children are not unmounted on collapse).
+    expect(screen.getByText('Configure sync')).toBeInTheDocument();
+
+    // Expand: summary flips to 'Hide sync configuration' and the children
+    // (e.g. the Auto-Commit mode toggle) remain present.
+    fireEvent.click(screen.getByText('Configure sync'));
+    expect(screen.getByText('Hide sync configuration')).toBeInTheDocument();
+    expect(screen.getByText('Auto-Commit')).toBeInTheDocument();
+
+    // Collapse again: summary returns to 'Configure sync'.
+    fireEvent.click(screen.getByText('Hide sync configuration'));
+    expect(screen.getByText('Configure sync')).toBeInTheDocument();
   });
 });
