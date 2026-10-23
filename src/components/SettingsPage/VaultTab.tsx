@@ -7,6 +7,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import ToggleButton from '@mui/material/ToggleButton';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { useTranslation } from 'react-i18next';
+import { SettingsSection } from '../ui/settings';
 import ImportDialog from '../ImportDialog';
 import ExportSection from './ExportSection';
 
@@ -23,8 +24,7 @@ export default function VaultTab({ vaultPath, onVaultPathChange, onBrowse, pages
   const [importOpen, setImportOpen] = useState(false);
 
   return (
-    <Box>
-      <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>{t('settings.vault')}</Typography>
+    <SettingsSection title={t('settings.vault')}>
       <Box sx={{ maxWidth: 480 }}>
         <TextField
           label={t('settings.vault_path')}
@@ -67,9 +67,9 @@ export default function VaultTab({ vaultPath, onVaultPathChange, onBrowse, pages
         </ToggleButtonGroup>
       </Box>
       <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
-      <Box sx={{ mt: 2 }}>
+      <Box sx={{ mt: 3 }}>
         <ExportSection vaultPath={vaultPath} />
       </Box>
-    </Box>
+    </SettingsSection>
   );
 }
