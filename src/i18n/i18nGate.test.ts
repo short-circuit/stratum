@@ -153,6 +153,7 @@ const ALLOW_EXACT = new Set([
   'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GOOGLE_API_KEY',
   'quick-capture:open', 'app:quit', 'CmdOrCtrl+Shift+Space',
   'reminder:due', 'reminder:open', 'onComplete',
+  'onAiChange', 'onSttChange', 'onTtsChange',
   '[data-template-input]', '[data-mobile-template-input]', '[data-block-id]',
   '[OutlinerEditor] marker save failed:', '[OutlinerEditor] replaceBlocks failed:',
   '[OutlinerEditor] getBlocks failed:', '[OutlinerEditor] save failed:',
