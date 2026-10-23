@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Divider from '@mui/material/Divider';
 import Button from '@mui/material/Button';
+import { SettingsSection, SettingsAccordion } from '../ui/settings';
 import Alert from '@mui/material/Alert';
 import TextField from '@mui/material/TextField';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
@@ -11,11 +11,11 @@ import ToggleButton from '@mui/material/ToggleButton';
 import { useTranslation } from 'react-i18next';
 import { useSettingsPage } from './SettingsPage.shared';
 import MobileThemeSection from './MobileThemeSection';
-import MobileAiAccordion from './MobileAiAccordion';
-import MobileSttTtsSection from './MobileSttTtsSection';
+import MobileAiSection from './MobileAiSection';
 import MobileDeveloperSection from './MobileDeveloperSection';
 import MobileSyncSection from './MobileSyncSection';
 import MobileNotificationsSection from './MobileNotificationsSection';
+import MobileTraySection from './MobileTraySection';
 import ImportDialog from '../ImportDialog';
 import ResearchPresetsSection from './ResearchPresetsSection';
 import ExportSection from './ExportSection';
@@ -31,6 +31,7 @@ import ExportSection from './ExportSection';
 export default function SettingsPageMobile() {
   const { t } = useTranslation();
   const [importOpen, setImportOpen] = useState(false);
+  const [researchExpanded, setResearchExpanded] = useState(false);
   const {
     settings,
     saving,
@@ -71,6 +72,8 @@ export default function SettingsPageMobile() {
     updateReminders,
     layout,
     updateLayout,
+    tray,
+    updateTray,
     // Sync
     syncSettings,
     updateSync,
@@ -112,7 +115,7 @@ export default function SettingsPageMobile() {
           fullWidth
           sx={{ textTransform: 'none', mb: 1 }}
         >
-          {saving ? t('settings.saving') : 'Save'}
+          {saving ? t('settings.saving') : t('settings.save')}
         </Button>
         {msg && (
           <Alert severity={msgSeverity} onClose={() => setMsg('')} sx={{ mb: 1 }}>
@@ -124,50 +127,59 @@ export default function SettingsPageMobile() {
       {/* Scrollable content */}
       <Box sx={{ flex: 1 }}>
         {/* ─── Vault Section ─── */}
-        <Box sx={{ px: 2, pt: 2 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-            {t('settings.vault')}
-          </Typography>
-          <Divider sx={{ mb: 1.5 }} />
-          <TextField
-            label={t('settings.vault_path')}
-            value={settings.vault_path || ''}
-            onChange={e => updateVault({ vault_path: e.target.value })}
-            fullWidth
-            size="small"
-            sx={{ mb: 1, '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.8rem' } }}
-          />
-          <Button variant="outlined" size="small" onClick={handlePickVaultDirectory}>
-            {t('settings.browse')}
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            sx={{ ml: 1 }}
-            startIcon={<UploadFileIcon />}
-            onClick={() => setImportOpen(true)}
+        <SettingsSection title={t('settings.vault')} variant="mobile" divider sx={{ pt: 2 }}>
+          <SettingsAccordion
+            defaultOpen
+            summary={open =>
+              open ? (
+                <Typography variant="body2" color="text.secondary">{t('settings.hide_vault_config')}</Typography>
+              ) : (
+                <Typography variant="body2" color="text.secondary">{t('settings.configure_vault')}</Typography>
+              )
+            }
           >
-            {t('importers.import_notes')}
-          </Button>
-          <Box sx={{ mt: 2 }}>
-            <Typography
-              variant="caption"
-              sx={{ display: 'block', color: 'text.secondary', fontWeight: 500, mb: 0.75 }}
-            >
-              {t('settings.pages_view')}
-            </Typography>
-            <ToggleButtonGroup
-              exclusive
-              size="small"
-              value={layout?.pages_view ?? 'flat'}
-              onChange={(_, v) => v && updateLayout({ pages_view: v })}
-              sx={{ mb: 1 }}
-            >
-              <ToggleButton value="flat">{t('settings.pages_view_flat')}</ToggleButton>
-              <ToggleButton value="tree">{t('settings.pages_view_tree')}</ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
-        </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <TextField
+                label={t('settings.vault_path')}
+                value={settings.vault_path || ''}
+                onChange={e => updateVault({ vault_path: e.target.value })}
+                fullWidth
+                size="small"
+                sx={{ mb: 1, '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.8rem' } }}
+              />
+              <Button variant="outlined" size="small" onClick={handlePickVaultDirectory}>
+                {t('settings.browse')}
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                sx={{ ml: 1 }}
+                startIcon={<UploadFileIcon />}
+                onClick={() => setImportOpen(true)}
+              >
+                {t('importers.import_notes')}
+              </Button>
+              <Box sx={{ mt: 2 }}>
+                <Typography
+                  variant="caption"
+                  sx={{ display: 'block', color: 'text.secondary', fontWeight: 500, mb: 0.75 }}
+                >
+                  {t('settings.pages_view')}
+                </Typography>
+                <ToggleButtonGroup
+                  exclusive
+                  size="small"
+                  value={layout?.pages_view ?? 'flat'}
+                  onChange={(_, v) => v && updateLayout({ pages_view: v })}
+                  sx={{ mb: 1 }}
+                >
+                  <ToggleButton value="flat">{t('settings.pages_view_flat')}</ToggleButton>
+                  <ToggleButton value="tree">{t('settings.pages_view_tree')}</ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+            </Box>
+          </SettingsAccordion>
+        </SettingsSection>
         <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
         <Box sx={{ px: 2, pt: 2 }}>
           <ExportSection vaultPath={settings.vault_path || ''} />
@@ -176,18 +188,14 @@ export default function SettingsPageMobile() {
         {/* ─── Theme Section ─── */}
         <MobileThemeSection theme={theme} updateTheme={updateTheme} locale={locale} onLocaleChange={onLocaleChange} />
 
-        {/* ─── AI Section (collapsible) ─── */}
-        <MobileAiAccordion
+        {/* ─── AI Section (one accordion per desktop tab: provider + STT/TTS + voice) ─── */}
+        <MobileAiSection
           ai={ai}
           updateAi={updateAi}
           availableModels={availableModels}
           fetching={fetching}
           onFetchModels={handleFetchModels}
           onToggleModelCapability={toggleModelCapability}
-        />
-
-        {/* ─── STT / TTS Section ─── */}
-        <MobileSttTtsSection
           stt={stt}
           updateStt={updateStt}
           tts={tts}
@@ -197,42 +205,50 @@ export default function SettingsPageMobile() {
         />
 
         {/* ─── Research Section ─── */}
-        <Box sx={{ px: 2, pt: 3 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-            {t('settings.research')}
-          </Typography>
-          <Divider sx={{ mb: 1.5 }} />
-          <TextField
-            label={t('settings.searxng_endpoint')}
-            placeholder="http://localhost:8888"
-            value={research.searxng_endpoint}
-            onChange={e => updateResearch({ searxng_endpoint: e.target.value })}
-            fullWidth
-            size="small"
-            helperText={t('settings.url_of_your_searxng_instance')}
-          />
-          <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
-            <TextField
-              label={t('settings.max_results')}
-              type="number"
-              value={research.max_results}
-              onChange={e => updateResearch({ max_results: parseInt(e.target.value) || 3 })}
-              size="small"
-              slotProps={{ htmlInput: { min: 1, max: 10 } }}
-            />
-            <TextField
-              label={t('settings.research_depth')}
-              type="number"
-              value={research.max_depth}
-              onChange={e => updateResearch({ max_depth: parseInt(e.target.value) || 2 })}
-              size="small"
-              slotProps={{ htmlInput: { min: 1, max: 5 } }}
-            />
-          </Box>
-          <Box sx={{ mt: 2 }}>
-            <ResearchPresetsSection research={research} onResearchChange={updateResearch} />
-          </Box>
-        </Box>
+        <SettingsSection title={t('settings.research')} variant="mobile" divider>
+          <SettingsAccordion
+            summary={
+              <Typography variant="body2" color="text.secondary">
+                {researchExpanded ? t('settings.hide_research_config') : t('settings.configure_research')}
+              </Typography>
+            }
+            expanded={researchExpanded}
+            onChange={setResearchExpanded}
+          >
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <TextField
+                label={t('settings.searxng_endpoint')}
+                placeholder="http://localhost:8888"
+                value={research.searxng_endpoint}
+                onChange={e => updateResearch({ searxng_endpoint: e.target.value })}
+                fullWidth
+                size="small"
+                helperText={t('settings.url_of_your_searxng_instance')}
+              />
+              <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+                <TextField
+                  label={t('settings.max_results')}
+                  type="number"
+                  value={research.max_results}
+                  onChange={e => updateResearch({ max_results: parseInt(e.target.value) || 3 })}
+                  size="small"
+                  slotProps={{ htmlInput: { min: 1, max: 10 } }}
+                />
+                <TextField
+                  label={t('settings.research_depth')}
+                  type="number"
+                  value={research.max_depth}
+                  onChange={e => updateResearch({ max_depth: parseInt(e.target.value) || 2 })}
+                  size="small"
+                  slotProps={{ htmlInput: { min: 1, max: 5 } }}
+                />
+              </Box>
+              <Box sx={{ mt: 2 }}>
+                <ResearchPresetsSection research={research} onResearchChange={updateResearch} />
+              </Box>
+            </Box>
+          </SettingsAccordion>
+        </SettingsSection>
 
         {/* ─── Developer Section ─── */}
         <MobileDeveloperSection
@@ -266,6 +282,9 @@ export default function SettingsPageMobile() {
           running={running}
           webdavTestResult={webdavTestResult}
         />
+
+        {/* ─── Tray Section ─── */}
+        <MobileTraySection tray={tray} onTrayChange={updateTray} />
 
         {/* ─── Notifications Section ─── */}
         <MobileNotificationsSection reminders={reminders} updateReminders={updateReminders} />

@@ -4,6 +4,7 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useTranslation } from 'react-i18next';
+import { SettingsSection } from '../ui/settings';
 import * as api from '../../lib/commands';
 
 const PRESETS = [
@@ -43,12 +44,7 @@ export default function ResearchPresetsSection({ research, onResearchChange }: R
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxWidth: 480 }}>
-      <Typography variant="subtitle2" color="text.secondary">
-        {t('settings.search_presets')}
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        {t('settings.search_presets_help')}
-      </Typography>
+      <SettingsSection title={t('settings.search_presets')} description={t('settings.search_presets_help')} />
       {PRESETS.map(url => {
         const state = states[url];
         const selected = research.searxng_endpoint === url;

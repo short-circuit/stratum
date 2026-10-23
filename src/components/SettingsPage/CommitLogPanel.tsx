@@ -37,7 +37,7 @@ export default function CommitLogPanel({
           '&:hover': { color: 'text.primary' },
         }}
       >
-        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+        <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary' }}>
           {commitsOpen ? '▼' : '▶'} {t('settings.recent_commits')}
         </Typography>
       </Box>
