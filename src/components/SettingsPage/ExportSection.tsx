@@ -2,11 +2,11 @@ import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
 import IconButton from '@mui/material/IconButton';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import { useTranslation } from 'react-i18next';
+import { SettingsSection } from '../ui/settings';
 import { useStore } from '../../stores/appStore';
 import { exportHtml, exportJson, exportPdf, exportZip } from '../../lib/commands/features';
 
@@ -127,14 +127,7 @@ export default function ExportSection({ vaultPath }: ExportSectionProps) {
   };
 
   return (
-    <Box>
-      <Typography variant="subtitle2" sx={{ mb: 0.5, color: 'text.secondary' }}>
-        {t('export.section_label')}
-      </Typography>
-      <Typography variant="caption" sx={{ display: 'block', mb: 1.5, color: 'text.disabled' }}>
-        {vaultPath}
-      </Typography>
-
+    <SettingsSection title={t('export.section_label')} description={vaultPath} sx={{ mb: 1.5 }}>
       {msg && (
         <Alert
           severity={msg.severity}
@@ -179,6 +172,6 @@ export default function ExportSection({ vaultPath }: ExportSectionProps) {
           </Box>
         );
       })}
-    </Box>
+    </SettingsSection>
   );
 }
