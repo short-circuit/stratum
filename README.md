@@ -174,7 +174,7 @@ plus the MCP server for programmatic access.
 
 ## Screenshots
 
-The app, in real shipped state (v1.0.0-beta.2).
+The app, in real shipped state (v1.0.0-beta.3).
 
 <p align="center">
   <img src="docs/assets/images/readme-editor.png" alt="Stratum block editor" width="640">
@@ -282,7 +282,7 @@ For the full quick-start, see [docs/getting-started/quickstart.md](docs/getting-
 
 ## Roadmap
 
-Stratum is in active development — v1.0.0-beta.2. See the
+Stratum is in active development — v1.0.0-beta.3. See the
 [documentation home](https://short-circuit.github.io/stratum/docs/) for every
 feature guide (block editor, linking, graph, Datalog, sync, MCP server, and
 more). The docs are also mirrored in this repository under
