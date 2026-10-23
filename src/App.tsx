@@ -9,8 +9,10 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import { useStore } from './stores/appStore';
 import { useRecentsStore } from './stores/recentsStore';
+import { useSettingsStore } from './stores/settingsStore';
 import { useSyncModalStore } from './stores/syncModalStore';
 import { createMuiTheme } from './lib/muiTheme';
+import { getPlatform } from './lib/platform';
 import { useTranslation } from 'react-i18next';
 import Sidebar from './components/Sidebar';
 import PageView from './components/PageView';
@@ -55,11 +57,32 @@ getCurrentWindow().onCloseRequested(async (event: CloseRequestedEvent) => {
     }
   }
   // Honor the "close to tray" preference: hide the window instead of quitting.
-  const st = await api.getTrayStatus().catch(() => null);
-  if (st?.close_to_tray) {
-    await getCurrentWindow().hide();
+  // `get_tray_status` is the authoritative effective value (desktop only; not
+  // registered on mobile, where we destroy). A 300ms race keeps the close path
+  // from hanging if the IPC stalls; the settings cache loaded at boot is the
+  // fallback, and hide() falling back to destroy() guarantees X always acts.
+  let closeToTray = false;
+  if (getPlatform().isDesktop) {
+    const st = await Promise.race([
+      api.getTrayStatus().catch(() => null),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 300)),
+    ]);
+    if (st) {
+      closeToTray = st.close_to_tray;
+    } else {
+      const tray = useSettingsStore.getState().settings?.tray;
+      closeToTray = Boolean(tray?.enabled && tray?.close_to_tray);
+    }
+  }
+  if (closeToTray) {
+    try {
+      await getCurrentWindow().hide();
+    } catch (e) {
+      console.error('[window] hide failed on close request; destroying instead', e);
+      await getCurrentWindow().destroy();
+    }
   } else {
-    getCurrentWindow().destroy();
+    await getCurrentWindow().destroy();
   }
 });
 
