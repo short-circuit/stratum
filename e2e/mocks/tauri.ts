@@ -236,6 +236,13 @@ export const MOCK_SETTINGS = {
     auto_summarize: true,
     auto_identify: true,
   },
+  tray: {
+    enabled: true,
+    close_to_tray: true,
+    quick_capture_shortcut: 'CmdOrCtrl+Shift+Space',
+    capture_target: 'journal',
+    inbox_path: 'Inbox.md',
+  },
 };
 
 /** Transcript produced by the mocked `dictation_transcribe` command. */
@@ -414,6 +421,8 @@ export interface MockConfig {
   dictationTranscribeFailures?: number;
   /** When true, `get_onboarding_state` returns true so the first-run wizard renders. */
   onboardingPending?: boolean;
+  /** Overrides for the mocked `get_tray_status` / settings tray seed. */
+  trayStatus?: { enabled?: boolean; close_to_tray?: boolean };
 }
 
 /** Default: vault configured, no errors */
@@ -436,6 +445,11 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
   await page.addInitScript({
     content: `(function() {
       const config = ${JSON.stringify(config)};
+
+      window.__invokedCommands = [];
+      const __cbSeq = { n: 0 };
+      const __cbs = {};
+      const __listeners = {};
 
       // In-page settings store so save_settings -> get_settings round-trips.
       // Persisted via localStorage so it survives navigation/reload within the
@@ -939,10 +953,31 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
       };
 
       // Event plugin handlers (used by onCloseRequested, listen, etc.)
-      handlers['plugin:event|listen'] = () => ({});
+      handlers['plugin:event|listen'] = (args) => {
+        const ev = args && args.event;
+        if (ev) {
+          __listeners[ev] = __listeners[ev] || [];
+          __listeners[ev].push(args.handler);
+        }
+        return {};
+      };
       handlers['plugin:event|unlisten'] = () => ({});
       handlers['plugin:window|create'] = () => ({});
       handlers['plugin:window|close'] = () => ({});
+      handlers['plugin:window|destroy'] = () => ({});
+      handlers['plugin:window|hide'] = () => ({});
+      // get_tray_status is invoked on app close; default to close_to_tray per
+      // MOCK_SETTINGS, overridable via config.trayStatus for per-test control.
+      handlers['get_tray_status'] = () => {
+        const t = Object.assign({}, mockSettings.tray, config.trayStatus || {});
+        return {
+          enabled: Boolean(t.enabled),
+          close_to_tray: Boolean(t.enabled && t.close_to_tray),
+          shortcut: t.quick_capture_shortcut,
+          capture_target: t.capture_target,
+          inbox_path: t.inbox_path,
+        };
+      };
       // Native file dialog (used by @tauri-apps/plugin-dialog open() for
       // plugin install). Returns a fixed path so the install flow is testable.
       handlers['plugin:dialog|open'] = () => '/mock/vault/.pkm/installed-extras.wasm';
@@ -954,6 +989,7 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
           currentWebview: { windowLabel: 'main', label: 'main' },
         },
         invoke: function(cmd, args, options) {
+          window.__invokedCommands.push(cmd);
           // Tests can force a command failure via config.commandErrors.
           if (config.commandErrors && config.commandErrors[cmd]) {
             return Promise.reject(new Error(config.commandErrors[cmd]));
@@ -971,9 +1007,9 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
           }
         },
         convertFileSrc: function(path) { return 'asset://' + path; },
-        transformCallback: function(fn, once) { return 0; },
-        unregisterCallback: function(id) {},
-        runCallback: function(id, data) {},
+        transformCallback: function(fn) { __cbSeq.n += 1; __cbs[__cbSeq.n] = fn; return __cbSeq.n; },
+        unregisterCallback: function(id) { delete __cbs[id]; },
+        runCallback: function(id, data) { const fn = __cbs[id]; if (fn) fn(data); },
         callbacks: new Map(),
       };
 
@@ -986,6 +1022,15 @@ export async function mockTauriInvoke(page: Page, config: MockConfig = DEFAULT_M
           // Keep a no-op so callers that track ids (e.g. plugin:event|emit
           // fan-out) remain harmless even after unlisten.
         },
+      };
+
+      // Test helper: dispatch a Tauri event (e.g. 'tauri://close-requested') to
+      // listeners registered via onCloseRequested/listen.
+      window.__emitTauriEvent = function(name, payload) {
+        (__listeners[name] || []).forEach(function(id) {
+          const fn = __cbs[id];
+          if (fn) fn({ event: name, id: id, payload: payload === undefined ? null : payload });
+        });
       };
     })()`,
   });
