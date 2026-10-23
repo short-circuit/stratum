@@ -1000,12 +1000,6 @@ dependencies = [
 
 [[package]]
 name = "const-oid"
-version = "0.9.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
-
-[[package]]
-name = "const-oid"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6ef517f0926dd24a1582492c791b6a4818a4d94e789a334894aa15b0d12f55c"
@@ -1637,7 +1631,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292"
 dependencies = [
  "block-buffer 0.10.4",
- "const-oid 0.9.6",
  "crypto-common 0.1.7",
 ]
 
@@ -1648,7 +1641,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1dd6dbb5841937940781866fa1281a1ff7bd3bf827091440879f9994983d5c2"
 dependencies = [
  "block-buffer 0.12.1",
- "const-oid 0.10.2",
+ "const-oid",
  "crypto-common 0.2.2",
  "ctutils",
  "zeroize",
@@ -5668,7 +5661,7 @@ checksum = "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
 
 [[package]]
 name = "pkm-ai"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "async-trait",
  "chrono",
@@ -5688,7 +5681,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-audio"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "chrono",
  "claxon",
@@ -5702,7 +5695,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-block"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -5711,14 +5704,14 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
- "sha2 0.10.9",
+ "sha2 0.11.1",
  "tempfile",
  "uuid",
 ]
 
 [[package]]
 name = "pkm-cli"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "chrono",
  "clap",
@@ -5734,7 +5727,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-core"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "chrono",
  "dirs",
@@ -5751,7 +5744,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-dictation"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "async-trait",
  "chrono",
@@ -5774,7 +5767,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-import"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "pkm-block",
  "pkm-core",
@@ -5788,7 +5781,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-index"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "chrono",
  "pkm-block",
@@ -5802,7 +5795,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-markdown"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "chrono",
  "pkm-block",
@@ -5816,7 +5809,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-mcp"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "anyhow",
  "axum",
@@ -5840,7 +5833,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
- "sha2 0.10.9",
+ "sha2 0.11.1",
  "tempfile",
  "thiserror 2.0.21",
  "tokio",
@@ -5852,20 +5845,20 @@ dependencies = [
 
 [[package]]
 name = "pkm-mcp-security"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "base64 0.22.1",
  "constant_time_eq",
  "serde",
  "serde_json",
- "sha2 0.10.9",
+ "sha2 0.11.1",
  "tempfile",
  "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "pkm-plugin"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5886,7 +5879,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-query"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "chrono",
  "pkm-block",
@@ -5901,7 +5894,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-stt"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "base64 0.22.1",
  "pkm-core",
@@ -5912,7 +5905,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-sync"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "chrono",
  "dav-server",
@@ -5932,7 +5925,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-tests"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "chrono",
  "pkm-ai",
@@ -5954,7 +5947,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-watcher"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "crossbeam-channel",
  "notify",
@@ -7539,7 +7532,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "stratum-tauri"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -7567,7 +7560,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
- "sha2 0.10.9",
+ "sha2 0.11.1",
  "tauri",
  "tauri-build",
  "tauri-plugin-android-fs",
