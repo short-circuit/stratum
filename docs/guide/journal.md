@@ -108,8 +108,7 @@ pipeline described in [Voice Dictation](voice-dictation.md):
    a **Configure STT** prompt links you to **Settings → AI**.
 
 The one-tap button can be disabled (or re-enabled) under
-**Settings → AI → Voice-Capture Button** (or the Speech & Audio section on
-mobile).
+**Settings → AI → Voice-Capture Button** (the **AI** accordion on mobile).
 
 ## Journal File Format
 

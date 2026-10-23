@@ -318,8 +318,7 @@ All data operations flow: `component` → `src/lib/commands.ts` (invoke) → Rus
 | `AiConfigSection` | `AITab` (SettingsPage) | AI provider/API/model configuration (+ local endpoint discovery) | `docs/getting-started/configuration.md` |
 | `SttConfigSection` | `AITab` (SettingsPage) | Voice dictation (STT) configuration | `docs/getting-started/configuration.md` |
 | `TtsConfigSection` | `AITab` (SettingsPage) | Text-to-speech configuration | `docs/getting-started/configuration.md` |
-| `MobileAiAccordion` | `SettingsPage.mobile` | AI provider/API/model accordion (mobile) | `docs/getting-started/configuration.md` |
-| `MobileSttTtsSection` | `SettingsPage.mobile` | STT/TTS + voice-capture accordion (mobile) | `docs/getting-started/configuration.md` |
+| `MobileAiSection` | `SettingsPage.mobile` | AI provider + STT/TTS + voice-capture accordion (mobile; composes the shared desktop AI sections) | `docs/getting-started/configuration.md` |
 | `MobileThemeSection` | `SettingsPage.mobile` | Theme settings accordion (mobile) | `docs/getting-started/configuration.md` |
 | `MobileDeveloperSection` | `SettingsPage.mobile` | Developer tools accordion (mobile) | `docs/getting-started/configuration.md` |
 | `MobileSyncSection` | `SettingsPage.mobile` | Sync configuration accordion (mobile) | `docs/getting-started/configuration.md` |
