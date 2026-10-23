@@ -1,11 +1,11 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
-import Divider from '@mui/material/Divider';
 import type { SyncStatusDto, CommitLogEntry, BackupSettings, BackupStatusDto } from '../../lib/types';
 import CommitLogPanel from './CommitLogPanel';
 import SyncControlsPanel from './SyncControlsPanel';
 import BackupSettingsPanel from './BackupSettingsPanel';
+import { SettingsSection } from '../ui/settings';
 import { useTranslation } from 'react-i18next';
 
 interface SyncTabProps {
@@ -57,10 +57,8 @@ export default function SyncTab({
 }: SyncTabProps) {
   const { t } = useTranslation();
   return (
-    <Box>
-      <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>{t('settings.sync')}</Typography>
-
-      <Box sx={{ maxWidth: 600, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+    <SettingsSection title={t('settings.sync')}>
+      <Box sx={{ maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 2 }}>
         {/* Section 1 — Sync Mode */}
         <Box>
           <Typography
@@ -90,11 +88,13 @@ export default function SyncTab({
                   '&:hover': { opacity: 0.85 },
                 }}
               >
-                {mode === 'auto_commit'
-                  ? t('settings.auto_commit')
-                  : mode === 'auto_sync'
-                    ? t('settings.auto_sync')
-                    : mode}
+                {mode === 'manual'
+                  ? t('settings.sync_mode_manual')
+                  : mode === 'auto_commit'
+                    ? t('settings.auto_commit')
+                    : mode === 'auto_sync'
+                      ? t('settings.auto_sync')
+                      : t('settings.sync_mode_background')}
               </Box>
             ))}
           </Box>
@@ -175,7 +175,7 @@ export default function SyncTab({
                 flexShrink: 0,
               }}
             >
-              {syncSettings.ssh_key_path ? 'Set' : 'Agent'}
+              {syncSettings.ssh_key_path ? t('settings.ssh_key_set') : t('settings.ssh_key_agent')}
             </Box>
           </Box>
           <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.25 }}>
@@ -320,7 +320,6 @@ export default function SyncTab({
         />
 
         {/* Section 8 — Cloud Backup */}
-        <Divider sx={{ my: 1.5 }} />
         <BackupSettingsPanel
           backup={backup}
           backupStatus={backupStatus}
@@ -332,6 +331,6 @@ export default function SyncTab({
           webdavTestResult={webdavTestResult}
         />
       </Box>
-    </Box>
+    </SettingsSection>
   );
 }

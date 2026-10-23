@@ -1,9 +1,6 @@
 import Box from '@mui/material/Box';
-import Divider from '@mui/material/Divider';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Switch from '@mui/material/Switch';
-import Typography from '@mui/material/Typography';
 import { useTranslation } from 'react-i18next';
+import { SettingsSection, SettingsRow } from '../ui/settings';
 
 export interface VoiceCaptureSectionProps {
   voice?: { enabled: boolean; target: string };
@@ -18,25 +15,15 @@ export default function VoiceCaptureSection({
   const { t } = useTranslation();
 
   return (
-    <Box sx={{ mt: 3 }}>
-      <Divider sx={{ mb: 2 }} />
-      <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>
-        {t('voice_capture.settings_toggle_label')}
-      </Typography>
+    <SettingsSection title={t('voice_capture.settings_toggle_label')} sx={{ mt: 3 }}>
       <Box sx={{ maxWidth: 480 }}>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={voice?.enabled ?? true}
-              onChange={(e) => onVoiceChange?.({ enabled: e.target.checked })}
-            />
-          }
+        <SettingsRow
           label={t('voice_capture.enable')}
+          checked={voice?.enabled ?? true}
+          onCheckedChange={v => onVoiceChange?.({ enabled: v })}
+          description={t('voice_capture.settings_target_today')}
         />
-        <Typography variant="caption" sx={{ mt: 0.5, display: 'block', color: 'text.secondary' }}>
-          {t('voice_capture.settings_target_today')}
-        </Typography>
       </Box>
-    </Box>
+    </SettingsSection>
   );
 }
