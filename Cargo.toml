@@ -72,7 +72,7 @@ zip = "9"
 latex2mathml = "0.2"
 
 # Plugin
-wasmtime = "36"
+wasmtime = "49"
 wasmtime-wasi = "36"
 wat = "1"
 
