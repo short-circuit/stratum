@@ -11,8 +11,7 @@
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import MarkerBadge from '../MarkerBadge';
-
-const MARKER_OPTIONS = ['TODO', 'DOING', 'DONE', 'NOW', 'LATER', 'WAITING', 'CANCELLED'];
+import { MARKER_OPTIONS } from './markerOptions';
 
 export function MobileMarkerMenu({
   anchor,

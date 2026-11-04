@@ -38,7 +38,7 @@ import { useTranslation } from 'react-i18next';
 
 export default function OutlinerEditorMobile(props: Props) {
   const { t } = useTranslation();
-  const { pagePath, autoFocus, minHeight = '400px', highlightBlockId } = props;
+  const { pagePath, autoFocus, minHeight = '400px', highlightBlockId, rowActions = false } = props;
 
   const {
     editor,
@@ -203,7 +203,7 @@ export default function OutlinerEditorMobile(props: Props) {
         position: 'relative',
       }}
     >
-      {saveLabel && <SaveStatusChip label={saveLabel} saving={saving} />}
+      {saveLabel && <SaveStatusChip label={saveLabel} saving={saving} right={rowActions ? 56 : 12} />}
       {pageMarkers.length > 0 && <MarkerBadgeRow markers={pageMarkers} horizontalPadding={1} />}
 
       {/* Editor view + all floating mobile UI */}
@@ -220,6 +220,7 @@ export default function OutlinerEditorMobile(props: Props) {
         onInsert={insertBlock}
         onInsertMath={insertMath}
         onApplyMarker={applyMarker}
+        rowActions={rowActions}
       >
         {editorView}
       </MobileEditorOverlays>

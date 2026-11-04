@@ -15,16 +15,19 @@ import Typography from '@mui/material/Typography';
 export function SaveStatusChip({
   label,
   saving,
+  right = 12,
 }: {
   label: string;
   saving: boolean;
+  /** Right offset in px — row mode reserves the top-right action region (56). */
+  right?: number;
 }) {
   return (
     <Box
       sx={{
         position: 'absolute',
         top: 8,
-        right: 12,
+        right,
         zIndex: 5,
         px: 1,
         py: 0.25,

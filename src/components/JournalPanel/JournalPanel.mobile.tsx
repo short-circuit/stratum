@@ -25,6 +25,11 @@ import { useTranslation } from 'react-i18next';
  *    chrome adapts to the breakpoint — no calendar logic is forked here
  *    (audit 2.1/2.4).
  *  - Prev/Next day arrows are rendered large enough for touch (audit 2.3).
+ *  - Journal rows use OutlinerEditor "row mode" (`rowActions`): the editor is
+ *    content-sized, so the two bottom-anchored FABs of the full-page mobile
+ *    editor would overflow the row and overlap the date header above / the
+ *    text (bug t_1100de53). Row mode instead renders ONE action button pinned
+ *    inside a reserved top-right region, never overlapping.
  */
 export default function JournalPanelMobile() {
   const { t } = useTranslation();
@@ -119,7 +124,7 @@ export default function JournalPanelMobile() {
               onEditBlock={(id) => { setFocusBlockId(id); setProse(false); }}
             />
           ) : (
-            <OutlinerEditor key={editorNonce} pagePath={todayPagePath} minHeight="0" focusBlockId={focusBlockId ?? undefined} />
+            <OutlinerEditor key={editorNonce} pagePath={todayPagePath} minHeight="0" focusBlockId={focusBlockId ?? undefined} rowActions />
           )}
         </Box>
       )}
@@ -137,7 +142,7 @@ export default function JournalPanelMobile() {
               {formatDisplayDate(date)}
             </Typography>
             {isVisible ? (
-              <OutlinerEditor pagePath={path} autoFocus={date === targetDate} minHeight="0" />
+              <OutlinerEditor pagePath={path} autoFocus={date === targetDate} minHeight="0" rowActions />
             ) : (
               <CircularProgress size={14} sx={{ display: 'block', mx: 'auto', my: 2 }} />
             )}
