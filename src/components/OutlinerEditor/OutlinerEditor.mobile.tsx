@@ -9,25 +9,28 @@
  *  - Full-screen math editor modal
  *  - Same auto-save, preview, and dead-link popups as desktop
  *
+ * Decomposed during the t_dc58c24c sizing-gate refactor: the loading/error
+ * states, save-status chip, marker-badge row, and reminder dialog flow were
+ * extracted into shared sub-components and hooks so this variant stays under
+ * the 400-line component gate.
+ *
  * @module OutlinerEditor/OutlinerEditor.mobile
  */
 
-import { useEffect, useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback } from 'react';
 import { BlockNoteView } from '@blocknote/mantine';
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import Alert from '@mui/material/Alert';
-import CircularProgress from '@mui/material/CircularProgress';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
 import AISlashMenu from '../AISlashMenu';
 import AIFormattingToolbar from '../AIFormattingToolbar';
-import MarkerBadge from '../MarkerBadge';
 import MarkerSuggestMenu from './MarkerSuggestMenu';
 import WikiLinkAutocomplete from './WikiLinkAutocomplete';
 import ReminderDialog from '../ReminderDialog';
-import { getBlockDue, attachReminderChipClick } from '../../lib/reminders/editorReminderHelpers';
+import { EditorLoadingState, EditorErrorState } from './EditorStates';
+import { SaveStatusChip } from './SaveStatusChip';
+import { MarkerBadgeRow } from './MarkerBadgeRow';
+import { useEditorReminders } from './useEditorReminders';
 import { useEditorData } from './OutlinerEditor.shared';
 import type { Props } from './OutlinerEditor.shared';
 import MobileEditorOverlays from './MobileEditorOverlays';
@@ -57,6 +60,14 @@ export default function OutlinerEditorMobile(props: Props) {
     setDeadLinkPopup,
     navigateRef,
   } = useEditorData(pagePath, autoFocus, minHeight, highlightBlockId, props.focusBlockId);
+
+  const { dialogOpen, dialogDue, handleReminderSave, closeDialog } = useEditorReminders({
+    editor,
+    blockMetaRef,
+    persistBlocks,
+    containerRef,
+    status,
+  });
 
   const saveLabel = useMemo(() => {
     if (saving) return t('editor.saving');
@@ -120,41 +131,6 @@ export default function OutlinerEditorMobile(props: Props) {
   );
 
   // -----------------------------------------------------------------------
-  // Reminder integration: tapping a reminder chip opens the dialog.
-  // -----------------------------------------------------------------------
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogBlockId, setDialogBlockId] = useState<string | null>(null);
-  const [dialogDue, setDialogDue] = useState<string | null>(null);
-
-  const openReminderForBlock = useCallback((blockId: string) => {
-    setDialogBlockId(blockId);
-    setDialogDue(getBlockDue(blockId, blockMetaRef.current));
-    setDialogOpen(true);
-  }, [blockMetaRef]);
-
-  const handleReminderSave = (isoUtc: string | null) => {
-    const blockId = dialogBlockId;
-    setDialogOpen(false);
-    if (!blockId) return;
-    const existing =
-      blockMetaRef.current.get(blockId) ?? { marker: null, priority: null, properties: [] as [string, string][] };
-    const properties = existing.properties.filter(([key]) => key !== 'due');
-    const updated = { ...existing, properties: isoUtc ? [...properties, ['due', isoUtc] as [string, string]] : properties };
-    blockMetaRef.current.set(blockId, updated);
-    try {
-      if (editor) persistBlocks(editor.document);
-    } catch (e) {
-      console.error('[OutlinerEditor] reminder save failed:', e);
-    }
-  };
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el || status !== 'ready') return;
-    return attachReminderChipClick(el, openReminderForBlock);
-  }, [containerRef, status, openReminderForBlock]);
-
-  // -----------------------------------------------------------------------
   // Memoised editor view
   // -----------------------------------------------------------------------
   const editorView = useMemo(
@@ -193,30 +169,7 @@ export default function OutlinerEditorMobile(props: Props) {
   // Loading state
   // -----------------------------------------------------------------------
   if (status === 'init' || status === 'loading') {
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: 256,
-        }}
-      >
-        <Box sx={{ textAlign: 'center' }}>
-          <CircularProgress size={20} sx={{ mb: 1.5 }} />
-          <Typography variant="body2" color="text.secondary">
-            {t('editor.loading_editor')}
-          </Typography>
-          <Typography
-            variant="caption"
-            color="text.disabled"
-            sx={{ display: 'block', mt: 0.25 }}
-          >
-            {pagePath}
-          </Typography>
-        </Box>
-      </Box>
-    );
+    return <EditorLoadingState pagePath={pagePath} />;
   }
 
   // -----------------------------------------------------------------------
@@ -224,24 +177,14 @@ export default function OutlinerEditorMobile(props: Props) {
   // -----------------------------------------------------------------------
   if (error) {
     return (
-      <Alert
-        severity="error"
-        sx={{ m: 2 }}
-        action={
-          <Button
-            size="small"
-            color="inherit"
-            onClick={() => {
-              setError(null);
-              setStatus('init');
-            }}
-          >
-            {t('common.retry')}
-          </Button>
-        }
-      >
-        {t('editor.editor_error')} {error}
-      </Alert>
+      <EditorErrorState
+        error={error}
+        onRetry={() => {
+          setError(null);
+          setStatus('init');
+        }}
+        retryKey="common.retry"
+      />
     );
   }
 
@@ -260,47 +203,8 @@ export default function OutlinerEditorMobile(props: Props) {
         position: 'relative',
       }}
     >
-      {saveLabel && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 8,
-            right: 12,
-            zIndex: 5,
-            px: 1,
-            py: 0.25,
-            borderRadius: 1,
-            bgcolor: 'background.paper',
-            border: '1px solid',
-            borderColor: 'divider',
-            boxShadow: 1,
-            pointerEvents: 'none',
-          }}
-        >
-          <Typography variant="caption" color={saving ? 'text.secondary' : 'text.disabled'}>
-            {saveLabel}
-          </Typography>
-        </Box>
-      )}
-      {/* Marker badges row */}
-      {pageMarkers.length > 0 && (
-        <Box
-          sx={{
-            px: 1,
-            py: 0.5,
-            display: 'flex',
-            gap: 0.5,
-            flexWrap: 'wrap',
-            borderBottom: 1,
-            borderColor: 'divider',
-            bgcolor: 'action.hover',
-          }}
-        >
-          {pageMarkers.map((m) => (
-            <MarkerBadge key={m} marker={m} />
-          ))}
-        </Box>
-      )}
+      {saveLabel && <SaveStatusChip label={saveLabel} saving={saving} />}
+      {pageMarkers.length > 0 && <MarkerBadgeRow markers={pageMarkers} horizontalPadding={1} />}
 
       {/* Editor view + all floating mobile UI */}
       <MobileEditorOverlays
@@ -324,7 +228,7 @@ export default function OutlinerEditorMobile(props: Props) {
         open={dialogOpen}
         initialDue={dialogDue}
         onSave={handleReminderSave}
-        onClose={() => setDialogOpen(false)}
+        onClose={closeDialog}
       />
     </Box>
   );

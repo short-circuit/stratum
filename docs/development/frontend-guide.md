@@ -112,6 +112,14 @@ Components **never** call `invoke()` directly — always through `commands.ts`. 
 | `MathEditorModal` | `OutlinerEditor` | LaTeX editor with live KaTeX preview |
 | `MathSymbolPalette` | `MathEditorModal` | Tabbed symbol palette |
 | `MarkerBadge` | `OutlinerEditor` | Colored chip for task markers |
+| `EditorLoadingState` / `EditorErrorState` | `OutlinerEditor` (desktop & mobile) | Shared loading / error placeholders (file `EditorStates.tsx`) |
+| `SaveStatusChip` | `OutlinerEditor` (desktop & mobile) | Floating save-status chip (saving / saved-at label) |
+| `MarkerBadgeRow` | `OutlinerEditor` (desktop & mobile) | Page marker badge strip (task markers on the page) |
+| `DeadLinkCreatePopup` | `OutlinerEditor` (desktop & mobile) | "Create page" popover for unresolved [[wiki-links]] |
+| `DesktopBlockContextMenu` | `OutlinerEditor` (desktop) | Right-click block menu (read aloud / set-change-clear reminder) |
+| `MobileInsertMenu` | `OutlinerEditor` (mobile) | Floating insert menu (paragraph/headings/code/mermaid/math) |
+| `MobileMarkerMenu` | `OutlinerEditor` (mobile) | Floating marker menu (TODO..CANCELLED) |
+| `MobileBlockActionsMenu` | `OutlinerEditor` (mobile) | Long-press block menu (cut/copy/read-aloud/delete) |
 | `KanbanEditDialog` | `KanbanPanel` | Edit card content, marker, priority |
 
 ### Navigation & Utility
@@ -641,6 +649,125 @@ function BacklinksPanel() {
 ```
 
 ---
+
+### `useEditorReminders`
+
+Reminder dialog state, the `applyDue` metadata mutation, and the reminder-chip click
+delegation for the Outliner editor. Used by both the desktop and mobile variants.
+
+```typescript
+// src/components/OutlinerEditor/useEditorReminders.ts
+export function useEditorReminders(args: {
+  editor: EditorData['editor'];
+  blockMetaRef: MutableRefObject<Map<string, BlockMeta>>;
+  persistBlocks: (blocks: any[]) => void;
+  containerRef: RefObject<HTMLDivElement | null>;
+  status: string;
+}): {
+  dialogOpen: boolean;
+  dialogDue: string | null;
+  openReminderForBlock: (blockId: string) => void;
+  handleReminderSave: (isoUtc: string | null) => void;
+  closeDialog: () => void;
+  applyDue: (blockId: string, isoUtc: string | null) => void;
+};
+```
+
+**Usage (from OutlinerEditor.mobile):**
+
+```typescript
+const { dialogOpen, dialogDue, handleReminderSave, closeDialog } = useEditorReminders({
+  editor,
+  blockMetaRef,
+  persistBlocks,
+  containerRef,
+  status,
+});
+```
+
+### `useDesktopBlockMenu`
+
+Desktop right-click block menu plus read-aloud and reminder actions for the Outliner
+editor. Composes `useEditorReminders` and adds the context-menu state, read-aloud, and
+reminder open/clear helpers.
+
+```typescript
+// src/components/OutlinerEditor/useDesktopBlockMenu.ts
+export function useDesktopBlockMenu(args: {
+  editor: EditorData['editor'];
+  blockMetaRef: MutableRefObject<Map<string, BlockMeta>>;
+  persistBlocks: (blocks: any[]) => void;
+  containerRef: RefObject<HTMLDivElement | null>;
+  status: string;
+});
+```
+
+### `useMobileBlockContextMenu`
+
+Mobile long-press block context menu (cut / copy / speak / delete) for the Outliner
+editor. Owns the long-press detection and the action handler.
+
+```typescript
+// src/components/OutlinerEditor/useMobileBlockContextMenu.ts
+export function useMobileBlockContextMenu({ editor }: { editor: EditorData['editor'] });
+```
+
+### `useEditorAutoSave`
+
+Debounced auto-save with the ED-07 no-op skip and flush-on-unmount for the Outliner
+editor. Owns the pending-save ref, the debounce timer, the deterministic-serialization
+skip, and the flush-on-unmount safety net.
+
+```typescript
+// src/components/OutlinerEditor/useEditorData/save.ts
+export function useEditorAutoSave(args: {
+  pagePath: string;
+  editor: EditorData['editor'];
+  blockMetaRef: MutableRefObject<Map<string, BlockMeta>>;
+  loadedSnapshotRef: MutableRefObject<string | null>;
+  status: string;
+  isProcessingRef: MutableRefObject<boolean>;
+  onPersistScheduled: () => void;
+});
+```
+
+### `useWikiLinkInteractions`
+
+Dead-link detection, Ctrl/Cmd-hover preview, and hover/click event delegation for the
+Outliner editor. Highlights unresolved `[[wiki-links]]`, drives the preview popup, and
+prevents browser navigation on link clicks.
+
+```typescript
+// src/components/OutlinerEditor/useEditorData/wikiLinks.ts
+export function useWikiLinkInteractions(args: {
+  containerRef: RefObject<HTMLDivElement | null>;
+  status: string;
+  pagePath: string;
+  ctrlHeld: MutableRefObject<boolean>;
+  setPreview: Dispatch<SetStateAction<PreviewState>>;
+});
+```
+
+### `useBlockLoading`
+
+Backend block load, DTO conversion, and marker extraction for the Outliner editor.
+Suppresses the programmatic `onChange` fired by `replaceBlocks` (ED-07) and moves the
+editor to the `ready` state.
+
+```typescript
+// src/components/OutlinerEditor/useEditorData/loadBlocks.ts
+export function useBlockLoading(args: {
+  pagePath: string;
+  editor: EditorData['editor'];
+  blockMetaRef: MutableRefObject<Map<string, BlockMeta>>;
+  loadedSnapshotRef: MutableRefObject<string | null>;
+  isProcessingRef: MutableRefObject<boolean>;
+  setStatus: Dispatch<SetStateAction<string>>;
+  setError: Dispatch<SetStateAction<string | null>>;
+  setPageMarkers: Dispatch<SetStateAction<string[]>>;
+  onLoaded: () => void;
+});
+```
 
 ## Internationalization (i18n)
 
