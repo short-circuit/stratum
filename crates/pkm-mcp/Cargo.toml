@@ -28,7 +28,7 @@ hyper-util.workspace = true
 tower-service.workspace = true
 http-body-util.workspace = true
 clap.workspace = true
-sha2 = { version = "0.10", features = ["oid"] }
+sha2 = { version = "0.11", features = ["oid"] }
 base64.workspace = true
 regex.workspace = true
 
