@@ -81,3 +81,6 @@ test-results/
 /.screenshots/
 **/.evidence/
 /.worktrees/
+
+# Playwright evidence capture output
+e2e/capture/
