@@ -26,7 +26,7 @@ pub async fn save_settings<R: tauri::Runtime>(
     #[cfg(desktop)]
     crate::commands::tray::apply_tray_state(&app, &config.tray);
     #[cfg(not(desktop))]
-    let _ = &app;
+    let _ = (&app, &config);
     Ok(())
 }
 
