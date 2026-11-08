@@ -4,10 +4,8 @@
 //! blocks inside a transaction, then reindex the page and invalidate the graph
 //! cache. Consumed by the transcription and speaker-assignment commands.
 
-use crate::commands::vault::VaultState;
-// ---------------------------------------------------------------------------
-// Block insertion helpers (mirror save_blocks' atomic flow)
-// ---------------------------------------------------------------------------
+use crate::events::EventSink;
+use crate::state::{DictationSession, StratumService, VaultState};
 
 /// Parse memo markdown into blocks and append them to the page.
 pub fn insert_memo_blocks(
@@ -56,7 +54,7 @@ pub fn insert_memo_blocks(
 /// Replace a memo's blocks (after rename) with re-rendered ones.
 pub fn replace_memo_blocks(
     state: &mut VaultState,
-    session: &crate::commands::vault::DictationSession,
+    session: &DictationSession,
     markdown: &str,
 ) -> Result<Vec<String>, String> {
     let store = state.get_store().map_err(|e| e.to_string())?;
@@ -130,7 +128,7 @@ pub fn refresh_page_index(state: &mut VaultState, page_path: &str) -> Result<(),
         .ensure_index()?
         .refresh_page(page_path, &vault_path)
         .map_err(|e| format!("Index refresh failed: {e}"))?;
-    crate::commands::graph::invalidate_graph_cache();
+    crate::graph::invalidate_graph_cache();
     Ok(())
 }
 
@@ -159,36 +157,35 @@ fn format_duration(secs: f64) -> String {
     format!("{m}:{:02}", s % 60)
 }
 
-/// Insert a placeholder memo referencing a saved clip after transcription
-/// failed. Reuses the exact `insert_memo_blocks` atomic flow (including page
-/// reindex + graph cache invalidation) so the fallback path never diverges
-/// from the normal insert. Emits `dictation:done` so any listening UI settles.
-#[tauri::command]
-pub fn dictation_insert_clip_ref(
-    page_path: String,
-    clip_rel_path: String,
-    duration_secs: f64,
-    app: tauri::AppHandle,
-    state: tauri::State<'_, crate::commands::vault::AppState>,
-) -> Result<Vec<String>, String> {
-    use tauri::Emitter;
-
-    let mut state = state.lock().map_err(|e| e.to_string())?;
-    // Normalize an absolute recording path to vault-relative for display, so
-    // the placeholder references a stable path (mirrors `transcribe`'s clip_rel).
-    let clip = std::path::PathBuf::from(&clip_rel_path);
-    let rel = clip
-        .strip_prefix(&state.vault_path)
-        .unwrap_or(&clip)
-        .to_string_lossy()
-        .to_string();
-    let markdown = build_clip_placeholder_markdown(&rel, duration_secs);
-    let ids = insert_memo_blocks(&mut state, &page_path, &markdown)?;
-    let _ = app.emit(
-        "dictation:done",
-        serde_json::json!({ "inserted": ids.len(), "fallback": true }),
-    );
-    Ok(ids)
+impl StratumService {
+    /// Insert a placeholder memo referencing a saved clip after transcription
+    /// failed. Reuses the exact `insert_memo_blocks` atomic flow (including page
+    /// reindex + graph cache invalidation) so the fallback path never diverges
+    /// from the normal insert. Emits `dictation:done` so any listening UI settles.
+    pub fn dictation_insert_clip_ref(
+        &self,
+        page_path: String,
+        clip_rel_path: String,
+        duration_secs: f64,
+        sink: &dyn EventSink,
+    ) -> Result<Vec<String>, String> {
+        let mut state = self.lock()?;
+        // Normalize an absolute recording path to vault-relative for display, so
+        // the placeholder references a stable path (mirrors `transcribe`'s clip_rel).
+        let clip = std::path::PathBuf::from(&clip_rel_path);
+        let rel = clip
+            .strip_prefix(&state.vault_path)
+            .unwrap_or(&clip)
+            .to_string_lossy()
+            .to_string();
+        let markdown = build_clip_placeholder_markdown(&rel, duration_secs);
+        let ids = insert_memo_blocks(&mut state, &page_path, &markdown)?;
+        sink.emit(
+            "dictation:done",
+            serde_json::json!({ "inserted": ids.len(), "fallback": true }),
+        );
+        Ok(ids)
+    }
 }
 
 #[cfg(test)]

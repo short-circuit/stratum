@@ -26,9 +26,8 @@
 
 mod common;
 
-use app_lib::commands::vault::{AppState, VaultState};
 use serde_json::json;
-use std::sync::Mutex;
+use stratum_app::StratumService;
 use tauri::test::{mock_builder, mock_context, noop_assets};
 use tauri::webview::InvokeRequest;
 use tauri::Manager;
@@ -46,9 +45,8 @@ fn block_on<F: std::future::Future>(fut: F) -> F::Output {
 }
 
 fn build_app(vault: &common::TestVault) -> tauri::App<tauri::test::MockRuntime> {
-    let vs = VaultState::new(vault.vault_path.clone());
     mock_builder()
-        .manage(Mutex::new(vs) as AppState)
+        .manage(StratumService::new(vault.vault_path.clone()))
         .invoke_handler(tauri::generate_handler![
             app_lib::commands::ai::ai_transform_block,
             app_lib::commands::ai::generate_mermaid,
@@ -331,7 +329,7 @@ fn ai_interlink_finds_related_notes_and_rewrites_with_wiki_links() {
 
     let app_build = build_app(&tv);
     {
-        let st = app_build.state::<AppState>();
+        let st = app_build.state::<StratumService>();
         let mut st = st.lock().unwrap();
         let bi = st.ensure_block_index().unwrap();
         for b in &cur_blocks {

@@ -7538,6 +7538,43 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "stratum-app"
+version = "1.0.0-beta.4"
+dependencies = [
+ "base64 0.22.1",
+ "chrono",
+ "gix",
+ "latex2mathml",
+ "log",
+ "pkm-ai",
+ "pkm-audio",
+ "pkm-block",
+ "pkm-core",
+ "pkm-dictation",
+ "pkm-import",
+ "pkm-index",
+ "pkm-markdown",
+ "pkm-plugin",
+ "pkm-query",
+ "pkm-stt",
+ "pkm-sync",
+ "pkm-watcher",
+ "pulldown-cmark",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2 0.10.9",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "uuid",
+ "wat",
+ "wiremock",
+ "zip",
+]
+
+[[package]]
 name = "stratum-tauri"
 version = "1.0.0-beta.4"
 dependencies = [
@@ -7568,6 +7605,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sha2 0.10.9",
+ "stratum-app",
  "tauri",
  "tauri-build",
  "tauri-plugin-android-fs",

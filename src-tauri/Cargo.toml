@@ -45,6 +45,7 @@ pkm-audio = { path = "../crates/pkm-audio" }
 pkm-stt = { path = "../crates/pkm-stt" }
 pkm-dictation = { path = "../crates/pkm-dictation" }
 pkm-plugin = { path = "../crates/pkm-plugin" }
+stratum-app = { path = "../crates/stratum-app" }
 pulldown-cmark.workspace = true
 reqwest.workspace = true
 # sha256 verification for `plugins_install_url` (catalog installs)

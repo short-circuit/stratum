@@ -20,11 +20,10 @@
 
 mod common;
 
-use app_lib::commands::vault::{AppState, VaultState};
 use pkm_block::{Block, Page, TaskMarker};
 use serde_json::json;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use stratum_app::StratumService;
 use tauri::test::{mock_builder, mock_context, noop_assets};
 use tauri::webview::InvokeRequest;
 use tauri::WebviewWindow;
@@ -50,9 +49,8 @@ fn walk_html_files(dir: &std::path::Path) -> Vec<PathBuf> {
 /// Build a mock Tauri app whose `VaultState` is backed by `vault`, with the
 /// query + export commands registered.
 fn build_app(vault: &common::TestVault) -> tauri::App<tauri::test::MockRuntime> {
-    let vs = VaultState::new(vault.vault_path.clone());
     mock_builder()
-        .manage(Mutex::new(vs) as AppState)
+        .manage(StratumService::new(vault.vault_path.clone()))
         .invoke_handler(tauri::generate_handler![
             app_lib::commands::query::run_query,
             app_lib::commands::export::export_html,

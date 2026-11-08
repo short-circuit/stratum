@@ -16,9 +16,8 @@
 
 mod common;
 
-use app_lib::commands::vault::{AppState, VaultState};
 use serde_json::json;
-use std::sync::Mutex;
+use stratum_app::StratumService;
 use tauri::test::{mock_builder, mock_context, noop_assets};
 use tauri::webview::InvokeRequest;
 use tauri::WebviewWindow;
@@ -26,9 +25,8 @@ use tauri::WebviewWindow;
 /// Build a mock Tauri app whose `VaultState` is backed by `vault`, with the
 /// saved-query commands registered.
 fn build_app(vault: &common::TestVault) -> tauri::App<tauri::test::MockRuntime> {
-    let vs = VaultState::new(vault.vault_path.clone());
     mock_builder()
-        .manage(Mutex::new(vs) as AppState)
+        .manage(StratumService::new(vault.vault_path.clone()))
         .invoke_handler(tauri::generate_handler![
             app_lib::commands::query::list_saved_queries,
             app_lib::commands::query::save_saved_query,

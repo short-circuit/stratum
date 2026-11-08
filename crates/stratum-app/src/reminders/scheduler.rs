@@ -1,11 +1,10 @@
 //! Block-reminder scheduler.
 //!
-//! The core is deliberately Tauri-free so it can be unit-tested with an
+//! The core is deliberately host-agnostic so it can be unit-tested with an
 //! injected clock and notify callback. It scans the block store for blocks
 //! whose `due` timestamp has passed, deduplicates previously-fired reminders
-//! in memory, and invokes the notify callback. The Tauri wiring (OS
-//! notifications + app event emission) lives in `lib.rs` and is injected as a
-//! `NotifyFn` closure.
+//! in memory, and invokes the notify callback. The host wiring (OS
+//! notifications + app event emission) is injected as a `NotifyFn` closure.
 
 use std::collections::HashMap;
 use std::time::Duration;

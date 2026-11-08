@@ -72,7 +72,8 @@ stratum/
 │   ├── pkm-stt/                # Speech-to-text, diarization, speaker recognition
 │   ├── pkm-sync/               # Git sync engine (git2) + periodic cloud/folder backup mirror
 │   ├── pkm-tests/              # Integration tests for the Rust crates
-│   └── pkm-watcher/            # File system watcher
+│   ├── pkm-watcher/            # File system watcher
+│   └── stratum-app/            # Headless service layer behind every Tauri command (no tauri deps)
 ├── src/                        # React + TypeScript frontend
 │   ├── main.tsx                # App bootstrap, settings load
 │   ├── App.tsx                 # Root layout, routes, close handler
@@ -260,12 +261,13 @@ pkm-mcp-security →  (standalone security primitives)
 pkm-audio      →  pkm-core
 pkm-stt        →  pkm-core, pkm-audio
 pkm-dictation  →  pkm-core, pkm-audio, pkm-stt
+stratum-app    →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-query, pkm-plugin, pkm-dictation
 pkm-tests      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-sync, pkm-query, pkm-ai, pkm-plugin, stratum-tauri
 pkm-cli        →  pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
-src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-dictation
+src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-dictation, pkm-plugin, stratum-app
 ```
 
-**NOTE**: `src-tauri` does NOT currently depend on `pkm-plugin`. The CLI does NOT depend on `pkm-block` or `pkm-query`.
+**NOTE**: `stratum-app` has no dependency on `tauri` or any `tauri-plugin-*` crate — that isolation is the point of the extraction. The CLI does NOT depend on `pkm-block` or `pkm-query`.
 
 **NOTE**: `src-tauri` additionally depends on `tauri-plugin-notification = "2"` (MIT OR Apache-2.0, AGPL-3.0 compatible) for block-reminder OS notifications.
 
@@ -505,14 +507,16 @@ Use `PkmError` (from `pkm-core`) as the single error type across all crates. Use
 
 ### Module Organization
 
-Command handlers (`src-tauri/src/commands/`) must be **thin glue layers**. Business logic belongs in the appropriate crate:
+Command handlers (`src-tauri/src/commands/`) must be **thin glue layers**. Business logic belongs in `stratum-app` (the headless service layer) and the domain crate it wraps:
 
-| Command Handler | Logic Lives In |
-|----------------|---------------|
-| `graph.rs` | `pkm-block` (graph building) |
-| `settings.rs` | `pkm-core::Config` (DTO mapping) |
-| `search.rs` | `pkm-index` (search/backlinks) |
-| `sync.rs` | `pkm-sync` (git operations) |
+| Command Handler | Service Method | Domain Logic |
+|----------------|----------------|--------------|
+| `graph.rs` | `stratum-app::graph` | `pkm-block` (graph building) |
+| `settings.rs` | `stratum-app::settings` | `pkm-core::Config` (DTO mapping) |
+| `search.rs` | `stratum-app::search` | `pkm-index` (search/backlinks) |
+| `sync.rs` | `stratum-app::sync` | `pkm-sync` (git operations) |
+
+See `docs/development/service-layer.md` for the full command → service method map and the adapter rules.
 
 ## Build Commands
 
@@ -608,6 +612,8 @@ When in doubt, flag the dependency for review before adding it.
 | New hook/utility | Add to `Custom Hooks` table above; update `docs/development/frontend-guide.md` |
 | Rust API changed | Update doc comments; update `docs/development/rust-guide.md` |
 | New Rust crate/module | Add to `Crate Dependency Graph` and `Workspace Layout` above; add module docs |
+| New Tauri command | Implement it as a `StratumService` method in `crates/stratum-app`, add a thin adapter + `invoke.rs` entry, add a headless test, and update `docs/development/service-layer.md` |
+| Command logic changed | Keep the service method (not the adapter) authoritative; update `docs/development/service-layer.md` if the mapping moves |
 | New feature added | Add `docs/guide/` entry; update contributing.md if dev workflow changes |
 | Behavior change | Update relevant `docs/guide/` entry |
 | UI changed | Verify screenshots in docs still match; update if needed |

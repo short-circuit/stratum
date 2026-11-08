@@ -1,0 +1,459 @@
+//! Git sync commands.
+
+use crate::page::resolve_safe_path;
+use crate::state::StratumService;
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+
+/// Sync state persisted to disk after each sync operation.
+/// Stored in `.pkm/sync_state.json`.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct SyncState {
+    last_sync_time: Option<String>,
+    last_sync_success: Option<bool>,
+}
+
+fn sync_state_path(vault_path: &std::path::Path) -> PathBuf {
+    vault_path.join(".pkm").join("sync_state.json")
+}
+
+fn read_sync_state(vault_path: &std::path::Path) -> SyncState {
+    let path = sync_state_path(vault_path);
+    if path.exists() {
+        std::fs::read_to_string(&path)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or(SyncState {
+                last_sync_time: None,
+                last_sync_success: None,
+            })
+    } else {
+        SyncState {
+            last_sync_time: None,
+            last_sync_success: None,
+        }
+    }
+}
+
+fn write_sync_state(vault_path: &std::path::Path, success: bool) {
+    let state = SyncState {
+        last_sync_time: Some(Utc::now().to_rfc3339()),
+        last_sync_success: Some(success),
+    };
+    let path = sync_state_path(vault_path);
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Ok(json) = serde_json::to_string(&state) {
+        let _ = std::fs::write(&path, json);
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SyncStatusDto {
+    pub status: String,
+    pub branch: Option<String>,
+    pub ahead: usize,
+    pub behind: usize,
+    pub conflicts: Vec<String>,
+    pub last_sync_time: Option<String>,
+    pub last_sync_success: Option<bool>,
+    pub pending_commits: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CommitLogEntry {
+    pub hash: String,
+    pub author: String,
+    pub message: String,
+    pub timestamp: String,
+}
+
+/// Read the vault config from disk, returning defaults if none exists.
+fn read_config(vault_path: &std::path::Path) -> Result<pkm_core::Config, String> {
+    let config_path = vault_path.join(".pkm").join("config.toml");
+    if config_path.exists() {
+        pkm_core::Config::load(&config_path).map_err(|e| e.to_string())
+    } else {
+        Ok(pkm_core::Config {
+            vault_path: vault_path.to_path_buf(),
+            ..Default::default()
+        })
+    }
+}
+
+impl StratumService {
+    /// Report git sync status: conflicts, branch, ahead/behind, pending commits.
+    pub async fn get_sync_status(&self) -> Result<SyncStatusDto, String> {
+        let state = self.lock()?;
+        let vault_path = &state.vault_path;
+
+        match pkm_sync::git::GitEngine::init(vault_path) {
+            Ok(engine) => {
+                let statuses = engine.status().map_err(|e| e.to_string())?;
+                let conflicts: Vec<String> = statuses
+                    .iter()
+                    .filter(|(_, s)| s.is_conflicted())
+                    .map(|(p, _)| p.clone())
+                    .collect();
+
+                let pending_commits = statuses.iter().filter(|(_, s)| !s.is_conflicted()).count();
+
+                let branch = engine.get_current_branch();
+
+                // Try to get ahead/behind if we have a config
+                let config = read_config(vault_path).ok();
+                let ahead_behind = config.as_ref().and_then(|c| {
+                    let branch_name = branch.as_deref().unwrap_or(&c.sync.branch);
+                    engine.ahead_behind(branch_name).ok()
+                });
+
+                let (ahead, behind) = ahead_behind.unwrap_or((0, 0));
+
+                let sync_state = read_sync_state(vault_path);
+
+                Ok(SyncStatusDto {
+                    status: if conflicts.is_empty() {
+                        "ok".into()
+                    } else {
+                        "conflicts".into()
+                    },
+                    branch,
+                    ahead,
+                    behind,
+                    conflicts,
+                    last_sync_time: sync_state.last_sync_time,
+                    last_sync_success: sync_state.last_sync_success,
+                    pending_commits,
+                })
+            }
+            Err(_) => Ok(SyncStatusDto {
+                status: "no_repo".into(),
+                branch: None,
+                ahead: 0,
+                behind: 0,
+                conflicts: Vec::new(),
+                last_sync_time: None,
+                last_sync_success: None,
+                pending_commits: 0,
+            }),
+        }
+    }
+
+    /// Run the full sync pipeline using the cached passphrase.
+    pub async fn sync_vault(&self) -> Result<SyncStatusDto, String> {
+        let vault_path = self.lock()?.vault_path.clone();
+        let passphrase = self.lock()?.passphrase.clone();
+        sync_vault_core(&vault_path, passphrase.as_deref())
+    }
+
+    /// Cache `passphrase` in state, then run a full sync.
+    pub async fn sync_vault_with_passphrase(
+        &self,
+        passphrase: String,
+    ) -> Result<SyncStatusDto, String> {
+        // Cache passphrase in state
+        {
+            let mut s = self.lock()?;
+            s.set_passphrase(passphrase);
+        }
+        // Then call sync_vault logic
+        self.sync_vault().await
+    }
+
+    /// Start the periodic git sync scheduler.
+    pub async fn start_sync_scheduler(&self) -> Result<(), String> {
+        let vault_path = self.lock()?.vault_path.clone();
+        let passphrase = self.lock()?.passphrase.clone();
+
+        let config = read_config(&vault_path)?;
+        let ssh_key_path = config
+            .sync
+            .ssh_key_path
+            .clone()
+            .map(std::path::PathBuf::from);
+
+        let mut engine = pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
+        engine.set_ssh_key_path(ssh_key_path);
+        if let Some(ref pp) = passphrase {
+            engine.set_passphrase(Some(pp.clone()));
+        }
+
+        let interval = match config.sync.mode {
+            pkm_core::SyncMode::AutoSync | pkm_core::SyncMode::Background => {
+                config.sync.auto_sync_interval_secs
+            }
+            _ => 300,
+        };
+
+        let sched_config = pkm_sync::scheduler::SchedulerConfig {
+            remote: "origin".to_string(),
+            branch: config.sync.branch.clone(),
+            interval_secs: interval,
+            ssh_key_path: None, // SSH key is already set on the engine
+        };
+
+        let mut scheduler = pkm_sync::SyncScheduler::new(engine, sched_config);
+        scheduler.start();
+
+        let mut s = self.lock()?;
+        s.sync_scheduler = Some(scheduler);
+        Ok(())
+    }
+
+    /// Stop the periodic git sync scheduler.
+    pub async fn stop_sync_scheduler(&self) -> Result<(), String> {
+        let mut s = self.lock()?;
+        if let Some(mut scheduler) = s.sync_scheduler.take() {
+            scheduler.stop();
+        }
+        Ok(())
+    }
+
+    /// Return the most recent 50 commits.
+    pub async fn get_commit_log(&self) -> Result<Vec<CommitLogEntry>, String> {
+        let vault_path = self.lock()?.vault_path.clone();
+        let engine = pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
+        let commits = engine.log(50).map_err(|e| e.to_string())?;
+
+        Ok(commits
+            .iter()
+            .map(|c| CommitLogEntry {
+                hash: c.hash.clone(),
+                author: c.author.clone(),
+                message: c.message.clone(),
+                timestamp: c.timestamp.to_rfc3339(),
+            })
+            .collect())
+    }
+
+    /// Mark a conflicted file resolved by staging and committing it.
+    pub async fn resolve_conflict_file(&self, path: String) -> Result<(), String> {
+        let vault_path = self.lock()?.vault_path.clone();
+        // Validate path is within vault before passing to git engine
+        let _safe = resolve_safe_path(&vault_path, &path)?;
+        let engine = pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
+        engine.add(&[&path]).map_err(|e| e.to_string())?;
+        engine
+            .commit(&format!("Resolved conflict in {}", path), "stratum")
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    /// Abort an in-progress merge, restoring the index to HEAD.
+    pub async fn abort_merge(&self) -> Result<(), String> {
+        let vault_path = self.lock()?.vault_path.clone();
+        let engine = pkm_sync::git::GitEngine::init(&vault_path).map_err(|e| e.to_string())?;
+        let repo = engine.repository();
+
+        // For aborting a merge, we update HEAD to the original branch reference.
+        // gix doesn't have a direct cleanup_state/checkout_head equivalent,
+        // so we use the git CLI as a fallback for this specific operation.
+        let git_dir = repo.git_dir().to_path_buf();
+        // Remove MERGE_HEAD and other merge state files
+        for f in &[
+            "MERGE_HEAD",
+            "MERGE_MSG",
+            "MERGE_MODE",
+            "CHERRY_PICK_HEAD",
+            "REVERT_HEAD",
+        ] {
+            let p = git_dir.join(f);
+            let _ = std::fs::remove_file(&p);
+        }
+        // Update the index to match HEAD
+        let head_id = repo
+            .head()
+            .ok()
+            .and_then(|mut h| h.peel_to_commit().ok())
+            .map(|c| c.id().detach());
+
+        if let Some(oid) = head_id {
+            // Reset the index to HEAD tree. HEAD points at a commit, so peel it
+            // down to its tree; `Object::into_tree` only accepts tree objects.
+            if let Ok(obj) = repo.find_object(oid) {
+                if let Ok(tree) = obj.peel_to_tree() {
+                    if let Ok(index_file) = repo.open_index() {
+                        let state = index_file.into_parts().0;
+                        let _backing = state.path_backing().to_vec();
+                        if let Ok(new_state) = gix::index::State::from_tree(
+                            tree.id().as_ref(),
+                            repo,
+                            Default::default(),
+                        ) {
+                            let mut new_index =
+                                gix::index::File::from_state(new_state, repo.index_path());
+                            let _ = new_index.write(gix::index::write::Options {
+                                extensions: gix::index::write::Extensions::default(),
+                                skip_hash: false,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
+/// Run the full sync pipeline (stage, commit, pull, push) for a vault.
+///
+/// Extracted from the `sync_vault` command so tray "Sync Now" and the command
+/// share one implementation. Performs git add, conflict detection, commit of
+/// pending changes with the configured template, then pull/push against the
+/// remote (when configured). Returns a [`SyncStatusDto`] describing the outcome.
+pub fn sync_vault_core(
+    vault_path: &std::path::Path,
+    passphrase: Option<&str>,
+) -> Result<SyncStatusDto, String> {
+    let config = read_config(vault_path)?;
+
+    let mut engine = pkm_sync::git::GitEngine::init(vault_path).map_err(|e| e.to_string())?;
+
+    // Set SSH key path from config
+    if let Some(ref key_path) = config.sync.ssh_key_path {
+        engine.set_ssh_key_path(Some(std::path::PathBuf::from(key_path)));
+    }
+    // Set passphrase if cached
+    if let Some(pp) = passphrase {
+        engine.set_passphrase(Some(pp.to_string()));
+    }
+
+    // Stage all
+    engine.add(&["."]).map_err(|e| e.to_string())?;
+
+    // Classify pending files and check for conflicts
+    let statuses = engine.status().map_err(|e| e.to_string())?;
+    let conflicts: Vec<String> = statuses
+        .iter()
+        .filter(|(_, s)| s.is_conflicted())
+        .map(|(p, _)| p.clone())
+        .collect();
+
+    if !conflicts.is_empty() {
+        write_sync_state(vault_path, false);
+        return Ok(SyncStatusDto {
+            status: "conflicts".into(),
+            branch: engine.get_current_branch(),
+            ahead: 0,
+            behind: 0,
+            conflicts,
+            last_sync_time: Some(Utc::now().to_rfc3339()),
+            last_sync_success: Some(false),
+            pending_commits: statuses.len(),
+        });
+    }
+
+    let pending_count = statuses.iter().filter(|(_, s)| !s.is_conflicted()).count();
+
+    if pending_count > 0 {
+        let mut editedfiles = Vec::new();
+        let mut newfiles = Vec::new();
+        let mut deletedfiles = Vec::new();
+
+        for (path, st) in &statuses {
+            if st.is_conflicted() {
+                continue;
+            }
+            use pkm_sync::git::StatusFlags;
+            if st.intersects(StatusFlags::INDEX_NEW | StatusFlags::WT_NEW) {
+                newfiles.push(path.clone());
+            } else if st.intersects(StatusFlags::INDEX_DELETED | StatusFlags::WT_DELETED) {
+                deletedfiles.push(path.clone());
+            } else {
+                editedfiles.push(path.clone());
+            }
+        }
+
+        let datetime = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
+        let count = pending_count.to_string();
+        let edited_str = editedfiles.join(", ");
+        let new_str = newfiles.join(", ");
+        let del_str = deletedfiles.join(", ");
+
+        let mut msg = config
+            .sync
+            .commit_template
+            .replace("{datetime}", &datetime)
+            .replace("{editedfiles}", &edited_str)
+            .replace("{newfiles}", &new_str)
+            .replace("{deletedfiles}", &del_str)
+            .replace("{count}", &count);
+
+        // Clean up empty clauses
+        for suffix in &["edited", "added", "deleted"] {
+            msg = msg.replace(&format!(",  {}", suffix), "");
+        }
+        msg = msg.replace("  edited, ", "");
+        msg = msg.replace("  added, ", "");
+        msg = msg.replace("  deleted", "");
+        while msg.contains("  ") {
+            msg = msg.replace("  ", " ");
+        }
+        let msg = msg.trim().to_string();
+        let message = if msg.is_empty() {
+            format!("auto-commit: {} files", count)
+        } else {
+            msg
+        };
+
+        engine
+            .commit(&message, "pkm-sync")
+            .map_err(|e| e.to_string())?;
+    }
+
+    // Pull with credentials
+    if config.sync.remote_url.is_some() {
+        let _ = engine.pull("origin", &config.sync.branch);
+        // Check for pull conflicts
+        let statuses = engine.status().map_err(|e| e.to_string())?;
+        let conflicts: Vec<String> = statuses
+            .iter()
+            .filter(|(_, s)| s.is_conflicted())
+            .map(|(p, _)| p.clone())
+            .collect();
+        if !conflicts.is_empty() {
+            write_sync_state(vault_path, false);
+            return Ok(SyncStatusDto {
+                status: "conflicts".into(),
+                branch: engine.get_current_branch(),
+                ahead: 0,
+                behind: 0,
+                conflicts,
+                last_sync_time: Some(Utc::now().to_rfc3339()),
+                last_sync_success: Some(false),
+                pending_commits: statuses.len(),
+            });
+        }
+
+        let _ = engine.push("origin", &config.sync.branch);
+    }
+
+    // Return final status
+    let final_statuses = engine.status().map_err(|e| e.to_string())?;
+    let final_conflicts: Vec<String> = final_statuses
+        .iter()
+        .filter(|(_, s)| s.is_conflicted())
+        .map(|(p, _)| p.clone())
+        .collect();
+    let conflicts_ok = final_conflicts.is_empty();
+
+    write_sync_state(vault_path, conflicts_ok);
+
+    Ok(SyncStatusDto {
+        status: if conflicts_ok {
+            "ok".into()
+        } else {
+            "conflicts".into()
+        },
+        branch: engine.get_current_branch(),
+        ahead: 0,
+        behind: 0,
+        conflicts: final_conflicts,
+        last_sync_time: Some(Utc::now().to_rfc3339()),
+        last_sync_success: Some(conflicts_ok),
+        pending_commits: final_statuses.len(),
+    })
+}
