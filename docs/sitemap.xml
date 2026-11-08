@@ -53,6 +53,10 @@
          <lastmod>2026-11-08</lastmod>
     </url>
     <url>
+         <loc>https://short-circuit.github.io/stratum/docs/development/service-layer/</loc>
+         <lastmod>2026-11-08</lastmod>
+    </url>
+    <url>
          <loc>https://short-circuit.github.io/stratum/docs/development/adr/0004-wasm-plugin-abi/</loc>
          <lastmod>2026-11-08</lastmod>
     </url>
