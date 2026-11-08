@@ -1,0 +1,293 @@
+//! Export commands: static site (HTML), JSON, per-page PDF (headless
+//! Chromium), and whole-vault ZIP. The PDF and ZIP implementations live in the
+//! [`pdf`] and [`zip`] submodules; HTML/JSON remain here and are unchanged.
+
+pub mod pdf;
+pub mod zip;
+
+pub use pdf::{chromium_candidates, export_pdf_core, find_chromium, PdfExportResult};
+pub use zip::{export_zip_core, ZipExportResult};
+
+use crate::state::StratumService;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ExportResult {
+    pub output_dir: String,
+    pub pages_exported: usize,
+    pub assets_copied: usize,
+}
+
+/// Core HTML export — plain function so it is testable without a host runtime.
+/// Writes one `<slug>.html` per vault page (mirroring directory structure), a
+/// linking `index.html`, and copies the vault `assets/` dir.
+///
+/// The `pages` iterator of relative page paths is provided by the caller so
+/// this stays a pure `(vault, output)` function; the command layer fetches it
+/// from the live block store.
+pub fn export_html_core(
+    vault: &std::path::Path,
+    output: &std::path::Path,
+    pages: &[String],
+) -> Result<ExportResult, String> {
+    std::fs::create_dir_all(output).map_err(|e| e.to_string())?;
+
+    let mut exported = 0usize;
+
+    for page_path in pages {
+        let full_path = vault.join(page_path);
+        if !full_path.exists() {
+            continue;
+        }
+
+        let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
+        let html = markdown_to_html(&content);
+
+        // Mirror directory structure
+        let rel_dir = std::path::Path::new(page_path)
+            .parent()
+            .unwrap_or(std::path::Path::new(""));
+        let slug = std::path::Path::new(page_path)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("index");
+
+        let out_dir = output.join(rel_dir);
+        std::fs::create_dir_all(&out_dir).map_err(|e| e.to_string())?;
+
+        let html_path = out_dir.join(format!("{}.html", slug));
+        let full_html = wrap_html(&html, &slug.replace('-', " "));
+        std::fs::write(&html_path, &full_html).map_err(|e| e.to_string())?;
+        exported += 1;
+    }
+
+    // Generate index.html linking to all pages
+    let mut index = String::from(
+        "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"><title>Stratum Vault</title>",
+    );
+    index.push_str("<style>body{font-family:system-ui;max-width:800px;margin:0 auto;padding:2em;background:#fff;color:#111} a{color:#36c;text-decoration:none} a:hover{text-decoration:underline} ul{list-style:none;padding:0} li{margin:.5em 0} .meta{font-size:.85em;color:#666}</style>");
+    index.push_str("</head><body><h1>Stratum Vault</h1><ul>");
+
+    for page_path in pages {
+        let slug = std::path::Path::new(page_path)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("untitled");
+        let name = slug.replace('-', " ");
+        let rel_dir = std::path::Path::new(page_path)
+            .parent()
+            .and_then(|p| p.to_str())
+            .unwrap_or("");
+        let href = if rel_dir.is_empty() {
+            format!("{}.html", slug)
+        } else {
+            format!("{}/{}.html", rel_dir, slug)
+        };
+        index.push_str(&format!(
+            "<li><a href=\"{}\"><strong>{}</strong></a> <span class=\"meta\">{}</span></li>",
+            href, name, page_path
+        ));
+    }
+
+    index.push_str("</ul></body></html>");
+    std::fs::write(output.join("index.html"), &index).map_err(|e| e.to_string())?;
+
+    // Copy assets directory if it exists
+    let assets_dir = vault.join("assets");
+    let mut assets_copied = 0usize;
+    if assets_dir.exists() {
+        let output_assets = output.join("assets");
+        copy_dir(&assets_dir, &output_assets).map_err(|e| e.to_string())?;
+        assets_copied = std::fs::read_dir(&output_assets)
+            .map(|d| d.count())
+            .unwrap_or(0);
+    }
+
+    Ok(ExportResult {
+        output_dir: output.to_string_lossy().to_string(),
+        pages_exported: exported,
+        assets_copied,
+    })
+}
+
+/// Core JSON export — plain function so it is testable without a host runtime.
+/// Writes one `<page>.json` per vault page containing path, title, tags, body
+/// markdown, and structured blocks.
+pub fn export_json_core(
+    vault: &std::path::Path,
+    output: &std::path::Path,
+    pages: &[String],
+) -> Result<ExportResult, String> {
+    std::fs::create_dir_all(output).map_err(|e| e.to_string())?;
+
+    let mut exported = 0usize;
+    for page_path in pages {
+        let full_path = vault.join(page_path);
+        if !full_path.exists() {
+            continue;
+        }
+        let content = std::fs::read_to_string(&full_path).map_err(|e| e.to_string())?;
+        let (fm, body, blocks) = pkm_markdown::block_parser::parse_document(&content);
+
+        let json_val = serde_json::json!({
+            "path": page_path,
+            "title": fm.title,
+            "tags": fm.tags,
+            "body": body,
+            "blocks": blocks.iter().map(|b| serde_json::json!({
+                "id": b.id.to_string(),
+                "content": b.content,
+                "marker": b.marker.map(|m| m.as_str()),
+                "priority": b.priority.map(|p| p.as_str()),
+            })).collect::<Vec<_>>(),
+        });
+
+        let json_path = output.join(page_path).with_extension("json");
+        if let Some(parent) = json_path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        std::fs::write(
+            &json_path,
+            serde_json::to_string_pretty(&json_val).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| e.to_string())?;
+        exported += 1;
+    }
+
+    Ok(ExportResult {
+        output_dir: output.to_string_lossy().to_string(),
+        pages_exported: exported,
+        assets_copied: 0,
+    })
+}
+
+impl StratumService {
+    /// Export every page to a static HTML site in `output_dir`.
+    pub async fn export_html(&self, output_dir: String) -> Result<ExportResult, String> {
+        let state = self.lock()?;
+        let vault = &state.vault_path;
+        let output = std::path::PathBuf::from(&output_dir);
+
+        let store = state.get_store().map_err(|e| e.to_string())?;
+        let pages = store.list_pages().map_err(|e| e.to_string())?;
+
+        export_html_core(vault, &output, &pages)
+    }
+
+    /// Export every page to JSON files in `output_dir`.
+    pub async fn export_json(&self, output_dir: String) -> Result<ExportResult, String> {
+        let state = self.lock()?;
+        let vault = &state.vault_path;
+        let output = std::path::PathBuf::from(&output_dir);
+
+        let store = state.get_store().map_err(|e| e.to_string())?;
+        let pages = store.list_pages().map_err(|e| e.to_string())?;
+
+        export_json_core(vault, &output, &pages)
+    }
+
+    /// Export one page to PDF via headless Chromium.
+    pub async fn export_pdf(
+        &self,
+        page_path: String,
+        output_path: Option<String>,
+    ) -> Result<PdfExportResult, String> {
+        let state = self.lock()?;
+        let vault = state.vault_path.clone();
+
+        let full_path = vault.join(&page_path);
+        if !full_path.is_file() {
+            return Err(format!("page not found: {}", full_path.display()));
+        }
+
+        let slug = pdf::page_stem(&page_path).unwrap_or_else(|| "page".to_string());
+        let output = resolve_output_path(&vault, output_path, format!("export-{}.pdf", slug))?;
+        export_pdf_core(&vault, &page_path, &output)
+    }
+
+    /// Export the whole vault to a ZIP archive.
+    pub async fn export_zip(&self, output_path: Option<String>) -> Result<ZipExportResult, String> {
+        let state = self.lock()?;
+        let vault = state.vault_path.clone();
+        let output = resolve_output_path(&vault, output_path, "export.zip".to_string())?;
+        export_zip_core(&vault, &output)
+    }
+}
+
+/// Resolve the export output path for the commands.
+///
+/// When the user has chosen a non-empty `output_path`, it is honored as-is and
+/// its parent directory is created if missing (so a chained path like
+/// `/tmp/out/export.zip` works even when the leaf directories do not exist yet).
+/// When no path is supplied (`None`) or it is empty, the caller-provided
+/// `<vault>/<default_name>` fallback is used so existing callers keep their
+/// previous behavior.
+pub(crate) fn resolve_output_path(
+    vault: &std::path::Path,
+    output_path: Option<String>,
+    default_name: String,
+) -> Result<std::path::PathBuf, String> {
+    match output_path {
+        Some(p) if !p.is_empty() => {
+            let path = std::path::PathBuf::from(p);
+            if let Some(parent) = path.parent() {
+                if !parent.as_os_str().is_empty() {
+                    std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+                }
+            }
+            Ok(path)
+        }
+        _ => Ok(vault.join(default_name)),
+    }
+}
+
+pub(crate) fn markdown_to_html(md: &str) -> String {
+    let parser = pulldown_cmark::Parser::new_ext(md, pulldown_cmark::Options::all());
+    let mut html = String::new();
+    pulldown_cmark::html::push_html(&mut html, parser);
+    html
+}
+
+pub(crate) fn wrap_html(body: &str, title: &str) -> String {
+    format!(
+        r#"<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title}</title>
+<style>
+body{{font-family:system-ui;max-width:800px;margin:0 auto;padding:2em;background:#fff;color:#111}}
+pre,code{{background:#f5f5f5;border-radius:4px;padding:.2em .4em}}
+pre{{padding:1em;overflow-x:auto}}
+pre code{{padding:0;background:none}}
+blockquote{{border-left:3px solid #ddd;margin-left:0;padding-left:1em;color:#666}}
+img{{max-width:100%}}
+a{{color:#36c}}
+</style>
+</head>
+<body>
+{body}
+</body>
+</html>"#,
+        title = title,
+        body = body,
+    )
+}
+
+pub(crate) fn copy_dir(src: &std::path::Path, dst: &std::path::Path) -> std::io::Result<()> {
+    if !dst.exists() {
+        std::fs::create_dir_all(dst)?;
+    }
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        let dest = dst.join(entry.file_name());
+        if ty.is_dir() {
+            copy_dir(&entry.path(), &dest)?;
+        } else {
+            std::fs::copy(entry.path(), &dest)?;
+        }
+    }
+    Ok(())
+}

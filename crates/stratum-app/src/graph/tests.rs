@@ -1,3 +1,5 @@
+//! Unit tests for the graph builder and link resolution.
+
 use super::*;
 use pkm_block::{Block, BlockStore, Page};
 use std::path::{Path, PathBuf};
@@ -15,7 +17,7 @@ fn insert_test_page(store: &BlockStore, vault_root: &Path, rel_path: &str) {
 /// string as the link target, exactly as production writes do.
 fn insert_block_with_links(store: &BlockStore, block: Block, rel_path: &str) {
     store.insert_block(&block, rel_path).unwrap();
-    crate::commands::page::reconcile_page_links(store, rel_path, &[block]).unwrap();
+    crate::page::reconcile_page_links(store, rel_path, &[block]).unwrap();
 }
 
 #[test]

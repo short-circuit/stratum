@@ -12,7 +12,7 @@
 //! the slug remains a display convenience. All resolution maps are keyed by
 //! path so duplicates never silently overwrite each other.
 
-use crate::commands::graph::GraphNodeDto;
+use super::GraphNodeDto;
 use std::collections::{HashMap, HashSet};
 
 /// Derive a basename slug from a vault-relative path (e.g. "pages/my-note.md" → "my-note").

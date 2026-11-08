@@ -23,8 +23,9 @@ stratum/
 │   ├── pkm-plugin/            # WASM plugin runtime (wasmtime)
 │   ├── pkm-mcp/               # MCP server — stdio + Streamable HTTP
 │   ├── pkm-mcp-security/      # MCP security controls (PAT, scopes, limits)
-│   └── pkm-cli/               # CLI binary
-└── src-tauri/                 # Tauri v2 desktop app (binary + command handlers)
+│   ├── pkm-cli/               # CLI binary
+│   └── stratum-app/           # Headless service layer behind every Tauri command (no tauri deps)
+└── src-tauri/                 # Tauri v2 shell: bootstrap, IPC registry, thin command adapters
 ```
 
 ### Crate Purposes
@@ -43,6 +44,7 @@ stratum/
 | `pkm-mcp` | MCP server (stdio + Streamable HTTP) exposing the vault to AI clients | `KbServer`, `McpConfig`, 15 `kb_*` tools |
 | `pkm-mcp-security` | Transport-agnostic MCP security controls | `pat`, `scope`, `ratelimit`, `path`, `input`, `output` |
 | `pkm-cli` | Terminal interface | `main()` with clap args |
+| `stratum-app` | Headless service layer behind every IPC command; no `tauri` dependency | `StratumService`, `EventSink`, per-domain service modules |
 
 ### Dependency Graph
 
@@ -59,7 +61,8 @@ pkm-plugin     -> pkm-core
 pkm-mcp        -> pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query
 pkm-mcp-security -> (standalone; no Stratum crates)
 pkm-cli        -> pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
-src-tauri      -> pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
+stratum-app    -> pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-query, pkm-plugin, pkm-dictation
+src-tauri      -> stratum-app, pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-dictation, pkm-plugin
 ```
 
 Note: the deskbound app (`src-tauri`) and the CLI both depend on `pkm-plugin`
@@ -153,7 +156,7 @@ impl From<rusqlite::Error> for StoreError {
 However, note that `pkm-block/src/store.rs` defines its own `StoreError` type. This is a known area for refactoring. The `StoreError` should ideally be converted to `PkmError` at the crate boundary. Command handlers in `src-tauri` catch these and convert them to `String` anyway:
 
 ```rust
-// src-tauri/src/commands/vault.rs
+// src-tauri/src/commands/vault/mod.rs
 let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
 ```
 
@@ -200,7 +203,7 @@ Every file starts with a `//!` doc explaining what the module provides and how t
 //! Thin Tauri command handlers that delegate to pkm_block and pkm_markdown.
 //! DTOs in this module mirror the TypeScript types in src/lib/types.ts.
 ```
-— `src-tauri/src/commands/block.rs`
+— `crates/stratum-app/src/block/mod.rs`
 
 ```rust
 //! SQLite-backed storage for blocks and pages.
@@ -227,7 +230,7 @@ pub fn init<P: AsRef<Path>>(path: P) -> PkmResult<Self> {
 /// the preceding block line with ATX heading markers (e.g., `## `) to preserve heading level.
 fn strip_block_properties(content: &str) -> String {
 ```
-— `src-tauri/src/commands/page.rs`
+— `crates/stratum-app/src/page/mod.rs`
 
 ### Inline Comments
 
@@ -259,7 +262,7 @@ for (slug, page_path) in &meta.slug_to_path {
     }
 }
 ```
-— `src-tauri/src/commands/graph.rs`
+— `crates/stratum-app/src/graph/mod.rs`
 
 **Non-obvious transformations** — explain why this mapping exists:
 
@@ -269,7 +272,7 @@ for (slug, page_path) in &meta.slug_to_path {
 let cleaned = strip_block_properties(&content);
 let (fm, _, blocks) = pkm_markdown::block_parser::parse_document_as_plain_markdown(&cleaned);
 ```
-— `src-tauri/src/commands/page.rs`
+— `crates/stratum-app/src/page/mod.rs`
 
 **Workarounds** — reference the issue or limitation being worked around:
 
@@ -284,7 +287,7 @@ let models: Vec<String> = if let Some(data) = body.get("data").and_then(|d| d.as
 } else if let Some(data) = body.get("models").and_then(|d| d.as_array()) {
     // Ollama response format
 ```
-— `src-tauri/src/commands/settings.rs`
+— `crates/stratum-app/src/settings/mod.rs`
 
 ---
 
@@ -292,100 +295,81 @@ let models: Vec<String> = if let Some(data) = body.get("data").and_then(|d| d.as
 
 ### Command Handlers Are Thin Glue
 
-Files in `src-tauri/src/commands/` must be **thin glue layers**. Their job is:
+Files in `src-tauri/src/commands/` are **adapters**. Their only job is:
 
 1. Accept Tauri state and arguments
-2. Lock the `Mutex<VaultState>`
-3. Call a business logic crate function
-4. Map the result to a DTO
-5. Return `Result<Dto, String>`
+2. Call exactly one `stratum_app::StratumService` method
+3. Return the service result unchanged (no error-string rewriting)
 
-| Command Handler | Business Logic Lives In |
-|----------------|------------------------|
-| `graph.rs` | `pkm-block` (graph building), `pkm-markdown` (link extraction) |
-| `settings.rs` | `pkm-core::Config` (DTO mapping) |
-| `search.rs` | `pkm-index` (search, backlinks) |
-| `sync.rs` | `pkm-sync` (git operations) |
-| `page.rs` | `pkm-block` (BlockStore), `pkm-markdown` (parsing) |
-| `block.rs` | `pkm-block` (BlockStore), `pkm-markdown` (serialization) |
+Business logic lives in `stratum-app` (which wraps the domain crate). Platform-only work — folder pickers, tray icons, OS notifications, global shortcuts, Android SAF — stays in the adapter. The full command → service method map and the adapter rules are documented in [service-layer.md](service-layer.md).
+
+| Adapter | Service module |
+|---------|----------------|
+| `graph/mod.rs` | `stratum_app::graph` |
+| `settings.rs` | `stratum_app::settings` |
+| `search/mod.rs` | `stratum_app::search` |
+| `sync.rs` | `stratum_app::sync` |
+| `page/*.rs` | `stratum_app::page` |
+| `block/mod.rs` | `stratum_app::block` |
 
 ### What Belongs Where
 
 **In the command handler (thin layer):**
 
 ```rust
-// src-tauri/src/commands/search.rs
+// src-tauri/src/commands/search/mod.rs
 #[tauri::command]
 pub async fn search_blocks(
     query: String,
     limit: Option<usize>,
-    state: tauri::State<'_, AppState>,
+    state: tauri::State<'_, stratum_app::StratumService>,
 ) -> Result<SearchResultsDto, String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
-    let limit = limit.unwrap_or(20);
-
-    let index_path = state.vault_path.join(".pkm").join("search");
-    let block_index =
-        pkm_index::block_search::BlockIndex::create(&index_path).map_err(|e| e.to_string())?;
-
-    let results = block_index
-        .search(&query, limit)
-        .map_err(|e| e.to_string())?;
-
-    let dtos: Vec<SearchResultDto> = results
-        .into_iter()
-        .map(|r| SearchResultDto {
-            block_id: r.block_id,
-            content: r.content,
-            page_path: r.page_path,
-            snippet: r.snippet,
-            score: r.score,
-        })
-        .collect();
-
-    Ok(SearchResultsDto { results: dtos })
+    state.search_blocks(query, limit).await
 }
 ```
 
-**In the business logic crate (where the real work happens):**
+**In the service layer (where the real work happens):**
 
 ```rust
-// crates/pkm-index/src/block_search.rs
-impl BlockIndex {
-    pub fn create(path: &Path) -> PkmResult<Self> {
-        let mut schema_builder = Schema::builder();
-        schema_builder.add_text_field("id", STRING | STORED);
-        schema_builder.add_text_field("content", TEXT);
-        schema_builder.add_text_field("page_path", STRING | STORED);
-        // ...
-        let index = Index::create_in_dir(&dir, (*schema).clone())
-            .map_err(|e| PkmError::Index(format!("Failed to create block index: {}", e)))?;
-        Ok(Self { index, schema, writer: Some(writer) })
-    }
+// crates/stratum-app/src/search/mod.rs
+impl StratumService {
+    pub async fn search_blocks(
+        &self,
+        query: String,
+        limit: Option<usize>,
+    ) -> Result<SearchResultsDto, String> {
+        let limit = limit.unwrap_or(20);
+        let index_path = self.vault_path().join(".pkm").join("search");
+        let block_index = pkm_index::block_search::BlockIndex::create(&index_path)
+            .map_err(|e| e.to_string())?;
 
-    pub fn search(&self, query: &str, limit: usize) -> PkmResult<Vec<BlockSearchResult>> {
-        // Tantivy search implementation lives here, not in the command handler
+        let results = block_index
+            .search(&query, limit)
+            .map_err(|e| e.to_string())?;
+
+        // Map to the DTO here — the adapter only forwards it.
+        Ok(SearchResultsDto { results: dtos })
     }
 }
 ```
 
 ### Registering Commands
 
-All commands are registered in `src-tauri/src/lib.rs`:
+All commands are registered in `src-tauri/src/invoke.rs` (the registry macro is expanded from `lib.rs`):
 
 ```rust
-// src-tauri/src/lib.rs
-.invoke_handler(tauri::generate_handler![
-    commands::vault::get_vault_info,
-    commands::vault::set_vault_path,
-    commands::page::list_pages,
-    commands::page::save_page,
-    commands::search::search_blocks,
-    commands::graph::get_graph_data,
-    commands::graph::get_connected_components,
-    commands::sync::sync_vault,
-    // ... 70+ commands
-])
+// src-tauri/src/invoke.rs
+tauri::generate_handler![
+    crate::commands::vault::get_vault_info,
+    crate::commands::vault::set_vault_path,
+    crate::commands::page::list_pages,
+    crate::commands::page::save_page,
+    crate::commands::search::search_blocks,
+    crate::commands::graph::get_graph_data,
+    crate::commands::graph::get_connected_components,
+    crate::commands::sync::sync_vault,
+    // ... 128 commands total
+]
 ```
 
 The corresponding TypeScript wrappers live in `src/lib/commands.ts`. When you add a new Rust command, you must add a matching wrapper there too.
@@ -394,14 +378,17 @@ The corresponding TypeScript wrappers live in `src/lib/commands.ts`. When you ad
 
 ## Key Patterns
 
-### The `AppState = Mutex<VaultState>` Pattern
+### The `StratumService` Managed-State Pattern
 
-Shared state is managed as `Mutex<VaultState>`. It wraps the vault path, database path, index engine, sync scheduler, and optional passphrase.
+Shared state is a `stratum_app::StratumService` (a cloneable handle around the vault state). It wraps the vault path, database path, index engine, sync scheduler, plugin manager, and optional passphrase — all of which live in `crates/stratum-app/src/state.rs`.
 
 ```rust
-// src-tauri/src/commands/vault.rs
+// crates/stratum-app/src/state.rs
 
-/// Application state holding the active vault.
+/// Handle around the active vault; every command implementation hangs off it.
+pub struct StratumService { /* vault_path, db_path, index_engine, sync_scheduler, plugin_manager, passphrase */ }
+
+/// Snapshot of the per-vault runtime state (used by hosts that need raw fields).
 pub struct VaultState {
     pub vault_path: PathBuf,
     pub db_path: PathBuf,
@@ -410,49 +397,43 @@ pub struct VaultState {
     pub auto_commit_engine: Option<pkm_sync::AutoCommitEngine>,
     pub passphrase: Option<String>,
 }
-
-pub type AppState = Mutex<VaultState>;
 ```
 
-Initialized in `lib.rs` during Tauri setup:
+Initialized in `setup.rs` during Tauri setup:
 
 ```rust
-// src-tauri/src/lib.rs
-app.manage(Mutex::new(VaultState::new(vault_path.clone())) as AppState);
+// src-tauri/src/setup.rs
+app.manage(StratumService::new(vault_path.clone()));
 ```
 
-Usage in commands:
+Usage in commands — no mutex, no business logic:
 
 ```rust
 #[tauri::command]
-pub async fn get_vault_info(state: tauri::State<'_, AppState>) -> Result<VaultInfo, String> {
-    let state = state.lock().map_err(|e| e.to_string())?;
-    // ... use state.vault_path, state.db_path, etc.
+pub async fn get_vault_info(
+    state: tauri::State<'_, stratum_app::StratumService>,
+) -> Result<VaultInfo, String> {
+    state.get_vault_info().await
 }
 ```
 
+`src-tauri/src/commands/vault/mod.rs` keeps `pub type AppState = StratumService;` so existing adapter imports still resolve.
+
 ### Command Handler Pattern
 
-Every Tauri command follows this shape:
+Every Tauri command adapter follows this shape:
 
 ```rust
 #[tauri::command]
 pub async fn command_name(
-    // 1. Arguments from the frontend
+    // 1. Arguments from the frontend (names must match the TS wrapper)
     arg1: String,
     arg2: Option<usize>,
-    // 2. State (always last)
-    state: tauri::State<'_, AppState>,
+    // 2. Managed state (always last)
+    state: tauri::State<'_, stratum_app::StratumService>,
 ) -> Result<SomeDto, String> {   // 3. Return Result<Dto, String>
-    // 4. Lock the mutex
-    let state = state.lock().map_err(|e| e.to_string())?;
-
-    // 5. Delegate to business logic crate
-    let result = pkm_some_crate::do_thing(&state.db_path)
-        .map_err(|e| e.to_string())?;
-
-    // 6. Return DTO
-    Ok(SomeDto { field: result })
+    // 4. Delegate — the service owns the logic, the adapter only forwards
+    state.command_name(arg1, arg2).await
 }
 ```
 
@@ -461,7 +442,7 @@ pub async fn command_name(
 All DTOs use `#[derive(Debug, Serialize, Deserialize, Clone)]` and mirror the TypeScript types in `src/lib/types.ts`.
 
 ```rust
-// src-tauri/src/commands/search.rs
+// crates/stratum-app/src/search/dto.rs
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SearchResultDto {
     pub block_id: String,
@@ -480,7 +461,7 @@ pub struct SearchResultsDto {
 Nested DTOs for complex responses:
 
 ```rust
-// src-tauri/src/commands/graph.rs
+// crates/stratum-app/src/graph/mod.rs
 #[derive(Debug, Clone, Serialize)]
 pub struct GraphDataDto {
     pub nodes: Vec<GraphNodeDto>,
@@ -493,10 +474,10 @@ pub struct GraphDataDto {
 
 ### The `PageMetaIndex` Pattern
 
-The `PageMetaIndex` struct in `graph.rs` eliminates duplicated map-building across all graph-related operations. Before this pattern, `build_graph_data`, `get_connected_components`, `get_orphaned_notes`, and `resolve_link_target` each built their own `slug -> path` and `slug -> title` maps from `store.list_pages()`.
+The `PageMetaIndex` struct in `stratum_app::graph` eliminates duplicated map-building across all graph-related operations. Before this pattern, `build_graph_data`, `get_connected_components`, `get_orphaned_notes`, and `resolve_link_target` each built their own `slug -> path` and `slug -> title` maps from `store.list_pages()`.
 
 ```rust
-// src-tauri/src/commands/graph.rs
+// crates/stratum-app/src/graph/mod.rs
 
 /// Pre-built index of all pages in the vault for fast slug/title/path resolution.
 /// Eliminates duplicated map-building across graph, connected components,
@@ -584,7 +565,7 @@ When building a new command that needs page metadata, reuse or extend `PageMetaI
 Tests go in `#[cfg(test)]` modules at the bottom of the same file, co-located with the code they test:
 
 ```rust
-// src-tauri/src/commands/graph.rs
+// crates/stratum-app/src/graph/mod.rs
 
 #[cfg(test)]
 mod tests {
@@ -749,7 +730,7 @@ pub async fn fetch_models(state: tauri::State<'_, AppState>) -> Result<Vec<Strin
     // ...
 }
 ```
-— `src-tauri/src/commands/settings.rs`
+— `crates/stratum-app/src/settings/mod.rs`
 
 ### 2. Don't Define New Error Types
 

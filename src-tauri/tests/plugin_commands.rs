@@ -29,8 +29,8 @@ mod common;
 use app_lib::commands::plugins::{
     dispatch_on_link, dispatch_on_open, dispatch_on_search, PluginManager,
 };
-use app_lib::commands::vault::{AppState, VaultState};
 use std::collections::HashSet;
+use stratum_app::StratumService;
 use tauri::test::{mock_builder, mock_context, noop_assets};
 use tauri::webview::InvokeRequest;
 
@@ -126,11 +126,11 @@ fn build_app(vault: &common::TestVault, enabled: bool) -> tauri::App<tauri::test
     let manager =
         PluginManager::new(vault.vault_path.clone(), vec![], enabled_ids).expect("manager");
 
-    let mut vs = VaultState::new(vault.vault_path.clone());
-    vs.plugin_manager = Some(manager);
+    let svc = StratumService::new(vault.vault_path.clone());
+    svc.lock().unwrap().plugin_manager = Some(manager);
 
     mock_builder()
-        .manage(std::sync::Mutex::new(vs) as AppState)
+        .manage(svc)
         .invoke_handler(tauri::generate_handler![
             app_lib::commands::plugins::plugins_list,
             app_lib::commands::plugins::plugins_enable,
@@ -226,10 +226,9 @@ fn command_plugins_list_returns_loaded_plugin_with_status() {
 #[test]
 fn command_plugins_list_empty_when_no_manager() {
     let vault = common::create_test_vault();
-    // Build an app with a VaultState that has no plugin manager.
-    let vs = VaultState::new(vault.vault_path.clone());
+    // Build an app with a StratumService that has no plugin manager.
     let app = mock_builder()
-        .manage(std::sync::Mutex::new(vs) as AppState)
+        .manage(StratumService::new(vault.vault_path.clone()))
         .invoke_handler(tauri::generate_handler![
             app_lib::commands::plugins::plugins_list,
         ])

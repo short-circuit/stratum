@@ -1,3 +1,9 @@
+//! Tauri command adapters.
+//!
+//! Every command module in this tree is a thin adapter over
+//! [`stratum_app::StratumService`]: it keeps the original IPC signature, then
+//! delegates to the headless service. Business logic lives in `stratum-app`.
+
 pub mod ai;
 pub mod asset;
 pub mod backup;
@@ -22,20 +28,24 @@ pub mod tts;
 pub mod vault;
 pub mod whiteboard;
 
-use serde::{Deserialize, Serialize};
+pub use stratum_app::events::{ProgressEventPayload, ReindexResult};
 
-/// Payload emitted as a "reindex-progress" Tauri event during long-running operations.
-#[derive(Debug, Clone, Serialize)]
-pub struct ProgressEventPayload {
-    pub message: String,
-    pub percent: f32,
-}
+use std::sync::Arc;
 
-/// Structured result for reindex operations.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ReindexResult {
-    pub processed: usize,
-    pub succeeded: usize,
-    pub failed: usize,
-    pub errors: Vec<String>,
+/// Tauri-backed [`stratum_app::events::EventSink`].
+///
+/// Forwards service events to the frontend with the exact event names and
+/// payload shapes the original commands emitted. Delivery failures are ignored,
+/// matching the previous `let _ = app.emit(...)` behavior.
+pub struct TauriEventSink(pub tauri::AppHandle);
+
+impl stratum_app::events::EventSink for TauriEventSink {
+    fn emit(&self, event: &str, payload: serde_json::Value) {
+        use tauri::Emitter;
+        let _ = self.0.emit(event, payload);
+    }
+
+    fn shared(&self) -> Arc<dyn stratum_app::events::EventSink> {
+        Arc::new(Self(self.0.clone()))
+    }
 }

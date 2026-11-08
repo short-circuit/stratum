@@ -1,96 +1,13 @@
+//! Tauri adapters for AI commands.
+//!
+//! Thin delegation to [`stratum_app::ai`]; no business logic lives here.
+
+pub use stratum_app::ai::{
+    AiAction, AiTransformResult, RagCitationDto, RagQueryResultDto, ResearchResultDto,
+    ResearchSourceDto,
+};
+
 use crate::commands::vault::AppState;
-use pkm_ai::embedding::OpenAIEmbeddingClient;
-use pkm_ai::provider::{ChatConfig, ChatMessage, ProviderFactory};
-use pkm_ai::rag::RagEngine;
-use pkm_ai::research::ResearchEngine;
-use pkm_core::Config;
-use serde::{Deserialize, Serialize};
-use tracing::{debug, error, info, warn};
-
-/// Load the app config, distinguishing a genuinely missing config file from a
-/// corrupted one so the error tells the user what to actually fix (FM-2).
-///
-/// `Config::load` maps a missing file to `PkmError::Io`, so the missing-file
-/// branch is tested by path existence (matching the dictation loader) rather
-/// than by error variant — otherwise the actionable message would be
-/// unreachable dead code.
-fn load_ai_config(state: &tauri::State<'_, AppState>) -> Result<Config, String> {
-    let config_path = {
-        let s = state.lock().map_err(|e| e.to_string())?;
-        s.vault_path.join(".pkm").join("config.toml")
-    };
-    if !config_path.exists() {
-        return Err(format!(
-            "AI is not configured yet — no config file found at {}. \
-             Open Settings → AI and pick a provider to get started.",
-            config_path.display()
-        ));
-    }
-    Config::load(&config_path).map_err(|e| format!("Failed to load AI configuration: {e}"))
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct AiTransformResult {
-    pub content: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AiAction {
-    Rewrite,
-    Format,
-    Structure,
-    Summarize,
-    Connect,
-    Mermaid,
-}
-
-fn system_prompt_for(action: &AiAction) -> &'static str {
-    match action {
-        AiAction::Rewrite => {
-            "You are a writing assistant. Rewrite the following text to improve clarity, flow, and \
-             readability while preserving the original meaning and key information. \
-             Return ONLY the rewritten text, no explanations or metadata."
-        }
-        AiAction::Format => {
-            "You are a formatting assistant. Clean up the following notes: fix markdown syntax, \
-             ensure consistent heading levels, add proper spacing, and make the text well-formatted. \
-             Return ONLY the formatted text, no explanations or metadata."
-        }
-        AiAction::Structure => {
-            "You are a note organization assistant. Organize the following notes into a clear \
-             hierarchical structure: group related content under appropriate headings, create \
-             consistent sections, and improve the overall organization. Use markdown headings (##, ###). \
-             Return ONLY the structured notes, no explanations or metadata."
-        }
-        AiAction::Summarize => {
-            "You are a summarization assistant. Summarize the following text concisely while \
-             preserving the key points and important details. Return ONLY the summary, \
-             no explanations or metadata."
-        }
-        AiAction::Connect => {
-            "You are a knowledge connection assistant. Analyze the following notes and suggest \
-             [[wiki-links]] to related concepts, topics, or notes that would create meaningful \
-             connections. Add relevant wiki-links inline where they make sense contextually. \
-             Return the text with wiki-links added, no explanations or metadata."
-        }
-        AiAction::Mermaid => {
-            "You are a diagram generation assistant. Generate a Mermaid.js diagram based on the \
-             user's description. Return ONLY the raw mermaid code without markdown fences, \
-             without explanation, and without any surrounding text. \
-             Use appropriate diagram types: graph (flowchart), sequenceDiagram, classDiagram, \
-             stateDiagram, gantt, pie, erDiagram, or journey.\n\n\
-             IMPORTANT SYNTAX RULES:\n\
-             - Never use parentheses () inside node labels — use commas or dashes instead. \
-             Parentheses have special meaning in mermaid (rounded nodes).\n\
-             - Never use curly braces {} inside node labels — they create rhombus/diamond nodes.\n\
-             - Keep labels short and simple. For example, write `Component Library` instead of \
-             `Component Library (e.g., Material UI)`.\n\
-             - Use proper node shapes: A[text] for rectangle, A{text} for diamond, \
-             A(text) for rounded, A>text] for asymmetric."
-        }
-    }
-}
 
 #[tauri::command]
 pub async fn ai_transform_block(
@@ -99,67 +16,7 @@ pub async fn ai_transform_block(
     page_path: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<AiTransformResult, String> {
-    info!(
-        "transform_block action={:?} text_len={} page={:?}",
-        &action,
-        text.len(),
-        &page_path
-    );
-
-    let config = load_ai_config(&state)?;
-
-    let provider = ProviderFactory::create(&config.ai).map_err(|e| e.to_string())?;
-
-    let system_prompt = system_prompt_for(&action);
-
-    let context_suffix = if let Some(ref path) = page_path {
-        let is_journal = path.starts_with("journals/");
-        if is_journal {
-            " This is a daily journal entry. Organize it like a structured daily log with clear \
-             sections for different topics or events."
-        } else {
-            " This is a knowledge base page. Use appropriate structure for a reference note."
-        }
-    } else {
-        ""
-    };
-
-    let full_system = format!("{}{}", system_prompt, context_suffix);
-
-    debug!(
-        "calling provider={:?} model={}",
-        config.ai.provider, config.ai.model
-    );
-
-    let chat_config = ChatConfig::new(&config.ai.model)
-        .with_temperature(0.3)
-        .with_system_prompt(full_system);
-
-    let messages = vec![ChatMessage::user(&text)];
-
-    let response = provider.chat(&messages, &chat_config).await.map_err(|e| {
-        error!("provider error: {}", e);
-        e.to_string()
-    })?;
-
-    debug!("response len={}", response.content.len());
-
-    Ok(AiTransformResult {
-        content: response.content,
-    })
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ResearchResultDto {
-    pub findings: String,
-    pub sources: Vec<ResearchSourceDto>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ResearchSourceDto {
-    pub title: String,
-    pub url: String,
-    pub snippet: String,
+    state.ai_transform_block(text, action, page_path).await
 }
 
 #[tauri::command]
@@ -167,53 +24,7 @@ pub async fn ai_research(
     query: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<ResearchResultDto, String> {
-    info!("research query={}", query);
-
-    let config = load_ai_config(&state)?;
-
-    if config.research.searxng_endpoint.trim().is_empty() {
-        return Err(
-            "Web research is not configured — no SearXNG endpoint set in Settings → AI → Research."
-                .into(),
-        );
-    }
-
-    debug!(
-        "research searxng={} max_results={} max_depth={}",
-        config.research.searxng_endpoint, config.research.max_results, config.research.max_depth
-    );
-
-    let engine = ResearchEngine::new(
-        config.research.searxng_endpoint.clone(),
-        config.research.max_results,
-        config.research.max_depth,
-        &config.ai,
-    )
-    .map_err(|e| format!("Failed to create research engine: {e}"))?;
-
-    let result = engine
-        .research(&query)
-        .await
-        .map_err(|e| format!("Research failed: {e}"))?;
-
-    debug!(
-        "research done, findings_len={} sources={}",
-        result.findings.len(),
-        result.sources.len()
-    );
-
-    Ok(ResearchResultDto {
-        findings: result.findings,
-        sources: result
-            .sources
-            .into_iter()
-            .map(|s| ResearchSourceDto {
-                title: s.title,
-                url: s.url,
-                snippet: s.snippet,
-            })
-            .collect(),
-    })
+    state.ai_research(query).await
 }
 
 #[tauri::command]
@@ -221,30 +32,7 @@ pub async fn generate_mermaid(
     prompt: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<AiTransformResult, String> {
-    info!("generate_mermaid prompt_len={}", prompt.len());
-
-    let config = load_ai_config(&state)?;
-
-    let provider = ProviderFactory::create(&config.ai).map_err(|e| e.to_string())?;
-
-    let system_prompt = system_prompt_for(&AiAction::Mermaid);
-
-    let chat_config = ChatConfig::new(&config.ai.model)
-        .with_temperature(0.3)
-        .with_system_prompt(system_prompt);
-
-    let messages = vec![ChatMessage::user(&prompt)];
-
-    let response = provider.chat(&messages, &chat_config).await.map_err(|e| {
-        error!("provider error: {}", e);
-        e.to_string()
-    })?;
-
-    debug!("mermaid response len={}", response.content.len());
-
-    Ok(AiTransformResult {
-        content: response.content,
-    })
+    state.generate_mermaid(prompt).await
 }
 
 #[tauri::command]
@@ -253,242 +41,28 @@ pub async fn ai_interlink_notes(
     page_path: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<AiTransformResult, String> {
-    info!("interlink text_len={} page={:?}", text.len(), page_path);
-
-    let index_path;
-    let store;
-    {
-        let s = state.lock().map_err(|e| e.to_string())?;
-        index_path = s.vault_path.join(".pkm").join("search");
-        store = s.get_store().map_err(|e| e.to_string())?;
-    }
-
-    let config = load_ai_config(&state)?;
-
-    // The interlink feature needs the search index, not the LLM, as its first
-    // step; the LLM provider is created below after related notes are found.
-
-    let current_slug = page_path.as_ref().and_then(|p| {
-        std::path::Path::new(p)
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .map(|s| s.to_string())
-    });
-    debug!("interlink current_slug={:?}", current_slug);
-
-    // Step 1: find related pages via Tantivy + keyword supplement
-    let split_pred = |c: char| c.is_whitespace() || c == '#' || c == '*' || c == '[' || c == ']';
-
-    let related_titles: Vec<String> = pkm_index::related::RelatedFinder::new()
-        .split_predicate(split_pred)
-        .find_related(&store, &index_path, &text, current_slug.as_deref())
-        // FM-12: surface a broken/missing search index instead of silently
-        // degrading to "no related pages".
-        .map_err(|e| format!("Failed to find related notes (search index unavailable): {e}"))?
-        .into_iter()
-        .map(|r| r.title)
-        .collect();
-
-    debug!("found {} related pages", related_titles.len());
-
-    if related_titles.is_empty() {
-        warn!("no related pages found, returning original text");
-        return Ok(AiTransformResult { content: text });
-    }
-
-    let provider = ProviderFactory::create(&config.ai).map_err(|e| e.to_string())?;
-
-    let notes_list = format!(
-        "\n\nExisting notes in your vault that you can link to:\n{}",
-        related_titles
-            .iter()
-            .map(|t| format!("- [[{}]]", t))
-            .collect::<Vec<_>>()
-            .join("\n")
-    );
-
-    let system = format!(
-        "You are a knowledge connection assistant. Analyze the markdown text and add [[wiki-links]] \
-         to genuinely related notes from the vault list below.\n\n\
-         RULES:\n\
-         - Only link a word/phrase if IT IS the main topic of the target note, not just a word match.\n\
-         - Do NOT link incidental mentions or passing references.\n\
-         - Aim for 1-3 high-quality links total, not one per keyword.\n\
-         - Preserve ALL existing markdown formatting exactly as-is.\n\
-         - Return ONLY the markdown with wiki-links added. No explanations.\n\n\
-         Available notes to link to:{notes_list}"
-    );
-
-    let chat_config = ChatConfig::new(&config.ai.model)
-        .with_temperature(0.2)
-        .with_system_prompt(system);
-
-    let messages = vec![ChatMessage::user(&text)];
-    let response = provider
-        .chat(&messages, &chat_config)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    debug!("interlink response len={}", response.content.len());
-
-    // Post-process: strip self-links
-    let mut result = response.content;
-    if let Some(ref slug) = current_slug {
-        let self_link = format!("[[{}]]", slug);
-        // Replace case-insensitive self-links with just the text
-        if let Some(pos) = result.to_lowercase().find(&self_link.to_lowercase()) {
-            let end = pos + self_link.len();
-            let before = &result[..pos];
-            let after = &result[end..];
-            result = format!("{}{}{}", before, slug, after);
-            debug!("stripped self-link from response");
-        }
-        // Also handle piped links like [[homelab|something]]
-        let piped = format!("[[{}|", slug);
-        if let Some(pos) = result.to_lowercase().find(&piped.to_lowercase()) {
-            let close = result[pos..]
-                .find("]]")
-                .map(|p| pos + p + 2)
-                .unwrap_or(result.len());
-            let before = &result[..pos];
-            let after = &result[close..];
-            // Extract display text after the pipe
-            let inner = &result[pos + piped.len()..close - 2];
-            result = format!("{}{}{}", before, inner, after);
-            debug!("stripped piped self-link from response");
-        }
-    }
-
-    Ok(AiTransformResult { content: result })
+    state.ai_interlink_notes(text, page_path).await
 }
 
-// ── RAG ("Ask your notes") ────────────────────────────────────────────────
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct RagCitationDto {
-    /// Vault-relative path to the source note.
-    pub path: String,
-    /// Snippet of the relevant content.
-    pub snippet: String,
-    /// Relevance score (0.0 to 1.0).
-    pub score: f32,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct RagQueryResultDto {
-    /// The LLM-generated answer.
-    pub answer: String,
-    /// Ranked source citations that informed the answer.
-    pub citations: Vec<RagCitationDto>,
-    /// Total token usage for the LLM call.
-    pub total_tokens: u32,
-    /// Whether the vault index contained retrievable chunks.
-    pub had_sources: bool,
-}
-
-/// Run the RAG pipeline against the user's notes.
-///
-/// Embeds the question, retrieves relevant blocks from the vault index,
-/// re-ranks them by semantic similarity, and asks the configured LLM to
-/// answer with citations to the source notes. This is the app-surface
-/// consumer of `pkm_ai::rag::RagEngine` (the CLI already exposes it as
-/// `stratum rag`).
 #[tauri::command]
 pub async fn ai_rag_query(
     question: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<RagQueryResultDto, String> {
-    info!("rag_query question_len={}", question.len());
-
-    let config = load_ai_config(&state)?;
-
-    if !config.ai.rag_enabled {
-        warn!("RAG query issued while rag_enabled=false in config");
-    }
-
-    let embedding = OpenAIEmbeddingClient::from_ai_config(&config.ai).map_err(|e| e.to_string())?;
-    let provider = ProviderFactory::create(&config.ai).map_err(|e| e.to_string())?;
-    let engine = pkm_index::indexer::IndexEngine::new(&config.vault_path)
-        .map_err(|e| format!("Failed to open vault index: {e}"))?;
-
-    let rag = RagEngine::new(engine, Box::new(embedding), provider);
-
-    let top_k = config.ai.rag_chunk_count.max(1);
-    let chat_config = ChatConfig::new(&config.ai.model);
-
-    let response = rag
-        .query(&question, &chat_config, top_k)
-        .await
-        .map_err(|e| format!("RAG query failed: {e}"))?;
-
-    debug!(
-        "rag_query done: answer_len={} citations={} tokens={}",
-        response.answer.len(),
-        response.citations.len(),
-        response.usage.total()
-    );
-
-    let had_sources = !response.citations.is_empty();
-    Ok(RagQueryResultDto {
-        answer: response.answer,
-        citations: response
-            .citations
-            .into_iter()
-            .map(|c| RagCitationDto {
-                path: c.path,
-                snippet: c.snippet,
-                score: c.score,
-            })
-            .collect(),
-        total_tokens: response.usage.total(),
-        had_sources,
-    })
+    state.ai_rag_query(question).await
 }
 
-/// Probe the well-known local AI endpoints plus configured extra hosts.
 #[tauri::command]
 pub async fn discover_local_ai(
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<pkm_core::DiscoveredEndpoint>, String> {
-    // Read configured extra hosts (mirrors fetch_models' config loading).
-    let extras = {
-        let state = state.lock().map_err(|e| e.to_string())?;
-        let config_path = state.vault_path.join(".pkm").join("config.toml");
-        if config_path.exists() {
-            match Config::load(&config_path) {
-                Ok(c) => c.ai.extra_local_hosts,
-                Err(e) => {
-                    warn!("discover_local_ai: failed to load config: {e}");
-                    Vec::new()
-                }
-            }
-        } else {
-            Vec::new()
-        }
-    };
-
-    let results = pkm_ai::discover::discover_local_ai(&extras).await;
-    debug!("discover_local_ai: {} endpoints", results.len());
-
-    // Cache the run so the UI can render a previous result on next open.
-    {
-        let state = state.lock().map_err(|e| e.to_string())?;
-        let config_path = state.vault_path.join(".pkm").join("config.toml");
-        if config_path.exists() {
-            if let Ok(mut config) = Config::load(&config_path) {
-                config.ai.last_discovered = results.clone();
-                if let Err(e) = config.save(&config_path) {
-                    warn!("discover_local_ai: failed to persist last_discovered: {e}");
-                }
-            }
-        }
-    }
-
-    Ok(results)
+    state.discover_local_ai().await
 }
 
-/// Ping a SearXNG instance to test reachability.
 #[tauri::command]
-pub async fn ping_search_instance(url: String) -> Result<pkm_core::SearchPingResult, String> {
-    Ok(pkm_ai::discover::ping_search_instance(&url).await)
+pub async fn ping_search_instance(
+    url: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<pkm_core::SearchPingResult, String> {
+    state.ping_search_instance(url).await
 }
