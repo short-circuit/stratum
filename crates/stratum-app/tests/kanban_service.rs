@@ -15,7 +15,9 @@ async fn create_kanban_block_writes_todays_journal() {
         .await
         .unwrap();
 
-    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    // The service builds the journal path from UTC (matching the pre-extraction
+    // command), so derive the expectation from the same clock.
+    let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
     assert_eq!(block.page_path, format!("journals/{today}.md"));
     assert_eq!(block.marker.as_deref(), Some("TODO"));
     assert_eq!(block.content, "ship the feature");
