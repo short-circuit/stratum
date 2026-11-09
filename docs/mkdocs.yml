@@ -124,6 +124,7 @@ nav:
     - development/rust-guide.md
     - development/service-layer.md
     - development/mobile-guide.md
+    - development/gpui-ui.md
     - development/branch-policy.md
     - development/freeze.md
     - ADR-0004 WASM Plugin ABI:
