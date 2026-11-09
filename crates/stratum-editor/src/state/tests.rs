@@ -4,6 +4,7 @@ use uuid::Uuid;
 use super::*;
 use crate::document::EditorDocument;
 use crate::inline::SpanKind;
+use crate::menus::{AiCall, AiCallKind, AiCallScope, AiTransformAction};
 
 fn doc_with(blocks: Vec<Block>) -> EditorDocument {
     EditorDocument::from_blocks("pages/x.md", blocks).unwrap()
@@ -457,6 +458,137 @@ fn history_is_capped_at_200_entries() {
         history.push(op.clone(), op.inverse(), chrono::Utc::now());
     }
     assert_eq!(history.depth(), 200);
+}
+
+#[test]
+fn selected_text_is_read_only_and_matches_the_selection() {
+    let id = Uuid::new_v4();
+    let mut state = EditorState::new(doc_with(vec![block(id, "hello world")]));
+    assert_eq!(state.selected_text(), None);
+    state.set_selection(caret(id, 0), caret(id, 5)).unwrap();
+    assert_eq!(state.selected_text(), Some("hello".to_string()));
+    assert!(state.clipboard().is_none());
+}
+
+const AI_REPLACEMENT: &str = "- new one\n  .id: 11111111-1111-4111-8111-111111111111\n- new two\n  .id: 22222222-2222-4222-8222-222222222222\n";
+
+#[test]
+fn replace_from_markdown_round_trips_and_undoes_in_one_entry() {
+    let id = Uuid::new_v4();
+    let mut state = EditorState::new(doc_with(vec![block(id, "old text")]));
+    state.set_caret(id, 0).unwrap();
+    let original = state.document().markdown();
+
+    state.replace_from_markdown(AI_REPLACEMENT).unwrap();
+    assert_eq!(state.document().markdown(), AI_REPLACEMENT);
+    assert_eq!(state.history_depth(), 1);
+    let caret = state.caret().expect("caret");
+    assert_eq!(
+        state.document().block(caret.block_id).unwrap().content,
+        "new one"
+    );
+
+    assert!(state.undo().unwrap());
+    assert_eq!(state.document().markdown(), original);
+}
+
+#[test]
+fn replace_from_markdown_keeps_a_single_empty_block_for_an_empty_body() {
+    let id = Uuid::new_v4();
+    let mut state = EditorState::new(doc_with(vec![block(id, "old")]));
+    state.replace_from_markdown("").unwrap();
+    let blocks = state.document().blocks();
+    assert_eq!(blocks.len(), 1);
+    assert_eq!(blocks[0].content, "");
+    assert_eq!(state.history_depth(), 1);
+}
+
+#[test]
+fn insert_markdown_after_caret_links_the_chain_and_undoes() {
+    let a = Uuid::new_v4();
+    let b = Uuid::new_v4();
+    let mut second = block(b, "tail");
+    second.left_id = Some(a);
+    let mut state = EditorState::new(doc_with(vec![block(a, "head"), second]));
+    state.set_caret(a, 4).unwrap();
+    let before = state.document().markdown();
+    let snippet = "- inserted\n  .id: 11111111-1111-4111-8111-111111111111\n";
+
+    state.insert_markdown_after_caret(snippet).unwrap();
+    for block in state.document().blocks() {
+        if let Some(parent) = block.parent_id {
+            assert!(
+                state.document().block(parent).is_some(),
+                "dangling parent_id"
+            );
+        }
+        if let Some(left) = block.left_id {
+            assert!(state.document().block(left).is_some(), "dangling left_id");
+        }
+    }
+    let inserted = state
+        .document()
+        .blocks()
+        .into_iter()
+        .find(|block| block.content == "inserted")
+        .expect("inserted block");
+    assert_eq!(inserted.parent_id, None);
+    assert_eq!(inserted.left_id, Some(a));
+    assert_eq!(
+        state.document().block(b).unwrap().left_id,
+        Some(inserted.id)
+    );
+    assert_eq!(state.caret().unwrap().block_id, inserted.id);
+
+    assert!(state.undo().unwrap());
+    assert_eq!(state.document().markdown(), before);
+}
+
+#[test]
+fn apply_ai_content_covers_every_scope() {
+    // ReplacePage
+    let id = Uuid::new_v4();
+    let mut state = EditorState::new(doc_with(vec![block(id, "old")]));
+    let call = AiCall {
+        kind: AiCallKind::Transform(AiTransformAction::Structure),
+        scope: AiCallScope::ReplacePage,
+        text: "prompt".into(),
+        page_path: Some("pages/x.md".into()),
+    };
+    state.apply_ai_content(&call, AI_REPLACEMENT).unwrap();
+    assert_eq!(state.document().markdown(), AI_REPLACEMENT);
+
+    // InsertAtCaret
+    let id = Uuid::new_v4();
+    let mut state = EditorState::new(doc_with(vec![block(id, "ab")]));
+    state.set_caret(id, 0).unwrap();
+    let call = AiCall {
+        kind: AiCallKind::Transform(AiTransformAction::Rewrite),
+        scope: AiCallScope::InsertAtCaret,
+        text: "prompt".into(),
+        page_path: None,
+    };
+    state.apply_ai_content(&call, "hello").unwrap();
+    assert_eq!(state.document().block(id).unwrap().content, "helloab");
+
+    // InsertBlockAfterCaret
+    let id = Uuid::new_v4();
+    let mut state = EditorState::new(doc_with(vec![block(id, "source")]));
+    state.set_caret(id, 0).unwrap();
+    let call = AiCall {
+        kind: AiCallKind::Mermaid,
+        scope: AiCallScope::InsertBlockAfterCaret,
+        text: "prompt".into(),
+        page_path: None,
+    };
+    state.apply_ai_content(&call, "graph TD\n  A-->B").unwrap();
+    let mermaid = state
+        .document()
+        .blocks()
+        .into_iter()
+        .find(|block| block.content.starts_with("```mermaid"))
+        .expect("mermaid block");
+    assert_eq!(mermaid.content, "```mermaid\ngraph TD\n  A-->B\n```");
 }
 
 #[test]

@@ -32,6 +32,13 @@ impl EditorState {
         payload
     }
 
+    /// The plain text of the active selection, or `None` when nothing is
+    /// selected. Unlike [`Self::copy_selection`] this is read-only and does not
+    /// touch the clipboard.
+    pub fn selected_text(&self) -> Option<String> {
+        self.selection.map(|_| self.selection_payload().plain_text)
+    }
+
     /// Copy the current selection and delete it.
     pub fn cut_selection(&mut self) -> PkmResult<ClipboardPayload> {
         let payload = self.copy_selection();

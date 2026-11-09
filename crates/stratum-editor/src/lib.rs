@@ -55,6 +55,10 @@ pub use markers::{
     PriorityOption, ReminderChip, MARKER_KEYWORDS, MARKER_OPTIONS, PRIORITY_OPTIONS,
 };
 pub use math::{math_source, MathCache, MathImage, MathOptions, MathSource};
+pub use menus::{
+    ai_call_for, slash_row_count, AiCall, AiCallKind, AiCallScope, AiTransformAction,
+    SLASH_MAX_ROWS,
+};
 pub use mermaid::{mermaid_source, MermaidCache};
 pub use render::{
     render_page, render_page_with_assets, BlockKind, DecoratedRow, DecoratedSpan, RenderMode,
@@ -101,6 +105,7 @@ pub const EDITOR_I18N_KEYS: &[&str] = &[
     "editor.math_equation_label",
     "editor.mermaid_diagram",
     "editor.paragraph",
+    "editor.quote",
     // Marker / priority menu labels.
     "editor.high_priority",
     "editor.low_priority",

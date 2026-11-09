@@ -6,8 +6,8 @@
 
 use gpui_kit::*;
 use stratum_editor::menus::{
-    filter_slash_items, marker_menu_items, slash_items, wiki_query, wiki_targets, SlashAction,
-    WikiPage,
+    filter_slash_items, marker_menu_items, slash_items, slash_row_count, wiki_query, wiki_targets,
+    SlashAction, WikiPage,
 };
 
 use crate::panels::editor::overlay::{detect_overlay, wiki_row_count, OverlayState};
@@ -19,7 +19,9 @@ pub(crate) fn overlay_len(view: &EditorView) -> usize {
         OverlayState::Slash { query, .. } => {
             let is_journal = view.path().starts_with("journals/");
             let has_selection = view.state.selection().is_some();
-            filter_slash_items(&slash_items(has_selection, is_journal), query).len()
+            slash_row_count(
+                filter_slash_items(&slash_items(has_selection, is_journal), query).len(),
+            )
         }
         OverlayState::Wiki { query, .. } => {
             wiki_row_count(wiki_targets(query, &wiki_pages(view)).len())
@@ -65,13 +67,22 @@ fn apply_slash(
     let is_journal = view.path().starts_with("journals/");
     let has_selection = view.state.selection().is_some();
     let items = filter_slash_items(&slash_items(has_selection, is_journal), query);
-    let Some(item) = items.get(selected) else {
+    if items.is_empty() {
+        view.overlay = OverlayState::None;
+        return;
+    }
+    let index = selected.min(items.len().saturating_sub(1));
+    let Some(item) = items.get(index) else {
+        view.overlay = OverlayState::None;
         return;
     };
     let action = SlashAction::ALL
         .iter()
         .copied()
         .find(|action| action.id() == item.id);
+    // Capture the selection before `set_caret` clears it: selection-scope AI
+    // actions must send the text that was selected when the menu opened.
+    let selection_text = view.state.selected_text();
     let stripped = format!(
         "{}{}",
         &content[..token_start],
@@ -81,17 +92,26 @@ fn apply_slash(
         Some(SlashAction::CodeBlock) => "```\n\n```".to_string(),
         Some(SlashAction::Mermaid) => "```mermaid\n\n```".to_string(),
         Some(SlashAction::MathEquation) => "$$\n\n$$".to_string(),
+        Some(SlashAction::Quote) => {
+            if stripped.starts_with('>') {
+                stripped
+            } else {
+                format!("> {stripped}")
+            }
+        }
         _ => stripped,
     };
     let replacement_len = replacement.len();
     let _ = view
         .state
         .replace_block_content(caret.block_id, replacement);
-    let _ = view
-        .state
-        .set_caret(caret.block_id, token_start.min(replacement_len));
+    let caret_offset = match action {
+        Some(SlashAction::Quote) => token_start.saturating_add(2),
+        _ => token_start.min(replacement_len),
+    };
+    let _ = view.state.set_caret(caret.block_id, caret_offset);
     match action {
-        Some(SlashAction::Paragraph) => {
+        Some(SlashAction::Paragraph) | Some(SlashAction::Quote) => {
             let _ = view.state.set_heading_level(None);
         }
         Some(SlashAction::Heading1) => {
@@ -104,6 +124,17 @@ fn apply_slash(
             let _ = view.state.set_heading_level(Some(3));
         }
         _ => {}
+    }
+    if let Some(action) = action {
+        let page_markdown = view.state.document().markdown();
+        if let Some(call) = stratum_editor::menus::ai_call_for(
+            action,
+            selection_text.as_deref(),
+            &page_markdown,
+            view.path(),
+        ) {
+            view.start_ai(call, item.title_key, cx);
+        }
     }
     view.overlay = OverlayState::None;
     view.after_edit(cx);

@@ -155,7 +155,125 @@ fn every_slash_action_appears_in_its_context() {
             assert!(!in_selected, "{id} should be hidden off-journal");
         }
     }
-    assert_eq!(plain.len() + journal.len(), 24);
+    assert_eq!(plain.len() + journal.len(), 26);
+}
+
+#[test]
+fn every_slash_catalogue_fits_the_rendered_row_bound() {
+    for items in [
+        slash_items(false, false),
+        slash_items(false, true),
+        slash_items(true, false),
+        slash_items(true, true),
+    ] {
+        assert_eq!(slash_row_count(items.len()), items.len());
+        assert!(items.len() <= SLASH_MAX_ROWS);
+    }
+    assert_eq!(slash_row_count(99), SLASH_MAX_ROWS);
+}
+
+#[test]
+fn quote_is_a_block_action_with_shipped_aliases() {
+    let quote = SlashAction::Quote;
+    assert_eq!(quote.id(), "quote");
+    assert_eq!(quote.title_key(), "editor.quote");
+    assert_eq!(quote.aliases(), vec!["quote", "blockquote"]);
+    assert_eq!(quote.subtitle_key(), None);
+    assert_eq!(quote.group(), SlashGroup::Blocks);
+    assert!(!quote.requires_selection());
+    assert!(!quote.journal_only());
+    assert!(slash_items(false, false)
+        .iter()
+        .any(|item| item.id == "quote"));
+}
+
+#[test]
+fn selection_actions_require_non_empty_text() {
+    let page = "page body";
+    let path = "pages/x.md";
+    for action in [
+        SlashAction::AiRewrite,
+        SlashAction::AiFormatSelection,
+        SlashAction::AiSummarizeSelection,
+    ] {
+        assert!(ai_call_for(action, None, page, path).is_none());
+        assert!(ai_call_for(action, Some("   "), page, path).is_none());
+        let call = ai_call_for(action, Some("selected"), page, path).expect("selection call");
+        assert_eq!(call.text, "selected");
+        assert_eq!(call.page_path, Some(path.to_string()));
+        assert_eq!(call.scope, AiCallScope::InsertAtCaret);
+    }
+}
+
+#[test]
+fn page_actions_send_the_page_markdown() {
+    let page = "- one\n- two";
+    let path = "pages/x.md";
+    for (action, transform) in [
+        (SlashAction::AiStructurePage, AiTransformAction::Structure),
+        (
+            SlashAction::AiStructureJournal,
+            AiTransformAction::Structure,
+        ),
+        (SlashAction::AiFormatJournalNotes, AiTransformAction::Format),
+        (SlashAction::AiSummarizePage, AiTransformAction::Summarize),
+    ] {
+        let call = ai_call_for(action, None, page, path).expect("page call");
+        assert_eq!(call.text, page);
+        assert_eq!(call.kind, AiCallKind::Transform(transform));
+        assert_eq!(call.scope, AiCallScope::ReplacePage);
+        assert_eq!(call.page_path, Some(path.to_string()));
+    }
+}
+
+#[test]
+fn interlink_sends_the_page_markdown_and_path() {
+    let call = ai_call_for(SlashAction::AiInterlink, None, "body", "pages/x.md").expect("call");
+    assert_eq!(call.kind, AiCallKind::Interlink);
+    assert_eq!(call.text, "body");
+    assert_eq!(call.page_path, Some("pages/x.md".to_string()));
+    assert_eq!(call.scope, AiCallScope::ReplacePage);
+}
+
+#[test]
+fn research_and_mermaid_prefer_a_selection_then_the_page() {
+    let path = "pages/x.md";
+    let research = ai_call_for(SlashAction::AiResearch, Some("  topic  "), "body", path)
+        .expect("research call");
+    assert_eq!(research.kind, AiCallKind::Research);
+    assert_eq!(research.text, "topic");
+    assert_eq!(research.page_path, None);
+    assert_eq!(research.scope, AiCallScope::ReplacePage);
+
+    let research = ai_call_for(SlashAction::AiResearch, None, "body", path).expect("fallback");
+    assert_eq!(research.text, "body");
+
+    let mermaid = ai_call_for(SlashAction::AiGenerateMermaid, Some("flow"), "body", path)
+        .expect("mermaid call");
+    assert_eq!(mermaid.kind, AiCallKind::Mermaid);
+    assert_eq!(mermaid.text, "flow");
+    assert_eq!(mermaid.scope, AiCallScope::InsertBlockAfterCaret);
+
+    let mermaid =
+        ai_call_for(SlashAction::AiGenerateMermaid, None, "body", path).expect("fallback");
+    assert_eq!(mermaid.text, "body");
+}
+
+#[test]
+fn block_actions_and_empty_prompts_produce_no_call() {
+    for action in [
+        SlashAction::Paragraph,
+        SlashAction::Heading1,
+        SlashAction::Quote,
+        SlashAction::CodeBlock,
+        SlashAction::Mermaid,
+        SlashAction::MathEquation,
+    ] {
+        assert!(ai_call_for(action, Some("selection"), "body", "pages/x.md").is_none());
+    }
+    assert!(ai_call_for(SlashAction::AiSummarizePage, None, "   ", "pages/x.md").is_none());
+    assert!(ai_call_for(SlashAction::AiResearch, None, "", "pages/x.md").is_none());
+    assert!(ai_call_for(SlashAction::AiGenerateMermaid, None, "", "pages/x.md").is_none());
 }
 
 #[test]

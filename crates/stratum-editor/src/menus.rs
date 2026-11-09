@@ -18,8 +18,26 @@ use std::ops::Range;
 
 use pkm_block::{Priority, TaskMarker};
 
+mod ai;
+pub use ai::{ai_call_for, AiCall, AiCallKind, AiCallScope, AiTransformAction};
+
 mod links;
 pub use links::{link_at, unresolved_wikilinks, DeadLink, LinkHit, LinkHitKind};
+
+/// Largest number of slash-menu rows the native popup can draw at once.
+///
+/// The popup renders exactly `slash_row_count(items)` rows and the overlay
+/// selection is clamped to the same count, so a selectable index is always a
+/// drawn row. Catalogue contexts are asserted against this bound in tests.
+pub const SLASH_MAX_ROWS: usize = 16;
+
+/// Number of slash rows the popup draws for a catalogue of `items` entries.
+///
+/// Single source of truth shared by the overlay selection length and the
+/// renderer; never call `.take(8)` or any other ad-hoc cap in the view.
+pub fn slash_row_count(items: usize) -> usize {
+    items.min(SLASH_MAX_ROWS)
+}
 
 /// Where a slash action operates.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -58,6 +76,7 @@ pub enum SlashAction {
     CodeBlock,
     Mermaid,
     MathEquation,
+    Quote,
     AiRewrite,
     AiFormatSelection,
     AiSummarizeSelection,
@@ -72,7 +91,7 @@ pub enum SlashAction {
 
 impl SlashAction {
     /// Every action in shipped display order.
-    pub const ALL: [SlashAction; 17] = [
+    pub const ALL: [SlashAction; 18] = [
         SlashAction::Paragraph,
         SlashAction::Heading1,
         SlashAction::Heading2,
@@ -80,6 +99,7 @@ impl SlashAction {
         SlashAction::CodeBlock,
         SlashAction::Mermaid,
         SlashAction::MathEquation,
+        SlashAction::Quote,
         SlashAction::AiRewrite,
         SlashAction::AiFormatSelection,
         SlashAction::AiSummarizeSelection,
@@ -102,6 +122,7 @@ impl SlashAction {
             SlashAction::CodeBlock => "code_block",
             SlashAction::Mermaid => "mermaid_diagram",
             SlashAction::MathEquation => "math_equation",
+            SlashAction::Quote => "quote",
             SlashAction::AiRewrite => "ai_rewrite",
             SlashAction::AiFormatSelection => "ai_format_selection",
             SlashAction::AiSummarizeSelection => "ai_summarize_selection",
@@ -125,6 +146,7 @@ impl SlashAction {
             SlashAction::CodeBlock => "editor.code_block",
             SlashAction::Mermaid => "editor.mermaid_diagram",
             SlashAction::MathEquation => "editor.math_equation_label",
+            SlashAction::Quote => "editor.quote",
             SlashAction::AiRewrite => "aislash_menu.rewrite",
             SlashAction::AiFormatSelection => "aislash_menu.format_selection",
             SlashAction::AiSummarizeSelection => "aislash_menu.summarize",
@@ -146,7 +168,8 @@ impl SlashAction {
             | SlashAction::Heading2
             | SlashAction::Heading3
             | SlashAction::CodeBlock
-            | SlashAction::Mermaid => None,
+            | SlashAction::Mermaid
+            | SlashAction::Quote => None,
             SlashAction::MathEquation => Some("aislash_menu.insert_a_latex_math_equation"),
             SlashAction::AiRewrite => Some("aislash_menu.improve_clarity_and_flow"),
             SlashAction::AiFormatSelection => Some("aislash_menu.clean_up_formatting"),
@@ -173,6 +196,7 @@ impl SlashAction {
     pub fn aliases(self) -> Vec<&'static str> {
         match self {
             SlashAction::MathEquation => vec!["math", "equation", "latex", "formula"],
+            SlashAction::Quote => vec!["quote", "blockquote"],
             SlashAction::AiResearch => vec!["research", "search", "web"],
             SlashAction::AiInterlink => vec!["interlink", "wikilinks", "connect"],
             SlashAction::AiGenerateMermaid => vec!["mermaid", "diagram", "chart"],
@@ -189,7 +213,8 @@ impl SlashAction {
             | SlashAction::Heading3
             | SlashAction::CodeBlock
             | SlashAction::Mermaid
-            | SlashAction::MathEquation => SlashGroup::Blocks,
+            | SlashAction::MathEquation
+            | SlashAction::Quote => SlashGroup::Blocks,
             _ => SlashGroup::Ai,
         }
     }

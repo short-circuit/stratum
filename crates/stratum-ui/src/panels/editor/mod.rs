@@ -27,6 +27,7 @@ use chrono::Utc;
 use gpui_kit::component::VirtualListScrollHandle;
 use gpui_kit::prelude::*;
 use gpui_kit::*;
+use stratum_editor::menus::AiCall;
 use stratum_editor::{
     blocks_to_dto, dto_to_blocks, math_source, mermaid_source, render_page, DecoratedRow,
     EditorDocument, EditorState, MathCache, MathOptions, MermaidCache, RenderMode, VirtualLayout,
@@ -34,6 +35,9 @@ use stratum_editor::{
 use stratum_i18n::{t_global, tr_global};
 
 use crate::provider::ShellData;
+
+mod ai;
+pub use ai::AiStatus;
 
 pub mod context_menu;
 pub mod input;
@@ -131,6 +135,8 @@ pub struct EditorView {
     metrics: EditorMetrics,
     pending_navigation: Option<String>,
     hover_preview: Option<String>,
+    ai_status: Option<AiStatus>,
+    pending_ai: Option<AiCall>,
     save_generation: u64,
     asset_budget: usize,
 }
@@ -176,6 +182,8 @@ impl EditorView {
             metrics: EditorMetrics::default(),
             pending_navigation: None,
             hover_preview: None,
+            ai_status: None,
+            pending_ai: None,
             save_generation: 0,
             asset_budget: 1,
         }
@@ -376,7 +384,14 @@ impl EditorView {
     }
 
     /// The save-chip label.
+    ///
+    /// A running or failed AI request takes precedence over the save status so
+    /// the chip reports the long-running service call instead of a stale save
+    /// label.
     pub(crate) fn save_label(&self) -> String {
+        if let Some(label) = self.ai_label() {
+            return label;
+        }
         match self.save.status() {
             SaveStatus::Failed(message) => message.clone(),
             SaveStatus::Saved => t_global("settings.saved"),

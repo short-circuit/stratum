@@ -6,16 +6,18 @@
 //! content and caret byte offset so it can be unit tested without a gpui
 //! context.
 
+use gpui_kit::component::scroll::ScrollableElement;
 use gpui_kit::component::ActiveTheme;
 use gpui_kit::prelude::*;
 use gpui_kit::*;
 use stratum_editor::menus::{
-    filter_slash_items, marker_menu_items, slash_items, wiki_query, wiki_targets, WikiTarget,
+    filter_slash_items, marker_menu_items, slash_items, slash_row_count, wiki_query, wiki_targets,
+    WikiTarget,
 };
 use stratum_editor::{badge_row, MarkerBadge};
 use stratum_i18n::{t_global, tr_global};
 
-use crate::panels::editor::{EditorView, SaveStatus};
+use crate::panels::editor::{AiStatus, EditorView, SaveStatus};
 
 /// Maximum number of wiki autocomplete rows rendered at once.
 const WIKI_MAX_ROWS: usize = 8;
@@ -142,7 +144,8 @@ pub fn badge_strip(view: &EditorView, cx: &mut Context<EditorView>) -> impl Into
 /// Render the save-status chip.
 pub fn save_chip(view: &EditorView, cx: &mut Context<EditorView>) -> impl IntoElement {
     let theme = cx.theme();
-    let failed = matches!(view.save.status(), SaveStatus::Failed(_));
+    let failed = matches!(view.save.status(), SaveStatus::Failed(_))
+        || matches!(view.ai_status.as_ref(), Some(AiStatus::Failed(_)));
     div()
         .absolute()
         .right(px(16.0))
@@ -175,14 +178,14 @@ pub fn overlay_popup(view: &EditorView, cx: &mut Context<EditorView>) -> impl In
         .left(px(72.0))
         .top(px(y.max(0.0)))
         .w(px(420.0))
-        .max_h(px(320.0))
-        .overflow_hidden()
+        .max_h(px(440.0))
         .rounded(px(8.0))
         .bg(theme.colors.background)
         .border_1()
         .border_color(theme.colors.border)
         .shadow_md()
-        .p(px(4.0));
+        .p(px(4.0))
+        .overflow_y_scrollbar();
     match view.overlay() {
         OverlayState::None => {}
         OverlayState::Slash { query, selected } => {
@@ -266,15 +269,19 @@ fn slash_list(
     let is_journal = view.path().starts_with("journals/");
     let has_selection = view.state.selection().is_some();
     let items = filter_slash_items(&slash_items(has_selection, is_journal), query);
+    let rows = slash_row_count(items.len());
     let mut list = div().flex().flex_col().gap(px(1.0));
-    for (index, item) in items.iter().take(8).enumerate() {
+    for index in 0..rows {
+        let Some(item) = items.get(index) else {
+            continue;
+        };
         let mut row = div()
             .flex()
             .items_center()
             .justify_between()
             .gap(px(8.0))
             .px(px(10.0))
-            .py(px(6.0))
+            .py(px(4.0))
             .rounded(px(4.0))
             .text_size(px(12.0))
             .text_color(theme.colors.foreground);

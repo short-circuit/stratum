@@ -207,6 +207,88 @@ from `stratum_editor::menus`; wiki targets resolve against the provider's recent
 pages. Ctrl+hover opens a link preview; Ctrl+click on a tag or wiki-link sets a
 pending navigation that the shell polls and turns into a route change.
 
+The slash popup draws exactly `stratum_editor::menus::slash_row_count(items)`
+rows (capped at `SLASH_MAX_ROWS = 16`) and the overlay selection length is the
+same count, so a selectable index is always a drawn row. The popup scrolls
+vertically within a 440 px maximum height and applies the same padding per row
+as the other menus. `apply_slash` clamps the selected index to the filtered
+catalogue, closes the overlay when the query matches nothing, and resets
+`OverlayState::None` after every applied action.
+
+### AI slash actions
+
+The engine owns the AI request model and result application. `menus/ai.rs`
+exports `AiCall`, `AiCallKind`, `AiCallScope`, `AiTransformAction` and
+`ai_call_for`, which mirrors `src/components/AISlashMenu.tsx`: selection
+actions require a non-empty selection, page-scope actions send the page
+markdown, and research/Mermaid fall back to the page text. `ai_call_for`
+returns `None` for block actions and for an empty resolved prompt, so the
+service is never called with an empty string.
+
+The view (`panels/editor/ai.rs`) executes the request off the UI thread:
+`start_ai` runs `ShellData::ai_run` on the background executor and `finish_ai`
+applies a non-empty result through `EditorState::apply_ai_content`, clears the
+status for empty results, and keeps the document unchanged on failure while
+surfacing the provider message. `EditorState::apply_ai_content` dispatches on
+the call scope: `ReplacePage` parses the markdown into a single undoable
+`SpliceBlocks` replacement, `InsertAtCaret` normalizes and inserts the text at
+the caret, and `InsertBlockAfterCaret` wraps the result in a Mermaid fence and
+adds it as a sibling block. The running/failed state takes precedence in the
+save chip, so an AI request is visible while it runs and its error is shown
+instead of a stale "saved" label.
+
+`ShellData::ai_run` is a trait method with a default echo implementation for
+providers without AI support. `AppProvider` maps it onto the service layer:
+transforms call `ai_transform_block` with the corresponding `AiAction`,
+research calls `ai_research`, interlink calls `ai_interlink_notes` and Mermaid
+calls `generate_mermaid`. Every `ai_transform_block` request carries the page
+path (the service uses it to pick journal vs. page context), exactly like
+`AISlashMenu.tsx`; research and Mermaid send only their prompt.
+
+### Slash catalogue mapping
+
+| Action id | Engine behaviour | Service call | Result scope |
+|-----------|------------------|--------------|--------------|
+| `paragraph` | clear heading level | — | in place |
+| `heading_1` | set heading level 1 | — | in place |
+| `heading_2` | set heading level 2 | — | in place |
+| `heading_3` | set heading level 3 | — | in place |
+| `code_block` | insert empty fenced code block | — | in place |
+| `mermaid_diagram` | insert empty Mermaid fence | — | in place |
+| `math_equation` | insert empty `$$` block | — | in place |
+| `quote` | prefix the block with `> ` | — | in place |
+| `ai_rewrite` | selection required | `ai_transform_block(rewrite)` | insert at caret |
+| `ai_format_selection` | selection required | `ai_transform_block(format)` | insert at caret |
+| `ai_summarize_selection` | selection required | `ai_transform_block(summarize)` | insert at caret |
+| `ai_structure_journal` | journal pages only | `ai_transform_block(structure, page_path)` | replace page |
+| `ai_format_journal_notes` | journal pages only | `ai_transform_block(format, page_path)` | replace page |
+| `ai_structure_page` | non-journal pages | `ai_transform_block(structure, page_path)` | replace page |
+| `ai_summarize_page` | non-journal pages | `ai_transform_block(summarize, page_path)` | replace page |
+| `ai_research` | selection or page text | `ai_research` | replace page |
+| `ai_interlink` | whole page | `ai_interlink_notes(page_path)` | replace page |
+| `ai_generate_mermaid` | selection or page text | `generate_mermaid` | insert block after caret |
+
+#### Divergence from the shipped BlockNote menu
+
+The shipped web editor builds its menu from `getDefaultReactSlashMenuItems(editor)`
+plus the AI items in `src/components/AISlashMenu.tsx`, so it also offers bulleted,
+numbered and check lists, tables, media and emoji. The native catalogue is a
+deliberate subset, because the block model has no separate block kinds for them:
+
+| Shipped BlockNote item | Native mapping |
+|------------------------|----------------|
+| Paragraph, Heading 1-3, Code block | dedicated actions |
+| Quote | `quote` action — the block content becomes `> …` and `render` classifies it as `BlockKind::Quote` |
+| Check list | task markers (`TODO`/`DOING`/…), applied through the marker menu or typed `:marker`; markers serialize as `.marker:` properties |
+| Bulleted list | every block is already an outliner list item (serialized as `- `), so there is no separate action |
+| Numbered list | authored as `1. ` content; `render` classifies it as an ordered `BlockKind::ListItem` |
+| Table | multi-line paragraph content — the block model has no table kind yet |
+| Image / video / audio / file | attachment markdown (`![[assets/…]]`) managed by `AttachmentPanel`, not the slash menu |
+| Emoji | not offered |
+
+Every visible label is a translation key; `editor.quote` is part of
+`EDITOR_I18N_KEYS` and present in all eight locale catalogs.
+
 Right-clicking a row places the caret and opens the per-block context menu
 (`context_menu.rs`) anchored at the pointer. Its entries, in order, are read
 aloud, copy, cut, toggle task marker, set reminder (one hour from now) and clear

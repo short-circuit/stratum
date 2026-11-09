@@ -17,7 +17,9 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use stratum_app::ai::AiAction;
 use stratum_app::StratumService;
+use stratum_editor::menus::{AiCall, AiCallKind, AiTransformAction};
 use stratum_editor::BlockDto;
 
 mod fixture;
@@ -76,6 +78,10 @@ pub trait ShellData: Send + Sync {
     /// Speak `text` aloud. Providers without audio support return `Ok(())`.
     fn speak(&self, _text: String) -> Result<(), String> {
         Ok(())
+    }
+    /// Run one AI slash request. Providers without AI support echo the input.
+    fn ai_run(&self, call: stratum_editor::menus::AiCall) -> Result<String, String> {
+        Ok(call.text)
     }
 }
 
@@ -200,6 +206,38 @@ impl ShellData for AppProvider {
 
     fn speak(&self, text: String) -> Result<(), String> {
         self.speak_text(text)
+    }
+
+    fn ai_run(&self, call: AiCall) -> Result<String, String> {
+        match call.kind {
+            AiCallKind::Transform(action) => {
+                let action = match action {
+                    AiTransformAction::Rewrite => AiAction::Rewrite,
+                    AiTransformAction::Format => AiAction::Format,
+                    AiTransformAction::Structure => AiAction::Structure,
+                    AiTransformAction::Summarize => AiAction::Summarize,
+                    AiTransformAction::Connect => AiAction::Connect,
+                };
+                self.runtime
+                    .block_on(
+                        self.service
+                            .ai_transform_block(call.text, action, call.page_path),
+                    )
+                    .map(|result| result.content)
+            }
+            AiCallKind::Research => self
+                .runtime
+                .block_on(self.service.ai_research(call.text))
+                .map(|result| result.findings),
+            AiCallKind::Interlink => self
+                .runtime
+                .block_on(self.service.ai_interlink_notes(call.text, call.page_path))
+                .map(|result| result.content),
+            AiCallKind::Mermaid => self
+                .runtime
+                .block_on(self.service.generate_mermaid(call.text))
+                .map(|result| result.content),
+        }
     }
 }
 

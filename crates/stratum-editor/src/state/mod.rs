@@ -14,6 +14,8 @@
 //! The implementation is split into submodules so no source file exceeds the
 //! repository limit:
 //!
+//! - [`ai`] — applying AI results (page replacement, caret insertion, sibling
+//!   blocks) as undoable edits.
 //! - [`ops`] — the reversible [`EditOp`] pairs and their tree application.
 //! - [`history`] — bounded undo/redo stacks and coalescing.
 //! - [`editing`] — caret-driven editing operations.
@@ -23,6 +25,7 @@
 //! - [`ime`] — composition state and UTF-16 offset translation.
 //! - `text` — byte-offset and delimiter helpers shared by the above.
 
+mod ai;
 mod clipboard;
 mod editing;
 mod history;

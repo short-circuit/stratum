@@ -11,6 +11,7 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+use stratum_editor::menus::{AiCall, AiCallKind};
 use stratum_editor::BlockDto;
 use uuid::Uuid;
 
@@ -131,6 +132,13 @@ impl ShellData for FixtureProvider {
             .insert(path.to_string(), blocks);
         Ok(())
     }
+
+    fn ai_run(&self, call: AiCall) -> Result<String, String> {
+        Ok(match call.kind {
+            AiCallKind::Mermaid => "graph TD\n  A[Start] --> B[End]".to_string(),
+            AiCallKind::Transform(_) | AiCallKind::Research | AiCallKind::Interlink => call.text,
+        })
+    }
 }
 
 /// Build a deterministic page of `count` fixture blocks.
@@ -237,6 +245,7 @@ fn fixture_content(index: usize) -> (String, Option<String>, Option<String>, Opt
 #[cfg(test)]
 mod tests {
     use super::*;
+    use stratum_editor::menus::{AiCallScope, AiTransformAction};
 
     #[test]
     fn fixture_blocks_are_deterministic_and_nested() {
@@ -259,5 +268,41 @@ mod tests {
         let provider = FixtureProvider::with_welcome_blocks(10_000);
         let blocks = provider.load_blocks("pages/Welcome.md").expect("page");
         assert_eq!(blocks.len(), 10_000);
+    }
+
+    #[test]
+    fn fixture_ai_run_is_deterministic() {
+        let provider = FixtureProvider::new();
+        let transform = AiCall {
+            kind: AiCallKind::Transform(AiTransformAction::Rewrite),
+            scope: AiCallScope::InsertAtCaret,
+            text: "hello".into(),
+            page_path: None,
+        };
+        assert_eq!(provider.ai_run(transform), Ok("hello".to_string()));
+        let research = AiCall {
+            kind: AiCallKind::Research,
+            scope: AiCallScope::ReplacePage,
+            text: "topic".into(),
+            page_path: None,
+        };
+        assert_eq!(provider.ai_run(research), Ok("topic".to_string()));
+        let interlink = AiCall {
+            kind: AiCallKind::Interlink,
+            scope: AiCallScope::ReplacePage,
+            text: "body".into(),
+            page_path: Some("pages/x.md".into()),
+        };
+        assert_eq!(provider.ai_run(interlink), Ok("body".to_string()));
+        let mermaid = AiCall {
+            kind: AiCallKind::Mermaid,
+            scope: AiCallScope::InsertBlockAfterCaret,
+            text: "prompt".into(),
+            page_path: None,
+        };
+        assert_eq!(
+            provider.ai_run(mermaid),
+            Ok("graph TD\n  A[Start] --> B[End]".to_string())
+        );
     }
 }
