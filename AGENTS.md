@@ -73,7 +73,9 @@ stratum/
 │   ├── pkm-sync/               # Git sync engine (git2) + periodic cloud/folder backup mirror
 │   ├── pkm-tests/              # Integration tests for the Rust crates
 │   ├── pkm-watcher/            # File system watcher
-│   └── stratum-app/            # Headless service layer behind every Tauri command (no tauri deps)
+│   ├── stratum-app/            # Headless service layer behind every Tauri command (no tauri deps)
+│   ├── stratum-i18n/           # Embedded locale catalogs, interpolation and parity gates (native shell)
+│   └── stratum-ui/             # Native GPUI desktop shell (E2) on top of stratum-app
 ├── src/                        # React + TypeScript frontend
 │   ├── main.tsx                # App bootstrap, settings load
 │   ├── App.tsx                 # Root layout, routes, close handler
@@ -264,6 +266,8 @@ pkm-dictation  →  pkm-core, pkm-audio, pkm-stt
 stratum-app    →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-query, pkm-plugin, pkm-dictation
 pkm-tests      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-sync, pkm-query, pkm-ai, pkm-plugin, stratum-tauri
 pkm-cli        →  pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
+stratum-i18n   →  pkm-core
+stratum-ui     →  gpui-kit (external), stratum-i18n, stratum-app, pkm-core
 src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-dictation, pkm-plugin, stratum-app
 ```
 
@@ -466,6 +470,34 @@ The graph engine (`src-tauri/src/commands/graph.rs`) builds data directly from t
 - **Tauri commands**: `get_graph_data`, `get_connected_components`, `get_orphaned_notes`, `rebuild_graph`
 - **Frontend**: `GraphPanel` renders force-directed layout (d3-force via `react-force-graph-2d` on mobile, `react-force-graph-3d` on desktop), with interactive settings panel for d3-force parameters (repulsion, link distance, alpha/friction decay), visibility toggles (connected/orphaned/tags), node search filter, component/orphan view modes, and click-to-navigate
 
+## Native GPUI Shell (E2)
+
+`crates/stratum-ui` is the native desktop shell. It reproduces the shipped
+React chrome 1:1 (sidebar, navigation, recents, footer, status bar, error bar
+and toaster) on top of `stratum-app`, while `src/` and `src-tauri/` remain the
+frozen reference application and are never modified by shell work.
+
+- `stratum-i18n` embeds byte-identical copies of `src/i18n/locales/*.json`,
+  provides i18next-compatible `{{name}}` interpolation and the parity helpers
+  (`key_set`, `missing_keys`, `extra_keys`).
+- `stratum-ui` owns the route/navigation/shortcut tables (`router`), the theme
+  derivation (`theme`), the embedded asset source and Inter faces (`assets`),
+  the `ShellData` provider seam (`provider`), the chrome (`shell`) and panel
+  stubs (`panels`).
+- The shell never calls Tauri commands directly; data flows through
+  `ShellData`/`AppProvider`, whose real implementation drives
+  `stratum_app::StratumService`.
+- `STRATUM_FIXTURE=1` selects the deterministic 87-page fixture used by tests
+  and the capture harness. `STRATUM_VAULT` selects a real vault and
+  `STRATUM_LOCALE` selects one of the eight catalogs.
+- `scripts/capture-gpui-shell.sh` renders the fixture shell on a private Xvfb
+  screen and writes `dist/gpui-shell.png`; `.github/workflows/gpui-ci.yml` runs
+  the GPUI format/build/test/clippy gates and publishes the screenshot. The
+  main `ci.yml` also has a `gpui-capture` job.
+
+See `docs/development/gpui-ui.md` for the module/API map, build commands,
+test coverage and current limitations.
+
 ## Sync Modes
 
 | Mode | Description |
@@ -545,6 +577,15 @@ npm run lint                     # ESLint (no Prettier — formatting is Rust-on
 
 # Run frontend tests
 npm run test
+
+# Native GPUI shell (fixture, no vault required)
+cargo build -p stratum-ui
+STRATUM_FIXTURE=1 cargo run -p stratum-ui
+
+# GPUI crate tests + capture
+cargo test -p stratum-i18n -p stratum-ui
+cargo clippy -p stratum-i18n -p stratum-ui --all-targets -- -D warnings
+./scripts/capture-gpui-shell.sh  # writes dist/gpui-shell.png
 
 # Tauri desktop app
 cargo tauri dev                  # Dev mode (Rust + Vite)

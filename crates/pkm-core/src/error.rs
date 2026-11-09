@@ -65,6 +65,9 @@ pub enum PkmError {
 
     #[error("Internal error: {0}")]
     Internal(String),
+
+    #[error("i18n error: {0}")]
+    I18n(String),
 }
 
 /// Convenience alias.

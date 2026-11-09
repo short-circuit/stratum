@@ -19,6 +19,8 @@ members = [
     "crates/pkm-mcp",
     "crates/pkm-mcp-security",
     "crates/stratum-app",
+    "crates/stratum-i18n",
+    "crates/stratum-ui",
     "src-tauri",
 ]
 

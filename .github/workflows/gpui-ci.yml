@@ -1,0 +1,103 @@
+name: GPUI shell
+
+# Native-shell gate: formatting, build, tests, clippy and a rendered
+# screenshot for crates/stratum-i18n and crates/stratum-ui. Path-filtered so
+# unrelated changes do not pay for the GPUI build, with a manual trigger for
+# full-suite verification.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'crates/stratum-i18n/**'
+      - 'crates/stratum-ui/**'
+      - 'scripts/capture-gpui-shell.sh'
+      - '.github/workflows/gpui-ci.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'crates/stratum-i18n/**'
+      - 'crates/stratum-ui/**'
+      - 'scripts/capture-gpui-shell.sh'
+      - '.github/workflows/gpui-ci.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  # Xvfb has no GPU; render with Mesa's software stack.
+  LIBGL_ALWAYS_SOFTWARE: 1
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gpui-shell:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy, rustfmt
+          cache: false
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Linux dependencies
+        uses: ./.github/actions/install-linux-deps
+
+      - name: Install GPUI rendering and capture dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libx11-dev \
+            libxcb1-dev \
+            libgl1-mesa-dri \
+            libegl1-mesa-dev \
+            libvulkan1 \
+            mesa-vulkan-drivers \
+            imagemagick \
+            xdotool
+
+      - name: Install frontend dependencies
+        # stratum-app embeds node_modules/mermaid/dist/mermaid.min.js.
+        run: npm ci
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Build GPUI crates
+        run: cargo build -p stratum-i18n -p stratum-ui
+
+      - name: Run GPUI tests
+        run: cargo test -p stratum-i18n -p stratum-ui
+
+      - name: Run GPUI clippy
+        run: cargo clippy -p stratum-i18n -p stratum-ui --all-targets -- -D warnings
+
+      - name: Capture shell screenshot
+        run: ./scripts/capture-gpui-shell.sh
+
+      - name: Upload screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-shell-screenshot
+          path: dist/gpui-shell.png
+          if-no-files-found: error
