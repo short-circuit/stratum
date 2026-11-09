@@ -84,6 +84,10 @@ deterministic 87-page snapshot for tests and the capture harness.
 
 ## Building and Running
 
+On Linux the shell links against xkbcommon and X11, so the development host
+needs `libxkbcommon-dev`, `libxkbcommon-x11-dev`, `libx11-dev` and `libxcb1-dev`
+(the CI `install-linux-deps` action installs these).
+
 ```bash
 # Build the shell
 cargo build -p stratum-ui

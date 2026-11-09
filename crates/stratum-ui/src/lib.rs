@@ -1,8 +1,8 @@
 //! Stratum gpui shell.
 //!
 //! This crate is the native desktop front end for Stratum. It reproduces the
-//! shipped React shell (sidebar, navigation, recents, footer, status bar,
-//! error bar and toaster) on top of [`stratum_app`], while the frozen React
+//! shipped React shell (sidebar, navigation, recents, footer, error bar and
+//! toaster) on top of [`stratum_app`], while the frozen React
 //! application in `src/` remains the reference implementation.
 //!
 //! The crate is split so the parity contract is testable without opening a
@@ -46,7 +46,7 @@ pub mod panels;
 pub mod provider;
 /// Route, navigation and shortcut tables.
 pub mod router;
-/// Shell chrome (sidebar, header, footer, status bar, error bar, toaster).
+/// Shell chrome (sidebar, header, footer, error bar, toaster).
 pub mod shell;
 /// Shipped palette derivation mapped onto gpui-kit tokens.
 pub mod theme;
