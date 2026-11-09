@@ -1,5 +1,5 @@
 name: Install Linux dependencies
-description: Install system packages required for Tauri builds on Linux (webkit, gtk, openssl, etc.) and the headless WebDriver stack (webkit2gtk-driver, xvfb)
+description: Install system packages required for Tauri builds on Linux (webkit, gtk, openssl, etc.), the headless WebDriver stack (webkit2gtk-driver, xvfb) and the native GPUI shell (wayland, xkbcommon, fontconfig, Vulkan/EGL)
 
 runs:
   using: composite
@@ -21,4 +21,13 @@ runs:
           webkit2gtk-driver \
           xvfb \
           dbus \
-          libayatana-appindicator3-dev
+          libayatana-appindicator3-dev \
+          libwayland-dev \
+          libxkbcommon-dev \
+          libfontconfig1-dev \
+          libfreetype6-dev \
+          libx11-dev \
+          libxcb1-dev \
+          libvulkan-dev \
+          libegl1-mesa-dev \
+          libgl1-mesa-dev

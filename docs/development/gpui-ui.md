@@ -5,8 +5,8 @@ Stratum ships two front ends:
 - The frozen React + Tauri application in `src/` and `src-tauri/`, which remains
   the reference implementation and is not modified by the native shell work.
 - The native GPUI shell in `crates/stratum-ui`, which reproduces the React
-  shell's chrome (sidebar, navigation, recents, footer, status bar, error bar
-  and toaster) on top of the headless service layer.
+  shell's chrome (sidebar, navigation, recents, footer, error bar and
+  toaster) on top of the headless service layer.
 
 `crates/stratum-i18n` provides the locale catalogs the native shell renders.
 Both crates are workspace members and are covered by the GPUI CI workflow.
@@ -30,7 +30,7 @@ crates/
     │   ├── provider.rs     # ShellData seam, fixture and service providers
     │   ├── router.rs       # routes, navigation, shortcuts, path codec
     │   ├── theme.rs        # shipped palette derivation mapped to gpui-kit
-    │   ├── shell/          # sidebar, footer, status bar, error/toaster chrome
+    │   ├── shell/          # sidebar, footer, error/toaster chrome
     │   └── panels/         # panel stubs and icon mapping
     └── tests/              # route, theme, layout and asset contracts
 ```
@@ -73,7 +73,7 @@ logic: data comes from an `AppProvider` implementation.
 | `theme` | `ThemeConfig`, `derive_palette`, `apply_to_kit`, golden palette formulas |
 | `assets` | `StratumAssets` (icons + fonts), `register_fonts` |
 | `provider` | `ShellData`, `ShellSnapshot`, `FixtureProvider`, `provider_from_env` |
-| `shell` | header, sidebar, footer, status bar, error bar, toaster |
+| `shell` | header, sidebar, footer, error bar, toaster |
 | `panels` | panel stub rendering and icon mapping |
 
 The provider seam is the only place the shell touches the service layer. The
@@ -109,6 +109,7 @@ the sidebar and `Escape` dismisses the topmost overlay.
 | `STRATUM_FIXTURE=1` | Use the deterministic fixture provider |
 | `STRATUM_VAULT=/path` | Open the real service provider for that vault |
 | `STRATUM_LOCALE=<code>` | Select one of the eight catalogs |
+| `STRATUM_COLLAPSED=1` | Start with the 52 px icon rail (capture harness) |
 
 ---
 
@@ -141,17 +142,29 @@ context.
 ## Screenshot Capture
 
 `scripts/capture-gpui-shell.sh` starts the shell in fixture mode on a private
-Xvfb screen, waits for the window, and captures it with ImageMagick:
+Xvfb screen, waits for the window, and captures it with ImageMagick. It captures
+both sidebar states:
 
 ```bash
 ./scripts/capture-gpui-shell.sh
-# → dist/gpui-shell.png
+# → dist/gpui-shell.png            (expanded, 224 px sidebar)
+# → dist/gpui-shell-collapsed.png  (52 px icon rail)
 ```
 
-The output path can be overridden with the first argument or `OUTPUT`. The
-script requires `Xvfb`, `xdotool` and ImageMagick's `import`. It is used by the
-GPUI CI workflow to publish a screenshot artifact, and is safe to run locally
-without a desktop session.
+The expanded capture is the parity reference for the shipped shell; the
+collapsed capture pins the second geometry from §3. Measure them before
+accepting a change: the sidebar/main boundary must sit at x=224 expanded and
+x=52 collapsed (the divider pixel included), the expanded sidebar must show 12
+navigation rows in the shipped order, and the collapsed rail must show the same
+12 icons with no labels and no recents list.
+
+The output path can be overridden with the first argument or `OUTPUT` (the
+collapsed file derives from it). `STRATUM_COLLAPSED=1` is used for the rail
+because Xvfb runs without a window manager, so synthetic key events are not
+reliably delivered; the shortcut itself is covered by the `SHORTCUTS` contract
+test. The script requires `Xvfb`, `xdotool` and ImageMagick's `import`. It is
+used by the GPUI CI workflow to publish a screenshot artifact, and is safe to
+run locally without a desktop session.
 
 ---
 
@@ -160,16 +173,19 @@ without a desktop session.
 `.github/workflows/gpui-ci.yml` runs the GPUI checks on changes to the two
 crates, the capture script or the CI wiring:
 
-1. Formatting (`cargo fmt --all --check`).
-2. Build (`cargo build -p stratum-i18n -p stratum-ui`).
-3. Tests (`cargo test -p stratum-i18n -p stratum-ui`).
-4. Clippy with `-D warnings`.
-5. Screenshot capture and artifact upload.
+1. `gpui-shell` — formatting, build, tests and clippy on **Linux, Windows and
+   macOS** (fail-fast disabled, one job per OS).
+2. `gpui-capture` — Linux only: screenshot capture and artifact upload.
 
-The workflow installs the same Linux build dependencies as the Tauri jobs plus
-the GPUI capture tools (`xvfb`, `xdotool`, `imagemagick`, fontconfig and
-freetype headers). It runs `npm ci` first because `stratum-app` embeds the
-Mermaid bundle from `node_modules`.
+Both jobs install the Tauri Linux dependencies through
+`.github/actions/install-linux-deps`, which now also carries the native shell
+headers (Wayland, xkbcommon, fontconfig, freetype, Vulkan/EGL/X11). They run
+`npm ci` first because `stratum-app` embeds the Mermaid bundle from
+`node_modules`; without it the GPUI build fails on a clean checkout.
+
+The main `ci.yml` keeps the GPUI crates in `cargo test --workspace` (the
+workspace gate must cover every member) and publishes the shell capture through
+its `gpui-capture` job.
 
 ---
 

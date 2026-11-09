@@ -7,6 +7,14 @@ repository.workspace = true
 publish = false
 description = "Stratum gpui shell: the desktop UI on top of the headless service layer"
 
+[[bin]]
+name = "stratum"
+path = "src/main.rs"
+
+[lib]
+name = "stratum_ui"
+path = "src/lib.rs"
+
 [dependencies]
 gpui-kit = { version = "0.9", default-features = false, features = ["component", "assets"] }
 stratum-i18n = { path = "../stratum-i18n" }

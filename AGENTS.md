@@ -473,8 +473,8 @@ The graph engine (`src-tauri/src/commands/graph.rs`) builds data directly from t
 ## Native GPUI Shell (E2)
 
 `crates/stratum-ui` is the native desktop shell. It reproduces the shipped
-React chrome 1:1 (sidebar, navigation, recents, footer, status bar, error bar
-and toaster) on top of `stratum-app`, while `src/` and `src-tauri/` remain the
+React chrome 1:1 (sidebar, navigation, recents, footer, error bar and toaster)
+on top of `stratum-app`, while `src/` and `src-tauri/` remain the
 frozen reference application and are never modified by shell work.
 
 - `stratum-i18n` embeds byte-identical copies of `src/i18n/locales/*.json`,
@@ -491,9 +491,11 @@ frozen reference application and are never modified by shell work.
   and the capture harness. `STRATUM_VAULT` selects a real vault and
   `STRATUM_LOCALE` selects one of the eight catalogs.
 - `scripts/capture-gpui-shell.sh` renders the fixture shell on a private Xvfb
-  screen and writes `dist/gpui-shell.png`; `.github/workflows/gpui-ci.yml` runs
-  the GPUI format/build/test/clippy gates and publishes the screenshot. The
-  main `ci.yml` also has a `gpui-capture` job.
+  screen and writes `dist/gpui-shell.png` (224 px sidebar) plus
+  `dist/gpui-shell-collapsed.png` (52 px rail, `STRATUM_COLLAPSED=1`);
+  `.github/workflows/gpui-ci.yml` runs the GPUI format/build/test/clippy gates
+  on Linux, Windows and macOS and publishes the screenshot. The main `ci.yml`
+  also has a `gpui-capture` job.
 
 See `docs/development/gpui-ui.md` for the module/API map, build commands,
 test coverage and current limitations.

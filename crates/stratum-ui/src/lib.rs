@@ -75,8 +75,11 @@ actions!(stratum, [ToggleReadMode, DismissOverlay, ToggleSidebar]);
 /// the shell falls back to the platform's default family so the window still
 /// opens if a face is unavailable.
 pub fn init(cx: &mut gpui::App, cfg: &ThemeConfig) {
-    theme::apply_to_kit(cx, cfg);
+    // Fonts must be registered before the theme is applied: the theme resolves
+    // its font family against the text system, and an unregistered "Inter"
+    // silently falls back to the platform UI font.
     if let Err(error) = assets::register_fonts(cx) {
         log::error!("failed to register Inter: {error}");
     }
+    theme::apply_to_kit(cx, cfg);
 }

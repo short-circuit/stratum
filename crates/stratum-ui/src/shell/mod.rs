@@ -1,8 +1,8 @@
-//! Shell chrome: sidebar, header, status bar, error bar and toaster.
+//! Shell chrome: sidebar, header, error bar and toaster.
 //!
 //! [`Shell`] owns the navigation state and the data provider. Rendering is
-//! split across [`sidebar`], [`footer`] and [`status`] so the layout contract
-//! stays readable and testable. The shell deliberately renders one panel stub
+//! split across [`sidebar`] and [`footer`] so the layout contract stays
+//! readable and testable. The shell deliberately renders one panel stub
 //! at a time: panel bodies are the next milestone, while this crate is the
 //! chrome that hosts them.
 //!
@@ -25,7 +25,6 @@ use crate::router::{path_for, Panel, ShortcutAction};
 
 mod footer;
 mod sidebar;
-mod status;
 
 pub use sidebar::{COLLAPSED_WIDTH, EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH};
 
@@ -301,8 +300,7 @@ impl Render for Shell {
                         self.active,
                         self.current_page.as_deref(),
                         cx,
-                    )))
-                    .child(status::status(self, cx)),
+                    ))),
             )
             .when(self.toast.is_some(), |element| {
                 element.child(toast_overlay(self, cx))

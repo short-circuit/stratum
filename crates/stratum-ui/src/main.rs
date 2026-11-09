@@ -21,6 +21,7 @@ use stratum_ui::router::{keystroke_string, ShortcutAction, SHORTCUTS};
 use stratum_ui::{init, Shell, StratumAssets, ThemeConfig};
 
 fn main() {
+    init_logging();
     gpui_kit::application()
         .with_assets(StratumAssets::new())
         .run(|cx| {
@@ -48,12 +49,50 @@ fn main() {
             };
 
             match gpui_kit::open_window(options, cx, |_window, cx| {
-                cx.new(|_| Shell::new(Arc::clone(&provider)))
+                let mut shell = Shell::new(Arc::clone(&provider));
+                // The capture harness renders the collapsed rail from an env
+                // flag: Xvfb has no window manager, so synthetic key events do
+                // not reliably reach the window.
+                if std::env::var("STRATUM_COLLAPSED")
+                    .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+                    .unwrap_or(false)
+                {
+                    shell.toggle_sidebar();
+                }
+                cx.new(|_| shell)
             }) {
                 Ok(_) => log::info!("Stratum shell opened (fixture: {fixture})"),
                 Err(error) => log::error!("failed to open the Stratum shell: {error}"),
             }
+
+            // Keyboard shortcuts only reach the shell once the application owns
+            // focus; without this the window maps but never receives keystrokes.
+            cx.activate(true);
         });
+}
+
+/// Minimal stderr logger so startup diagnostics (missing fonts, rejected key
+/// bindings, failed window creation) are visible without pulling in a logging
+/// crate.
+struct StderrLogger;
+
+impl log::Log for StderrLogger {
+    fn enabled(&self, metadata: &log::Metadata<'_>) -> bool {
+        metadata.level() <= log::Level::Info
+    }
+
+    fn log(&self, record: &log::Record<'_>) {
+        if self.enabled(record.metadata()) {
+            eprintln!("[{}] {}", record.level(), record.args());
+        }
+    }
+
+    fn flush(&self) {}
+}
+
+fn init_logging() {
+    let logger: &'static StderrLogger = Box::leak(Box::new(StderrLogger));
+    let _ = log::set_logger(logger).map(|()| log::set_max_level(log::LevelFilter::Info));
 }
 
 /// Apply `STRATUM_LOCALE` when it names a supported catalog.
