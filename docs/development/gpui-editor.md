@@ -111,6 +111,15 @@ clipboard payload and IME composition.
   `ime_cancel` restores the pre-composition content. `utf16_to_byte` rejects
   offsets that land inside a surrogate pair.
 
+Cross-block delete and multi-block paste are recorded as one reversible
+`EditOp::SpliceBlocks` entry: it carries the full removed/inserted block
+snapshots plus explicit parent/left (`LinkChange`) and content (`ContentChange`)
+deltas, so a single undo restores every removed block and re-linked sibling and
+redo re-applies the whole range operation. The wiki autocomplete popup lists only
+the rows it actually renders (`wiki_row_count`, capped at 8), so arrow-key
+selection and Enter can never reference an unrendered target; a no-match query
+renders the single "create page" row and closes the `[[query` link on Enter.
+
 ---
 
 ## WYSIWYM Model and Virtualization
