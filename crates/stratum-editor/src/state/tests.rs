@@ -13,6 +13,27 @@ fn block(id: Uuid, content: &str) -> Block {
     Block::new(id, content.to_string())
 }
 
+fn caret(block_id: Uuid, byte_offset: usize) -> Caret {
+    Caret {
+        block_id,
+        byte_offset,
+    }
+}
+
+fn dto(id: &str, content: &str) -> crate::dto::BlockDto {
+    crate::dto::BlockDto {
+        id: id.into(),
+        content: content.into(),
+        parent_id: None,
+        left_id: None,
+        properties: Vec::new(),
+        marker: None,
+        priority: None,
+        collapsed: false,
+        heading_level: None,
+    }
+}
+
 #[test]
 fn typing_coalesces_and_undo_removes_the_run() {
     let id = Uuid::new_v4();
@@ -316,24 +337,112 @@ fn paste_markdown_builds_indented_blocks() {
 
 #[test]
 fn cross_block_selection_deletes_the_range() {
-    let a = Uuid::new_v4();
-    let b = Uuid::new_v4();
+    let (a, b) = (Uuid::new_v4(), Uuid::new_v4());
     let mut second = block(b, "second");
     second.left_id = Some(a);
     let mut state = EditorState::new(doc_with(vec![block(a, "first"), second]));
-    let anchor = Caret {
-        block_id: a,
-        byte_offset: 0,
-    };
-    let head = Caret {
-        block_id: b,
-        byte_offset: 6,
-    };
-    state.set_selection(anchor, head).unwrap();
+    state.set_selection(caret(a, 0), caret(b, 6)).unwrap();
     let payload = state.cut_selection().unwrap();
     assert_eq!(payload.blocks.len(), 2);
-    assert!(state.document().block(a).is_none());
+    assert_eq!(state.document().block(a).unwrap().content, "");
     assert!(state.document().block(b).is_none());
+    assert!(state.undo().unwrap());
+    assert_eq!(state.document().block(a).unwrap().content, "first");
+    assert_eq!(state.document().block(b).unwrap().content, "second");
+    assert_eq!(state.document().block(b).unwrap().left_id, Some(a));
+}
+
+#[test]
+fn cross_block_delete_keeps_a_usable_caret_and_is_undoable() {
+    let (a, b) = (Uuid::new_v4(), Uuid::new_v4());
+    let mut second = block(b, "second");
+    second.left_id = Some(a);
+    let mut state = EditorState::new(doc_with(vec![block(a, "first"), second]));
+    state.set_selection(caret(a, 0), caret(b, 6)).unwrap();
+    state.insert_text("x").unwrap();
+    assert!(state.document().block(b).is_none());
+    assert_eq!(state.document().block(a).unwrap().content, "x");
+    assert!(state.undo().unwrap());
+    assert_eq!(state.document().block(a).unwrap().content, "");
+    assert!(state.undo().unwrap());
+    assert_eq!(state.document().block(a).unwrap().content, "first");
+    let restored = state.document().block(b).unwrap();
+    assert_eq!(restored.content, "second");
+    assert_eq!(restored.left_id, Some(a));
+    assert!(state.redo().unwrap());
+    assert!(state.redo().unwrap());
+    assert_eq!(state.document().block(a).unwrap().content, "x");
+    assert!(state.document().block(b).is_none());
+}
+
+#[test]
+fn cross_block_delete_preserves_unselected_text() {
+    let (a, b) = (Uuid::new_v4(), Uuid::new_v4());
+    let mut second = block(b, "tail");
+    second.left_id = Some(a);
+    let mut state = EditorState::new(doc_with(vec![block(a, "hello world"), second]));
+    state.set_selection(caret(a, 6), caret(b, 0)).unwrap();
+    state.cut_selection().unwrap();
+    assert!(state.document().block(b).is_none());
+    assert_eq!(state.document().block(a).unwrap().content, "hello tail");
+}
+
+#[test]
+fn cross_block_delete_rehomes_tail_children_and_undo_restores_them() {
+    let (a, b, c) = (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4());
+    let mut second = block(b, "bb");
+    second.left_id = Some(a);
+    let mut child = block(c, "cc");
+    child.parent_id = Some(b);
+    let mut state = EditorState::new(doc_with(vec![block(a, "aa"), second, child]));
+    state.set_selection(caret(a, 0), caret(b, 2)).unwrap();
+    state.cut_selection().unwrap();
+    assert!(state.document().block(b).is_none());
+    assert_eq!(state.document().block(c).unwrap().parent_id, Some(a));
+    assert_eq!(state.document().block(a).unwrap().content, "");
+    assert!(state.undo().unwrap());
+    assert_eq!(state.document().block(b).unwrap().left_id, Some(a));
+    let restored_c = state.document().block(c).unwrap();
+    assert_eq!(restored_c.parent_id, Some(b));
+    assert_eq!(restored_c.left_id, None);
+    assert_eq!(state.document().block(a).unwrap().content, "aa");
+}
+
+#[test]
+fn multi_block_paste_replaces_the_selection_and_is_undoable() {
+    let (a, b) = (Uuid::new_v4(), Uuid::new_v4());
+    let mut second = block(b, "tail");
+    second.left_id = Some(a);
+    let mut state = EditorState::new(doc_with(vec![block(a, "head"), second]));
+    state.set_selection(caret(a, 0), caret(b, 4)).unwrap();
+    let payload = ClipboardPayload {
+        plain_text: "one\ntwo".into(),
+        blocks: vec![
+            dto("11111111-1111-4111-8111-111111111111", "one"),
+            dto("22222222-2222-4222-8222-222222222222", "two"),
+        ],
+    };
+    state.paste_payload(&payload).unwrap();
+    assert!(state.document().block(b).is_none());
+    assert_eq!(state.document().block(a).unwrap().content, "");
+    let blocks = state.document().blocks();
+    let one = blocks
+        .iter()
+        .find(|candidate| candidate.content == "one")
+        .unwrap();
+    let two = blocks
+        .iter()
+        .find(|candidate| candidate.content == "two")
+        .unwrap();
+    assert_eq!(one.left_id, Some(a));
+    assert_eq!(two.left_id, Some(one.id));
+    let (one_id, two_id) = (one.id, two.id);
+    let caret = state.caret().unwrap();
+    assert_eq!(caret.block_id, two_id);
+    assert!(state.document().block(caret.block_id).is_some());
+    assert!(state.undo().unwrap());
+    assert!(state.document().block(one_id).is_none());
+    assert!(state.document().block(two_id).is_none());
 }
 
 #[test]

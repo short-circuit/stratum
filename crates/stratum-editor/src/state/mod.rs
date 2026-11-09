@@ -18,6 +18,8 @@
 //! - [`history`] — bounded undo/redo stacks and coalescing.
 //! - [`editing`] — caret-driven editing operations.
 //! - [`clipboard`] — copy/cut/paste and paste normalization.
+//! - [`splice`] — reversible block-range splices with explicit link/content
+//!   deltas, used by cross-block delete and multi-block paste.
 //! - [`ime`] — composition state and UTF-16 offset translation.
 //! - `text` — byte-offset and delimiter helpers shared by the above.
 
@@ -26,6 +28,7 @@ mod editing;
 mod history;
 mod ime;
 mod ops;
+mod splice;
 mod text;
 
 #[cfg(test)]
@@ -35,6 +38,7 @@ pub use clipboard::{normalize_paste, paste_markdown, ClipboardPayload};
 pub use history::{History, HistoryEntry};
 pub use ime::{byte_to_utf16, utf16_to_byte, Composition};
 pub use ops::EditOp;
+pub use splice::{ContentChange, LinkChange};
 
 use pkm_block::BlockId;
 use pkm_core::{PkmError, PkmResult};

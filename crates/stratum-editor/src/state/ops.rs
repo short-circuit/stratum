@@ -10,6 +10,7 @@ use pkm_block::ops;
 use pkm_block::{Block, BlockId, BlockTree, Priority, TaskMarker};
 use pkm_core::{PkmError, PkmResult};
 
+use super::splice::{apply_splice, ContentChange, LinkChange};
 use super::text::clamp_offset;
 
 /// One reversible edit operation.
@@ -94,6 +95,16 @@ pub enum EditOp {
         block_id: BlockId,
         old: Option<u8>,
         new: Option<u8>,
+    },
+    /// A block-range splice: remove `removed` snapshots, insert `inserted`
+    /// snapshots (parents before children) and apply the explicit `links` and
+    /// `contents` deltas. Cross-block delete and multi-block paste use this so
+    /// the whole range operation is a single undoable history entry.
+    SpliceBlocks {
+        removed: Vec<Block>,
+        inserted: Vec<Block>,
+        links: Vec<LinkChange>,
+        contents: Vec<ContentChange>,
     },
 }
 
@@ -222,6 +233,17 @@ impl EditOp {
                 block_id: *block_id,
                 old: *new,
                 new: *old,
+            },
+            EditOp::SpliceBlocks {
+                removed,
+                inserted,
+                links,
+                contents,
+            } => EditOp::SpliceBlocks {
+                removed: inserted.clone(),
+                inserted: removed.clone(),
+                links: links.iter().map(LinkChange::swapped).collect(),
+                contents: contents.iter().map(ContentChange::swapped).collect(),
             },
         }
     }
@@ -358,6 +380,12 @@ pub(super) fn apply_op(tree: &mut BlockTree, op: &EditOp) -> PkmResult<()> {
             block.meta.heading_level = *new;
             Ok(())
         }
+        EditOp::SpliceBlocks {
+            removed,
+            inserted,
+            links,
+            contents,
+        } => apply_splice(tree, removed, inserted, links, contents),
     }
 }
 

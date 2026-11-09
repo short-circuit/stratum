@@ -5,14 +5,16 @@
 //! runaway blank lines into a note. Markdown pastes split into blocks and turn
 //! leading list markers into indent depth.
 
-use pkm_block::ops;
-use pkm_block::BlockId;
+use std::collections::HashSet;
+
+use pkm_block::{Block, BlockId};
 use pkm_core::PkmResult;
 use uuid::Uuid;
 
-use super::ops::link_after;
-use super::text::ordered_offsets;
-use super::{Caret, EditorState};
+use super::ops::child_ids;
+use super::splice::{ContentChange, LinkChange};
+use super::text::{clamp_offset, ordered_offsets};
+use super::{Caret, EditOp, EditorState};
 use crate::dto::{block_to_dto, blocks_to_dto, dto_to_block, BlockDto};
 
 /// A clipboard payload produced by copy/cut.
@@ -38,12 +40,18 @@ impl EditorState {
     }
 
     /// Paste a clipboard payload at the caret.
+    ///
+    /// A multi-block payload first deletes the active selection (its own history
+    /// entry), then inserts the payload as one undoable splice and re-links the
+    /// sibling that used to follow the caret block.
     pub fn paste_payload(&mut self, payload: &ClipboardPayload) -> PkmResult<()> {
         if payload.blocks.len() <= 1 {
             return self.insert_text(&normalize_paste(&payload.plain_text));
         }
+        self.delete_selection()?;
         let caret = self.require_caret()?;
         let parent = self.doc.block(caret.block_id).and_then(|b| b.parent_id);
+        let mut inserted: Vec<Block> = Vec::new();
         let mut left = Some(caret.block_id);
         let mut last_id = None;
         for dto in &payload.blocks {
@@ -52,21 +60,42 @@ impl EditorState {
             block.parent_id = parent;
             block.left_id = left;
             let id = block.id;
-            self.doc.mutate(|tree| {
-                ops::insert_block(tree, block.clone());
-                link_after(tree, left, id);
-                Ok(())
-            })?;
+            inserted.push(block);
             left = Some(id);
             last_id = Some(id);
         }
-        if let Some(id) = last_id {
-            let len = self.block_content(id)?.len();
-            self.caret = Some(Caret {
-                block_id: id,
-                byte_offset: len,
+        let Some(last_id) = last_id else {
+            return Ok(());
+        };
+        // The block that followed the caret block must now follow the last
+        // inserted block instead. Only same-parent siblings can be re-linked.
+        let mut links = Vec::new();
+        if let Some(next) = self
+            .doc
+            .tree()
+            .all_blocks()
+            .find(|b| b.left_id == Some(caret.block_id) && b.parent_id == parent)
+        {
+            links.push(LinkChange {
+                block_id: next.id,
+                old_parent: next.parent_id,
+                new_parent: next.parent_id,
+                old_left: next.left_id,
+                new_left: Some(last_id),
             });
         }
+        let op = EditOp::SpliceBlocks {
+            removed: Vec::new(),
+            inserted,
+            links,
+            contents: Vec::new(),
+        };
+        self.apply(op)?;
+        let len = self.block_content(last_id)?.len();
+        self.caret = Some(Caret {
+            block_id: last_id,
+            byte_offset: len,
+        });
         Ok(())
     }
 
@@ -95,16 +124,49 @@ impl EditorState {
             };
         }
         let ids = self.doc.ordered_ids();
-        let start = ids.iter().position(|id| *id == sel.anchor.block_id);
-        let end = ids.iter().position(|id| *id == sel.head.block_id);
-        let (lo, hi) = match (start, end) {
-            (Some(a), Some(b)) => (a.min(b), a.max(b)),
-            _ => (0, 0),
+        let Some(start) = ids.iter().position(|id| *id == sel.anchor.block_id) else {
+            return ClipboardPayload {
+                plain_text: String::new(),
+                blocks: Vec::new(),
+            };
         };
-        let blocks: Vec<pkm_block::Block> = ids[lo..=hi]
-            .iter()
-            .filter_map(|id| self.doc.block(*id).cloned())
-            .collect();
+        let Some(end) = ids.iter().position(|id| *id == sel.head.block_id) else {
+            return ClipboardPayload {
+                plain_text: String::new(),
+                blocks: Vec::new(),
+            };
+        };
+        let (lo, hi) = (start.min(end), start.max(end));
+        let (earlier, later) = if start <= end {
+            (sel.anchor, sel.head)
+        } else {
+            (sel.head, sel.anchor)
+        };
+        let earlier_content = self
+            .doc
+            .block(earlier.block_id)
+            .map(|b| b.content.clone())
+            .unwrap_or_default();
+        let later_content = self
+            .doc
+            .block(later.block_id)
+            .map(|b| b.content.clone())
+            .unwrap_or_default();
+        let earlier_offset = clamp_offset(&earlier_content, earlier.byte_offset);
+        let later_offset = clamp_offset(&later_content, later.byte_offset);
+        let mut blocks: Vec<Block> = Vec::new();
+        for (index, id) in ids[lo..=hi].iter().enumerate() {
+            let Some(block) = self.doc.block(*id).cloned() else {
+                continue;
+            };
+            let mut block = block;
+            if index == 0 {
+                block.content = earlier_content[earlier_offset..].to_string();
+            } else if index == hi - lo {
+                block.content = later_content[..later_offset].to_string();
+            }
+            blocks.push(block);
+        }
         let plain_text = blocks
             .iter()
             .map(|b| b.content.clone())
@@ -140,24 +202,128 @@ impl EditorState {
             return Ok(());
         }
         let ids = self.doc.ordered_ids();
-        let start = ids.iter().position(|id| *id == sel.anchor.block_id);
-        let end = ids.iter().position(|id| *id == sel.head.block_id);
-        if let (Some(a), Some(b)) = (start, end) {
-            let (lo, hi) = (a.min(b), a.max(b));
-            let to_delete: Vec<BlockId> = ids[lo..=hi].to_vec();
-            self.doc.mutate(|tree| {
-                for id in &to_delete {
-                    if tree.contains(*id) {
-                        ops::delete_block(tree, *id)?;
+        let Some(start) = ids.iter().position(|id| *id == sel.anchor.block_id) else {
+            return Ok(());
+        };
+        let Some(end) = ids.iter().position(|id| *id == sel.head.block_id) else {
+            return Ok(());
+        };
+        let (lo, hi) = (start.min(end), start.max(end));
+        let (earlier, later) = if start <= end {
+            (sel.anchor, sel.head)
+        } else {
+            (sel.head, sel.anchor)
+        };
+        let earlier_id = ids[lo];
+        let later_id = ids[hi];
+        let earlier_content = self.block_content(earlier_id)?;
+        let later_content = self.block_content(later_id)?;
+        let earlier_offset = clamp_offset(&earlier_content, earlier.byte_offset);
+        let later_offset = clamp_offset(&later_content, later.byte_offset);
+        let merged = format!(
+            "{}{}",
+            &earlier_content[..earlier_offset],
+            &later_content[later_offset..]
+        );
+
+        // Snapshot every block from just after the survivor through the later
+        // block, in document order so parents precede their descendants.
+        let removed_ids: Vec<BlockId> = ids[lo + 1..=hi].to_vec();
+        let removed_set: HashSet<BlockId> = removed_ids.iter().copied().collect();
+        let removed: Vec<Block> = removed_ids
+            .iter()
+            .filter_map(|id| self.doc.block(*id).cloned())
+            .collect();
+
+        let tree = self.doc.tree();
+        let mut links: Vec<LinkChange> = Vec::new();
+        let mut covered: HashSet<BlockId> = HashSet::new();
+
+        // Surviving children of the later block are appended after the earlier
+        // block's surviving children, preserving their sibling order.
+        let mut last = child_ids(tree, earlier_id)
+            .into_iter()
+            .rfind(|id| !removed_set.contains(id));
+        for child in child_ids(tree, later_id) {
+            if removed_set.contains(&child) {
+                continue;
+            }
+            let old_parent = tree.get(child).and_then(|b| b.parent_id);
+            let old_left = tree.get(child).and_then(|b| b.left_id);
+            links.push(LinkChange {
+                block_id: child,
+                old_parent,
+                new_parent: Some(earlier_id),
+                old_left,
+                new_left: last,
+            });
+            covered.insert(child);
+            last = Some(child);
+        }
+
+        // Any surviving block whose left pointer dangles into the removed set
+        // is re-linked to the nearest surviving sibling. A different parent
+        // means the nearest candidate is not a sibling, so the block becomes a
+        // first child instead.
+        let surviving: Vec<Block> = tree
+            .all_blocks()
+            .filter(|b| !removed_set.contains(&b.id))
+            .cloned()
+            .collect();
+        for block in surviving {
+            let Some(left) = block.left_id else {
+                continue;
+            };
+            if !removed_set.contains(&left) || covered.contains(&block.id) {
+                continue;
+            }
+            let mut cursor = Some(left);
+            let mut candidate = None;
+            while let Some(id) = cursor {
+                if !removed_set.contains(&id) {
+                    candidate = Some(id);
+                    break;
+                }
+                cursor = tree.get(id).and_then(|b| b.left_id);
+            }
+            let new_left = match candidate {
+                Some(id) => {
+                    let candidate_parent = tree.get(id).and_then(|b| b.parent_id);
+                    if candidate_parent == block.parent_id {
+                        Some(id)
+                    } else {
+                        None
                     }
                 }
-                Ok(())
-            })?;
-            self.caret = Some(Caret {
-                block_id: sel.head.block_id,
-                byte_offset: sel.head.byte_offset,
-            });
+                None => None,
+            };
+            if new_left != block.left_id {
+                links.push(LinkChange {
+                    block_id: block.id,
+                    old_parent: block.parent_id,
+                    new_parent: block.parent_id,
+                    old_left: block.left_id,
+                    new_left,
+                });
+                covered.insert(block.id);
+            }
         }
+
+        let op = EditOp::SpliceBlocks {
+            removed,
+            inserted: Vec::new(),
+            links,
+            contents: vec![ContentChange {
+                block_id: earlier_id,
+                old: earlier_content,
+                new: merged,
+            }],
+        };
+        self.apply(op)?;
+        self.caret = Some(Caret {
+            block_id: earlier_id,
+            byte_offset: earlier_offset,
+        });
         Ok(())
     }
 }
