@@ -1,8 +1,8 @@
 //! Shell chrome: sidebar, header, error bar and toaster.
 //!
 //! [`Shell`] owns the navigation state and the data provider. Rendering is
-//! split across [`sidebar`] and [`footer`] so the layout contract stays
-//! readable and testable. The shell deliberately renders one panel stub
+//! split across [`sidebar`], [`footer`] and [`chrome`] so the layout contract
+//! stays readable and testable. The shell deliberately renders one panel stub
 //! at a time: panel bodies are the next milestone, while this crate is the
 //! chrome that hosts them.
 //!
@@ -13,16 +13,19 @@
 
 use std::sync::Arc;
 
-use gpui_kit::assets::IconName;
-use gpui_kit::component::{ActiveTheme, Icon, Sizable};
+use gpui_kit::component::ActiveTheme;
 use gpui_kit::prelude::*;
 use gpui_kit::*;
 use stratum_i18n::{t_global, tr_global};
 
+use crate::panels::editor::EditorView;
 use crate::panels::panel_view;
 use crate::provider::ShellData;
 use crate::router::{path_for, Panel, ShortcutAction};
 
+use chrome::{error_bar, header, toast_overlay};
+
+mod chrome;
 mod footer;
 mod sidebar;
 
@@ -88,6 +91,7 @@ pub struct Shell {
     sidebar_collapsed: bool,
     snapshot: crate::provider::ShellSnapshot,
     read_mode: bool,
+    editor: Option<Entity<EditorView>>,
     error: Option<String>,
     toast: Option<Toast>,
 }
@@ -103,6 +107,7 @@ impl Shell {
             sidebar_collapsed: false,
             snapshot,
             read_mode: false,
+            editor: None,
             error: None,
             toast: None,
         }
@@ -161,16 +166,79 @@ impl Shell {
     pub fn navigate(&mut self, panel: Panel) {
         if panel != Panel::Page {
             self.current_page = None;
+            self.editor = None;
         }
         self.active = panel;
         self.read_mode = false;
     }
 
-    /// Open a page in the editor stub.
+    /// Open a page in the editor. The entity is created lazily by `render`.
     pub fn open_page(&mut self, path: impl Into<String>) {
         self.current_page = Some(path.into());
         self.active = Panel::Page;
         self.read_mode = false;
+        self.editor = None;
+    }
+
+    /// The live editor entity, if the page panel has created one.
+    pub fn editor(&self) -> Option<&Entity<EditorView>> {
+        self.editor.as_ref()
+    }
+
+    /// Route a Ctrl+click navigation request from the editor.
+    ///
+    /// Tags open the search panel; wiki-links resolve to a recent page path
+    /// when one matches the target slug/title, otherwise they also search.
+    fn handle_editor_navigation(&mut self, target: &str) {
+        if target.starts_with('#') {
+            self.navigate(Panel::Search);
+            return;
+        }
+        let resolved = self
+            .snapshot
+            .recents
+            .iter()
+            .find(|page| {
+                page.path == target
+                    || page.path.trim_end_matches(".md").ends_with(target)
+                    || page.title == target
+            })
+            .map(|page| page.path.clone());
+        match resolved {
+            Some(path) => self.open_page(path),
+            None => self.navigate(Panel::Search),
+        }
+    }
+
+    /// Create or refresh the editor entity for the current page.
+    fn sync_editor(&mut self, cx: &mut Context<Self>) {
+        let Some(path) = self.current_page.clone() else {
+            self.editor = None;
+            return;
+        };
+        let needs_new = match &self.editor {
+            Some(editor) => editor.read(cx).path() != path,
+            None => true,
+        };
+        if needs_new {
+            let provider = Arc::clone(&self.provider);
+            let read_mode = self.read_mode;
+            self.editor = Some(cx.new(move |cx| EditorView::new(path, provider, read_mode, cx)));
+        } else if let Some(editor) = &self.editor {
+            let read_mode = self.read_mode;
+            editor.update(cx, |view, cx| view.set_read_mode(read_mode, cx));
+        }
+        let navigation = self.editor.as_ref().and_then(|editor| {
+            editor.update(cx, |view, _| {
+                view.pending_navigation().map(|target| target.to_string())
+            })
+        });
+        if let Some(target) = navigation {
+            if let Some(editor) = &self.editor {
+                editor.update(cx, |view, _| view.clear_pending_navigation());
+            }
+            self.handle_editor_navigation(&target);
+        }
     }
 
     /// Toggle the sidebar. Returns the new collapsed state.
@@ -262,6 +330,9 @@ impl Shell {
 
 impl Render for Shell {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if self.active == Panel::Page {
+            self.sync_editor(cx);
+        }
         let theme = cx.theme();
         let background = theme.colors.background;
         let foreground = theme.colors.foreground;
@@ -299,6 +370,7 @@ impl Render for Shell {
                     .child(div().flex_1().overflow_hidden().child(panel_view(
                         self.active,
                         self.current_page.as_deref(),
+                        self.editor.clone(),
                         cx,
                     ))),
             )
@@ -306,155 +378,4 @@ impl Render for Shell {
                 element.child(toast_overlay(self, cx))
             })
     }
-}
-
-/// The content header. It mirrors the React page header: the localized panel
-/// title on the left and the read-mode control on the right.
-fn header(shell: &Shell, cx: &mut Context<Shell>) -> impl IntoElement {
-    let theme = cx.theme();
-    let background = theme.colors.secondary;
-    let border = theme.colors.border;
-    let foreground = theme.colors.foreground;
-    let muted = theme.colors.muted_foreground;
-    let accent = theme.colors.accent;
-    let accent_foreground = theme.colors.accent_foreground;
-
-    let title = t_global(shell.active.title_key());
-    let subtitle = shell.current_page().map(str::to_string);
-    let read_label = if shell.read_mode() {
-        t_global("page.edit_mode")
-    } else {
-        t_global("page.read_mode")
-    };
-
-    div()
-        .flex()
-        .items_center()
-        .justify_between()
-        .h(px(56.0))
-        .px(px(20.0))
-        .bg(background)
-        .border_b_1()
-        .border_color(border)
-        .child(
-            div()
-                .flex()
-                .flex_col()
-                .gap(px(2.0))
-                .child(
-                    div()
-                        .text_size(px(18.0))
-                        .font_weight(FontWeight::SEMIBOLD)
-                        .text_color(foreground)
-                        .child(title),
-                )
-                .when_some(subtitle, |element, path| {
-                    element.child(div().text_size(px(12.0)).text_color(muted).child(path))
-                }),
-        )
-        .when(shell.active_panel() == Panel::Page, |element| {
-            element.child(
-                div()
-                    .id("header-read-mode")
-                    .px(px(12.0))
-                    .py(px(6.0))
-                    .rounded(px(6.0))
-                    .bg(accent)
-                    .text_color(accent_foreground)
-                    .text_size(px(12.0))
-                    .font_weight(FontWeight::MEDIUM)
-                    .cursor_pointer()
-                    .on_click(cx.listener(|this, _, _, cx| {
-                        this.toggle_read_mode();
-                        cx.notify();
-                    }))
-                    .child(read_label),
-            )
-        })
-}
-
-/// The error bar shown below the header. Dismissing it is also bound to Escape.
-fn error_bar(shell: &Shell, cx: &mut Context<Shell>) -> impl IntoElement {
-    let theme = cx.theme();
-    let danger = theme.colors.danger;
-    let border = theme.colors.border;
-
-    div()
-        .flex()
-        .items_center()
-        .justify_between()
-        .gap(px(12.0))
-        .px(px(20.0))
-        .py(px(10.0))
-        .bg(danger)
-        .text_color(gpui::white())
-        .border_b_1()
-        .border_color(border)
-        .child(
-            div()
-                .flex_1()
-                .text_size(px(13.0))
-                .child(shell.error().unwrap_or_default().to_string()),
-        )
-        .child(
-            div()
-                .id("error-dismiss")
-                .flex()
-                .items_center()
-                .justify_center()
-                .size(px(22.0))
-                .rounded(px(4.0))
-                .cursor_pointer()
-                .on_click(cx.listener(|this, _, _, cx| {
-                    this.dismiss_overlay();
-                    cx.notify();
-                }))
-                .child(Icon::new(IconName::X).with_size(px(16.0))),
-        )
-}
-
-/// The success toaster in the lower-right corner.
-fn toast_overlay(shell: &Shell, cx: &mut Context<Shell>) -> impl IntoElement {
-    let theme = cx.theme();
-    let background = theme.colors.secondary;
-    let border = theme.colors.border;
-    let foreground = theme.colors.foreground;
-    let muted = theme.colors.muted_foreground;
-
-    div()
-        .absolute()
-        .right(px(16.0))
-        .bottom(px(40.0))
-        .flex()
-        .items_center()
-        .gap(px(12.0))
-        .w(px(360.0))
-        .px(px(16.0))
-        .py(px(12.0))
-        .rounded(px(8.0))
-        .bg(background)
-        .border_1()
-        .border_color(border)
-        .child(
-            div()
-                .flex_1()
-                .text_size(px(13.0))
-                .text_color(foreground)
-                .child(shell.toast_message().unwrap_or_default().to_string()),
-        )
-        .child(
-            div()
-                .id("toast-dismiss")
-                .flex()
-                .items_center()
-                .justify_center()
-                .size(px(22.0))
-                .rounded(px(4.0))
-                .cursor_pointer()
-                .on_click(cx.listener(|this, _, _, cx| {
-                    this.toast = None;
-                    cx.notify();
-                }))
-                .child(Icon::new(IconName::X).with_size(px(16.0)).text_color(muted)),
-        )
 }

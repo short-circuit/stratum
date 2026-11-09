@@ -74,6 +74,7 @@ stratum/
 │   ├── pkm-tests/              # Integration tests for the Rust crates
 │   ├── pkm-watcher/            # File system watcher
 │   ├── stratum-app/            # Headless service layer behind every Tauri command (no tauri deps)
+│   ├── stratum-editor/         # Headless block-editor engine: document, spans, state, undo, menus (no UI deps)
 │   ├── stratum-i18n/           # Embedded locale catalogs, interpolation and parity gates (native shell)
 │   └── stratum-ui/             # Native GPUI desktop shell (E2) on top of stratum-app
 ├── src/                        # React + TypeScript frontend
@@ -266,6 +267,7 @@ pkm-dictation  →  pkm-core, pkm-audio, pkm-stt
 stratum-app    →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-query, pkm-plugin, pkm-dictation
 pkm-tests      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-sync, pkm-query, pkm-ai, pkm-plugin, stratum-tauri
 pkm-cli        →  pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
+stratum-editor →  pkm-core, pkm-block, pkm-markdown
 stratum-i18n   →  pkm-core
 stratum-ui     →  gpui-kit (external), stratum-i18n, stratum-app, pkm-core
 src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-dictation, pkm-plugin, stratum-app
@@ -484,21 +486,41 @@ frozen reference application and are never modified by shell work.
   derivation (`theme`), the embedded asset source and Inter faces (`assets`),
   the `ShellData` provider seam (`provider`), the chrome (`shell`) and panel
   stubs (`panels`).
+- `stratum-editor` is the headless block-editor engine the phase-B editor view
+  renders (`DecoratedRow`s from `render`). It owns document canonicalization,
+  inline spans, editing/undo/IME, slash and marker menus, wiki-link helpers,
+  marker/reminder models, math/Mermaid caches and virtualization, and has no UI
+  dependencies.
+- The native editor view lives in `crates/stratum-ui/src/panels/editor/`:
+  `mod.rs` (EditorView state, metrics, save scheduling, asset budget),
+  `view.rs` (virtual list, canvas input, overlays), `rows.rs` (row/span/caret
+  geometry), `input.rs` (EntityInputHandler, key/mouse, clipboard, IME),
+  `overlay.rs` (slash/wiki/marker/link/dead-link popups) and `save.rs`
+  (save-status transitions). `tests/editor_contract.rs` covers the 10k layout,
+  focused-line delimiter visibility, catalogues, save transitions and UTF-16
+  helpers without opening a window.
 - The shell never calls Tauri commands directly; data flows through
   `ShellData`/`AppProvider`, whose real implementation drives
   `stratum_app::StratumService`.
 - `STRATUM_FIXTURE=1` selects the deterministic 87-page fixture used by tests
-  and the capture harness. `STRATUM_VAULT` selects a real vault and
-  `STRATUM_LOCALE` selects one of the eight catalogs.
+  and the capture harness (`STRATUM_FIXTURE_BLOCKS` controls the Welcome page
+  size). `STRATUM_VAULT` selects a real vault and `STRATUM_LOCALE` selects one of
+  the eight catalogs.
 - `scripts/capture-gpui-shell.sh` renders the fixture shell on a private Xvfb
   screen and writes `dist/gpui-shell.png` (224 px sidebar) plus
-  `dist/gpui-shell-collapsed.png` (52 px rail, `STRATUM_COLLAPSED=1`);
-  `.github/workflows/gpui-ci.yml` runs the GPUI format/build/test/clippy gates
-  on Linux, Windows and macOS and publishes the screenshot. The main `ci.yml`
-  also has a `gpui-capture` job.
+  `dist/gpui-shell-collapsed.png` (52 px rail, `STRATUM_COLLAPSED=1`).
+- `scripts/capture-gpui-editor-perf.sh` runs `stratum-editor-perf` on the 10k
+  fixture, prints frame/render timings and gates only on `render_p95_ms >
+  18.18` (55 fps work budget); the JSON report lands in
+  `.hermes/perf/editor-10k-frames.json`.
+- `.github/workflows/gpui-ci.yml` runs the GPUI format/build/test/clippy gates
+  on Linux, Windows and macOS, publishes the screenshot and the editor perf
+  report. The main `ci.yml` also has a `gpui-capture` job.
 
 See `docs/development/gpui-ui.md` for the module/API map, build commands,
-test coverage and current limitations.
+test coverage and current limitations, and `docs/development/gpui-editor.md`
+for the headless editor engine, its byte-stability contract and the phase-B
+boundary.
 
 ## Sync Modes
 
@@ -585,8 +607,8 @@ cargo build -p stratum-ui
 STRATUM_FIXTURE=1 cargo run -p stratum-ui
 
 # GPUI crate tests + capture
-cargo test -p stratum-i18n -p stratum-ui
-cargo clippy -p stratum-i18n -p stratum-ui --all-targets -- -D warnings
+cargo test -p stratum-i18n -p stratum-ui -p stratum-editor
+cargo clippy -p stratum-i18n -p stratum-ui -p stratum-editor --all-targets -- -D warnings
 ./scripts/capture-gpui-shell.sh  # writes dist/gpui-shell.png
 
 # Tauri desktop app

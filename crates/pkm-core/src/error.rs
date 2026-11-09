@@ -68,6 +68,9 @@ pub enum PkmError {
 
     #[error("i18n error: {0}")]
     I18n(String),
+
+    #[error("Render error: {0}")]
+    Render(String),
 }
 
 /// Convenience alias.
@@ -165,6 +168,8 @@ mod tests {
             PkmError::AlreadyExists("ae".into()),
             PkmError::Unsupported("uns".into()),
             PkmError::Internal("int".into()),
+            PkmError::I18n("i18n".into()),
+            PkmError::Render("render".into()),
         ];
         for v in &variants {
             let s = v.to_string();

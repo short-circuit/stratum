@@ -2,19 +2,27 @@
 //!
 //! [`ShellData`] is the seam between the gpui shell and the headless service
 //! layer. [`AppProvider`] drives the real [`StratumService`] on a Tokio
-//! runtime; [`FixtureProvider`] returns a deterministic snapshot for tests
-//! and for `STRATUM_FIXTURE=1`, which lets the capture harness render the
-//! shell without a vault.
+//! runtime; [`FixtureProvider`] returns a deterministic snapshot for tests and
+//! for `STRATUM_FIXTURE=1`, which lets the capture harness render the shell
+//! without a vault.
 //!
 //! Recent-page derivation mirrors `src/stores/recentsStore.ts`: journal pages
 //! are excluded and the list is ordered by `modified_at` descending. The
 //! ordering is a plain string comparison because the backend already emits
 //! RFC 3339 timestamps.
+//!
+//! The fixture generator lives in [`fixture`] so this module stays under the
+//! repository file-length limit.
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use stratum_app::StratumService;
+use stratum_editor::BlockDto;
+
+mod fixture;
+
+pub use fixture::{fixture_blocks, FixtureProvider};
 
 /// Vault counters shown in the sidebar header.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -55,6 +63,16 @@ pub trait ShellData: Send + Sync {
     fn refresh(&self) -> ShellSnapshot;
     /// Export the vault as static HTML, returning the number of pages written.
     fn export_html(&self) -> Result<u64, String>;
+    /// Load the blocks of one page. `None` means the page has no blocks (or the
+    /// provider cannot read it), and the editor starts empty.
+    fn load_blocks(&self, _path: &str) -> Option<Vec<BlockDto>> {
+        None
+    }
+    /// Persist every block of one page. Providers that cannot persist pages
+    /// accept the write without error.
+    fn save_blocks(&self, _path: &str, _blocks: Vec<BlockDto>) -> Result<(), String> {
+        Ok(())
+    }
 }
 
 /// Real provider backed by the headless service layer.
@@ -107,6 +125,27 @@ impl AppProvider {
             Err(_) => Vec::new(),
         }
     }
+
+    /// Load the editor blocks of one page through the service layer.
+    fn read_blocks(&self, path: &str) -> Option<Vec<BlockDto>> {
+        self.runtime
+            .block_on(self.service.get_blocks(path.to_string()))
+            .ok()
+            .map(|list| {
+                list.blocks
+                    .into_iter()
+                    .map(app_block_to_editor)
+                    .collect::<Vec<_>>()
+            })
+    }
+
+    /// Persist editor blocks through the service layer.
+    fn write_blocks(&self, path: &str, blocks: Vec<BlockDto>) -> Result<(), String> {
+        let app_blocks = blocks.into_iter().map(editor_block_to_app).collect();
+        self.runtime
+            .block_on(self.service.save_blocks(path.to_string(), app_blocks, None))
+            .map_err(|error| error.to_string())
+    }
 }
 
 impl ShellData for AppProvider {
@@ -126,76 +165,43 @@ impl ShellData for AppProvider {
             .block_on(self.service.export_html("/tmp/stratum-export".to_string()))
             .map(|result| result.pages_exported as u64)
     }
-}
 
-/// Deterministic provider used by tests and `STRATUM_FIXTURE=1`.
-pub struct FixtureProvider {
-    snapshot: ShellSnapshot,
-    export_pages: u64,
-}
+    fn load_blocks(&self, path: &str) -> Option<Vec<BlockDto>> {
+        self.read_blocks(path)
+    }
 
-impl FixtureProvider {
-    /// Create the deterministic fixture snapshot.
-    ///
-    /// The raw list intentionally contains a journal page so the fixture
-    /// exercises the same filtering and ordering as the real provider.
-    pub fn new() -> Self {
-        let raw = vec![
-            RecentPage {
-                path: "journals/2026-11-09.md".to_string(),
-                title: "2026-11-09".to_string(),
-                block_count: 5,
-                modified_at: "2026-11-09T09:00:00Z".to_string(),
-            },
-            RecentPage {
-                path: "pages/Welcome.md".to_string(),
-                title: "Welcome".to_string(),
-                block_count: 12,
-                modified_at: "2026-11-09T08:00:00Z".to_string(),
-            },
-            RecentPage {
-                path: "pages/Project Notes.md".to_string(),
-                title: "Project Notes".to_string(),
-                block_count: 34,
-                modified_at: "2026-11-08T18:00:00Z".to_string(),
-            },
-            RecentPage {
-                path: "pages/Reading List.md".to_string(),
-                title: "Reading List".to_string(),
-                block_count: 7,
-                modified_at: "2026-11-07T12:00:00Z".to_string(),
-            },
-        ];
-        Self {
-            snapshot: ShellSnapshot {
-                vault: Some(VaultStats {
-                    block_count: 1240,
-                    page_count: 87,
-                }),
-                recents: derive_recents(raw),
-            },
-            export_pages: 87,
-        }
+    fn save_blocks(&self, path: &str, blocks: Vec<BlockDto>) -> Result<(), String> {
+        self.write_blocks(path, blocks)
     }
 }
 
-impl Default for FixtureProvider {
-    fn default() -> Self {
-        Self::new()
+/// Convert an `stratum-app` block DTO into the editor DTO (field-identical).
+fn app_block_to_editor(dto: stratum_app::block::BlockDto) -> BlockDto {
+    BlockDto {
+        id: dto.id,
+        content: dto.content,
+        parent_id: dto.parent_id,
+        left_id: dto.left_id,
+        properties: dto.properties,
+        marker: dto.marker,
+        priority: dto.priority,
+        collapsed: dto.collapsed,
+        heading_level: dto.heading_level,
     }
 }
 
-impl ShellData for FixtureProvider {
-    fn snapshot(&self) -> ShellSnapshot {
-        self.snapshot.clone()
-    }
-
-    fn refresh(&self) -> ShellSnapshot {
-        self.snapshot.clone()
-    }
-
-    fn export_html(&self) -> Result<u64, String> {
-        Ok(self.export_pages)
+/// Convert an editor DTO into the `stratum-app` block DTO (field-identical).
+fn editor_block_to_app(dto: BlockDto) -> stratum_app::block::BlockDto {
+    stratum_app::block::BlockDto {
+        id: dto.id,
+        content: dto.content,
+        parent_id: dto.parent_id,
+        left_id: dto.left_id,
+        properties: dto.properties,
+        marker: dto.marker,
+        priority: dto.priority,
+        collapsed: dto.collapsed,
+        heading_level: dto.heading_level,
     }
 }
 
@@ -271,5 +277,20 @@ mod tests {
     #[test]
     fn fixture_export_reports_the_page_count() {
         assert_eq!(FixtureProvider::new().export_html(), Ok(87));
+    }
+
+    #[test]
+    fn fixture_provider_round_trips_saved_blocks() {
+        let provider = FixtureProvider::new();
+        let mut blocks = provider
+            .load_blocks("pages/Welcome.md")
+            .expect("page exists");
+        blocks[0].content = "Changed".to_string();
+        assert_eq!(
+            provider.save_blocks("pages/Welcome.md", blocks.clone()),
+            Ok(())
+        );
+        assert_eq!(provider.load_blocks("pages/Welcome.md"), Some(blocks));
+        assert_eq!(provider.load_blocks("pages/Missing.md"), None);
     }
 }

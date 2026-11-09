@@ -11,6 +11,10 @@ description = "Stratum gpui shell: the desktop UI on top of the headless service
 name = "stratum"
 path = "src/main.rs"
 
+[[bin]]
+name = "stratum-editor-perf"
+path = "src/bin/editor_perf.rs"
+
 [lib]
 name = "stratum_ui"
 path = "src/lib.rs"
@@ -19,7 +23,10 @@ path = "src/lib.rs"
 gpui-kit = { version = "0.9", default-features = false, features = ["component", "assets"] }
 stratum-i18n = { path = "../stratum-i18n" }
 stratum-app = { path = "../stratum-app" }
+stratum-editor = { path = "../stratum-editor" }
 pkm-core = { path = "../pkm-core" }
+chrono.workspace = true
+uuid.workspace = true
 rust-embed = "8"
 serde.workspace = true
 serde_json.workspace = true

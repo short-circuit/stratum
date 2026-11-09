@@ -1,7 +1,8 @@
 name: GPUI shell
 
-# Native-shell gate: formatting, build, tests and clippy for crates/stratum-i18n
-# and crates/stratum-ui on Linux, Windows and macOS, plus a rendered screenshot
+# Native-shell gate: formatting, build, tests and clippy for crates/stratum-i18n,
+# crates/stratum-ui and crates/stratum-editor on Linux, Windows and macOS, plus a
+# rendered screenshot
 # of the shell on Linux (the only runner in this workflow with a headless X
 # server). Path-filtered so unrelated changes do not pay for the GPUI build,
 # with a manual trigger for full-suite verification.
@@ -12,7 +13,9 @@ on:
     paths:
       - 'crates/stratum-i18n/**'
       - 'crates/stratum-ui/**'
+      - 'crates/stratum-editor/**'
       - 'scripts/capture-gpui-shell.sh'
+      - 'scripts/capture-gpui-editor-perf.sh'
       - '.github/workflows/gpui-ci.yml'
       - '.github/actions/install-linux-deps/**'
       - 'Cargo.toml'
@@ -22,7 +25,9 @@ on:
     paths:
       - 'crates/stratum-i18n/**'
       - 'crates/stratum-ui/**'
+      - 'crates/stratum-editor/**'
       - 'scripts/capture-gpui-shell.sh'
+      - 'scripts/capture-gpui-editor-perf.sh'
       - '.github/workflows/gpui-ci.yml'
       - '.github/actions/install-linux-deps/**'
       - 'Cargo.toml'
@@ -76,13 +81,13 @@ jobs:
         run: cargo fmt --all --check
 
       - name: Build GPUI crates
-        run: cargo build -p stratum-i18n -p stratum-ui
+        run: cargo build -p stratum-i18n -p stratum-ui -p stratum-editor
 
       - name: Run GPUI tests
-        run: cargo test -p stratum-i18n -p stratum-ui
+        run: cargo test -p stratum-i18n -p stratum-ui -p stratum-editor
 
       - name: Run GPUI clippy
-        run: cargo clippy -p stratum-i18n -p stratum-ui --all-targets -- -D warnings
+        run: cargo clippy -p stratum-i18n -p stratum-ui -p stratum-editor --all-targets -- -D warnings
 
   gpui-capture:
     name: gpui shell screenshot (ubuntu)
@@ -125,9 +130,19 @@ jobs:
       - name: Capture shell screenshot
         run: ./scripts/capture-gpui-shell.sh
 
+      - name: Capture 10k editor performance
+        run: ./scripts/capture-gpui-editor-perf.sh
+
       - name: Upload screenshot artifact
         uses: actions/upload-artifact@v4
         with:
           name: gpui-shell-screenshot
           path: dist/gpui-shell.png
+          if-no-files-found: error
+
+      - name: Upload editor performance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-editor-perf
+          path: .hermes/perf/editor-10k-frames.json
           if-no-files-found: error

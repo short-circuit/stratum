@@ -1,9 +1,10 @@
-//! Panel stubs hosted by the shell.
+//! Panel bodies hosted by the shell.
 //!
-//! The shell milestone owns the chrome; each panel body is rendered as a
-//! titled placeholder so navigation can be exercised end to end. The editor
-//! stub additionally shows the selected page path (or the shipped empty-state
-//! hint), which is the same state the React `PageView` starts from.
+//! The shell milestone owns the chrome. Non-editor panels are rendered as
+//! titled placeholders so navigation can be exercised end to end; the editor
+//! panel renders the real [`crate::panels::editor::EditorView`] when the shell
+//! has created one. Without an editor entity (for example the window-free shell
+//! tests) the page panel falls back to the shipped empty-state hint.
 
 use gpui_kit::assets::IconName;
 use gpui_kit::component::{ActiveTheme, Icon, Sizable};
@@ -11,6 +12,9 @@ use gpui_kit::prelude::*;
 use gpui_kit::*;
 use stratum_i18n::t_global;
 
+pub mod editor;
+
+use crate::panels::editor::EditorView;
 use crate::router::Panel;
 use crate::shell::Shell;
 
@@ -33,12 +37,21 @@ pub fn panel_icon(panel: Panel) -> IconName {
     }
 }
 
-/// Render the active panel placeholder.
+/// Render the active panel body.
+///
+/// `editor` is the live editor entity for the open page. It is `None` in the
+/// window-free shell tests, which keeps the page panel on the shipped stub.
 pub fn panel_view(
     panel: Panel,
     page_path: Option<&str>,
+    editor: Option<Entity<EditorView>>,
     cx: &mut Context<Shell>,
 ) -> impl IntoElement {
+    if panel == Panel::Page {
+        if let Some(editor) = editor {
+            return div().size_full().child(editor);
+        }
+    }
     let theme = cx.theme();
     let foreground = theme.colors.foreground;
     let muted = theme.colors.muted_foreground;
