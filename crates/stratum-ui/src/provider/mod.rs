@@ -73,6 +73,10 @@ pub trait ShellData: Send + Sync {
     fn save_blocks(&self, _path: &str, _blocks: Vec<BlockDto>) -> Result<(), String> {
         Ok(())
     }
+    /// Speak `text` aloud. Providers without audio support return `Ok(())`.
+    fn speak(&self, _text: String) -> Result<(), String> {
+        Ok(())
+    }
 }
 
 /// Real provider backed by the headless service layer.
@@ -146,6 +150,26 @@ impl AppProvider {
             .block_on(self.service.save_blocks(path.to_string(), app_blocks, None))
             .map_err(|error| error.to_string())
     }
+
+    /// Synthesize `text` and start playback on a detached thread.
+    ///
+    /// Synthesis is fallible and reported to the caller; playback failures are
+    /// logged only, because audio is a best-effort side effect and must not turn
+    /// an otherwise successful read-aloud request into an error. The thread owns
+    /// the `OutputStream` for the whole playback, since dropping it stops audio.
+    fn speak_text(&self, text: String) -> Result<(), String> {
+        let result = self.runtime.block_on(self.service.tts_speak(text))?;
+        use base64::Engine;
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(result.audio_b64.as_bytes())
+            .map_err(|error| format!("TTS audio decode failed: {error}"))?;
+        std::thread::spawn(move || {
+            if let Err(error) = play_audio(bytes) {
+                log::warn!("read-aloud playback failed: {error}");
+            }
+        });
+        Ok(())
+    }
 }
 
 impl ShellData for AppProvider {
@@ -172,6 +196,10 @@ impl ShellData for AppProvider {
 
     fn save_blocks(&self, path: &str, blocks: Vec<BlockDto>) -> Result<(), String> {
         self.write_blocks(path, blocks)
+    }
+
+    fn speak(&self, text: String) -> Result<(), String> {
+        self.speak_text(text)
     }
 }
 
@@ -203,6 +231,23 @@ fn editor_block_to_app(dto: BlockDto) -> stratum_app::block::BlockDto {
         collapsed: dto.collapsed,
         heading_level: dto.heading_level,
     }
+}
+
+/// Decode and play one synthesized audio buffer.
+///
+/// The `OutputStream` is kept alive on the stack for the duration of playback:
+/// dropping it stops the audio device, so it must outlive `sleep_until_end`.
+fn play_audio(bytes: Vec<u8>) -> Result<(), String> {
+    use std::io::Cursor;
+
+    use rodio::{Decoder, OutputStream, Sink};
+
+    let (_stream, handle) = OutputStream::try_default().map_err(|error| error.to_string())?;
+    let sink = Sink::try_new(&handle).map_err(|error| error.to_string())?;
+    let source = Decoder::new(Cursor::new(bytes)).map_err(|error| error.to_string())?;
+    sink.append(source);
+    sink.sleep_until_end();
+    Ok(())
 }
 
 /// Derive the recent-page list: exclude the journal namespace and sort by

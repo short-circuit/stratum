@@ -197,6 +197,32 @@ fn slash_and_marker_catalogues_use_translated_keys() {
 }
 
 #[test]
+fn context_menu_actions_use_catalogued_keys() {
+    let items = stratum_ui::panels::editor::CONTEXT_MENU_ITEMS;
+    assert!(
+        !items.is_empty(),
+        "the block context menu must expose at least one action"
+    );
+    for item in items {
+        assert!(
+            EDITOR_I18N_KEYS.contains(&item.label_key)
+                || EDITOR_VIEW_I18N_KEYS.contains(&item.label_key),
+            "{} is missing from the release gate lists",
+            item.label_key
+        );
+        for locale in Locale::ALL {
+            assert_ne!(
+                t(locale, item.label_key),
+                item.label_key,
+                "{} missing in {}",
+                item.label_key,
+                locale.code()
+            );
+        }
+    }
+}
+
+#[test]
 fn save_status_transitions_keep_the_document_dirty_on_failure() {
     let mut state = SaveState::new();
     assert_eq!(state.status(), &SaveStatus::Clean);

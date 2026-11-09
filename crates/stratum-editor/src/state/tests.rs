@@ -349,3 +349,33 @@ fn history_is_capped_at_200_entries() {
     }
     assert_eq!(history.depth(), 200);
 }
+
+#[test]
+fn set_block_reminder_writes_and_clears_the_due_property() {
+    let id = Uuid::new_v4();
+    let mut state = EditorState::new(doc_with(vec![block(id, "task")]));
+    let before = state.document().revision();
+
+    state
+        .set_block_reminder(id, Some("2026-11-09T12:00:00Z"))
+        .unwrap();
+    let block = state.document().block(id).unwrap();
+    assert_eq!(
+        block.properties.get("due").map(String::as_str),
+        Some("2026-11-09T12:00:00Z")
+    );
+    assert!(state.document().revision() > before);
+    assert!(state.is_dirty());
+
+    state.set_block_reminder(id, None).unwrap();
+    assert!(!state
+        .document()
+        .block(id)
+        .unwrap()
+        .properties
+        .contains_key("due"));
+
+    assert!(state
+        .set_block_reminder(Uuid::new_v4(), Some("2026-11-09T12:00:00Z"))
+        .is_err());
+}

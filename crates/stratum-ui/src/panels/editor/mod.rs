@@ -13,6 +13,8 @@
 //! - [`input`] — `EntityInputHandler`, key handling, clipboard and IME wiring.
 //! - [`overlay`] — slash menu, wiki autocomplete, marker menu, save chip,
 //!   link preview and dead-link popup.
+//! - [`context_menu`] — the right-click block menu (read aloud, clipboard,
+//!   marker and reminder actions).
 //! - [`save`] — save-status transitions and the debounced persistence helper.
 //!
 //! All user-facing strings are translation keys resolved through
@@ -33,12 +35,14 @@ use stratum_i18n::{t_global, tr_global};
 
 use crate::provider::ShellData;
 
+pub mod context_menu;
 pub mod input;
 pub mod overlay;
 pub mod rows;
 pub mod save;
 pub mod view;
 
+pub use context_menu::{ContextAction, ContextMenuItem, ContextMenuState, CONTEXT_MENU_ITEMS};
 pub use overlay::{detect_overlay, OverlayState};
 pub use save::{SaveState, SaveStatus};
 
@@ -123,6 +127,7 @@ pub struct EditorView {
     read_mode: bool,
     save: SaveState,
     overlay: OverlayState,
+    context_menu: Option<ContextMenuState>,
     metrics: EditorMetrics,
     pending_navigation: Option<String>,
     hover_preview: Option<String>,
@@ -167,6 +172,7 @@ impl EditorView {
             read_mode,
             save: SaveState::new(),
             overlay: OverlayState::None,
+            context_menu: None,
             metrics: EditorMetrics::default(),
             pending_navigation: None,
             hover_preview: None,
@@ -192,6 +198,7 @@ impl EditorView {
         }
         self.read_mode = read_mode;
         self.overlay = OverlayState::None;
+        self.context_menu = None;
         self.rebuild_rows();
         cx.notify();
     }
@@ -219,6 +226,11 @@ impl EditorView {
     /// The current overlay.
     pub fn overlay(&self) -> &OverlayState {
         &self.overlay
+    }
+
+    /// The open block context menu, if any.
+    pub fn context_menu(&self) -> Option<ContextMenuState> {
+        self.context_menu
     }
 
     /// Per-frame render measurements.

@@ -269,7 +269,7 @@ pkm-tests      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-sync, pkm-
 pkm-cli        →  pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
 stratum-editor →  pkm-core, pkm-block, pkm-markdown
 stratum-i18n   →  pkm-core
-stratum-ui     →  gpui-kit (external), stratum-i18n, stratum-app, pkm-core
+stratum-ui     →  gpui-kit (external), rodio (external), stratum-i18n, stratum-app, pkm-core
 src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-dictation, pkm-plugin, stratum-app
 ```
 
@@ -495,8 +495,10 @@ frozen reference application and are never modified by shell work.
   `mod.rs` (EditorView state, metrics, save scheduling, asset budget),
   `view.rs` (virtual list, canvas input, overlays), `rows.rs` (row/span/caret
   geometry), `input.rs` (EntityInputHandler, key/mouse, clipboard, IME),
-  `overlay.rs` (slash/wiki/marker/link/dead-link popups) and `save.rs`
-  (save-status transitions). `tests/editor_contract.rs` covers the 10k layout,
+  `overlay.rs` (slash/wiki/marker/link/dead-link popups), `context_menu.rs`
+  (right-click block menu: read aloud, copy/cut, marker, reminder) and `save.rs`
+  (save-status transitions). Read-aloud goes through `ShellData::speak` →
+  `StratumService::tts_speak` → base64 decode → `rodio` playback. `tests/editor_contract.rs` covers the 10k layout,
   focused-line delimiter visibility, catalogues, save transitions and UTF-16
   helpers without opening a window.
 - The shell never calls Tauri commands directly; data flows through

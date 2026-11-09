@@ -158,6 +158,7 @@ crates/stratum-ui/src/panels/editor/
 ├── rows.rs      # row/span/caret geometry and elements (+ rows/tests.rs)
 ├── input.rs     # EntityInputHandler, key/mouse handling, clipboard, IME
 ├── overlay.rs   # slash, wiki, marker, link-preview and dead-link popups
+├── context_menu.rs # right-click block menu (read aloud, clipboard, marker, reminder)
 └── save.rs      # SaveState/SaveStatus transitions
 ```
 
@@ -197,6 +198,17 @@ from `stratum_editor::menus`; wiki targets resolve against the provider's recent
 pages. Ctrl+hover opens a link preview; Ctrl+click on a tag or wiki-link sets a
 pending navigation that the shell polls and turns into a route change.
 
+Right-clicking a row places the caret and opens the per-block context menu
+(`context_menu.rs`) anchored at the pointer. Its entries, in order, are read
+aloud, copy, cut, toggle task marker, set reminder (one hour from now) and clear
+reminder; labels resolve through `stratum_i18n` keys gated by
+`CONTEXT_MENU_ITEMS`. Escape or a click outside the popup dismisses it. Selecting
+an entry closes the menu and takes the normal dirty/debounced-save path; the
+engine owns clipboard, marker and reminder mutations. Read-aloud goes through
+`ShellData::speak` → `StratumService::tts_speak` → base64 decode → `rodio`
+playback on a detached thread, and providers without audio support return
+`Ok(())`.
+
 ### Save lifecycle
 
 Edits mark the document dirty and schedule a debounced (400 ms) save with a
@@ -212,6 +224,12 @@ The gpui view renders `DecoratedRow`s and forwards input events to
 clipboard normalization or height estimation; those stay in the headless crate
 so they remain unit-tested and platform-independent. The `dto` module is the
 seam to `stratum_app::block::BlockDto` and must stay field-compatible.
+
+Phase B includes the per-block context menu and read-aloud through
+`ShellData::speak`; block drag-and-drop is still out of phase B. Reminder
+mutations go through `EditorState::set_block_reminder`, which routes the write
+through `EditorDocument::mutate` so revision and dirty bookkeeping stay in the
+document.
 
 ---
 

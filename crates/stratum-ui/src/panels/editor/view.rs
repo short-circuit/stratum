@@ -17,6 +17,7 @@ use gpui_kit::prelude::*;
 use gpui_kit::*;
 use stratum_i18n::t_global;
 
+use crate::panels::editor::context_menu::context_menu_popup;
 use crate::panels::editor::input;
 use crate::panels::editor::overlay::{badge_strip, hover_preview, overlay_popup, save_chip};
 use crate::panels::editor::rows::{row_element, ROW_WIDTH};
@@ -86,6 +87,7 @@ impl Render for EditorView {
 
         let show_overlay = !self.read_mode && !matches!(self.overlay, OverlayState::None);
         let show_preview = !self.read_mode && self.hover_preview.is_some();
+        let show_context_menu = !self.read_mode && self.context_menu.is_some();
 
         div()
             .id("editor-root")
@@ -105,6 +107,13 @@ impl Render for EditorView {
                 MouseButton::Left,
                 cx.listener(|this, event: &MouseDownEvent, window, cx| {
                     input::handle_mouse_down(this, event, window, cx);
+                    cx.stop_propagation();
+                }),
+            )
+            .on_mouse_down(
+                MouseButton::Right,
+                cx.listener(|this, event: &MouseDownEvent, window, cx| {
+                    input::handle_right_mouse_down(this, event, window, cx);
                     cx.stop_propagation();
                 }),
             )
@@ -134,6 +143,9 @@ impl Render for EditorView {
                     })
                     .when(!self.rows.is_empty(), |element| {
                         element.child(rows).child(input_canvas)
+                    })
+                    .when(show_context_menu, |element| {
+                        element.child(context_menu_popup(self, cx))
                     }),
             )
             .when(!self.read_mode, |element| {

@@ -14,7 +14,8 @@
 //! The module is split so each file stays under the repository limit:
 //!
 //! - [`keys`] — structural key handling, caret movement and clipboard actions.
-//! - [`mouse`] — pointer hit testing, caret placement and Ctrl+hover previews.
+//! - [`mouse`] — pointer hit testing, caret placement, Ctrl+hover previews and
+//!   the right-click context menu.
 //! - [`overlay_ops`] — slash/wiki/marker completion application.
 //! - [`ime`] — the [`EntityInputHandler`] implementation.
 //!
@@ -34,7 +35,7 @@ mod mouse;
 mod overlay_ops;
 
 pub use keys::handle_key_down;
-pub use mouse::{handle_click, handle_mouse_down, handle_mouse_move};
+pub use mouse::{handle_click, handle_mouse_down, handle_mouse_move, handle_right_mouse_down};
 
 pub(crate) use overlay_ops::refresh_overlay;
 

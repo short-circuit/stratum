@@ -2,12 +2,15 @@
 //!
 //! Mouse hits are translated into caret placements and Ctrl+hover link
 //! previews; Ctrl+click on a tag or wiki-link records a navigation request for
-//! the shell.
+//! the shell. Right-click places the caret and opens the per-block context menu
+//! anchored at the pointer.
 
 use gpui_kit::component::ActiveTheme;
 use gpui_kit::*;
 use stratum_editor::menus::{link_at, LinkHitKind};
 
+use crate::panels::editor::context_menu::ContextMenuState;
+use crate::panels::editor::overlay::OverlayState;
 use crate::panels::editor::rows::{
     inline_offset, marker_prefix_len, row_font_size, row_index_at_point, row_text_left,
     source_offset_for_visible, visible_runs,
@@ -17,6 +20,9 @@ use crate::panels::editor::EditorView;
 use super::refresh_overlay;
 
 /// Handle one mouse-down event, placing the caret under the pointer.
+///
+/// A left press anywhere in the editor also dismisses an open context menu;
+/// clicks inside the popup itself stop propagation before reaching this handler.
 pub fn handle_mouse_down(
     view: &mut EditorView,
     event: &MouseDownEvent,
@@ -28,26 +34,61 @@ pub fn handle_mouse_down(
         cx.notify();
         return;
     }
-    let Some(index) = row_index_at_point(view, event.position) else {
+    view.context_menu = None;
+    let _ = place_caret(view, event.position, window, cx);
+    cx.notify();
+}
+
+/// Handle one right-click: place the caret and open the block context menu.
+pub fn handle_right_mouse_down(
+    view: &mut EditorView,
+    event: &MouseDownEvent,
+    window: &mut Window,
+    cx: &mut Context<EditorView>,
+) {
+    window.focus(&view.focus, cx);
+    if view.read_mode {
+        cx.notify();
+        return;
+    }
+    let Some(index) = place_caret(view, event.position, window, cx) else {
         cx.notify();
         return;
     };
-    let Some(row) = view.rows.get(index).cloned() else {
+    let Some(row) = view.rows.get(index) else {
         return;
     };
-    let Some(content) = view
+    let viewport = view.scroll.bounds();
+    let x = f32::from(event.position.x) - f32::from(viewport.origin.x);
+    let y = f32::from(event.position.y) - f32::from(viewport.origin.y);
+    view.context_menu = Some(ContextMenuState {
+        block_id: row.block_id,
+        x,
+        y,
+    });
+    view.overlay = OverlayState::None;
+    cx.notify();
+}
+
+/// Place the caret at a window-space point, returning the hit row index.
+fn place_caret(
+    view: &mut EditorView,
+    position: Point<Pixels>,
+    window: &mut Window,
+    cx: &mut Context<EditorView>,
+) -> Option<usize> {
+    let index = row_index_at_point(view, position)?;
+    let row = view.rows.get(index).cloned()?;
+    let content = view
         .state
         .document()
         .block(row.block_id)
-        .map(|block| block.content.clone())
-    else {
-        return;
-    };
+        .map(|block| block.content.clone())?;
     let theme = cx.theme();
     let (text, runs) = visible_runs(&row, theme);
     let font_size = row_font_size(&row, theme);
     let viewport = view.scroll.bounds();
-    let text_x = f32::from(event.position.x)
+    let text_x = f32::from(position.x)
         - f32::from(viewport.origin.x)
         - row_text_left(row.depth)
         - inline_offset(view, &row);
@@ -61,7 +102,7 @@ pub fn handle_mouse_down(
     let source = source_offset_for_visible(&row, visible_byte) + prefix;
     let _ = view.state.set_caret(row.block_id, source);
     refresh_overlay(view);
-    cx.notify();
+    Some(index)
 }
 
 /// Handle a mouse move, showing the Ctrl+hover link preview.

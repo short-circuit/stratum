@@ -25,6 +25,12 @@ pub fn handle_key_down(
     let keystroke = &event.keystroke;
     let modifiers = keystroke.modifiers;
 
+    if keystroke.key == "escape" && view.context_menu.is_some() {
+        view.context_menu = None;
+        cx.notify();
+        return true;
+    }
+
     if modifiers.control {
         return handle_control_key(view, keystroke, cx);
     }
