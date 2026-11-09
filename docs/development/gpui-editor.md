@@ -165,7 +165,7 @@ crates/stratum-ui/src/panels/editor/
 ├── mod.rs       # EditorView state, metrics, save scheduling, asset budget
 ├── view.rs      # Render impl: badge strip, virtual list, canvas input, overlays
 ├── rows.rs      # row/span/caret geometry and elements (+ rows/tests.rs)
-├── input.rs     # EntityInputHandler, key/mouse handling, clipboard, IME
+├── input/       # input/mod.rs: EntityInputHandler, keys, mouse, overlay_ops, IME
 ├── overlay.rs   # slash, wiki, marker, link-preview and dead-link popups
 ├── context_menu.rs # right-click block menu (read aloud, clipboard, marker, reminder)
 └── save.rs      # SaveState/SaveStatus transitions
@@ -189,7 +189,7 @@ gutter) is deterministic and shared by the caret and mouse hit testing.
 
 ### Input, IME and clipboard
 
-`input.rs` implements `EntityInputHandler` and registers it from the editor
+`input/mod.rs` implements `EntityInputHandler` and registers it from the editor
 canvas during paint (`window.handle_input`), which is the only valid time to
 install an input handler in gpui. It maps UTF-16 platform ranges onto the
 engine's UTF-8 byte offsets through `utf16_to_byte`/`byte_to_utf16` and forwards
@@ -204,8 +204,14 @@ detection runs.
 After a text insertion the view inspects the focused block for `/`, `[[` and `:`
 tokens and opens the slash, wiki or marker overlay. The slash catalogue comes
 from `stratum_editor::menus`; wiki targets resolve against the provider's recent
-pages. Ctrl+hover opens a link preview; Ctrl+click on a tag or wiki-link sets a
-pending navigation that the shell polls and turns into a route change.
+pages. Ctrl+hover opens a link preview; Ctrl+click on a tag sets a pending
+navigation that the shell polls and turns into a route change. Ctrl+click on a
+wiki-link resolves it through `stratum_editor::menus::resolve_wiki_target`: an
+existing page navigates directly, while a missing target opens the dead-link
+popup. Enter or a click on that popup calls `ShellData::create_page`, then sets
+a pending navigation to the returned path; an "already exists" failure still
+navigates, mirroring `DeadLinkCreatePopup.tsx`. The shell refreshes its snapshot
+before resolving and opens a `.md` create-intent path directly.
 
 The slash popup draws exactly `stratum_editor::menus::slash_row_count(items)`
 rows (capped at `SLASH_MAX_ROWS = 16`) and the overlay selection length is the
@@ -220,10 +226,15 @@ catalogue, closes the overlay when the query matches nothing, and resets
 The engine owns the AI request model and result application. `menus/ai.rs`
 exports `AiCall`, `AiCallKind`, `AiCallScope`, `AiTransformAction` and
 `ai_call_for`, which mirrors `src/components/AISlashMenu.tsx`: selection
-actions require a non-empty selection, page-scope actions send the page
-markdown, and research/Mermaid fall back to the page text. `ai_call_for`
-returns `None` for block actions and for an empty resolved prompt, so the
-service is never called with an empty string.
+actions require a non-empty selection; page-scope prompts are plain text built
+by `EditorDocument::plain_text` (`extractText` parity — block content in
+document order, nested children joined with newlines, no frontmatter or
+property lines); interlink uses `EditorDocument::plain_markdown_lossy`
+(BlockNote `blocksToMarkdownLossy` parity — property-free `- ` bullets and
+heading lines); research prefers the page text, then a captured selection, then
+the page path; and Mermaid prefers a selection, then the page text.
+`ai_call_for` returns `None` for block actions and for an empty resolved
+prompt, so the service is never called with an empty string.
 
 The view (`panels/editor/ai.rs`) executes the request off the UI thread:
 `start_ai` runs `ShellData::ai_run` on the background executor and `finish_ai`
@@ -321,6 +332,14 @@ Phase B includes the per-block context menu and read-aloud through
 mutations go through `EditorState::set_block_reminder`, which routes the write
 through `EditorDocument::mutate` so revision and dirty bookkeeping stay in the
 document.
+
+Attachments are a deliberate phase-B boundary: asset references
+(`![[assets/foo.png]]`) render as a chip with the asset path text and the
+theme's primary/secondary colors, but there are no image thumbnails, no
+file-size row and no file drag-and-drop. Pasting inserts text only; attachment
+upload, image compression and the attachment list remain in the React
+`AttachmentPanel` until phase B. The follow-up card *Attachment thumbnails,
+drag-and-drop and paste upload* covers those pieces.
 
 ---
 

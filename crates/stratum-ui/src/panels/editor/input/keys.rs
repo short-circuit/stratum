@@ -91,7 +91,9 @@ pub fn handle_key_down(
             true
         }
         "enter" => {
-            if view.overlay.selected().is_some() {
+            if view.overlay.selected().is_some()
+                || matches!(&view.overlay, OverlayState::DeadLink { .. })
+            {
                 apply_overlay(view, window, cx);
             } else {
                 let result = view.state.insert_newline();

@@ -6,6 +6,7 @@ use super::*;
 
 const A: &str = "11111111-1111-4111-8111-111111111111";
 const B: &str = "22222222-2222-4222-8222-222222222222";
+const C: &str = "33333333-3333-4333-8333-333333333333";
 
 #[test]
 fn canonicalize_is_idempotent_on_canonical_input() {
@@ -50,6 +51,41 @@ fn markdown_preserves_frontmatter() {
     assert!(md.contains("title: Test"));
     assert!(md.contains("- hello"));
     assert!(md.contains(&format!(".id: {A}")));
+}
+
+#[test]
+fn plain_text_omits_frontmatter_properties_and_ids() {
+    let raw = format!(
+        "---\ntitle: Notes\n---\n\n- task\n  .marker: TODO\n  .priority: A\n  .id: {A}\n  - child\n    .id: {B}\n"
+    );
+    let doc = EditorDocument::open("pages/x.md", &raw).unwrap();
+    let text = doc.plain_text();
+    assert!(!text.contains(".id:"), "{text}");
+    assert!(!text.contains(".marker:"), "{text}");
+    assert!(!text.contains(".priority:"), "{text}");
+    assert!(!text.contains("---"), "{text}");
+    assert_eq!(text, "task\nchild");
+}
+
+#[test]
+fn plain_markdown_lossy_preserves_nesting_without_ids() {
+    let raw = format!(
+        "---\ntitle: Notes\n---\n\n- parent\n  .id: {A}\n  - child\n    .id: {B}\n  - sibling\n    .id: {C}\n"
+    );
+    let doc = EditorDocument::open("pages/x.md", &raw).unwrap();
+    let markdown = doc.plain_markdown_lossy();
+    assert!(
+        markdown.lines().all(|line| !line.contains(".id:")),
+        "{markdown}"
+    );
+    assert_eq!(markdown, "- parent\n  - child\n  - sibling");
+}
+
+#[test]
+fn plain_markdown_lossy_renders_headings_without_property_lines() {
+    let raw = format!("- Title\n  .heading-level: 2\n  .id: {A}\n");
+    let doc = EditorDocument::open("pages/x.md", &raw).unwrap();
+    assert_eq!(doc.plain_markdown_lossy(), "## Title");
 }
 
 #[test]

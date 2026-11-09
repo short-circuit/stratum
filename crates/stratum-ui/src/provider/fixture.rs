@@ -133,6 +133,25 @@ impl ShellData for FixtureProvider {
         Ok(())
     }
 
+    fn create_page(&self, path: &str, _title: Option<&str>) -> Result<String, String> {
+        // Mirror `StratumService::create_page`: append the extension and reject
+        // a path that already exists.
+        let path = if path.ends_with(".md") {
+            path.to_string()
+        } else {
+            format!("{path}.md")
+        };
+        let mut pages = self
+            .pages
+            .lock()
+            .map_err(|_| "fixture provider lock poisoned".to_string())?;
+        if pages.contains_key(&path) {
+            return Err(format!("Page already exists: {path}"));
+        }
+        pages.insert(path.clone(), Vec::new());
+        Ok(path)
+    }
+
     fn ai_run(&self, call: AiCall) -> Result<String, String> {
         Ok(match call.kind {
             AiCallKind::Mermaid => "graph TD\n  A[Start] --> B[End]".to_string(),

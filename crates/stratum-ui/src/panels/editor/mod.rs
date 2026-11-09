@@ -236,6 +236,16 @@ impl EditorView {
         &self.overlay
     }
 
+    /// Create the page for the open dead-link overlay and request navigation.
+    ///
+    /// Used by the popup's click handler; Enter goes through the same
+    /// [`input::overlay_ops::apply_dead_link`] path.
+    pub(crate) fn create_dead_link(&mut self, cx: &mut Context<Self>) {
+        if let OverlayState::DeadLink { target } = self.overlay.clone() {
+            input::overlay_ops::apply_dead_link(self, &target, cx);
+        }
+    }
+
     /// The open block context menu, if any.
     pub fn context_menu(&self) -> Option<ContextMenuState> {
         self.context_menu

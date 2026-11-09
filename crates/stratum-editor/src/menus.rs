@@ -22,7 +22,10 @@ mod ai;
 pub use ai::{ai_call_for, AiCall, AiCallKind, AiCallScope, AiTransformAction};
 
 mod links;
-pub use links::{link_at, unresolved_wikilinks, DeadLink, LinkHit, LinkHitKind};
+pub use links::{
+    link_at, resolve_wiki_target, unresolved_wikilinks, DeadLink, LinkHit, LinkHitKind,
+    WikiTargetResolution,
+};
 
 /// Largest number of slash-menu rows the native popup can draw at once.
 ///

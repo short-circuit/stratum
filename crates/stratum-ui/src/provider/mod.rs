@@ -75,6 +75,14 @@ pub trait ShellData: Send + Sync {
     fn save_blocks(&self, _path: &str, _blocks: Vec<BlockDto>) -> Result<(), String> {
         Ok(())
     }
+    /// Create a page at `path` and return its stored path.
+    ///
+    /// The provider appends `.md` when the path has no extension, mirroring
+    /// `StratumService::create_page`. Providers that cannot create pages return
+    /// the path unchanged.
+    fn create_page(&self, _path: &str, _title: Option<&str>) -> Result<String, String> {
+        Ok(_path.to_string())
+    }
     /// Speak `text` aloud. Providers without audio support return `Ok(())`.
     fn speak(&self, _text: String) -> Result<(), String> {
         Ok(())
@@ -202,6 +210,15 @@ impl ShellData for AppProvider {
 
     fn save_blocks(&self, path: &str, blocks: Vec<BlockDto>) -> Result<(), String> {
         self.write_blocks(path, blocks)
+    }
+
+    fn create_page(&self, path: &str, title: Option<&str>) -> Result<String, String> {
+        self.runtime
+            .block_on(
+                self.service
+                    .create_page(path.to_string(), title.map(str::to_string)),
+            )
+            .map(|page| page.path)
     }
 
     fn speak(&self, text: String) -> Result<(), String> {

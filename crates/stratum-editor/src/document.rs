@@ -140,6 +140,36 @@ impl EditorDocument {
         assemble_blocks_markdown(&self.existing_raw, &self.body(), None)
     }
 
+    /// Page plain text for AI page prompts.
+    ///
+    /// Mirrors `extractText` in `src/components/AISlashMenu.tsx`: block content
+    /// in document order, children nested with `'\n'`, top-level blocks joined
+    /// by `"\n\n"`. No frontmatter, property lines or ids are included.
+    pub fn plain_text(&self) -> String {
+        let mut texts = Vec::new();
+        for root in self.tree.roots() {
+            let text = plain_text_block(&self.tree, root);
+            if !text.is_empty() {
+                texts.push(text);
+            }
+        }
+        texts.join("\n\n")
+    }
+
+    /// Property-free markdown for interlink prompts.
+    ///
+    /// Mirrors BlockNote's `blocksToMarkdownLossy()`: nested `- ` bullets (or
+    /// `#`-prefixed heading lines for heading blocks) in document order, with no
+    /// frontmatter and no `.id:`/`.marker:`/`.priority:`/`.heading-level:` or
+    /// other property lines.
+    pub fn plain_markdown_lossy(&self) -> String {
+        let mut lines = Vec::new();
+        for root in self.tree.roots() {
+            plain_markdown_block(&self.tree, root, 0, &mut lines);
+        }
+        lines.join("\n")
+    }
+
     /// Produce the bytes that should be written for a save and mark the
     /// document clean.
     ///
@@ -179,6 +209,37 @@ pub fn canonicalize_body(raw: &str) -> String {
     }
     let ordered: Vec<Block> = tree.depth_first_order().into_iter().cloned().collect();
     serialize_blocks(&ordered)
+}
+
+/// Plain text for one block and its children, mirroring `extractText`.
+fn plain_text_block(tree: &BlockTree, block: &Block) -> String {
+    let mut text = block.content.clone();
+    let children: Vec<String> = tree
+        .children(block.id)
+        .into_iter()
+        .map(|child| plain_text_block(tree, child))
+        .filter(|text| !text.is_empty())
+        .collect();
+    if !children.is_empty() {
+        text.push('\n');
+        text.push_str(&children.join("\n"));
+    }
+    text
+}
+
+/// One property-free markdown line per block, recursing into children.
+fn plain_markdown_block(tree: &BlockTree, block: &Block, depth: usize, lines: &mut Vec<String>) {
+    let indent = "  ".repeat(depth);
+    let line = match block.meta.heading_level {
+        Some(level) if level > 0 => {
+            format!("{indent}{} {}", "#".repeat(level as usize), block.content)
+        }
+        _ => format!("{indent}- {}", block.content),
+    };
+    lines.push(line);
+    for child in tree.children(block.id) {
+        plain_markdown_block(tree, child, depth + 1, lines);
+    }
 }
 
 /// Return the raw `---…---` frontmatter prefix of `raw`, or an empty string.

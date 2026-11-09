@@ -41,6 +41,7 @@ pub(crate) fn apply_overlay(
         OverlayState::Slash { query, selected } => apply_slash(view, &query, selected, window, cx),
         OverlayState::Wiki { query, selected } => apply_wiki(view, &query, selected, cx),
         OverlayState::Marker { selected } => apply_marker(view, selected, cx),
+        OverlayState::DeadLink { target } => apply_dead_link(view, &target, cx),
         _ => {}
     }
 }
@@ -126,10 +127,13 @@ fn apply_slash(
         _ => {}
     }
     if let Some(action) = action {
-        let page_markdown = view.state.document().markdown();
+        let document = view.state.document();
+        let page_text = document.plain_text();
+        let page_markdown = document.plain_markdown_lossy();
         if let Some(call) = stratum_editor::menus::ai_call_for(
             action,
             selection_text.as_deref(),
+            &page_text,
             &page_markdown,
             view.path(),
         ) {
@@ -211,6 +215,37 @@ fn apply_marker(view: &mut EditorView, selected: usize, cx: &mut Context<EditorV
     }
     view.overlay = OverlayState::None;
     view.after_edit(cx);
+}
+
+/// Create the page behind an open dead-link overlay and navigate to it.
+///
+/// Mirrors `DeadLinkCreatePopup.tsx`: creation failures that report an existing
+/// page still navigate to the target path, because the link is valid once the
+/// page exists. Any other failure is surfaced through the save chip and the
+/// popup closes.
+pub(crate) fn apply_dead_link(view: &mut EditorView, target: &str, cx: &mut Context<EditorView>) {
+    match view.provider.create_page(target, None) {
+        Ok(path) => {
+            view.pending_navigation = Some(path);
+            view.overlay = OverlayState::None;
+            cx.notify();
+        }
+        Err(error) if error.to_lowercase().contains("already exists") => {
+            let path = if target.ends_with(".md") {
+                target.to_string()
+            } else {
+                format!("{target}.md")
+            };
+            view.pending_navigation = Some(path);
+            view.overlay = OverlayState::None;
+            cx.notify();
+        }
+        Err(error) => {
+            view.save.fail(error);
+            view.overlay = OverlayState::None;
+            cx.notify();
+        }
+    }
 }
 
 /// Recent pages as wiki autocomplete candidates.

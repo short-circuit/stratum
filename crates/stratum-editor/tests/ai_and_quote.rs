@@ -37,7 +37,8 @@ fn slash_catalogue_row_bound_matches_every_context() {
 
 #[test]
 fn every_ai_action_produces_a_serviceable_call() {
-    let page = "- alpha\n- beta";
+    let page_text = "alpha\nbeta";
+    let page_markdown = "- alpha\n- beta";
     let path = "journals/2026-11-09.md";
     for action in [
         SlashAction::AiRewrite,
@@ -51,8 +52,14 @@ fn every_ai_action_produces_a_serviceable_call() {
         SlashAction::AiInterlink,
         SlashAction::AiGenerateMermaid,
     ] {
-        let call = ai_call_for(action, Some("selected text"), page, path)
-            .unwrap_or_else(|| panic!("no call for {action:?}"));
+        let call = ai_call_for(
+            action,
+            Some("selected text"),
+            page_text,
+            page_markdown,
+            path,
+        )
+        .unwrap_or_else(|| panic!("no call for {action:?}"));
         assert!(!call.text.trim().is_empty(), "{action:?} empty prompt");
         if matches!(
             action,
@@ -72,8 +79,8 @@ fn every_ai_action_produces_a_serviceable_call() {
         }
     }
     // Empty page + no selection: page actions must not fire.
-    assert!(ai_call_for(SlashAction::AiSummarizePage, None, "   ", path).is_none());
-    assert!(ai_call_for(SlashAction::AiRewrite, None, page, path).is_none());
+    assert!(ai_call_for(SlashAction::AiSummarizePage, None, "   ", "", path).is_none());
+    assert!(ai_call_for(SlashAction::AiRewrite, None, page_text, page_markdown, path).is_none());
 }
 
 #[test]

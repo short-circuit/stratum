@@ -147,6 +147,22 @@ fn shortcuts_change_shell_state() {
 }
 
 #[test]
+fn create_intent_markdown_path_opens_the_page() {
+    let mut shell = fixture_shell();
+    shell.handle_editor_navigation("pages/New.md");
+    assert_eq!(shell.current_page(), Some("pages/New.md"));
+    assert_eq!(shell.active_panel(), Panel::Page);
+}
+
+#[test]
+fn unresolved_bare_slug_falls_back_to_search() {
+    let mut shell = fixture_shell();
+    shell.handle_editor_navigation("Missing");
+    assert_eq!(shell.active_panel(), Panel::Search);
+    assert_eq!(shell.current_page(), None);
+}
+
+#[test]
 fn refresh_reads_the_provider_snapshot() {
     let mut shell = fixture_shell();
     let before = shell.snapshot().clone();

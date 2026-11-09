@@ -61,70 +61,92 @@ pub struct AiCall {
     pub page_path: Option<String>,
 }
 
-/// Resolve a non-empty selection or fall back to `page_markdown`.
-fn selection_or_page(selection: Option<&str>, page_markdown: &str) -> Option<String> {
-    let selection = selection.map(str::trim).filter(|text| !text.is_empty());
-    match selection {
-        Some(text) => Some(text.to_string()),
-        None if !page_markdown.trim().is_empty() => Some(page_markdown.to_string()),
-        None => None,
+/// Resolve a non-empty selection.
+fn non_empty(text: Option<&str>) -> Option<String> {
+    text.map(str::trim)
+        .filter(|text| !text.is_empty())
+        .map(str::to_string)
+}
+
+/// Resolve the research prompt: page text first, then selection, then page path.
+///
+/// Mirrors `const query = allText || capturedRef.current || pagePath;` in
+/// `src/components/AISlashMenu.tsx`.
+fn research_prompt(page_text: &str, selection: Option<&str>, page_path: &str) -> Option<String> {
+    let page_text = page_text.trim();
+    if !page_text.is_empty() {
+        return Some(page_text.to_string());
+    }
+    if let Some(selection) = non_empty(selection) {
+        return Some(selection);
+    }
+    let page_path = page_path.trim();
+    if page_path.is_empty() {
+        None
+    } else {
+        Some(page_path.to_string())
     }
 }
 
 /// Map one slash action onto the service request it executes.
 ///
 /// Mirrors `src/components/AISlashMenu.tsx`: selection actions require a
-/// non-empty selection, page-scope actions send the whole page markdown, and
-/// research/Mermaid fall back to the page text when no selection exists. Returns
-/// `None` for block actions and for an empty resolved prompt, so the service is
-/// never called with an empty string.
+/// non-empty selection; page transforms send the page's plain text
+/// (`extractText` parity); interlink sends property-free markdown
+/// (`blocksToMarkdownLossy` parity); research prefers the page text, then a
+/// captured selection, then the page path; and Mermaid prefers a selection,
+/// then the page text. Returns `None` for block actions and for an empty
+/// resolved prompt, so the service is never called with an empty string.
 pub fn ai_call_for(
     action: SlashAction,
     selection: Option<&str>,
-    page_markdown: &str,
+    page_text: &str,
+    page_markdown_lossy: &str,
     page_path: &str,
 ) -> Option<AiCall> {
+    let page_text = page_text.trim();
+    let page_markdown = page_markdown_lossy.trim();
     let call = match action {
         SlashAction::AiRewrite => AiCall {
             kind: AiCallKind::Transform(AiTransformAction::Rewrite),
             scope: AiCallScope::InsertAtCaret,
-            text: selection?.to_string(),
+            text: non_empty(selection)?,
             page_path: Some(page_path.to_string()),
         },
         SlashAction::AiFormatSelection => AiCall {
             kind: AiCallKind::Transform(AiTransformAction::Format),
             scope: AiCallScope::InsertAtCaret,
-            text: selection?.to_string(),
+            text: non_empty(selection)?,
             page_path: Some(page_path.to_string()),
         },
         SlashAction::AiSummarizeSelection => AiCall {
             kind: AiCallKind::Transform(AiTransformAction::Summarize),
             scope: AiCallScope::InsertAtCaret,
-            text: selection?.to_string(),
+            text: non_empty(selection)?,
             page_path: Some(page_path.to_string()),
         },
         SlashAction::AiStructureJournal | SlashAction::AiStructurePage => AiCall {
             kind: AiCallKind::Transform(AiTransformAction::Structure),
             scope: AiCallScope::ReplacePage,
-            text: page_markdown.to_string(),
+            text: page_text.to_string(),
             page_path: Some(page_path.to_string()),
         },
         SlashAction::AiFormatJournalNotes => AiCall {
             kind: AiCallKind::Transform(AiTransformAction::Format),
             scope: AiCallScope::ReplacePage,
-            text: page_markdown.to_string(),
+            text: page_text.to_string(),
             page_path: Some(page_path.to_string()),
         },
         SlashAction::AiSummarizePage => AiCall {
             kind: AiCallKind::Transform(AiTransformAction::Summarize),
             scope: AiCallScope::ReplacePage,
-            text: page_markdown.to_string(),
+            text: page_text.to_string(),
             page_path: Some(page_path.to_string()),
         },
         SlashAction::AiResearch => AiCall {
             kind: AiCallKind::Research,
             scope: AiCallScope::ReplacePage,
-            text: selection_or_page(selection, page_markdown)?,
+            text: research_prompt(page_text, selection, page_path)?,
             page_path: None,
         },
         SlashAction::AiInterlink => AiCall {
@@ -136,7 +158,8 @@ pub fn ai_call_for(
         SlashAction::AiGenerateMermaid => AiCall {
             kind: AiCallKind::Mermaid,
             scope: AiCallScope::InsertBlockAfterCaret,
-            text: selection_or_page(selection, page_markdown)?,
+            text: non_empty(selection)
+                .or_else(|| (!page_text.is_empty()).then(|| page_text.to_string()))?,
             page_path: None,
         },
         _ => return None,
@@ -162,7 +185,9 @@ mod tests {
 
     #[test]
     fn page_scoped_format_and_summarize_replace_the_page() {
-        let page = "- one\n- two";
+        let page_text = "one\ntwo";
+        let page_markdown = "- one\n- two";
+        let path = "pages/x.md";
         for action in [
             SlashAction::AiFormatJournalNotes,
             SlashAction::AiSummarizePage,
@@ -171,7 +196,8 @@ mod tests {
             SlashAction::AiResearch,
             SlashAction::AiInterlink,
         ] {
-            let call = ai_call_for(action, None, page, "pages/x.md").expect("page call");
+            let call =
+                ai_call_for(action, None, page_text, page_markdown, path).expect("page call");
             assert_eq!(call.scope, AiCallScope::ReplacePage, "{action:?}");
         }
         for action in [
@@ -179,11 +205,45 @@ mod tests {
             SlashAction::AiFormatSelection,
             SlashAction::AiSummarizeSelection,
         ] {
-            let call = ai_call_for(action, Some("text"), page, "pages/x.md").expect("selection");
+            let call = ai_call_for(action, Some("text"), page_text, page_markdown, path)
+                .expect("selection");
             assert_eq!(call.scope, AiCallScope::InsertAtCaret, "{action:?}");
         }
-        let mermaid =
-            ai_call_for(SlashAction::AiGenerateMermaid, None, page, "pages/x.md").expect("mermaid");
+        let mermaid = ai_call_for(
+            SlashAction::AiGenerateMermaid,
+            None,
+            page_text,
+            page_markdown,
+            path,
+        )
+        .expect("mermaid");
         assert_eq!(mermaid.scope, AiCallScope::InsertBlockAfterCaret);
+    }
+
+    #[test]
+    fn research_prefers_page_text_over_selection_and_path() {
+        let call = ai_call_for(
+            SlashAction::AiResearch,
+            Some("selected"),
+            "page body",
+            "- page body",
+            "pages/x.md",
+        )
+        .expect("research");
+        assert_eq!(call.text, "page body");
+
+        let call = ai_call_for(
+            SlashAction::AiResearch,
+            Some("selected"),
+            "  ",
+            "- body",
+            "pages/x.md",
+        )
+        .expect("selection fallback");
+        assert_eq!(call.text, "selected");
+
+        let call = ai_call_for(SlashAction::AiResearch, None, "", "", "pages/x.md")
+            .expect("path fallback");
+        assert_eq!(call.text, "pages/x.md");
     }
 }

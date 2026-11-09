@@ -187,13 +187,17 @@ impl Shell {
 
     /// Route a Ctrl+click navigation request from the editor.
     ///
-    /// Tags open the search panel; wiki-links resolve to a recent page path
-    /// when one matches the target slug/title, otherwise they also search.
+    /// Tags open the search panel. Wiki-links refresh the snapshot first, then
+    /// resolve to a recent page path; a create-intent path (one ending in
+    /// `.md`, produced by the dead-link popup) opens that page directly even
+    /// when it is not in the snapshot yet. Bare unresolved slugs fall back to
+    /// search.
     fn handle_editor_navigation(&mut self, target: &str) {
         if target.starts_with('#') {
             self.navigate(Panel::Search);
             return;
         }
+        self.refresh();
         let resolved = self
             .snapshot
             .recents
@@ -206,6 +210,7 @@ impl Shell {
             .map(|page| page.path.clone());
         match resolved {
             Some(path) => self.open_page(path),
+            None if target.ends_with(".md") => self.open_page(target.to_string()),
             None => self.navigate(Panel::Search),
         }
     }

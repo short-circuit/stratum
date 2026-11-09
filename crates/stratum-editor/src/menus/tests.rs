@@ -66,6 +66,47 @@ fn wiki_query_keeps_the_term_before_a_pipe() {
 }
 
 #[test]
+fn wiki_target_resolves_by_slug_title_and_path() {
+    let pages = vec![
+        page("pages/alpha.md", "alpha", "Alpha"),
+        page("pages/notes/beta.md", "beta", "Beta"),
+    ];
+    assert_eq!(
+        resolve_wiki_target("alpha", &pages),
+        WikiTargetResolution::Resolved("pages/alpha.md".to_string())
+    );
+    assert_eq!(
+        resolve_wiki_target("Alpha", &pages),
+        WikiTargetResolution::Resolved("pages/alpha.md".to_string())
+    );
+    assert_eq!(
+        resolve_wiki_target(" pages/alpha.md ", &pages),
+        WikiTargetResolution::Resolved("pages/alpha.md".to_string())
+    );
+    assert_eq!(
+        resolve_wiki_target("pages/alpha", &pages),
+        WikiTargetResolution::Resolved("pages/alpha.md".to_string())
+    );
+    assert_eq!(
+        resolve_wiki_target("notes/beta", &pages),
+        WikiTargetResolution::Resolved("pages/notes/beta.md".to_string())
+    );
+}
+
+#[test]
+fn wiki_target_missing_returns_missing() {
+    let pages = vec![page("pages/alpha.md", "alpha", "Alpha")];
+    assert_eq!(
+        resolve_wiki_target("gamma", &pages),
+        WikiTargetResolution::Missing
+    );
+    assert_eq!(
+        resolve_wiki_target("   ", &pages),
+        WikiTargetResolution::Missing
+    );
+}
+
+#[test]
 fn dead_links_are_reported_against_known_targets() {
     let id = Uuid::new_v4();
     let doc = EditorDocument::from_blocks(
@@ -189,16 +230,18 @@ fn quote_is_a_block_action_with_shipped_aliases() {
 
 #[test]
 fn selection_actions_require_non_empty_text() {
-    let page = "page body";
+    let page_text = "page body";
+    let page_markdown = "- page body";
     let path = "pages/x.md";
     for action in [
         SlashAction::AiRewrite,
         SlashAction::AiFormatSelection,
         SlashAction::AiSummarizeSelection,
     ] {
-        assert!(ai_call_for(action, None, page, path).is_none());
-        assert!(ai_call_for(action, Some("   "), page, path).is_none());
-        let call = ai_call_for(action, Some("selected"), page, path).expect("selection call");
+        assert!(ai_call_for(action, None, page_text, page_markdown, path).is_none());
+        assert!(ai_call_for(action, Some("   "), page_text, page_markdown, path).is_none());
+        let call = ai_call_for(action, Some("selected"), page_text, page_markdown, path)
+            .expect("selection call");
         assert_eq!(call.text, "selected");
         assert_eq!(call.page_path, Some(path.to_string()));
         assert_eq!(call.scope, AiCallScope::InsertAtCaret);
@@ -206,8 +249,9 @@ fn selection_actions_require_non_empty_text() {
 }
 
 #[test]
-fn page_actions_send_the_page_markdown() {
-    let page = "- one\n- two";
+fn page_actions_send_the_page_plain_text() {
+    let page_text = "one\ntwo";
+    let page_markdown = "- one\n- two";
     let path = "pages/x.md";
     for (action, transform) in [
         (SlashAction::AiStructurePage, AiTransformAction::Structure),
@@ -218,8 +262,8 @@ fn page_actions_send_the_page_markdown() {
         (SlashAction::AiFormatJournalNotes, AiTransformAction::Format),
         (SlashAction::AiSummarizePage, AiTransformAction::Summarize),
     ] {
-        let call = ai_call_for(action, None, page, path).expect("page call");
-        assert_eq!(call.text, page);
+        let call = ai_call_for(action, None, page_text, page_markdown, path).expect("page call");
+        assert_eq!(call.text, page_text);
         assert_eq!(call.kind, AiCallKind::Transform(transform));
         assert_eq!(call.scope, AiCallScope::ReplacePage);
         assert_eq!(call.page_path, Some(path.to_string()));
@@ -227,36 +271,93 @@ fn page_actions_send_the_page_markdown() {
 }
 
 #[test]
-fn interlink_sends_the_page_markdown_and_path() {
-    let call = ai_call_for(SlashAction::AiInterlink, None, "body", "pages/x.md").expect("call");
+fn interlink_sends_the_property_free_markdown_and_path() {
+    let call = ai_call_for(
+        SlashAction::AiInterlink,
+        None,
+        "body",
+        "- body",
+        "pages/x.md",
+    )
+    .expect("call");
     assert_eq!(call.kind, AiCallKind::Interlink);
-    assert_eq!(call.text, "body");
+    assert_eq!(call.text, "- body");
     assert_eq!(call.page_path, Some("pages/x.md".to_string()));
     assert_eq!(call.scope, AiCallScope::ReplacePage);
 }
 
 #[test]
-fn research_and_mermaid_prefer_a_selection_then_the_page() {
+fn research_prefers_page_text_then_selection_then_path() {
     let path = "pages/x.md";
-    let research = ai_call_for(SlashAction::AiResearch, Some("  topic  "), "body", path)
-        .expect("research call");
+    let research = ai_call_for(
+        SlashAction::AiResearch,
+        Some("topic"),
+        "page text",
+        "- page text",
+        path,
+    )
+    .expect("research call");
     assert_eq!(research.kind, AiCallKind::Research);
-    assert_eq!(research.text, "topic");
+    assert_eq!(research.text, "page text");
     assert_eq!(research.page_path, None);
     assert_eq!(research.scope, AiCallScope::ReplacePage);
 
-    let research = ai_call_for(SlashAction::AiResearch, None, "body", path).expect("fallback");
-    assert_eq!(research.text, "body");
+    let research = ai_call_for(
+        SlashAction::AiResearch,
+        Some(" topic "),
+        "  ",
+        "- body",
+        path,
+    )
+    .expect("selection fallback");
+    assert_eq!(research.text, "topic");
 
-    let mermaid = ai_call_for(SlashAction::AiGenerateMermaid, Some("flow"), "body", path)
-        .expect("mermaid call");
+    let research = ai_call_for(SlashAction::AiResearch, None, "", "", path).expect("path fallback");
+    assert_eq!(research.text, path);
+}
+
+#[test]
+fn mermaid_prefers_a_selection_then_the_page_text() {
+    let path = "pages/x.md";
+    let mermaid = ai_call_for(
+        SlashAction::AiGenerateMermaid,
+        Some("flow"),
+        "body",
+        "- body",
+        path,
+    )
+    .expect("mermaid call");
     assert_eq!(mermaid.kind, AiCallKind::Mermaid);
     assert_eq!(mermaid.text, "flow");
     assert_eq!(mermaid.scope, AiCallScope::InsertBlockAfterCaret);
 
-    let mermaid =
-        ai_call_for(SlashAction::AiGenerateMermaid, None, "body", path).expect("fallback");
+    let mermaid = ai_call_for(SlashAction::AiGenerateMermaid, None, "body", "- body", path)
+        .expect("page fallback");
     assert_eq!(mermaid.text, "body");
+}
+
+#[test]
+fn page_scope_prompts_carry_no_ids_or_frontmatter() {
+    let raw = format!(
+        "---\ntitle: Notes\n---\n\n- first\n  .marker: TODO\n  .id: {}\n  - nested\n    .id: {}\n",
+        "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"
+    );
+    let doc = EditorDocument::open("pages/x.md", &raw).unwrap();
+    let page_text = doc.plain_text();
+    let page_markdown = doc.plain_markdown_lossy();
+    for action in [
+        SlashAction::AiStructurePage,
+        SlashAction::AiFormatJournalNotes,
+        SlashAction::AiSummarizePage,
+        SlashAction::AiResearch,
+        SlashAction::AiInterlink,
+    ] {
+        let call =
+            ai_call_for(action, None, &page_text, &page_markdown, "pages/x.md").expect("page call");
+        assert!(!call.text.contains(".id:"), "{action:?}: {}", call.text);
+        assert!(!call.text.contains(".marker:"), "{action:?}: {}", call.text);
+        assert!(!call.text.contains("---"), "{action:?}: {}", call.text);
+    }
 }
 
 #[test]
@@ -269,11 +370,18 @@ fn block_actions_and_empty_prompts_produce_no_call() {
         SlashAction::Mermaid,
         SlashAction::MathEquation,
     ] {
-        assert!(ai_call_for(action, Some("selection"), "body", "pages/x.md").is_none());
+        assert!(ai_call_for(action, Some("selection"), "body", "- body", "pages/x.md").is_none());
     }
-    assert!(ai_call_for(SlashAction::AiSummarizePage, None, "   ", "pages/x.md").is_none());
-    assert!(ai_call_for(SlashAction::AiResearch, None, "", "pages/x.md").is_none());
-    assert!(ai_call_for(SlashAction::AiGenerateMermaid, None, "", "pages/x.md").is_none());
+    assert!(ai_call_for(
+        SlashAction::AiSummarizePage,
+        None,
+        "   ",
+        "- body",
+        "pages/x.md"
+    )
+    .is_none());
+    assert!(ai_call_for(SlashAction::AiResearch, None, "", "", "").is_none());
+    assert!(ai_call_for(SlashAction::AiGenerateMermaid, None, "", "", "pages/x.md").is_none());
 }
 
 #[test]

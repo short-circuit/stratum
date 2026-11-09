@@ -11,6 +11,42 @@ use pkm_block::BlockId;
 use crate::document::EditorDocument;
 use crate::inline::{parse_inline, span_at, SpanKind};
 
+use super::WikiPage;
+
+/// Outcome of resolving a wiki-link target against the current page list.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WikiTargetResolution {
+    /// The target resolves to this vault-relative page path.
+    Resolved(String),
+    /// No page matches the target, so the link is dead.
+    Missing,
+}
+
+/// Resolve `target` against `pages` with the shipped/shell matching rules.
+///
+/// A page matches when its path equals the target, its path without `.md`
+/// equals or ends with the target, or its slug or title equals the target. The
+/// input is trimmed first. Returns the matched page path so callers can navigate
+/// to it; `Missing` means Ctrl+click should offer page creation.
+pub fn resolve_wiki_target(target: &str, pages: &[WikiPage]) -> WikiTargetResolution {
+    let target = target.trim();
+    if target.is_empty() {
+        return WikiTargetResolution::Missing;
+    }
+    for page in pages {
+        let path_without_ext = page.path.trim_end_matches(".md");
+        if page.path == target
+            || path_without_ext == target
+            || page.slug == target
+            || page.title == target
+            || path_without_ext.ends_with(target)
+        {
+            return WikiTargetResolution::Resolved(page.path.clone());
+        }
+    }
+    WikiTargetResolution::Missing
+}
+
 /// A dead wiki-link.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeadLink {

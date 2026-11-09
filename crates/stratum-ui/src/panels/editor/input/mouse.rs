@@ -7,7 +7,9 @@
 
 use gpui_kit::component::ActiveTheme;
 use gpui_kit::*;
-use stratum_editor::menus::{link_at, LinkHitKind};
+use stratum_editor::menus::{
+    link_at, resolve_wiki_target, LinkHitKind, WikiPage, WikiTargetResolution,
+};
 
 use crate::panels::editor::context_menu::ContextMenuState;
 use crate::panels::editor::overlay::OverlayState;
@@ -17,7 +19,25 @@ use crate::panels::editor::rows::{
 };
 use crate::panels::editor::EditorView;
 
+use super::overlay_ops::wiki_pages;
 use super::refresh_overlay;
+
+/// What a Ctrl+click on a wiki-link should do.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum WikiClick {
+    /// Navigate to the resolved page path.
+    Navigate(String),
+    /// Open the create-page popup for a target that does not exist.
+    DeadLink(String),
+}
+
+/// Resolve a wiki-link target against the current page list for Ctrl+click.
+pub(crate) fn wiki_click(target: &str, pages: &[WikiPage]) -> WikiClick {
+    match resolve_wiki_target(target, pages) {
+        WikiTargetResolution::Resolved(path) => WikiClick::Navigate(path),
+        WikiTargetResolution::Missing => WikiClick::DeadLink(target.trim().to_string()),
+    }
+}
 
 /// Handle one mouse-down event, placing the caret under the pointer.
 ///
@@ -203,9 +223,26 @@ pub fn handle_click(
     let prefix = marker_prefix_len(&content, row.marker.map(|marker| marker.as_str()));
     let source = source_offset_for_visible(&row, visible_byte) + prefix;
     if let Some(hit) = link_at(view.state.document(), row.block_id, source) {
-        if matches!(hit.kind, LinkHitKind::Tag | LinkHitKind::WikiLink) {
-            view.pending_navigation = Some(hit.target);
-            cx.refresh_windows();
+        match hit.kind {
+            LinkHitKind::Tag => {
+                view.pending_navigation = Some(hit.target);
+                cx.refresh_windows();
+            }
+            LinkHitKind::WikiLink => {
+                let pages = wiki_pages(view);
+                match wiki_click(&hit.target, &pages) {
+                    WikiClick::Navigate(path) => {
+                        view.pending_navigation = Some(path);
+                        cx.refresh_windows();
+                    }
+                    WikiClick::DeadLink(target) => {
+                        view.overlay = OverlayState::DeadLink { target };
+                        view.context_menu = None;
+                        cx.notify();
+                    }
+                }
+            }
+            _ => {}
         }
     }
 }

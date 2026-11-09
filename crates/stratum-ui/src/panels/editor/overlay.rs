@@ -185,7 +185,14 @@ pub fn overlay_popup(view: &EditorView, cx: &mut Context<EditorView>) -> impl In
         .border_color(theme.colors.border)
         .shadow_md()
         .p(px(4.0))
-        .overflow_y_scrollbar();
+        .overflow_y_scrollbar()
+        // The editor root handles mouse-down by placing the caret and closing
+        // transient state; a press inside the popup must not clear the overlay
+        // before a row click can run.
+        .on_mouse_down(
+            MouseButton::Left,
+            cx.listener(|_, _, _, cx| cx.stop_propagation()),
+        );
     match view.overlay() {
         OverlayState::None => {}
         OverlayState::Slash { query, selected } => {
@@ -205,7 +212,16 @@ pub fn overlay_popup(view: &EditorView, cx: &mut Context<EditorView>) -> impl In
             popup = popup.child(preview_row(target, theme));
         }
         OverlayState::DeadLink { target } => {
-            popup = popup.child(dead_link_row(target, theme));
+            popup = popup.child(
+                div()
+                    .id(("editor-dead-link-row", 0usize))
+                    .cursor_pointer()
+                    .on_click(cx.listener(|this, _event, _window, cx| {
+                        cx.stop_propagation();
+                        this.create_dead_link(cx);
+                    }))
+                    .child(dead_link_row(target, theme)),
+            );
         }
     }
     popup
@@ -441,59 +457,4 @@ fn dead_link_row(target: &str, theme: &gpui_kit::component::Theme) -> impl IntoE
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use ::core::prelude::v1::test;
-
-    #[test]
-    fn slash_detection_is_word_anchored() {
-        assert!(matches!(
-            detect_overlay("/", 1, false, false),
-            OverlayState::Slash { .. }
-        ));
-        assert!(matches!(
-            detect_overlay("hello /head", 11, false, false),
-            OverlayState::Slash { .. }
-        ));
-        assert_eq!(detect_overlay("a/b", 3, false, false), OverlayState::None);
-    }
-
-    #[test]
-    fn wiki_detection_returns_the_open_query() {
-        assert_eq!(
-            detect_overlay("see [[Pro", 9, false, false),
-            OverlayState::Wiki {
-                query: "Pro".to_string(),
-                selected: 0
-            }
-        );
-    }
-
-    #[test]
-    fn marker_detection_needs_a_non_empty_token() {
-        assert_eq!(
-            detect_overlay("task :", 6, false, false),
-            OverlayState::Marker { selected: 0 }
-        );
-        assert_eq!(detect_overlay("task:", 5, false, false), OverlayState::None);
-    }
-
-    #[test]
-    fn selection_wraps_at_both_ends() {
-        let mut overlay = OverlayState::Slash {
-            query: String::new(),
-            selected: 0,
-        };
-        overlay.move_selection(-1, 3);
-        assert_eq!(overlay.selected(), Some(2));
-        overlay.move_selection(1, 3);
-        assert_eq!(overlay.selected(), Some(0));
-    }
-
-    #[test]
-    fn wiki_rows_cover_every_selectable_entry() {
-        assert_eq!(wiki_row_count(0), 1);
-        assert_eq!(wiki_row_count(3), 3);
-        assert_eq!(wiki_row_count(20), 8);
-    }
-}
+mod tests;

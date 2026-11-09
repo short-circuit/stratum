@@ -427,16 +427,20 @@ fn span_style(span: &DecoratedSpan, row: &DecoratedRow, theme: &Theme) -> SpanSt
         SpanKind::Highlight => {
             background = Some(theme.colors.warning.opacity(0.25));
         }
-        SpanKind::Link { .. }
-        | SpanKind::WikiLink { .. }
-        | SpanKind::BlockRef { .. }
-        | SpanKind::Asset { .. } => {
+        SpanKind::Link { .. } | SpanKind::WikiLink { .. } | SpanKind::BlockRef { .. } => {
             color = theme.colors.link;
             underline = Some(UnderlineStyle {
                 thickness: px(1.0),
                 color: Some(color),
                 wavy: false,
             });
+        }
+        SpanKind::Asset { .. } => {
+            // Asset references render as a distinct chip with the path text;
+            // thumbnails and attachment controls stay in the React panel until
+            // phase B adds them.
+            color = theme.colors.primary;
+            background = Some(theme.colors.secondary);
         }
         SpanKind::Tag => color = theme.colors.primary,
         SpanKind::Math { .. } => {
