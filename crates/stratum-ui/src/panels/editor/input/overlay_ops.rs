@@ -10,7 +10,7 @@ use stratum_editor::menus::{
     WikiPage,
 };
 
-use crate::panels::editor::overlay::{detect_overlay, OverlayState};
+use crate::panels::editor::overlay::{detect_overlay, wiki_row_count, OverlayState};
 use crate::panels::editor::EditorView;
 
 /// Number of selectable entries in the active overlay.
@@ -21,7 +21,9 @@ pub(crate) fn overlay_len(view: &EditorView) -> usize {
             let has_selection = view.state.selection().is_some();
             filter_slash_items(&slash_items(has_selection, is_journal), query).len()
         }
-        OverlayState::Wiki { query, .. } => wiki_targets(query, &wiki_pages(view)).len(),
+        OverlayState::Wiki { query, .. } => {
+            wiki_row_count(wiki_targets(query, &wiki_pages(view)).len())
+        }
         OverlayState::Marker { .. } => marker_menu_items().len(),
         _ => 0,
     }
@@ -122,11 +124,13 @@ fn apply_wiki(view: &mut EditorView, query: &str, selected: usize, cx: &mut Cont
         return;
     };
     let targets = wiki_targets(query, &wiki_pages(view));
-    let Some(target) = targets.get(selected) else {
-        view.overlay = OverlayState::None;
-        return;
+    let insertion = if targets.is_empty() {
+        // Close the open `[[term` so the link is never left unterminated.
+        format!("{}]]", wiki.term)
+    } else {
+        let index = selected.min(targets.len() - 1);
+        format!("{}]]", targets[index].target)
     };
-    let insertion = format!("{}]]", target.target);
     let replacement = format!(
         "{}{}{}",
         &content[..wiki.replace_range.start],
@@ -178,7 +182,8 @@ fn apply_marker(view: &mut EditorView, selected: usize, cx: &mut Context<EditorV
     view.after_edit(cx);
 }
 
-fn wiki_pages(view: &EditorView) -> Vec<WikiPage> {
+/// Recent pages as wiki autocomplete candidates.
+pub(crate) fn wiki_pages(view: &EditorView) -> Vec<WikiPage> {
     view.provider
         .snapshot()
         .recents

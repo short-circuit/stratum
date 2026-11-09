@@ -9,11 +9,22 @@
 use gpui_kit::component::ActiveTheme;
 use gpui_kit::prelude::*;
 use gpui_kit::*;
-use stratum_editor::menus::{filter_slash_items, marker_menu_items, slash_items, wiki_query};
+use stratum_editor::menus::{
+    filter_slash_items, marker_menu_items, slash_items, wiki_query, wiki_targets, WikiTarget,
+};
 use stratum_editor::{badge_row, MarkerBadge};
 use stratum_i18n::{t_global, tr_global};
 
 use crate::panels::editor::{EditorView, SaveStatus};
+
+/// Maximum number of wiki autocomplete rows rendered at once.
+const WIKI_MAX_ROWS: usize = 8;
+
+/// Number of wiki autocomplete rows to render for `target_count` resolved
+/// targets. A no-match query still renders one row (the "create page" entry).
+pub(crate) fn wiki_row_count(target_count: usize) -> usize {
+    target_count.clamp(1, WIKI_MAX_ROWS)
+}
 
 /// The overlay currently shown above the editor.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -178,7 +189,11 @@ pub fn overlay_popup(view: &EditorView, cx: &mut Context<EditorView>) -> impl In
             popup = popup.child(slash_list(view, query, *selected, theme));
         }
         OverlayState::Wiki { query, selected } => {
-            popup = popup.child(wiki_list(query, *selected, theme));
+            let targets = wiki_targets(
+                query,
+                &crate::panels::editor::input::overlay_ops::wiki_pages(view),
+            );
+            popup = popup.child(wiki_list(&targets, query, *selected, theme));
         }
         OverlayState::Marker { selected } => {
             popup = popup.child(marker_list(*selected, theme));
@@ -292,10 +307,26 @@ fn slash_list(
     list
 }
 
-fn wiki_list(query: &str, selected: usize, theme: &gpui_kit::component::Theme) -> impl IntoElement {
-    let label = format!("[[{query}]]");
+fn wiki_list(
+    targets: &[WikiTarget],
+    query: &str,
+    selected: usize,
+    theme: &gpui_kit::component::Theme,
+) -> impl IntoElement {
+    let rows = wiki_row_count(targets.len());
     let mut list = div().flex().flex_col().gap(px(1.0));
-    for index in 0..1 {
+    for index in 0..rows {
+        let (label, secondary) = match targets.get(index) {
+            Some(target) => (
+                if target.title.is_empty() {
+                    target.slug.clone()
+                } else {
+                    target.title.clone()
+                },
+                target.path.clone(),
+            ),
+            None => (format!("[[{query}]]"), t_global("editor.create_page")),
+        };
         let mut row = div()
             .flex()
             .items_center()
@@ -305,12 +336,12 @@ fn wiki_list(query: &str, selected: usize, theme: &gpui_kit::component::Theme) -
             .rounded(px(4.0))
             .text_size(px(12.0))
             .text_color(theme.colors.foreground)
-            .child(label.clone())
+            .child(label)
             .child(
                 div()
                     .text_size(px(10.0))
                     .text_color(theme.colors.muted_foreground)
-                    .child(t_global("editor.create_page")),
+                    .child(secondary),
             );
         if index == selected {
             row = row
@@ -450,5 +481,12 @@ mod tests {
         assert_eq!(overlay.selected(), Some(2));
         overlay.move_selection(1, 3);
         assert_eq!(overlay.selected(), Some(0));
+    }
+
+    #[test]
+    fn wiki_rows_cover_every_selectable_entry() {
+        assert_eq!(wiki_row_count(0), 1);
+        assert_eq!(wiki_row_count(3), 3);
+        assert_eq!(wiki_row_count(20), 8);
     }
 }

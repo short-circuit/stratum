@@ -32,7 +32,7 @@ use crate::panels::editor::EditorView;
 mod ime;
 mod keys;
 mod mouse;
-mod overlay_ops;
+pub(crate) mod overlay_ops;
 
 pub use keys::handle_key_down;
 pub use mouse::{handle_click, handle_mouse_down, handle_mouse_move, handle_right_mouse_down};
