@@ -40,4 +40,9 @@ log.workspace = true
 tokio.workspace = true
 
 [dev-dependencies]
+gpui-kit = { version = "0.9", default-features = false, features = [
+    "component",
+    "assets",
+    "test-support",
+] }
 tempfile.workspace = true
