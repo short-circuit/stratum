@@ -9,7 +9,7 @@ use gpui_kit::component::input::{Input, InputState};
 use gpui_kit::component::ActiveTheme;
 use gpui_kit::prelude::*;
 use gpui_kit::*;
-use stratum_i18n::t_global;
+use stratum_i18n::{t_global, tr_global};
 
 use super::*;
 use crate::provider::normalize_move_path;
@@ -61,6 +61,7 @@ impl PageView {
         self.move_open = true;
         self.move_input = None;
         self.move_error = None;
+        self.move_target = None;
         self.move_provider_error = None;
         self.move_busy = false;
         cx.notify();
@@ -71,6 +72,7 @@ impl PageView {
         self.move_open = false;
         self.move_input = None;
         self.move_error = None;
+        self.move_target = None;
         self.move_provider_error = None;
         self.move_busy = false;
         cx.notify();
@@ -105,6 +107,7 @@ impl PageView {
             Ok(target) => target,
             Err(error) => {
                 self.move_error = Some(error);
+                self.move_target = (error == MoveError::Exists).then(|| normalize_move_path(&raw));
                 self.move_provider_error = None;
                 cx.notify();
                 return;
@@ -164,7 +167,13 @@ pub fn move_dialog(view: &PageView, cx: &mut Context<PageView>) -> impl IntoElem
 
     let error = view
         .move_error
-        .map(|error| t_global(error.label_key()))
+        .map(|error| match error {
+            MoveError::Exists => {
+                let path = view.move_target.clone().unwrap_or_default();
+                tr_global("sidebar.page_already_exists", &[("path", path.as_str())])
+            }
+            other => t_global(other.label_key()),
+        })
         .or_else(|| view.move_provider_error.clone());
 
     div()
@@ -259,7 +268,7 @@ fn dialog_button(
 mod tests {
     use super::*;
     use ::core::prelude::v1::test;
-    use stratum_i18n::{t, Locale};
+    use stratum_i18n::{t, tr, Locale};
 
     #[test]
     fn move_validation_trims_and_appends_the_extension() {
@@ -292,6 +301,27 @@ mod tests {
             validate_move("pages/New.md", "pages/Old.md", &existing),
             Err(MoveError::Exists)
         );
+    }
+
+    #[test]
+    fn move_conflict_message_interpolates_the_path_in_every_catalog() {
+        for locale in Locale::ALL {
+            let message = tr(
+                locale,
+                "sidebar.page_already_exists",
+                &[("path", "pages/New.md")],
+            );
+            assert!(
+                message.contains("pages/New.md"),
+                "path missing in {}",
+                locale.code()
+            );
+            assert!(
+                !message.contains("{{path}}"),
+                "uninterpolated placeholder in {}",
+                locale.code()
+            );
+        }
     }
 
     #[test]

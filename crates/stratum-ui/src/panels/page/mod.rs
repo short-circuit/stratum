@@ -122,6 +122,8 @@ pub struct PageStart {
     pub menu_open: bool,
     /// Start with the backlinks and suggestions cards expanded.
     pub cards_open: bool,
+    /// Start with the first linked backlink's snippet card preloaded.
+    pub snippet_open: bool,
 }
 
 /// The page panel entity.
@@ -136,6 +138,7 @@ pub struct PageView {
     move_open: bool,
     move_input: Option<Entity<InputState>>,
     move_error: Option<move_dialog::MoveError>,
+    move_target: Option<String>,
     move_provider_error: Option<String>,
     move_busy: bool,
     delete_open: bool,
@@ -169,6 +172,21 @@ impl PageView {
         let backlinks = provider.backlinks(&path);
         let read_mode = start.read_mode;
 
+        // Preload the first linked reference's snippet so a deterministic
+        // capture can prove the snippet card renders without pointer input.
+        let mut snippet = None;
+        let mut snippet_error = None;
+        if start.snippet_open {
+            if let Some(row) = backlinks.iter().find(|row| row.is_linked) {
+                snippet = provider.backlink_snippet(&row.source_page, &row.source_id);
+                if snippet.is_none() {
+                    snippet_error = Some(t_global(
+                        "backlink_snippet_body.could_not_load_the_backlinked_snippet",
+                    ));
+                }
+            }
+        }
+
         let editor_path = path.clone();
         let editor_provider = Arc::clone(&provider);
         let editor = cx.new(move |cx| EditorView::new(editor_path, editor_provider, read_mode, cx));
@@ -193,6 +211,7 @@ impl PageView {
             move_open: false,
             move_input: None,
             move_error: None,
+            move_target: None,
             move_provider_error: None,
             move_busy: false,
             delete_open: false,
@@ -202,8 +221,8 @@ impl PageView {
             backlinks_open: start.cards_open,
             suggestions: SuggestionsState::Idle,
             suggestions_open: start.cards_open,
-            snippet: None,
-            snippet_error: None,
+            snippet,
+            snippet_error,
             error: None,
             toast: None,
             pending_navigation: None,
