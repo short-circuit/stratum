@@ -277,8 +277,13 @@ derives from its directory. Requirements are the same as the shell capture.
 
 Deliberate deviations: the page header reuses the shared `VoiceCapture` control
 instead of the React `DictationPanel` option toggles (diarize/summarize/identify),
-and the attachment card is rendered by the editor view rather than duplicated in
-the page panel.
+the attachment card is rendered by the editor view rather than duplicated in the
+page panel, and a backlink row opens its bounded snippet through an explicit
+`backlinks.backlinked_snippet` control instead of the React Ctrl+hover timer
+(hover timers are unreliable in a compositor-driven window). The routed page and
+journal panels own their header; the shell chrome header is only rendered for the
+panels that are still placeholders, matching the shipped app where the route
+fills the whole content column.
 
 ---
 

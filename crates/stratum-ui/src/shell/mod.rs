@@ -382,6 +382,15 @@ impl Render for Shell {
         let theme = cx.theme();
         let background = theme.colors.background;
         let foreground = theme.colors.foreground;
+        // The page and journal panels render their own header (title, path chip,
+        // mode controls), matching the shipped app where the routed panel owns
+        // the whole content column. The chrome header stays for panels that are
+        // still placeholders so navigation remains legible.
+        let panel_owns_header = match self.active {
+            Panel::Page => self.page.is_some(),
+            Panel::Journal => self.journal.is_some(),
+            _ => false,
+        };
 
         div()
             .relative()
@@ -409,7 +418,9 @@ impl Render for Shell {
                     .flex_1()
                     .h_full()
                     .overflow_hidden()
-                    .child(header(self, cx))
+                    .when(!panel_owns_header, |element| {
+                        element.child(header(self, cx))
+                    })
                     .when(self.error.is_some(), |element| {
                         element.child(error_bar(self, cx))
                     })
