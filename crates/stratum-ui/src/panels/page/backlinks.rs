@@ -176,6 +176,7 @@ fn backlink_row(
                 .child(
                     div()
                         .id(format!("page-snippet-{}", row.source_id))
+                        .debug_selector(|| "page-snippet-chip".to_string())
                         .px(px(4.0))
                         .rounded(px(3.0))
                         .text_size(px(9.0))
@@ -183,6 +184,7 @@ fn backlink_row(
                         .cursor_pointer()
                         .child(t_global("backlinks.backlinked_snippet"))
                         .on_click(cx.listener(move |view, _, _, cx| {
+                            cx.stop_propagation();
                             view.load_snippet(&note_id, &anchor_id, cx);
                         })),
                 ),

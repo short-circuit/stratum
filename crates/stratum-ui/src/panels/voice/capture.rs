@@ -328,18 +328,25 @@ impl Render for VoiceCapture {
                         .bg(accent)
                         .text_color(accent_foreground)
                         .child(t_global("voice_capture.retry_transcription"))
-                        .on_click(cx.listener(|this, _, _, cx| this.retry(cx))),
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            cx.stop_propagation();
+                            this.retry(cx);
+                        })),
                 )
             })
             .when(terminal, |element| {
                 element.child(
                     div()
                         .id("voice-dismiss")
+                        .debug_selector(|| "voice-dismiss".to_string())
                         .px(px(4.0))
                         .rounded(px(4.0))
                         .text_color(muted)
                         .child(t_global("voice_capture.cancel"))
-                        .on_click(cx.listener(|this, _, _, cx| this.dismiss(cx))),
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            cx.stop_propagation();
+                            this.dismiss(cx);
+                        })),
                 )
             })
     }
