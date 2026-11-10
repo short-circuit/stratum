@@ -21,7 +21,9 @@ use stratum_i18n::{t_global, tr_global};
 use crate::panels::editor::EditorView;
 use crate::panels::journal::JournalView;
 use crate::panels::page::{PageStart, PageView};
-use crate::panels::panel_view;
+use crate::panels::query::QueryView;
+use crate::panels::search::SearchView;
+use crate::panels::{panel_owns_header, panel_view};
 use crate::provider::ShellData;
 use crate::router::{path_for, Panel, ShortcutAction};
 
@@ -30,8 +32,10 @@ use chrome::{error_bar, header, toast_overlay};
 mod chrome;
 mod footer;
 mod page;
+mod panels;
 mod sidebar;
 
+pub use panels::PanelStarts;
 pub use sidebar::{COLLAPSED_WIDTH, EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH};
 
 /// Shell-level alias for the expanded sidebar width.
@@ -103,6 +107,9 @@ pub struct Shell {
     journal_start_date: Option<String>,
     journal_calendar: bool,
     journal_read_mode: bool,
+    search: Option<Entity<SearchView>>,
+    query: Option<Entity<QueryView>>,
+    panel_starts: PanelStarts,
     error: Option<String>,
     toast: Option<Toast>,
 }
@@ -126,6 +133,9 @@ impl Shell {
             journal_start_date: None,
             journal_calendar: false,
             journal_read_mode: false,
+            search: None,
+            query: None,
+            panel_starts: PanelStarts::default(),
             error: None,
             toast: None,
         }
@@ -188,6 +198,14 @@ impl Shell {
             self.page_editor = None;
             self.page_start = PageStart::default();
         }
+        if panel != Panel::Search {
+            self.search = None;
+            self.panel_starts.search = crate::panels::search::SearchStart::default();
+        }
+        if panel != Panel::Query {
+            self.query = None;
+            self.panel_starts.query = crate::panels::query::QueryStart::default();
+        }
         self.active = panel;
         self.read_mode = false;
     }
@@ -227,6 +245,7 @@ impl Shell {
     fn handle_editor_navigation(&mut self, target: &str) {
         if target.starts_with('#') {
             self.navigate(Panel::Search);
+            self.set_search_start(Some(target.to_string()));
             return;
         }
         self.refresh();
@@ -372,25 +391,29 @@ impl Shell {
 }
 
 impl Render for Shell {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         if self.active == Panel::Page {
             self.sync_page(cx);
         }
         if self.active == Panel::Journal {
             self.sync_journal(cx);
         }
+        self.sync_panels(window, cx);
         let theme = cx.theme();
         let background = theme.colors.background;
         let foreground = theme.colors.foreground;
-        // The page and journal panels render their own header (title, path chip,
-        // mode controls), matching the shipped app where the routed panel owns
-        // the whole content column. The chrome header stays for panels that are
-        // still placeholders so navigation remains legible.
-        let panel_owns_header = match self.active {
-            Panel::Page => self.page.is_some(),
-            Panel::Journal => self.journal.is_some(),
-            _ => false,
-        };
+        // The page, journal, search and query panels render their own header
+        // (title, path chip, mode controls), matching the shipped app where the
+        // routed panel owns the whole content column. The chrome header stays
+        // for panels that are still placeholders so navigation remains legible.
+        let panel_owns_header = panel_owns_header(self.active)
+            && match self.active {
+                Panel::Page => self.page.is_some(),
+                Panel::Journal => self.journal.is_some(),
+                Panel::Search => self.search.is_some(),
+                Panel::Query => self.query.is_some(),
+                _ => false,
+            };
 
         div()
             .relative()
@@ -429,6 +452,8 @@ impl Render for Shell {
                         self.current_page.as_deref(),
                         self.page.clone(),
                         self.journal.clone(),
+                        self.search.clone(),
+                        self.query.clone(),
                         cx,
                     ))),
             )

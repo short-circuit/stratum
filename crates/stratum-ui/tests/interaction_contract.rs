@@ -12,7 +12,11 @@ use gpui_kit::test::TestWindowExt;
 use gpui_kit::{px, size, Modifiers, TestAppContext, VisualTestContext};
 use stratum_ui::panels::journal::JournalView;
 use stratum_ui::panels::page::{PageStart, PageView};
+use stratum_ui::panels::query::{QueryStart, QueryView};
+use stratum_ui::panels::search::model::SearchStatus;
+use stratum_ui::panels::search::{SearchStart, SearchView};
 use stratum_ui::panels::voice::{VoiceCapture, VoiceStage};
+use stratum_ui::panels::PanelRequests;
 use stratum_ui::provider::{journal_path, FixtureProvider, ShellData, FIXTURE_PAGE, FIXTURE_TODAY};
 use stratum_ui::ThemeConfig;
 
@@ -113,4 +117,102 @@ fn journal_start_scrolls_to_the_selected_day(cx: &mut TestAppContext) {
         offset > 0.0,
         "journal must scroll the selected day into view, got {offset}"
     );
+}
+
+#[gpui_kit::test]
+fn search_result_click_navigates(cx: &mut TestAppContext) {
+    init(cx);
+    let provider: Arc<dyn ShellData> = Arc::new(FixtureProvider::new());
+    let start = SearchStart {
+        query: Some("todo".to_string()),
+    };
+    let (search, cx) =
+        cx.add_window_view(move |window, cx| SearchView::new(provider, start, window, cx));
+    cx.update(|window, cx| window.render_frame(cx));
+    let bounds = cx
+        .debug_bounds("search-result-0")
+        .expect("search result row rendered");
+    cx.simulate_click(bounds.center(), Modifiers::default());
+    let navigation = cx.update(|_window, cx| {
+        search.update(cx, |view, _| {
+            let pending = view.pending_navigation().map(str::to_string);
+            view.clear_pending_navigation();
+            pending
+        })
+    });
+    assert_eq!(
+        navigation.as_deref(),
+        Some("pages/fixture.md"),
+        "clicking a result must request navigation to its page"
+    );
+}
+
+#[gpui_kit::test]
+fn search_tag_mode_uses_tag_search(cx: &mut TestAppContext) {
+    init(cx);
+    let provider: Arc<dyn ShellData> = Arc::new(FixtureProvider::new());
+    let start = SearchStart {
+        query: Some("#project".to_string()),
+    };
+    let (search, cx) =
+        cx.add_window_view(move |window, cx| SearchView::new(provider, start, window, cx));
+    cx.update(|window, cx| window.render_frame(cx));
+    let (paths, status) = cx.update(|_window, cx| {
+        let view = search.read(cx);
+        (
+            view.results()
+                .iter()
+                .map(|hit| hit.page_path.clone())
+                .collect::<Vec<_>>(),
+            view.status().clone(),
+        )
+    });
+    assert_eq!(paths, vec!["pages/fixture.md", "pages/Project Notes.md"]);
+    assert_eq!(status, SearchStatus::Done);
+}
+
+#[gpui_kit::test]
+fn query_run_renders_results(cx: &mut TestAppContext) {
+    init(cx);
+    let provider: Arc<dyn ShellData> = Arc::new(FixtureProvider::new());
+    let (query, cx) = cx.add_window_view(move |window, cx| {
+        QueryView::new(provider, QueryStart::default(), window, cx)
+    });
+    cx.update(|_window, cx| query.update(cx, |view, cx| view.run(cx)));
+    cx.update(|window, cx| window.render_frame(cx));
+    let (columns, rows, rendered) = cx.update(|_window, cx| {
+        let view = query.read(cx);
+        let result = view.result().expect("query result present");
+        (
+            result.columns.clone(),
+            result.rows.len(),
+            view.error().map(str::to_string),
+        )
+    });
+    assert_eq!(columns, vec!["?b", "?content"]);
+    assert_eq!(rows, 3);
+    assert_eq!(rendered, None);
+    assert!(cx.debug_bounds("query-results").is_some());
+}
+
+#[gpui_kit::test]
+fn query_save_dialog_adds_saved_query(cx: &mut TestAppContext) {
+    init(cx);
+    let provider: Arc<dyn ShellData> = Arc::new(FixtureProvider::new());
+    let (query, cx) = cx.add_window_view(move |window, cx| {
+        QueryView::new(provider, QueryStart::default(), window, cx)
+    });
+    cx.update(|window, cx| window.render_frame(cx));
+    let before = cx.update(|_window, cx| query.read(cx).saved().len());
+    cx.update(|_window, cx| query.update(cx, |view, cx| view.open_save_dialog(cx)));
+    cx.update(|_window, cx| {
+        query.update(cx, |view, cx| view.set_dialog_name("Saved from test", cx))
+    });
+    cx.update(|_window, cx| query.update(cx, |view, cx| view.submit_dialog(cx)));
+    let (after, toast) = cx.update(|_window, cx| {
+        let view = query.read(cx);
+        (view.saved().len(), view.pending_toast().map(str::to_string))
+    });
+    assert_eq!(after, before + 1, "saving must append the query");
+    assert!(toast.is_some(), "saving must request a success toast");
 }

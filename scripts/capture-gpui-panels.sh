@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Capture screenshots of the native Stratum journal and page surfaces.
+# Capture screenshots of the native Stratum journal, page, search and query
+# surfaces.
 #
 # The shell is started with STRATUM_FIXTURE=1 so the capture is deterministic
 # and needs no vault. When no DISPLAY is set the script starts a private Xvfb
 # screen, waits for the window to map, and captures the root window with
-# ImageMagick. Nine states are captured:
+# ImageMagick. Fourteen states are captured:
 #
 #   1. the journal route in edit mode
 #   2. the journal route with the calendar popup expanded (STRATUM_CALENDAR=1)
@@ -18,14 +19,24 @@
 #   8. the fixture page with a block revealed (STRATUM_HIGHLIGHT=<fixture id>)
 #   9. the fixture page with the backlink snippet card preloaded
 #      (STRATUM_CARDS=open STRATUM_SNIPPET=1)
+#  10. the search route with a full-text query submitted
+#      (STRATUM_ROUTE=/search STRATUM_SEARCH=todo)
+#  11. the search route in tag mode (STRATUM_ROUTE=/search STRATUM_SEARCH=#project)
+#  12. the query route on the builder tab (STRATUM_ROUTE=/query)
+#  13. the query route after running the default query
+#      (STRATUM_ROUTE=/query STRATUM_QUERY_RUN=1)
+#  14. the query route on the raw Datalog tab
+#      (STRATUM_ROUTE=/query STRATUM_QUERY_TAB=datalog)
 #
 # The journal PNGs are written to dist/gpui-journal.png,
 # dist/gpui-journal-calendar.png and dist/gpui-journal-read.png; the page PNGs to
 # dist/gpui-page.png, dist/gpui-page-note-menu.png, dist/gpui-page-read.png,
 # dist/gpui-page-cards.png, dist/gpui-page-highlight.png and
-# dist/gpui-page-snippet.png. Pass a path as the first argument or set OUTPUT to
-# override the journal edit-mode capture (the other captures derive from its
-# directory).
+# dist/gpui-page-snippet.png; the search PNGs to dist/gpui-search.png and
+# dist/gpui-search-tag.png; the query PNGs to dist/gpui-query.png,
+# dist/gpui-query-results.png and dist/gpui-query-datalog.png. Pass a path as the
+# first argument or set OUTPUT to override the journal edit-mode capture (the
+# other captures derive from its directory).
 #
 # Requirements: Xvfb, xdotool and ImageMagick's `import` (the CI job installs
 # them). Run from any directory; the script locates the workspace itself.
@@ -42,6 +53,11 @@ PAGE_READ_OUT="$OUT_DIR/gpui-page-read.png"
 PAGE_CARDS_OUT="$OUT_DIR/gpui-page-cards.png"
 PAGE_HIGHLIGHT_OUT="$OUT_DIR/gpui-page-highlight.png"
 PAGE_SNIPPET_OUT="$OUT_DIR/gpui-page-snippet.png"
+SEARCH_OUT="$OUT_DIR/gpui-search.png"
+SEARCH_TAG_OUT="$OUT_DIR/gpui-search-tag.png"
+QUERY_OUT="$OUT_DIR/gpui-query.png"
+QUERY_RESULTS_OUT="$OUT_DIR/gpui-query-results.png"
+QUERY_DATALOG_OUT="$OUT_DIR/gpui-query-datalog.png"
 # Deterministic block on pages/fixture.md (provider::FIXTURE_HIGHLIGHT_BLOCK).
 FIXTURE_HIGHLIGHT="413cf12c-969f-54ef-bf75-40ffd89e8618"
 LOG="${CAPTURE_LOG:-$OUT_DIR/gpui-journal.log}"
@@ -176,3 +192,18 @@ capture_state \
 capture_state \
     "STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md STRATUM_CARDS=open STRATUM_SNIPPET=1" \
     "$PAGE_SNIPPET_OUT"
+
+capture_state \
+    "STRATUM_ROUTE=/search STRATUM_SEARCH=todo" \
+    "$SEARCH_OUT"
+capture_state \
+    "STRATUM_ROUTE=/search STRATUM_SEARCH=#project" \
+    "$SEARCH_TAG_OUT"
+
+capture_state "STRATUM_ROUTE=/query" "$QUERY_OUT"
+capture_state \
+    "STRATUM_ROUTE=/query STRATUM_QUERY_RUN=1" \
+    "$QUERY_RESULTS_OUT"
+capture_state \
+    "STRATUM_ROUTE=/query STRATUM_QUERY_TAB=datalog" \
+    "$QUERY_DATALOG_OUT"

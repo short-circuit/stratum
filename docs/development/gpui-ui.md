@@ -82,9 +82,9 @@ logic: data comes from an `AppProvider` implementation.
 | `router` | `Panel`, `ROUTES`, `NAV_ITEMS`, `SHORTCUTS`, `parse_path`, `path_for`, percent codec |
 | `theme` | `ThemeConfig`, `derive_palette`, `apply_to_kit`, golden palette formulas |
 | `assets` | `StratumAssets` (icons + fonts), `register_fonts` |
-| `provider` | `ShellData`, `ShellSnapshot`, `FixtureProvider`, `provider_from_env`, asset seam (`provider/assets.rs`), journal seam (`provider/journal.rs`), page seam (`provider/page.rs`) and voice seam (`provider/voice.rs`) |
-| `shell` | header, sidebar, footer, error bar, toaster, journal/page view wiring (`shell/page.rs`) and start-state setters |
-| `panels` | panel body rendering and icon mapping; `panels/journal` (entity, state, navigation, reload, calendar/stack/read-mode surface), `panels/page` (entity, header, Note menu, move/delete dialogs, backlinks, suggestions, actions) and `panels/voice` (capture stage machine and entity) |
+| `provider` | `ShellData`, `ShellSnapshot`, `FixtureProvider`, `provider_from_env`, asset seam (`provider/assets.rs`), journal seam (`provider/journal.rs`), page seam (`provider/page.rs`), voice seam (`provider/voice.rs`) and the panel data seam (`provider/panels.rs`, `provider/app_panels.rs`, `provider/fixture/panels`) |
+| `shell` | header, sidebar, footer, error bar, toaster, journal/page view wiring (`shell/page.rs`), search/query panel wiring (`shell/panels.rs`) and start-state setters |
+| `panels` | panel body rendering and icon mapping; `panels/journal` (entity, state, navigation, reload, calendar/stack/read-mode surface), `panels/page` (entity, header, Note menu, move/delete dialogs, backlinks, suggestions, actions), `panels/search` (model, entity, result rows), `panels/query` (model, entity, builder rows, toolbar, dialogs, saved list, results) and `panels/voice` (capture stage machine and entity) |
 
 The provider seam is the only place the shell touches the service layer. The
 real provider drives `stratum_app::StratumService`; `FixtureProvider` returns a
@@ -126,6 +126,53 @@ metadata, two linked + one unlinked backlink, one snippet and two suggestions fo
 `pages/fixture.md`. The pure helpers (`normalize_move_path`, `group_backlinks`,
 `clamp_relevance`) live in `provider/page.rs` and are covered by window-free
 tests.
+
+### Search
+
+`panels/search` ports the shipped desktop `SearchPanel`. `model.rs` owns the
+window-free routing (`classify_query`: leading `#` selects tag mode with the
+marker stripped; empty or a bare `#` is idle), the `SearchStatus` machine and
+the `score_label` caption (`search._score` + two decimals). `mod.rs` renders the
+header (`search.search_blocks`), the query field
+(`search.search_blocks_prefix_with_to_search_tags`), the `common.search` submit
+button, Enter submission, the rebuild action
+(`search.rebuild_search_index` / `search.indexing`) and the `search.failed`
+error prefix. `rows.rs` renders one `search-result-{index}` row per hit with the
+page path, score label and snippet; clicking a row records a pending navigation
+to `page_path` that the shell routes through `handle_editor_navigation`.
+
+Provider calls stay on `PanelData`: `search_by_tag(tag)` for tag mode,
+`search_blocks(query, 20)` for full-text and `rebuild_search_index()` for the
+rebuild action. The fixture returns three deterministic hits and two tag hits.
+The start flag `STRATUM_SEARCH=<query>` submits a query on construction; a
+`#tag` value exercises tag mode. Captures: `dist/gpui-search.png` (full-text
+`todo`) and `dist/gpui-search-tag.png` (`#project`).
+
+### Query
+
+`panels/query` ports the shipped `QueryPanel.desktop`, `BuilderMode`,
+`ConditionRow` and `SavedQueryDialogs`. `model.rs` owns the `QueryTab` pair and
+the `PanelState` transitions; every builder edit calls
+`stratum_app::query::builder::{build_datalog, parse_datalog_to_rows}` so the
+native panel emits byte-identical queries. Switching to Builder parses the
+buffer (invalid input surfaces `query.builder_not_parseable`), invalid specs
+surface the `BuildError::key()` message instead of running, reset restores the
+shipped reset query and copy-to-editor moves the generated query into the raw
+buffer with the `query.copied_to_editor` toast. `builder_rows.rs` renders one
+row per `FilterSpec` with field/operator choosers, a value input, combiner,
+move and remove controls plus the generated-query preview; `toolbar.rs` owns the
+tab bar, raw editor and Run/Save/Reset actions; `dialogs.rs` owns the save,
+rename and delete confirmations; `saved.rs` renders the saved list with
+`format_updated_at` subtitles, load/rename/delete controls and refresh;
+`results.rs` renders the result table.
+
+Provider calls stay on `PanelData`: `run_query`, `saved_queries`, `save_query`,
+`rename_query` and `delete_query`. The fixture seeds two saved queries and
+returns a 2×3 result table. Start flags: `STRATUM_QUERY=<datalog>` prefills the
+editor, `STRATUM_QUERY_TAB=builder|datalog` selects the tab and
+`STRATUM_QUERY_RUN=1` runs the query after construction. Captures:
+`dist/gpui-query.png` (builder), `dist/gpui-query-results.png` (run) and
+`dist/gpui-query-datalog.png` (raw tab).
 
 Highlight-on-open lives in `panels/editor/reveal.rs`: `EditorView::reveal_block`
 locates the row, scrolls to the layout offset and records a highlight that the
@@ -177,6 +224,10 @@ the sidebar and `Escape` dismisses the topmost overlay.
 | `STRATUM_CARDS=open` | Start with the page backlinks/suggestions expanded |
 | `STRATUM_HIGHLIGHT=<block-id>` | Reveal a block when the page opens |
 | `STRATUM_SNIPPET=1` | Preload the first linked backlink's snippet card |
+| `STRATUM_SEARCH=<query>` | Submit a search query on the search panel (`#tag` uses tag mode) |
+| `STRATUM_QUERY=<datalog>` | Prefill the query panel's Datalog editor |
+| `STRATUM_QUERY_TAB=builder\|datalog` | Select the query panel tab |
+| `STRATUM_QUERY_RUN=1` | Run the query after construction |
 
 The start-state flags are applied by `apply_start_state` in `main.rs` and exist
 for the capture harness; they do not change the interactive behaviour of the
@@ -250,8 +301,8 @@ test. The script requires `Xvfb`, `xdotool` and ImageMagick's `import`. It is
 used by the GPUI CI workflow to publish a screenshot artifact, and is safe to
 run locally without a desktop session.
 
-`scripts/capture-gpui-panels.sh` captures the journal and page surfaces using
-the start-state flags:
+`scripts/capture-gpui-panels.sh` captures the journal, page, search and query
+surfaces using the start-state flags:
 
 ```bash
 ./scripts/capture-gpui-panels.sh
@@ -264,6 +315,11 @@ the start-state flags:
 # → dist/gpui-page-cards.png        (STRATUM_CARDS=open)
 # → dist/gpui-page-highlight.png    (STRATUM_HIGHLIGHT=<fixture block id>)
 # → dist/gpui-page-snippet.png      (STRATUM_CARDS=open STRATUM_SNIPPET=1)
+# → dist/gpui-search.png            (STRATUM_ROUTE=/search STRATUM_SEARCH=todo)
+# → dist/gpui-search-tag.png        (STRATUM_SEARCH=#project)
+# → dist/gpui-query.png             (builder tab)
+# → dist/gpui-query-results.png     (STRATUM_QUERY_RUN=1)
+# → dist/gpui-query-datalog.png     (STRATUM_QUERY_TAB=datalog)
 ```
 
 The journal edit-mode capture is the parity reference for the shipped
@@ -282,7 +338,13 @@ The page captures pin the shipped `PageView`: the header shows the title, path
 chip, voice/attach/read controls and the `Note` menu; the Note-menu capture shows
 the ordered actions; the read capture shows the read-mode treatment and the
 edit-mode button; the cards capture shows the backlinks and suggestions cards
-expanded; the highlight capture shows the revealed block tint. The first
+expanded; the highlight capture shows the revealed block tint. The search
+captures pin the `SearchPanel` parity surface: the full-text capture shows the
+classified mode chip, the result rows with score labels and the result count,
+and the tag capture shows tag mode with the `#project` tag results. The query
+captures pin the `QueryPanel` surface: the builder tab shows the condition rows,
+the generated Datalog preview and the saved-query list; the run capture shows the
+result table; the Datalog capture shows the raw editor tab. The first
 argument or `OUTPUT` overrides the journal edit-mode path and every other capture
 derives from its directory. Requirements are the same as the shell capture.
 
@@ -305,8 +367,8 @@ crates, the capture scripts or the CI wiring:
 
 1. `gpui-shell` — formatting, build, tests and clippy on **Linux, Windows and
    macOS** (fail-fast disabled, one job per OS).
-2. `gpui-capture` — Linux only: shell, journal, page and editor-perf captures,
-   plus artifact upload.
+2. `gpui-capture` — Linux only: shell, journal, page, search, query and
+   editor-perf captures, plus artifact upload.
 
 Both jobs install the Tauri Linux dependencies through
 `.github/actions/install-linux-deps`, which now also carries the native shell
@@ -336,9 +398,21 @@ shared voice-capture control, attachment picker, read/edit mode, the `Note` menu
 (reindex, normalize, move/rename with path validation, delete with confirmation),
 backlinks with linked/unlinked partitions and bounded snippets, related-note
 suggestions with add-link, and highlight-on-open. Deleting returns to the journal
-home; moving opens the new path with the localized success toast. Other panel
-bodies (graph, search, etc.) are the next layer; the route/navigation/i18n
-contracts are already in place for them.
+home; moving opens the new path with the localized success toast.
+
+The search view covers the shipped `SearchPanel` behaviour: query
+classification (full-text, tag or block-reference), full-text and tag result
+lists with score labels and match counts, tag-mode query normalisation, empty
+and failure states, reindex and navigation into a result. The query view covers
+the shipped `QueryPanel` behaviour: a builder tab with field/operator/value
+conditions, combiners and row ordering that emits the Datalog program, a raw
+Datalog tab, run/reset, saved-query list with save/rename/delete/copy, build
+errors and the result table. Both panels route their classification, score
+formatting, builder emission/parsing and saved-query display through
+`stratum-app` helpers rather than duplicating logic in the view. The routed
+search and query panels own their header, like the page and journal panels.
+Other panel bodies (graph, kanban, etc.) are the next layer; the
+route/navigation/i18n contracts are already in place for them.
 
 The toaster dismisses manually or through `Escape`; there is no timer-based
 auto-dismiss yet. This is intentional for the E2 shell and is documented in

@@ -16,6 +16,10 @@
 //! - `STRATUM_CARDS=open` starts with the page backlinks/suggestions expanded.
 //! - `STRATUM_HIGHLIGHT=<block-id>` reveals a block when the page opens.
 //! - `STRATUM_SNIPPET=1` preloads the first linked backlink's snippet card.
+//! - `STRATUM_SEARCH=<query>` submits a search query on the search panel.
+//! - `STRATUM_QUERY=<datalog>` prefills the query panel's Datalog editor.
+//! - `STRATUM_QUERY_TAB=builder|datalog` selects the query panel tab.
+//! - `STRATUM_QUERY_RUN=1` runs the query after construction.
 //!
 //! Shortcuts are installed from the shared [`stratum_ui::router::SHORTCUTS`]
 //! table, with `Modifier::Ctrl` mapped to GPUI's `secondary` modifier.
@@ -25,9 +29,11 @@ use std::sync::Arc;
 
 use gpui_kit::*;
 use stratum_i18n::{set_locale, Locale};
+use stratum_ui::panels::query::{QueryStart, QueryTab};
+use stratum_ui::panels::search::SearchStart;
 use stratum_ui::provider::provider_from_env;
 use stratum_ui::router::{keystroke_string, parse_path, ShortcutAction, SHORTCUTS};
-use stratum_ui::{init, Shell, StratumAssets, ThemeConfig};
+use stratum_ui::{init, PanelStarts, Shell, StratumAssets, ThemeConfig};
 
 fn main() {
     init_logging();
@@ -82,6 +88,33 @@ fn apply_start_state(shell: &mut Shell) {
             Some(panel) => shell.navigate(panel),
             None => log::warn!("ignoring unknown STRATUM_ROUTE={route}"),
         }
+    }
+    let search = std::env::var("STRATUM_SEARCH")
+        .ok()
+        .filter(|value| !value.is_empty());
+    let query_datalog = std::env::var("STRATUM_QUERY")
+        .ok()
+        .filter(|value| !value.is_empty());
+    let query_tab = std::env::var("STRATUM_QUERY_TAB").ok().and_then(|value| {
+        match value.to_ascii_lowercase().as_str() {
+            "builder" => Some(QueryTab::Builder),
+            "datalog" => Some(QueryTab::Datalog),
+            other => {
+                log::warn!("ignoring unknown STRATUM_QUERY_TAB={other}");
+                None
+            }
+        }
+    });
+    let query_run = env_flag("STRATUM_QUERY_RUN");
+    if search.is_some() || query_datalog.is_some() || query_tab.is_some() || query_run {
+        shell.set_panel_start(PanelStarts {
+            search: SearchStart { query: search },
+            query: QueryStart {
+                datalog: query_datalog,
+                tab: query_tab,
+                run: query_run,
+            },
+        });
     }
     if let Ok(page) = std::env::var("STRATUM_PAGE") {
         let highlight = std::env::var("STRATUM_HIGHLIGHT")

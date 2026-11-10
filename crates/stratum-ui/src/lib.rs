@@ -61,7 +61,7 @@ pub use router::{
     keystroke_string, parse_path, path_for, percent_decode, percent_encode, Modifier, NavItem,
     Panel, Route, Shortcut, ShortcutAction, NAV_ITEMS, ROUTES, SHORTCUTS,
 };
-pub use shell::{Shell, SHELL_COLLAPSED_WIDTH, SHELL_I18N_KEYS, SHELL_WIDTH};
+pub use shell::{PanelStarts, Shell, SHELL_COLLAPSED_WIDTH, SHELL_I18N_KEYS, SHELL_WIDTH};
 pub use theme::{apply_to_kit, ThemeConfig};
 
 use gpui_kit::*;
