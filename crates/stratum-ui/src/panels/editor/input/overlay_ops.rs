@@ -220,9 +220,11 @@ fn apply_marker(view: &mut EditorView, selected: usize, cx: &mut Context<EditorV
 /// Create the page behind an open dead-link overlay and navigate to it.
 ///
 /// Mirrors `DeadLinkCreatePopup.tsx`: creation failures that report an existing
-/// page still navigate to the target path, because the link is valid once the
-/// page exists. Any other failure is surfaced through the save chip and the
-/// popup closes.
+/// page still navigate, because the link is valid once the page exists. The
+/// existing-page branch forwards the raw target (not `target.md`) so the shell
+/// re-resolves it against its snapshot and keeps its Search fallback for links
+/// whose real path differs (for example a journal page referenced by date). Any
+/// other failure is surfaced through the save chip and the popup closes.
 pub(crate) fn apply_dead_link(view: &mut EditorView, target: &str, cx: &mut Context<EditorView>) {
     match view.provider.create_page(target, None) {
         Ok(path) => {
@@ -231,12 +233,7 @@ pub(crate) fn apply_dead_link(view: &mut EditorView, target: &str, cx: &mut Cont
             cx.notify();
         }
         Err(error) if error.to_lowercase().contains("already exists") => {
-            let path = if target.ends_with(".md") {
-                target.to_string()
-            } else {
-                format!("{target}.md")
-            };
-            view.pending_navigation = Some(path);
+            view.pending_navigation = Some(target.trim().to_string());
             view.overlay = OverlayState::None;
             cx.notify();
         }
