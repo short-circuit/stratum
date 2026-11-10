@@ -83,6 +83,15 @@ fn slash_fenced_actions_place_the_caret_inside_the_fence() {
 }
 
 #[test]
+fn table_action_places_the_caret_inside_the_first_header_cell() {
+    let skeleton = stratum_editor::menus::table_skeleton();
+    assert_eq!(
+        slash_caret_offset(Some(SlashAction::Table), &skeleton, 0),
+        2
+    );
+}
+
+#[test]
 fn typing_at_the_slash_caret_stays_inside_the_fence() {
     use stratum_editor::{EditorDocument, EditorState};
 

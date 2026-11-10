@@ -106,6 +106,7 @@ pub const EDITOR_I18N_KEYS: &[&str] = &[
     "editor.mermaid_diagram",
     "editor.paragraph",
     "editor.quote",
+    "editor.table",
     // Marker / priority menu labels.
     "editor.high_priority",
     "editor.low_priority",

@@ -7,7 +7,7 @@
 //!
 //! `height = base(kind) + (ceil(content_len / 80) - 1) * 18`
 //!
-//! with `base` 24 for paragraphs/quote/list items, 32 for headings, 22 for code,
+//! with `base` 24 for paragraphs/quote/list items/tables, 32 for headings, 22 for code,
 //! 180 for mermaid, 48 for display math, 24 for inline math and 12 for dividers.
 //! Heights are clamped to a minimum of [`MIN_ROW_HEIGHT`] so the visible-window
 //! bound holds even for malformed layouts.
@@ -139,7 +139,7 @@ impl VirtualLayout {
 /// [`MIN_ROW_HEIGHT`].
 pub fn estimate_height(kind: &BlockKind, content_len: usize) -> f32 {
     let base = match kind {
-        BlockKind::Paragraph | BlockKind::Quote | BlockKind::ListItem => 24.0,
+        BlockKind::Paragraph | BlockKind::Quote | BlockKind::ListItem | BlockKind::Table => 24.0,
         BlockKind::Heading(_) => 32.0,
         BlockKind::Code { .. } => 22.0,
         BlockKind::Mermaid => 180.0,

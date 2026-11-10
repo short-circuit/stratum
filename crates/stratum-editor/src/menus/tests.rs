@@ -196,7 +196,7 @@ fn every_slash_action_appears_in_its_context() {
             assert!(!in_selected, "{id} should be hidden off-journal");
         }
     }
-    assert_eq!(plain.len() + journal.len(), 26);
+    assert_eq!(plain.len() + journal.len(), 28);
 }
 
 #[test]

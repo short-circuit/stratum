@@ -19,6 +19,7 @@ const CANONICAL: &[&str] = &[
     include_str!("fixtures/canonical_nested.md"),
     include_str!("fixtures/canonical_code.md"),
     include_str!("fixtures/canonical_inline.md"),
+    include_str!("fixtures/canonical_table.md"),
 ];
 
 const NON_CANONICAL: &[&str] = &[
