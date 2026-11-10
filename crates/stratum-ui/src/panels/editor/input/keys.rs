@@ -22,6 +22,14 @@ pub fn handle_key_down(
     if view.read_mode {
         return false;
     }
+    // Escape abandons an in-flight drag before the overlay/context-menu Escape
+    // handling runs, so the drag cannot outlive the gesture that started it.
+    if event.keystroke.key == "escape" && view.drag.is_some() {
+        view.drag = None;
+        view.drop_target = None;
+        cx.notify();
+        return true;
+    }
     let keystroke = &event.keystroke;
     let modifiers = keystroke.modifiers;
 

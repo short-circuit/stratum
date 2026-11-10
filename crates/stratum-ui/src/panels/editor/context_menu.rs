@@ -9,7 +9,9 @@
 //! The menu only mutates the engine through [`stratum_editor::EditorState`]:
 //! clipboard, marker and reminder operations stay headless and unit-tested. A
 //! selected entry always closes the menu, marks the document dirty and schedules
-//! the normal debounced save; block drag-and-drop is deliberately out of scope.
+//! the normal debounced save. Block drag-and-drop reordering lives in the
+//! editor's [`crate::panels::editor::drag`] module; the context menu still owns
+//! its own actions.
 
 use chrono::{Duration, Utc};
 use gpui_kit::component::ActiveTheme;

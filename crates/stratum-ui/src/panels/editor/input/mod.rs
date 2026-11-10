@@ -35,7 +35,9 @@ mod mouse;
 pub(crate) mod overlay_ops;
 
 pub use keys::handle_key_down;
-pub use mouse::{handle_click, handle_mouse_down, handle_mouse_move, handle_right_mouse_down};
+pub use mouse::{
+    handle_click, handle_mouse_down, handle_mouse_move, handle_mouse_up, handle_right_mouse_down,
+};
 
 pub(crate) use overlay_ops::refresh_overlay;
 

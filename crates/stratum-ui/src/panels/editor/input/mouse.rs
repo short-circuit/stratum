@@ -10,8 +10,10 @@ use gpui_kit::*;
 use stratum_editor::menus::{
     link_at, preview_for, resolve_wiki_target, LinkHitKind, WikiPage, WikiTargetResolution,
 };
+use stratum_editor::MoveTarget;
 
 use crate::panels::editor::context_menu::ContextMenuState;
+use crate::panels::editor::drag::{self, DragState};
 use crate::panels::editor::overlay::OverlayState;
 use crate::panels::editor::rows::{
     inline_offset, marker_prefix_len, row_font_size, row_index_at_point, row_text_left,
@@ -20,7 +22,7 @@ use crate::panels::editor::rows::{
 use crate::panels::editor::EditorView;
 
 use super::overlay_ops::wiki_pages;
-use super::refresh_overlay;
+use super::{finish_edit, refresh_overlay};
 
 /// What a Ctrl+click on a wiki-link should do.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -55,6 +57,29 @@ pub fn handle_mouse_down(
         return;
     }
     view.context_menu = None;
+    view.drag = None;
+    view.drop_target = None;
+
+    // A press on the indent gutter starts a block drag instead of placing the
+    // caret, so text selection inside the row is untouched.
+    let viewport = view.scroll.bounds();
+    let offset = view.scroll.offset();
+    let content_x =
+        f32::from(event.position.x) - f32::from(viewport.origin.x) - f32::from(offset.x);
+    let content_y =
+        f32::from(event.position.y) - f32::from(viewport.origin.y) - f32::from(offset.y);
+    if let Some(index) = drag::gutter_row_at(&view.rows, &view.layout, content_x, content_y) {
+        if let Some(block_id) = view.rows.get(index).map(|row| row.block_id) {
+            view.drag = Some(DragState {
+                block_id,
+                origin: event.position,
+                active: false,
+            });
+        }
+        cx.notify();
+        return;
+    }
+
     let _ = place_caret(view, event.position, window, cx);
     cx.notify();
 }
@@ -132,6 +157,34 @@ pub fn handle_mouse_move(
     window: &mut Window,
     cx: &mut Context<EditorView>,
 ) {
+    // A gutter drag owns the pointer until release; the Ctrl+hover preview stays
+    // out of the way while it is in flight.
+    if let Some(mut drag) = view.drag {
+        if event.pressed_button == Some(MouseButton::Left) {
+            let started = drag.active || drag::drag_has_started(drag.origin, event.position);
+            let mut changed = started != drag.active;
+            drag.active = started;
+            view.drag = Some(drag);
+            let target = if started {
+                drag::drop_target_at_point(view, event.position)
+            } else {
+                None
+            };
+            if target != view.drop_target {
+                view.drop_target = target;
+                changed = true;
+            }
+            if changed {
+                cx.notify();
+            }
+        } else {
+            view.drag = None;
+            view.drop_target = None;
+            cx.notify();
+        }
+        return;
+    }
+
     if !event.modifiers.control {
         if view.hover_preview.take().is_some() {
             cx.notify();
@@ -177,6 +230,46 @@ pub fn handle_mouse_move(
         view.hover_preview = preview;
         cx.notify();
     }
+}
+
+/// Finish a gutter drag.
+///
+/// An active drag applies the resolved [`DropTarget`] through
+/// [`EditorState::move_block`](stratum_editor::EditorState::move_block) and the
+/// shared [`finish_edit`] bookkeeping; a press that never travelled places the
+/// caret at the start of the pressed row instead.
+pub fn handle_mouse_up(
+    view: &mut EditorView,
+    _event: &MouseUpEvent,
+    window: &mut Window,
+    cx: &mut Context<EditorView>,
+) {
+    let Some(drag) = view.drag else {
+        return;
+    };
+    if drag.active {
+        if let Some(target) = view.drop_target.as_ref() {
+            let target = MoveTarget {
+                parent: target.parent,
+                index: target.index,
+            };
+            // `Ok(false)` means the drop resolved to the block's current
+            // position; keep the document clean instead of scheduling a save.
+            match view.state.move_block(drag.block_id, target) {
+                Ok(true) => finish_edit(view, Ok(()), cx),
+                Ok(false) => cx.notify(),
+                Err(error) => finish_edit(view, Err(error), cx),
+            }
+        }
+    } else {
+        window.focus(&view.focus, cx);
+        let _ = view.state.set_caret(drag.block_id, 0);
+        refresh_overlay(view);
+        cx.notify();
+    }
+    view.drag = None;
+    view.drop_target = None;
+    cx.notify();
 }
 
 /// Handle a click. Ctrl+click on a tag records a navigation request for the

@@ -217,3 +217,79 @@ fn test_set_and_remove_property() {
     remove_property(&mut tree, id, "type").unwrap();
     assert!(!tree.get(id).unwrap().properties.contains_key("type"));
 }
+
+#[test]
+fn move_root_to_head_does_not_relink_other_groups_first_child() {
+    let mut tree = BlockTree::new();
+    let r1 = create_block(&mut tree, None, None, "R1".into()).unwrap();
+    let r2 = create_block(&mut tree, None, Some(r1), "R2".into()).unwrap();
+    let moving = create_block(&mut tree, None, Some(r2), "Moving".into()).unwrap();
+    let p1 = create_block(&mut tree, None, Some(moving), "P1".into()).unwrap();
+    let p2 = create_block(&mut tree, None, Some(p1), "P2".into()).unwrap();
+    let c1 = create_block(&mut tree, Some(p1), None, "C1".into()).unwrap();
+    let c2 = create_block(&mut tree, Some(p2), None, "C2".into()).unwrap();
+
+    // Move the root block to index 0 of the root group. Both unrelated parent
+    // groups already have a `left_id == None` first child; neither may be
+    // relinked to the moved block.
+    move_block(&mut tree, moving, None, None).unwrap();
+
+    assert_eq!(tree.get(c1).unwrap().left_id, None);
+    assert_eq!(tree.get(c2).unwrap().left_id, None);
+    assert_eq!(tree.children(p1)[0].id, c1);
+    assert_eq!(tree.children(p2)[0].id, c2);
+    assert_eq!(tree.roots()[0].id, moving);
+    assert_eq!(tree.roots()[1].id, r1);
+}
+
+#[test]
+fn move_block_rejects_left_id_from_a_different_parent() {
+    let mut tree = BlockTree::new();
+    let parent = create_block(&mut tree, None, None, "Parent".into()).unwrap();
+    create_block(&mut tree, Some(parent), None, "Child".into()).unwrap();
+    let r1 = create_block(&mut tree, None, None, "R1".into()).unwrap();
+    let r2 = create_block(&mut tree, None, Some(r1), "R2".into()).unwrap();
+
+    let result = move_block(&mut tree, r2, Some(parent), Some(r1));
+
+    assert!(matches!(result, Err(PkmError::Validation(_))));
+    assert_eq!(tree.get(r2).unwrap().parent_id, None);
+    assert_eq!(tree.get(r2).unwrap().left_id, Some(r1));
+}
+
+#[test]
+fn create_first_child_leaves_other_group_heads_untouched() {
+    let mut tree = BlockTree::new();
+    let p1 = create_block(&mut tree, None, None, "P1".into()).unwrap();
+    let p2 = create_block(&mut tree, None, Some(p1), "P2".into()).unwrap();
+    let c1 = create_block(&mut tree, Some(p1), None, "C1".into()).unwrap();
+    let c2 = create_block(&mut tree, Some(p2), None, "C2".into()).unwrap();
+
+    let new = create_block(&mut tree, Some(p1), None, "New".into()).unwrap();
+
+    assert_eq!(tree.children(p1)[0].id, new);
+    assert_eq!(tree.get(c1).unwrap().left_id, Some(new));
+    // The other group's head must still point nowhere.
+    assert_eq!(tree.get(c2).unwrap().left_id, None);
+    assert_eq!(tree.children(p2)[0].id, c2);
+}
+
+#[test]
+fn delete_closes_the_chain_inside_the_deleted_blocks_group_only() {
+    let mut tree = BlockTree::new();
+    let r1 = create_block(&mut tree, None, None, "R1".into()).unwrap();
+    let r2 = create_block(&mut tree, None, Some(r1), "R2".into()).unwrap();
+    let r3 = create_block(&mut tree, None, Some(r2), "R3".into()).unwrap();
+    let parent = create_block(&mut tree, None, Some(r3), "Parent".into()).unwrap();
+    let x = create_block(&mut tree, Some(parent), None, "X".into()).unwrap();
+    let y = create_block(&mut tree, Some(parent), Some(x), "Y".into()).unwrap();
+    let z = create_block(&mut tree, Some(parent), Some(y), "Z".into()).unwrap();
+
+    delete_block(&mut tree, y).unwrap();
+
+    assert_eq!(tree.get(z).unwrap().left_id, Some(x));
+    let children: Vec<_> = tree.children(parent).iter().map(|b| b.id).collect();
+    assert_eq!(children, vec![x, z]);
+    let roots: Vec<_> = tree.roots().iter().map(|b| b.id).collect();
+    assert_eq!(roots, vec![r1, r2, r3, parent]);
+}

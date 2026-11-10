@@ -60,12 +60,13 @@ pub use menus::{
     SLASH_MAX_ROWS,
 };
 pub use mermaid::{mermaid_source, MermaidCache};
+pub use pkm_block::BlockId;
 pub use render::{
     render_page, render_page_with_assets, BlockKind, DecoratedRow, DecoratedSpan, RenderMode,
 };
 pub use state::{
     byte_to_utf16, normalize_paste, paste_markdown, utf16_to_byte, Caret, ClipboardPayload,
-    Composition, EditOp, EditorState, History, HistoryEntry, Selection,
+    Composition, EditOp, EditorState, History, HistoryEntry, MoveTarget, Selection,
 };
 pub use virtualize::VirtualLayout;
 

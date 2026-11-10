@@ -272,6 +272,22 @@ pub fn row_element(
         .text_color(theme.colors.foreground)
         .cursor_text();
 
+    // The indent gutter is the drag affordance: it covers only the empty space
+    // left of the row text, carries no listeners (the press bubbles to the root
+    // handler) and stays cheap by rendering no children or text.
+    if !view.read_mode {
+        element = element.child(
+            div()
+                .absolute()
+                .left(px(0.0))
+                .top(px(0.0))
+                .w(px(text_left))
+                .h_full()
+                .id(("editor-gutter", index))
+                .cursor_grab(),
+        );
+    }
+
     if !view
         .state
         .document()

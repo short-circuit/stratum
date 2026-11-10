@@ -18,6 +18,7 @@ use gpui_kit::*;
 use stratum_i18n::t_global;
 
 use crate::panels::editor::context_menu::context_menu_popup;
+use crate::panels::editor::drag;
 use crate::panels::editor::input;
 use crate::panels::editor::overlay::{badge_strip, hover_preview, overlay_popup, save_chip};
 use crate::panels::editor::rows::{row_element, ROW_WIDTH};
@@ -123,6 +124,12 @@ impl Render for EditorView {
             .on_mouse_move(cx.listener(|this, event: &MouseMoveEvent, window, cx| {
                 input::handle_mouse_move(this, event, window, cx);
             }))
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(|this, event: &MouseUpEvent, window, cx| {
+                    input::handle_mouse_up(this, event, window, cx);
+                }),
+            )
             .on_click(cx.listener(|this, event: &ClickEvent, window, cx| {
                 input::handle_click(this, event, window, cx);
             }))
@@ -147,6 +154,11 @@ impl Render for EditorView {
                     .when(!self.rows.is_empty(), |element| {
                         element.child(rows).child(input_canvas)
                     })
+                    .when(
+                        self.drag_state().is_some_and(|drag| drag.active)
+                            && self.drop_target().is_some(),
+                        |element| element.child(drag::drop_indicator(self, cx)),
+                    )
                     .when(show_context_menu, |element| {
                         element.child(context_menu_popup(self, cx))
                     }),

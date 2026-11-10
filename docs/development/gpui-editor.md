@@ -26,7 +26,7 @@ crates/stratum-editor/
 │   ├── inline.rs         # span parser + byte-exact serializer
 │   ├── markers.rs        # marker detection, badge rows, reminder chips
 │   ├── menus.rs          # slash catalog, marker menu, wiki autocomplete, link hits
-│   ├── state/            # caret/selection, edits, undo, clipboard, IME
+│   ├── state/            # caret/selection, edits, moves, undo, clipboard, IME
 │   ├── render.rs         # WYSIWYM decoration model (no UI types)
 │   └── virtualize.rs     # deterministic heights and viewport windows
 └── tests/                # round-trip, scripted editing and i18n contract suites
@@ -167,6 +167,7 @@ crates/stratum-ui/src/panels/editor/
 ├── rows.rs      # row/span/caret geometry and elements (+ rows/tests.rs)
 ├── input/       # input/mod.rs: EntityInputHandler, keys, mouse, overlay_ops, IME
 ├── overlay.rs   # slash, wiki, marker, link-preview and dead-link popups
+├── drag.rs      # gutter drag state, drop-target resolution and the indicator bar
 ├── context_menu.rs # right-click block menu (read aloud, clipboard, marker, reminder)
 └── save.rs      # SaveState/SaveStatus transitions
 ```
@@ -197,7 +198,48 @@ marked ranges and commits to `EditorState::ime_replace`/`ime_commit`. Key
 handling covers caret movement and selection, undo/redo, clipboard, marker
 toggling and overlay navigation. Handled keys stop propagation; printable
 characters are left to the platform so they are inserted before overlay
-detection runs.
+detection runs. Pointer handling — caret placement, Ctrl+hover previews, the
+right-click menu and gutter drags — lives in `input/mouse.rs`.
+
+### Drag-and-drop reordering
+
+Blocks can be reordered by dragging. A press on a row's indent gutter (the empty
+space left of the row text) starts a drag instead of placing the caret, so text
+selection inside the row keeps working; a press that never travels places the
+caret at the start of that row. Rows show a grab cursor over the gutter. Once
+the pointer travels past `drag::DRAG_THRESHOLD_PX` (4 px) the view resolves a
+`DropTarget` from the hovered row and paints one 2 px indicator line in the
+theme's primary colour; Escape cancels the gesture.
+
+The hovered row is split into three zones: the top quarter inserts the dragged
+block *above* it, the bottom quarter *below* it (both as siblings at the hovered
+row's depth), and the middle drops *onto* it as its last child (indicator one
+indent level deeper). The destination group is resolved through
+`BlockTree::children`/`roots`, so the index always counts the siblings that
+remain after the dragged block is removed. Drops that would be a no-op, that
+target the dragged block itself, or that would place a block inside its own
+subtree are suppressed: no indicator is shown and releasing does nothing.
+
+The move goes through `EditorState::move_block(block_id, MoveTarget)` in
+`crates/stratum-editor/src/state/moving.rs`. It validates the destination parent,
+rejects cycles with `PkmError::CycleDetected`, clamps the index, applies
+`pkm_block::ops::move_block` inside `EditorDocument::mutate`, and records one
+reversible `EditOp::MoveBlock` entry, so a drop is undone by a single undo step
+exactly like `move_up`/`move_down`. A moved block's subtree moves with it.
+
+`pkm_block::ops` relinks `left_id` only inside the affected sibling group
+(`group`/`successor_in_group`): `left_id == None` is a head pointer local to a
+parent, so a tree-wide scan would let an unrelated parent's first child answer
+for another group's head and be relinked across parents. Sibling order stays
+deterministic and never depends on `HashMap` iteration order. `create_block`,
+`delete_block` and `move_block` reject a cross-parent `after_id`/`new_left_id`
+with `PkmError::Validation` instead of silently relinking the wrong group.
+
+Every geometry and target helper is a pure function over `DecoratedRow`,
+`VirtualLayout` and `EditorState` values, so the drag contract is unit-tested
+without a window (`drag/tests.rs`); only `drop_indicator` builds an element.
+`handle_mouse_up` applies a resolved drop through the shared `finish_edit`
+bookkeeping, and a no-op drop does not dirty the document.
 
 ### Overlays and navigation
 
@@ -337,10 +379,11 @@ clipboard normalization or height estimation; those stay in the headless crate
 so they remain unit-tested and platform-independent. The `dto` module is the
 seam to `stratum_app::block::BlockDto` and must stay field-compatible.
 
-Phase B includes the per-block context menu and read-aloud through
-`ShellData::speak`; block drag-and-drop is still out of phase B. Reminder
-mutations go through `EditorState::set_block_reminder`, which routes the write
-through `EditorDocument::mutate` so revision and dirty bookkeeping stay in the
+Phase B includes the per-block context menu, read-aloud through
+`ShellData::speak` and block drag-and-drop reordering (see *Drag-and-drop
+reordering* above). Reminder mutations go through
+`EditorState::set_block_reminder`, which routes the write through
+`EditorDocument::mutate` so revision and dirty bookkeeping stay in the
 document.
 
 Attachments are a deliberate phase-B boundary: only embeds (`![[assets/foo.png]]`)
