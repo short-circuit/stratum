@@ -3,7 +3,8 @@
 //! This crate owns the business logic behind every Tauri command: vault
 //! lifecycle, pages, blocks, assets, import, graph, search, sync, backup,
 //! templates, export, flashcards, kanban, reminders, whiteboards, AI,
-//! dictation, TTS, settings and plugins. It has **no** dependency on `tauri`
+//! dictation, TTS, settings, plugins, plugin/theme catalogs and installed
+//! themes. It has **no** dependency on `tauri`
 //! or any `tauri-plugin-*` crate, so the same logic can be driven from the
 //! desktop shell, tests, or any other host.
 //!
@@ -45,6 +46,7 @@ pub mod settings;
 pub mod state;
 pub mod sync;
 pub mod template;
+pub mod themes;
 pub mod tray;
 pub mod tts;
 pub mod vault;
