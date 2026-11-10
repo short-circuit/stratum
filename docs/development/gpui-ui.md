@@ -106,8 +106,8 @@ returns the dates that already have journal pages (newest first),
 `ensure_today_journal` creates today's page if it is missing, and
 `create_journal_day` creates a page for an arbitrary date. `AppProvider` maps
 these onto `StratumService` page/block APIs and parses the `journals/<date>.md`
-paths into sorted dates. `FixtureProvider` ships a fixed today (`2026-11-10`),
-three past days (`2026-11-09`, `2026-11-08`, `2026-11-07`) and a recording at
+paths into sorted dates. `FixtureProvider` ships a fixed today (`2026-11-10`), ten past days
+(`2026-11-09` back to `2026-10-31`, newest first) and a recording at
 `assets/voice/fixture.flac`; transcription inserts two deterministic blocks so
 the capture harness can exercise the full voice flow without a microphone.
 
@@ -271,8 +271,12 @@ The journal edit-mode capture is the parity reference for the shipped
 and calendar controls, the today section renders the editor, and the stacked past
 days follow the same section order as the React panel. Starting the journal on a
 past day scrolls that section into view, centred like the shipped panel's
-`scrollIntoView({block: 'center'})`. The calendar capture pins the popup geometry
-and weekday headers; the read capture pins the read-mode treatment of a past day.
+`scrollIntoView({block: 'center'})`. The read capture selects a deeper past day
+(2026-11-07) so that the centred scroll is visible in the PNG instead of today's
+section sitting at the top; the fixture carries ten past journal days so the
+stack is taller than the capture window. The calendar capture pins the popup
+geometry and weekday headers; the read capture pins the read-mode treatment of a
+past day.
 
 The page captures pin the shipped `PageView`: the header shows the title, path
 chip, voice/attach/read controls and the `Note` menu; the Note-menu capture shows

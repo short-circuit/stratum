@@ -18,7 +18,18 @@ fn fixture_journal_dates_and_today_are_fixed() {
     let provider = FixtureProvider::new();
     assert_eq!(
         provider.journal_dates(),
-        vec!["2026-11-09", "2026-11-08", "2026-11-07"]
+        vec![
+            "2026-11-09",
+            "2026-11-08",
+            "2026-11-07",
+            "2026-11-06",
+            "2026-11-05",
+            "2026-11-04",
+            "2026-11-03",
+            "2026-11-02",
+            "2026-11-01",
+            "2026-10-31",
+        ]
     );
     assert_eq!(
         provider.ensure_today_journal(),

@@ -5,10 +5,11 @@
 //! them. The block generator lives in [`blocks`]; this module owns the snapshot,
 //! journal/voice overrides and asset bookkeeping.
 //!
-//! The fixture journal data is fixed: past entries on 2026-11-09, 2026-11-08
-//! and 2026-11-07, with 2026-11-10 treated as today. Voice capture reports a
-//! configured STT endpoint, a `assets/voice/fixture.flac` recording and two
-//! inserted blocks so the journal voice flow is testable without a microphone.
+//! The fixture journal data is fixed: ten past entries running backwards day by
+//! day from 2026-11-09 to 2026-10-31, with 2026-11-10 treated as today. Voice
+//! capture reports a configured STT endpoint, a `assets/voice/fixture.flac`
+//! recording and two inserted blocks so the journal voice flow is testable
+//! without a microphone.
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -35,8 +36,23 @@ pub use blocks::{fixture_blocks, fixture_journal_blocks};
 
 /// The fixture's notion of today, matching the capture harness.
 pub const FIXTURE_TODAY: &str = "2026-11-10";
-/// Past fixture journal dates, newest first.
-pub const FIXTURE_JOURNAL_DATES: [&str; 3] = ["2026-11-09", "2026-11-08", "2026-11-07"];
+/// Past fixture journal dates, newest first, continuing backwards day by day.
+///
+/// Ten past days keep the stacked journal taller than the 1280x720 capture
+/// window, so centring a selected past day produces a real scroll. The first
+/// entry stays the newest past day (`FIXTURE_TODAY` is the day after it).
+pub const FIXTURE_JOURNAL_DATES: [&str; 10] = [
+    "2026-11-09",
+    "2026-11-08",
+    "2026-11-07",
+    "2026-11-06",
+    "2026-11-05",
+    "2026-11-04",
+    "2026-11-03",
+    "2026-11-02",
+    "2026-11-01",
+    "2026-10-31",
+];
 /// Recording path reported by the fixture voice capture.
 pub const FIXTURE_RECORDING: &str = "assets/voice/fixture.flac";
 /// The fixture page used by the page-panel captures.

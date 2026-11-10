@@ -8,8 +8,9 @@
 #
 #   1. the journal route in edit mode
 #   2. the journal route with the calendar popup expanded (STRATUM_CALENDAR=1)
-#   3. the journal route on a past day in read mode
-#      (STRATUM_JOURNAL_DATE=2026-11-09 STRATUM_READ_MODE=1)
+#   3. the journal route on a deeper past day in read mode
+#      (STRATUM_JOURNAL_DATE=2026-11-07 STRATUM_READ_MODE=1), which scrolls that
+#      day into view
 #   4. the fixture page in edit mode (STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md)
 #   5. the fixture page with the Note menu open (STRATUM_MENU=note)
 #   6. the fixture page in read mode (STRATUM_READ_MODE=1)
@@ -154,7 +155,7 @@ capture_state() {
 capture_state "STRATUM_ROUTE=/journal" "$OUT"
 capture_state "STRATUM_ROUTE=/journal STRATUM_CALENDAR=1" "$CALENDAR_OUT"
 capture_state \
-    "STRATUM_ROUTE=/journal STRATUM_JOURNAL_DATE=2026-11-09 STRATUM_READ_MODE=1" \
+    "STRATUM_ROUTE=/journal STRATUM_JOURNAL_DATE=2026-11-07 STRATUM_READ_MODE=1" \
     "$READ_OUT"
 
 capture_state \
