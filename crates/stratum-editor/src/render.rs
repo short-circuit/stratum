@@ -34,11 +34,17 @@ pub enum BlockKind {
     Paragraph,
     Heading(u8),
     Quote,
-    Code { lang: String },
+    Code {
+        lang: String,
+    },
     Mermaid,
-    Math { display: bool },
+    Math {
+        display: bool,
+    },
     ListItem,
     Divider,
+    /// A GFM pipe table carried as plain Markdown block content.
+    Table,
 }
 
 /// One decorated span.
@@ -165,6 +171,11 @@ fn build_spans(
         }];
     }
     let content = strip_marker_keyword(&block.content, block.marker);
+    // Tables are rendered from their raw structural text: inline emphasis inside
+    // cells is not decorated yet, so `parse_inline` never runs on table content.
+    if matches!(kind, BlockKind::Table) {
+        return table_spans(&content);
+    }
     let hide_delimiters = mode == RenderMode::FocusedLine && focus == Some(block.id);
     let mut spans = Vec::new();
     for span in parse_inline(&content) {
@@ -196,6 +207,51 @@ fn build_spans(
                 kind: span.kind,
                 syntax: true,
                 hidden: hide_delimiters,
+            });
+        }
+    }
+    spans
+}
+
+/// Build decorated spans for a GFM pipe table.
+///
+/// Pipes and the delimiter row are emitted as muted syntax spans; cell text
+/// stays plain. The concatenation of every span text equals `content`
+/// byte-for-byte, which the caret mapping relies on.
+///
+/// Unlike inline delimiters, table spans are never hidden on the focused line:
+/// pipes are structural, and hiding them would visually merge adjacent cells.
+fn table_spans(content: &str) -> Vec<DecoratedSpan> {
+    let mut spans = Vec::new();
+    for (line_index, line) in content.split_inclusive('\n').enumerate() {
+        let delimiter_row = line_index == 1;
+        let mut cell = String::new();
+        for ch in line.chars() {
+            if ch == '|' {
+                if !cell.is_empty() {
+                    spans.push(DecoratedSpan {
+                        text: std::mem::take(&mut cell),
+                        kind: SpanKind::Text,
+                        syntax: delimiter_row,
+                        hidden: false,
+                    });
+                }
+                spans.push(DecoratedSpan {
+                    text: "|".into(),
+                    kind: SpanKind::Text,
+                    syntax: true,
+                    hidden: false,
+                });
+            } else {
+                cell.push(ch);
+            }
+        }
+        if !cell.is_empty() {
+            spans.push(DecoratedSpan {
+                text: cell,
+                kind: SpanKind::Text,
+                syntax: delimiter_row,
+                hidden: false,
             });
         }
     }
@@ -271,6 +327,9 @@ fn classify(block: &Block) -> BlockKind {
     }
     if content.starts_with('$') && content.ends_with('$') && content.len() >= 2 {
         return BlockKind::Math { display: false };
+    }
+    if pkm_markdown::is_table(content) {
+        return BlockKind::Table;
     }
     if is_list_item(content) {
         return BlockKind::ListItem;

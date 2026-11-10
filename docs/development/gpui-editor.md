@@ -125,7 +125,8 @@ renders the single "create page" row and closes the `[[query` link on Enter.
 ## WYSIWYM Model and Virtualization
 
 `render::render_page` classifies blocks (`Paragraph`, `Heading`, `Quote`,
-`Code`, `Mermaid`, `Math`, `ListItem`, `Divider`) and produces `DecoratedRow`s
+`Code`, `Mermaid`, `Math`, `ListItem`, `Divider`, `Table`) and produces
+`DecoratedRow`s
 with depth, marker/priority badges, reminder chips, collapsed state and
 decorated spans.
 
@@ -262,7 +263,7 @@ navigates, mirroring `DeadLinkCreatePopup.tsx`. The shell refreshes its snapshot
 before resolving and opens a `.md` create-intent path directly.
 
 The slash popup draws exactly `stratum_editor::menus::slash_row_count(items)`
-rows (capped at `SLASH_MAX_ROWS = 16`) and the overlay selection length is the
+rows (capped at `SLASH_MAX_ROWS = 17`) and the overlay selection length is the
 same count, so a selectable index is always a drawn row. The popup scrolls
 vertically within a 440 px maximum height and applies the same padding per row
 as the other menus. `apply_slash` clamps the selected index to the filtered
@@ -320,6 +321,7 @@ classified as code/Mermaid/math.
 | `mermaid_diagram` | insert empty Mermaid fence | — | in place |
 | `math_equation` | insert empty `$$` block | — | in place |
 | `quote` | prefix the block with `> ` | — | in place |
+| `table` | insert an empty GFM pipe table | — | in place |
 | `ai_rewrite` | selection required | `ai_transform_block(rewrite)` | insert at caret |
 | `ai_format_selection` | selection required | `ai_transform_block(format)` | insert at caret |
 | `ai_summarize_selection` | selection required | `ai_transform_block(summarize)` | insert at caret |
@@ -336,7 +338,8 @@ classified as code/Mermaid/math.
 The shipped web editor builds its menu from `getDefaultReactSlashMenuItems(editor)`
 plus the AI items in `src/components/AISlashMenu.tsx`, so it also offers bulleted,
 numbered and check lists, tables, media and emoji. The native catalogue is a
-deliberate subset, because the block model has no separate block kinds for them:
+deliberate subset, because the block model has no separate block kinds for lists,
+media or emoji:
 
 | Shipped BlockNote item | Native mapping |
 |------------------------|----------------|
@@ -345,12 +348,21 @@ deliberate subset, because the block model has no separate block kinds for them:
 | Check list | task markers (`TODO`/`DOING`/…), applied through the marker menu or typed `:marker`; markers serialize as `.marker:` properties |
 | Bulleted list | every block is already an outliner list item (serialized as `- `), so there is no separate action |
 | Numbered list | authored as `1. ` content; `render` classifies it as an ordered `BlockKind::ListItem` |
-| Table | multi-line paragraph content — the block model has no table kind yet |
+| Table | `table` action inserts an empty GFM pipe table; `render` classifies the block as `BlockKind::Table` |
 | Image / video / audio / file | attachment markdown (`![[assets/…]]`) managed by `AttachmentPanel`, not the slash menu |
 | Emoji | not offered |
 
-Every visible label is a translation key; `editor.quote` is part of
-`EDITOR_I18N_KEYS` and present in all eight locale catalogs.
+The native editor stores a table as plain GFM pipe-table Markdown in a block's
+`content`. `pkm_block::Table` is the plain value model; `pkm_markdown::parse_table`
+and `pkm_markdown::serialize_table` implement the strict parser and canonical
+serializer, and the `table` action inserts `stratum_editor::menus::table_skeleton()`.
+The canonical form is byte-stable across open → markdown → open. `render`
+classifies a table block as `BlockKind::Table`, mutes its pipes and delimiter row
+as syntax spans, and keeps those spans visible on the focused line (hiding them
+would merge adjacent cells). Inline emphasis inside a cell is not decorated yet.
+
+Every visible label is a translation key; `editor.quote` and `editor.table` are
+part of `EDITOR_I18N_KEYS` and present in all eight locale catalogs.
 
 Right-clicking a row places the caret and opens the per-block context menu
 (`context_menu.rs`) anchored at the pointer. Its entries, in order, are read

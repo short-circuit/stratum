@@ -33,7 +33,7 @@ pub use links::{
 /// The popup renders exactly `slash_row_count(items)` rows and the overlay
 /// selection is clamped to the same count, so a selectable index is always a
 /// drawn row. Catalogue contexts are asserted against this bound in tests.
-pub const SLASH_MAX_ROWS: usize = 16;
+pub const SLASH_MAX_ROWS: usize = 17;
 
 /// Number of slash rows the popup draws for a catalogue of `items` entries.
 ///
@@ -41,6 +41,14 @@ pub const SLASH_MAX_ROWS: usize = 16;
 /// renderer; never call `.take(8)` or any other ad-hoc cap in the view.
 pub fn slash_row_count(items: usize) -> usize {
     items.min(SLASH_MAX_ROWS)
+}
+
+/// Markdown inserted by the `table` slash action.
+///
+/// Returns an empty two-column, one-body-row GFM pipe table. The block is
+/// classified as `render::BlockKind::Table` once it is applied.
+pub fn table_skeleton() -> String {
+    pkm_markdown::table_skeleton()
 }
 
 /// Where a slash action operates.
@@ -81,6 +89,7 @@ pub enum SlashAction {
     Mermaid,
     MathEquation,
     Quote,
+    Table,
     AiRewrite,
     AiFormatSelection,
     AiSummarizeSelection,
@@ -95,7 +104,7 @@ pub enum SlashAction {
 
 impl SlashAction {
     /// Every action in shipped display order.
-    pub const ALL: [SlashAction; 18] = [
+    pub const ALL: [SlashAction; 19] = [
         SlashAction::Paragraph,
         SlashAction::Heading1,
         SlashAction::Heading2,
@@ -104,6 +113,7 @@ impl SlashAction {
         SlashAction::Mermaid,
         SlashAction::MathEquation,
         SlashAction::Quote,
+        SlashAction::Table,
         SlashAction::AiRewrite,
         SlashAction::AiFormatSelection,
         SlashAction::AiSummarizeSelection,
@@ -127,6 +137,7 @@ impl SlashAction {
             SlashAction::Mermaid => "mermaid_diagram",
             SlashAction::MathEquation => "math_equation",
             SlashAction::Quote => "quote",
+            SlashAction::Table => "table",
             SlashAction::AiRewrite => "ai_rewrite",
             SlashAction::AiFormatSelection => "ai_format_selection",
             SlashAction::AiSummarizeSelection => "ai_summarize_selection",
@@ -151,6 +162,7 @@ impl SlashAction {
             SlashAction::Mermaid => "editor.mermaid_diagram",
             SlashAction::MathEquation => "editor.math_equation_label",
             SlashAction::Quote => "editor.quote",
+            SlashAction::Table => "editor.table",
             SlashAction::AiRewrite => "aislash_menu.rewrite",
             SlashAction::AiFormatSelection => "aislash_menu.format_selection",
             SlashAction::AiSummarizeSelection => "aislash_menu.summarize",
@@ -173,7 +185,8 @@ impl SlashAction {
             | SlashAction::Heading3
             | SlashAction::CodeBlock
             | SlashAction::Mermaid
-            | SlashAction::Quote => None,
+            | SlashAction::Quote
+            | SlashAction::Table => None,
             SlashAction::MathEquation => Some("aislash_menu.insert_a_latex_math_equation"),
             SlashAction::AiRewrite => Some("aislash_menu.improve_clarity_and_flow"),
             SlashAction::AiFormatSelection => Some("aislash_menu.clean_up_formatting"),
@@ -201,6 +214,7 @@ impl SlashAction {
         match self {
             SlashAction::MathEquation => vec!["math", "equation", "latex", "formula"],
             SlashAction::Quote => vec!["quote", "blockquote"],
+            SlashAction::Table => vec!["table", "grid"],
             SlashAction::AiResearch => vec!["research", "search", "web"],
             SlashAction::AiInterlink => vec!["interlink", "wikilinks", "connect"],
             SlashAction::AiGenerateMermaid => vec!["mermaid", "diagram", "chart"],
@@ -218,7 +232,8 @@ impl SlashAction {
             | SlashAction::CodeBlock
             | SlashAction::Mermaid
             | SlashAction::MathEquation
-            | SlashAction::Quote => SlashGroup::Blocks,
+            | SlashAction::Quote
+            | SlashAction::Table => SlashGroup::Blocks,
             _ => SlashGroup::Ai,
         }
     }

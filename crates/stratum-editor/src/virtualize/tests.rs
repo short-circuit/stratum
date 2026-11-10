@@ -114,6 +114,7 @@ fn estimate_height_matches_the_documented_formula() {
         24.0
     );
     assert_eq!(estimate_height(&BlockKind::Divider, 0), 12.0);
+    assert_eq!(estimate_height(&BlockKind::Table, 0), 24.0);
     assert_eq!(
         estimate_height(&BlockKind::Paragraph, 0),
         estimate_height(&BlockKind::Paragraph, 0)

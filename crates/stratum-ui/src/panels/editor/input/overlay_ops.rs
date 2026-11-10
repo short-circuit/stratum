@@ -58,6 +58,7 @@ pub(crate) fn slash_caret_offset(
 ) -> usize {
     match action {
         Some(SlashAction::Quote) => token_start.saturating_add(2),
+        Some(SlashAction::Table) => token_start.saturating_add(2),
         Some(SlashAction::CodeBlock)
         | Some(SlashAction::Mermaid)
         | Some(SlashAction::MathEquation) => replacement
@@ -115,6 +116,7 @@ fn apply_slash(
         Some(SlashAction::CodeBlock) => "```\n\n```".to_string(),
         Some(SlashAction::Mermaid) => "```mermaid\n\n```".to_string(),
         Some(SlashAction::MathEquation) => "$$\n\n$$".to_string(),
+        Some(SlashAction::Table) => stratum_editor::menus::table_skeleton(),
         Some(SlashAction::Quote) => {
             if stripped.starts_with('>') {
                 stripped
@@ -130,7 +132,7 @@ fn apply_slash(
         .replace_block_content(caret.block_id, replacement);
     let _ = view.state.set_caret(caret.block_id, caret_offset);
     match action {
-        Some(SlashAction::Paragraph) | Some(SlashAction::Quote) => {
+        Some(SlashAction::Paragraph) | Some(SlashAction::Quote) | Some(SlashAction::Table) => {
             let _ = view.state.set_heading_level(None);
         }
         Some(SlashAction::Heading1) => {

@@ -78,7 +78,7 @@ pub fn row_font_size(row: &DecoratedRow, theme: &Theme) -> Pixels {
         BlockKind::Heading(1) => px(f32::from(theme.font_size) * 1.6),
         BlockKind::Heading(2) => px(f32::from(theme.font_size) * 1.35),
         BlockKind::Heading(3) => px(f32::from(theme.font_size) * 1.15),
-        BlockKind::Code { .. } | BlockKind::Mermaid => theme.mono_font_size,
+        BlockKind::Code { .. } | BlockKind::Mermaid | BlockKind::Table => theme.mono_font_size,
         _ => theme.font_size,
     }
 }
