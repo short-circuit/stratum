@@ -103,6 +103,9 @@ impl Render for EditorView {
                     cx.stop_propagation();
                 }
             }))
+            .on_key_up(cx.listener(|this, event: &KeyUpEvent, _window, cx| {
+                input::handle_key_up(this, event, cx);
+            }))
             .on_mouse_down(
                 MouseButton::Left,
                 cx.listener(|this, event: &MouseDownEvent, window, cx| {

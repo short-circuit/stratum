@@ -55,3 +55,16 @@ fn wiki_rows_cover_every_selectable_entry() {
     assert_eq!(wiki_row_count(3), 3);
     assert_eq!(wiki_row_count(20), 8);
 }
+
+#[test]
+fn preview_hint_keys_are_in_the_view_contract() {
+    for key in [
+        stratum_editor::menus::PREVIEW_NAVIGATE_HINT_KEY,
+        stratum_editor::menus::PREVIEW_CREATE_HINT_KEY,
+    ] {
+        assert!(
+            crate::panels::editor::EDITOR_VIEW_I18N_KEYS.contains(&key),
+            "{key} must be in EDITOR_VIEW_I18N_KEYS"
+        );
+    }
+}

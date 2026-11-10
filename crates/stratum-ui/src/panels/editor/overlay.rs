@@ -12,7 +12,7 @@ use gpui_kit::prelude::*;
 use gpui_kit::*;
 use stratum_editor::menus::{
     filter_slash_items, marker_menu_items, slash_items, slash_row_count, wiki_query, wiki_targets,
-    WikiTarget,
+    LinkPreview, WikiTarget,
 };
 use stratum_editor::{badge_row, MarkerBadge};
 use stratum_i18n::{t_global, tr_global};
@@ -41,7 +41,7 @@ pub enum OverlayState {
     /// Marker/priority menu.
     Marker { selected: usize },
     /// Ctrl+hover link preview.
-    LinkPreview { target: String },
+    LinkPreview { preview: LinkPreview },
     /// A wiki-link whose target does not exist yet.
     DeadLink { target: String },
 }
@@ -208,8 +208,8 @@ pub fn overlay_popup(view: &EditorView, cx: &mut Context<EditorView>) -> impl In
         OverlayState::Marker { selected } => {
             popup = popup.child(marker_list(*selected, theme));
         }
-        OverlayState::LinkPreview { target } => {
-            popup = popup.child(preview_row(target, theme));
+        OverlayState::LinkPreview { preview } => {
+            popup = popup.child(preview_row(preview, theme));
         }
         OverlayState::DeadLink { target } => {
             popup = popup.child(
@@ -231,7 +231,7 @@ pub fn overlay_popup(view: &EditorView, cx: &mut Context<EditorView>) -> impl In
 pub fn hover_preview(view: &EditorView, cx: &mut Context<EditorView>) -> AnyElement {
     let theme = cx.theme();
     match &view.hover_preview {
-        Some(target) => preview_row(target, theme).into_any_element(),
+        Some(preview) => preview_row(preview, theme).into_any_element(),
         None => div().into_any_element(),
     }
 }
@@ -416,7 +416,7 @@ fn marker_list(selected: usize, theme: &gpui_kit::component::Theme) -> impl Into
     list
 }
 
-fn preview_row(target: &str, theme: &gpui_kit::component::Theme) -> impl IntoElement {
+fn preview_row(preview: &LinkPreview, theme: &gpui_kit::component::Theme) -> impl IntoElement {
     div()
         .flex()
         .flex_col()
@@ -425,12 +425,12 @@ fn preview_row(target: &str, theme: &gpui_kit::component::Theme) -> impl IntoEle
         .py(px(6.0))
         .text_size(px(12.0))
         .text_color(theme.colors.foreground)
-        .child(target.to_string())
+        .child(preview.target.clone())
         .child(
             div()
                 .text_size(px(10.0))
                 .text_color(theme.colors.muted_foreground)
-                .child(t_global("editor.create_page")),
+                .child(t_global(preview.hint_key)),
         )
 }
 

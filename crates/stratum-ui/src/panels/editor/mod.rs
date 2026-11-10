@@ -27,7 +27,7 @@ use chrono::Utc;
 use gpui_kit::component::VirtualListScrollHandle;
 use gpui_kit::prelude::*;
 use gpui_kit::*;
-use stratum_editor::menus::AiCall;
+use stratum_editor::menus::{AiCall, LinkPreview};
 use stratum_editor::{
     blocks_to_dto, dto_to_blocks, math_source, mermaid_source, render_page, DecoratedRow,
     EditorDocument, EditorState, MathCache, MathOptions, MermaidCache, RenderMode, VirtualLayout,
@@ -55,6 +55,7 @@ pub use save::{SaveState, SaveStatus};
 /// The contract test walks this list against the shipped catalogs. Slash and
 /// marker labels are covered by [`stratum_editor::EDITOR_I18N_KEYS`].
 pub const EDITOR_VIEW_I18N_KEYS: &[&str] = &[
+    "backlink_snippet_body.ctrl_click_to_navigate",
     "editor.create_page",
     "editor.saving",
     "editor.toggle_marker",
@@ -134,7 +135,7 @@ pub struct EditorView {
     context_menu: Option<ContextMenuState>,
     metrics: EditorMetrics,
     pending_navigation: Option<String>,
-    hover_preview: Option<String>,
+    hover_preview: Option<LinkPreview>,
     ai_status: Option<AiStatus>,
     pending_ai: Option<AiCall>,
     save_generation: u64,

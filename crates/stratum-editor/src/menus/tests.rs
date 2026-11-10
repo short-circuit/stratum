@@ -429,3 +429,53 @@ fn slash_items_carry_only_translation_keys() {
         }
     }
 }
+
+fn link_hit(kind: LinkHitKind, target: &str) -> LinkHit {
+    LinkHit {
+        kind,
+        target: target.to_string(),
+        range: 0..target.len(),
+    }
+}
+
+#[test]
+fn preview_resolves_existing_pages_to_the_navigate_hint() {
+    let pages = vec![page("pages/alpha.md", "alpha", "Alpha")];
+    for target in ["alpha", "Alpha", "pages/alpha.md", "pages/alpha"] {
+        let preview = preview_for(&link_hit(LinkHitKind::WikiLink, target), &pages)
+            .expect("wiki links always preview");
+        assert_eq!(preview.kind, LinkPreviewKind::Resolved, "target {target}");
+        assert_eq!(
+            preview.hint_key, PREVIEW_NAVIGATE_HINT_KEY,
+            "target {target}"
+        );
+        assert_eq!(preview.target, target);
+    }
+}
+
+#[test]
+fn preview_keeps_the_create_page_hint_for_dead_links() {
+    let pages = vec![page("pages/alpha.md", "alpha", "Alpha")];
+    let preview = preview_for(&link_hit(LinkHitKind::WikiLink, "Missing page"), &pages)
+        .expect("unresolved wiki links preview as create-page");
+    assert_eq!(preview.kind, LinkPreviewKind::Unresolved);
+    assert_eq!(preview.hint_key, PREVIEW_CREATE_HINT_KEY);
+    assert_eq!(preview.target, "Missing page");
+}
+
+#[test]
+fn preview_skips_non_wiki_spans() {
+    let pages = vec![page("pages/alpha.md", "alpha", "Alpha")];
+    for kind in [
+        LinkHitKind::Tag,
+        LinkHitKind::ExternalUrl,
+        LinkHitKind::BlockRef,
+        LinkHitKind::Asset,
+    ] {
+        assert_eq!(
+            preview_for(&link_hit(kind, "alpha"), &pages),
+            None,
+            "{kind:?} must not open a preview"
+        );
+    }
+}

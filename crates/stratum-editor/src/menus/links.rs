@@ -95,6 +95,60 @@ pub struct LinkHit {
     pub range: Range<usize>,
 }
 
+/// What a Ctrl+hover preview says about the target.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LinkPreviewKind {
+    /// The target resolves to an existing page; Ctrl+click navigates there.
+    Resolved,
+    /// No page matches the target yet; Ctrl+click offers to create it.
+    Unresolved,
+}
+
+/// A Ctrl+hover preview model: the target text plus the hint to render.
+///
+/// The hint is a translation key so the view stays string-free; the shipped
+/// `LinkPreviewPopup.tsx` renders `backlink_snippet_body.ctrl_click_to_navigate`
+/// for resolved links, while the native dead-link affordance keeps
+/// `editor.create_page` for targets that do not exist.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LinkPreview {
+    /// The link target as written in the block.
+    pub target: String,
+    /// Whether the target resolves to an existing page.
+    pub kind: LinkPreviewKind,
+    /// Translation key for the preview hint.
+    pub hint_key: &'static str,
+}
+
+/// Translation key for the navigate hint on a resolved wiki link.
+pub const PREVIEW_NAVIGATE_HINT_KEY: &str = "backlink_snippet_body.ctrl_click_to_navigate";
+
+/// Translation key for the create-page hint on an unresolved wiki link.
+pub const PREVIEW_CREATE_HINT_KEY: &str = "editor.create_page";
+
+/// Build the Ctrl+hover preview for a link hit, if the editor previews it.
+///
+/// Only wiki links are previewed: `wikiLinks.ts` returns early unless the span
+/// resolves to a page path, so tags, external URLs, block refs and asset embeds
+/// have no preview popup. A wiki link that resolves gets the shipped navigate
+/// hint; a dead one keeps the create-page hint because Ctrl+click offers
+/// creation. Returning `None` means "show nothing" and must not be confused
+/// with an unresolved target.
+pub fn preview_for(hit: &LinkHit, pages: &[WikiPage]) -> Option<LinkPreview> {
+    if hit.kind != LinkHitKind::WikiLink {
+        return None;
+    }
+    let (kind, hint_key) = match resolve_wiki_target(&hit.target, pages) {
+        WikiTargetResolution::Resolved(_) => (LinkPreviewKind::Resolved, PREVIEW_NAVIGATE_HINT_KEY),
+        WikiTargetResolution::Missing => (LinkPreviewKind::Unresolved, PREVIEW_CREATE_HINT_KEY),
+    };
+    Some(LinkPreview {
+        target: hit.target.clone(),
+        kind,
+        hint_key,
+    })
+}
+
 /// Find the link span covering `byte_offset` in `block_id`.
 pub fn link_at(doc: &EditorDocument, block_id: BlockId, byte_offset: usize) -> Option<LinkHit> {
     let block = doc.block(block_id)?;

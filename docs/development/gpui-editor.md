@@ -204,8 +204,14 @@ detection runs.
 After a text insertion the view inspects the focused block for `/`, `[[` and `:`
 tokens and opens the slash, wiki or marker overlay. The slash catalogue comes
 from `stratum_editor::menus`; wiki targets resolve against the provider's recent
-pages. Ctrl+hover opens a link preview; Ctrl+click on a tag sets a pending
-navigation that the shell polls and turns into a route change. Ctrl+click on a
+pages. Ctrl+hover opens a link preview through `stratum_editor::menus::preview_for`,
+which only previews wiki links (matching `wikiLinks.ts`, where tags, external
+URLs, block refs and asset embeds have no popup): a resolved target shows the
+shipped `backlink_snippet_body.ctrl_click_to_navigate` hint, while an unresolved
+one keeps `editor.create_page` because Ctrl+click offers creation. The preview
+is dismissed when Ctrl is released, not only on the next pointer move.
+Ctrl+click on a tag sets a pending navigation that the shell polls and turns
+into a route change. Ctrl+click on a
 wiki-link resolves it through `stratum_editor::menus::resolve_wiki_target`: an
 existing page navigates directly, while a missing target opens the dead-link
 popup. Enter or a click on that popup calls `ShellData::create_page`, then sets

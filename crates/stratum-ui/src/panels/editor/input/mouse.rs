@@ -8,7 +8,7 @@
 use gpui_kit::component::ActiveTheme;
 use gpui_kit::*;
 use stratum_editor::menus::{
-    link_at, resolve_wiki_target, LinkHitKind, WikiPage, WikiTargetResolution,
+    link_at, preview_for, resolve_wiki_target, LinkHitKind, WikiPage, WikiTargetResolution,
 };
 
 use crate::panels::editor::context_menu::ContextMenuState;
@@ -171,9 +171,10 @@ pub fn handle_mouse_move(
     };
     let prefix = marker_prefix_len(&content, row.marker.map(|marker| marker.as_str()));
     let source = source_offset_for_visible(&row, visible_byte) + prefix;
-    let target = link_at(view.state.document(), row.block_id, source).map(|hit| hit.target);
-    if target != view.hover_preview {
-        view.hover_preview = target;
+    let preview = link_at(view.state.document(), row.block_id, source)
+        .and_then(|hit| preview_for(&hit, &wiki_pages(view)));
+    if preview != view.hover_preview {
+        view.hover_preview = preview;
         cx.notify();
     }
 }

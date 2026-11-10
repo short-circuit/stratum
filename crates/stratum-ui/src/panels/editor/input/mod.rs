@@ -39,6 +39,19 @@ pub use mouse::{handle_click, handle_mouse_down, handle_mouse_move, handle_right
 
 pub(crate) use overlay_ops::refresh_overlay;
 
+/// Dismiss the Ctrl+hover preview as soon as Ctrl is released.
+///
+/// `wikiLinks.ts:193-196` clears the preview on Ctrl release; mouse movement
+/// also clears it when Ctrl is not held, but a stationary pointer would leave
+/// the popup up until the next move. Key-up events only clear the preview when
+/// the released keystroke is no longer Ctrl-modified, so releasing an ordinary
+/// key while Ctrl is still down keeps the preview alive.
+pub fn handle_key_up(view: &mut EditorView, event: &KeyUpEvent, cx: &mut Context<EditorView>) {
+    if !event.keystroke.modifiers.control && view.hover_preview.take().is_some() {
+        cx.notify();
+    }
+}
+
 #[cfg(test)]
 mod tests;
 
