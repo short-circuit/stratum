@@ -15,6 +15,7 @@
 //! - `STRATUM_MENU=note` starts with the page Note menu open.
 //! - `STRATUM_CARDS=open` starts with the page backlinks/suggestions expanded.
 //! - `STRATUM_HIGHLIGHT=<block-id>` reveals a block when the page opens.
+//! - `STRATUM_SNIPPET=1` preloads the first linked backlink's snippet card.
 //!
 //! Shortcuts are installed from the shared [`stratum_ui::router::SHORTCUTS`]
 //! table, with `Modifier::Ctrl` mapped to GPUI's `secondary` modifier.
@@ -101,6 +102,9 @@ fn apply_start_state(shell: &mut Shell) {
         .map(|value| value.eq_ignore_ascii_case("open"))
         .unwrap_or(false);
     shell.set_page_start(menu_open, cards_open, None);
+    if env_flag("STRATUM_SNIPPET") {
+        shell.set_page_snippet(true);
+    }
     let journal_date = std::env::var("STRATUM_JOURNAL_DATE")
         .ok()
         .filter(|value| !value.is_empty());

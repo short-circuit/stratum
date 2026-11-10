@@ -167,6 +167,7 @@ jobs:
             dist/gpui-page-read.png
             dist/gpui-page-cards.png
             dist/gpui-page-highlight.png
+            dist/gpui-page-snippet.png
           if-no-files-found: error
 
       - name: Upload editor performance report

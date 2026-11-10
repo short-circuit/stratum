@@ -82,6 +82,17 @@ impl Shell {
         self.page_editor = None;
     }
 
+    /// Preload the first linked backlink's snippet before the page entity
+    /// exists.
+    ///
+    /// Called by the capture harness from `STRATUM_SNIPPET=1`; recreating the
+    /// page entity makes the flag take effect deterministically.
+    pub fn set_page_snippet(&mut self, snippet_open: bool) {
+        self.page_start.snippet_open = snippet_open;
+        self.page = None;
+        self.page_editor = None;
+    }
+
     /// Create or refresh the page entity for the current page, forward shell
     /// read-mode changes and consume the page's navigation, toast and close
     /// requests.

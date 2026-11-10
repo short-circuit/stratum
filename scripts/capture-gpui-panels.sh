@@ -4,7 +4,7 @@
 # The shell is started with STRATUM_FIXTURE=1 so the capture is deterministic
 # and needs no vault. When no DISPLAY is set the script starts a private Xvfb
 # screen, waits for the window to map, and captures the root window with
-# ImageMagick. Eight states are captured:
+# ImageMagick. Nine states are captured:
 #
 #   1. the journal route in edit mode
 #   2. the journal route with the calendar popup expanded (STRATUM_CALENDAR=1)
@@ -15,13 +15,16 @@
 #   6. the fixture page in read mode (STRATUM_READ_MODE=1)
 #   7. the fixture page with backlinks/suggestions expanded (STRATUM_CARDS=open)
 #   8. the fixture page with a block revealed (STRATUM_HIGHLIGHT=<fixture id>)
+#   9. the fixture page with the backlink snippet card preloaded
+#      (STRATUM_CARDS=open STRATUM_SNIPPET=1)
 #
 # The journal PNGs are written to dist/gpui-journal.png,
 # dist/gpui-journal-calendar.png and dist/gpui-journal-read.png; the page PNGs to
 # dist/gpui-page.png, dist/gpui-page-note-menu.png, dist/gpui-page-read.png,
-# dist/gpui-page-cards.png and dist/gpui-page-highlight.png. Pass a path as the
-# first argument or set OUTPUT to override the journal edit-mode capture (the
-# other captures derive from its directory).
+# dist/gpui-page-cards.png, dist/gpui-page-highlight.png and
+# dist/gpui-page-snippet.png. Pass a path as the first argument or set OUTPUT to
+# override the journal edit-mode capture (the other captures derive from its
+# directory).
 #
 # Requirements: Xvfb, xdotool and ImageMagick's `import` (the CI job installs
 # them). Run from any directory; the script locates the workspace itself.
@@ -37,6 +40,7 @@ PAGE_MENU_OUT="$OUT_DIR/gpui-page-note-menu.png"
 PAGE_READ_OUT="$OUT_DIR/gpui-page-read.png"
 PAGE_CARDS_OUT="$OUT_DIR/gpui-page-cards.png"
 PAGE_HIGHLIGHT_OUT="$OUT_DIR/gpui-page-highlight.png"
+PAGE_SNIPPET_OUT="$OUT_DIR/gpui-page-snippet.png"
 # Deterministic block on pages/fixture.md (provider::FIXTURE_HIGHLIGHT_BLOCK).
 FIXTURE_HIGHLIGHT="413cf12c-969f-54ef-bf75-40ffd89e8618"
 LOG="${CAPTURE_LOG:-$OUT_DIR/gpui-journal.log}"
@@ -168,3 +172,6 @@ capture_state \
 capture_state \
     "STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md STRATUM_HIGHLIGHT=$FIXTURE_HIGHLIGHT" \
     "$PAGE_HIGHLIGHT_OUT"
+capture_state \
+    "STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md STRATUM_CARDS=open STRATUM_SNIPPET=1" \
+    "$PAGE_SNIPPET_OUT"
