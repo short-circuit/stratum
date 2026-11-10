@@ -176,6 +176,7 @@ the sidebar and `Escape` dismisses the topmost overlay.
 | `STRATUM_MENU=note` | Start with the page Note menu open |
 | `STRATUM_CARDS=open` | Start with the page backlinks/suggestions expanded |
 | `STRATUM_HIGHLIGHT=<block-id>` | Reveal a block when the page opens |
+| `STRATUM_SNIPPET=1` | Preload the first linked backlink's snippet card |
 
 The start-state flags are applied by `apply_start_state` in `main.rs` and exist
 for the capture harness; they do not change the interactive behaviour of the
@@ -210,6 +211,10 @@ The suites cover:
   clamping, the suggestion state machine, the fixture page seam and the
   `PAGE_I18N_KEYS` release gate in all eight catalogs. Unit tests also cover the
   highlight reveal model and the delete-confirmation message.
+- Headless interaction (`tests/interaction_contract.rs`): nested controls stop
+  click propagation into the parent handler (the backlink snippet chip must not
+  navigate, the voice dismiss chip must not restart recording) and starting the
+  journal on a past day scrolls that section into view.
 
 `stratum_ui` unit tests use the built-in `#[test]` attribute. `gpui_kit::*`
 re-exports GPUI's own `test` attribute macro, so test modules that glob-import
@@ -258,14 +263,16 @@ the start-state flags:
 # → dist/gpui-page-read.png         (STRATUM_READ_MODE=1)
 # → dist/gpui-page-cards.png        (STRATUM_CARDS=open)
 # → dist/gpui-page-highlight.png    (STRATUM_HIGHLIGHT=<fixture block id>)
+# → dist/gpui-page-snippet.png      (STRATUM_CARDS=open STRATUM_SNIPPET=1)
 ```
 
 The journal edit-mode capture is the parity reference for the shipped
 `JournalPanel`: the header shows the localized day label with previous/next-day
 and calendar controls, the today section renders the editor, and the stacked past
-days follow the same section order as the React panel. The calendar capture pins
-the popup geometry and weekday headers; the read capture pins the read-mode
-treatment of a past day.
+days follow the same section order as the React panel. Starting the journal on a
+past day scrolls that section into view, centred like the shipped panel's
+`scrollIntoView({block: 'center'})`. The calendar capture pins the popup geometry
+and weekday headers; the read capture pins the read-mode treatment of a past day.
 
 The page captures pin the shipped `PageView`: the header shows the title, path
 chip, voice/attach/read controls and the `Note` menu; the Note-menu capture shows

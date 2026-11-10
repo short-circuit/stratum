@@ -513,6 +513,8 @@ frozen reference application and are never modified by shell work.
   covers the Note menu order, move validation, backlink grouping, relevance
   clamping, the suggestion state machine, the fixture page seam and the
   `PAGE_I18N_KEYS` catalog gate without opening a window.
+  `tests/interaction_contract.rs` adds headless-window coverage for nested
+  click propagation and journal start scroll.
 - `stratum-editor` is the headless block-editor engine the phase-B editor view
   renders (`DecoratedRow`s from `render`). It owns document canonicalization,
   inline spans, editing/undo/IME, slash and marker menus, wiki-link helpers,
@@ -549,10 +551,14 @@ frozen reference application and are never modified by shell work.
 - `scripts/capture-gpui-shell.sh` renders the fixture shell on a private Xvfb
   screen and writes `dist/gpui-shell.png` (224 px sidebar) plus
   `dist/gpui-shell-collapsed.png` (52 px rail, `STRATUM_COLLAPSED=1`).
-- `scripts/capture-gpui-panels.sh` captures the journal surface in edit mode,
-  with the calendar expanded and on a past day in read mode
+- `scripts/capture-gpui-panels.sh` performs nine captures: the journal surface
+  in edit mode, with the calendar expanded and on a past day in read mode
   (`dist/gpui-journal.png`, `dist/gpui-journal-calendar.png`,
-  `dist/gpui-journal-read.png`).
+  `dist/gpui-journal-read.png`), the fixture page in edit/read mode with the
+  Note menu, expanded cards, a revealed block and a preloaded backlink snippet
+  (`STRATUM_SNIPPET=1` → `dist/gpui-page-snippet.png`).
+- `crates/stratum-ui/tests/interaction_contract.rs` opens headless gpui windows
+  to cover click propagation (snippet/voice chips) and journal start scroll.
 - `scripts/capture-gpui-editor-perf.sh` runs `stratum-editor-perf` on the 10k
   fixture, prints frame/render timings and gates only on `render_p95_ms >
   18.18` (55 fps work budget); the JSON report lands in
