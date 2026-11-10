@@ -484,8 +484,22 @@ frozen reference application and are never modified by shell work.
   (`key_set`, `missing_keys`, `extra_keys`).
 - `stratum-ui` owns the route/navigation/shortcut tables (`router`), the theme
   derivation (`theme`), the embedded asset source and Inter faces (`assets`),
-  the `ShellData` provider seam (`provider`), the chrome (`shell`) and panel
-  stubs (`panels`).
+  the `ShellData` provider seam (`provider`, with `provider/assets.rs`,
+  `provider/journal.rs`, `provider/voice.rs` and the `provider/fixture/`
+  deterministic provider), the chrome (`shell`) and the panel bodies (`panels`).
+- The native journal surface lives in `crates/stratum-ui/src/panels/journal/`:
+  `mod.rs` (`JournalView` entity and render), `state.rs` (accessors and
+  read-mode switch), `navigation.rs` (day/month selection), `reload.rs`
+  (ensure/repair, editor recreation, stack sync), `dates.rs` (localized
+  day/month labels, calendar grid), `stack.rs` (lazy past-day stack plan and
+  preload window), `header.rs`, `calendar.rs`, `rows.rs` and `error.rs`.
+  `panels/voice/` owns the voice surface: `stage.rs` (pure stage machine) and
+  `capture.rs` (`VoiceCapture` entity). Stacked day editors use `EditorView::set_auto_height` so each
+  section contributes its content height, and journal editors omit the
+  page-level attachment panel to match `JournalPanel`.
+  `tests/journal_contract.rs` covers dates, calendar/week layout, the stack
+  plan, the voice stages, the fixture journal/voice data and the
+  `JOURNAL_I18N_KEYS` catalog gate without opening a window.
 - `stratum-editor` is the headless block-editor engine the phase-B editor view
   renders (`DecoratedRow`s from `render`). It owns document canonicalization,
   inline spans, editing/undo/IME, slash and marker menus, wiki-link helpers,
@@ -516,10 +530,16 @@ frozen reference application and are never modified by shell work.
 - `STRATUM_FIXTURE=1` selects the deterministic 87-page fixture used by tests
   and the capture harness (`STRATUM_FIXTURE_BLOCKS` controls the Welcome page
   size). `STRATUM_VAULT` selects a real vault and `STRATUM_LOCALE` selects one of
-  the eight catalogs.
+  the eight catalogs. Start-state flags for the capture harness are applied by
+  `apply_start_state` in `main.rs`: `STRATUM_ROUTE`, `STRATUM_PAGE`,
+  `STRATUM_JOURNAL_DATE`, `STRATUM_CALENDAR` and `STRATUM_READ_MODE`.
 - `scripts/capture-gpui-shell.sh` renders the fixture shell on a private Xvfb
   screen and writes `dist/gpui-shell.png` (224 px sidebar) plus
   `dist/gpui-shell-collapsed.png` (52 px rail, `STRATUM_COLLAPSED=1`).
+- `scripts/capture-gpui-panels.sh` captures the journal surface in edit mode,
+  with the calendar expanded and on a past day in read mode
+  (`dist/gpui-journal.png`, `dist/gpui-journal-calendar.png`,
+  `dist/gpui-journal-read.png`).
 - `scripts/capture-gpui-editor-perf.sh` runs `stratum-editor-perf` on the 10k
   fixture, prints frame/render timings and gates only on `render_p95_ms >
   18.18` (55 fps work budget); the JSON report lands in

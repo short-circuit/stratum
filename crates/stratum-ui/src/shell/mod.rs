@@ -19,6 +19,7 @@ use gpui_kit::*;
 use stratum_i18n::{t_global, tr_global};
 
 use crate::panels::editor::EditorView;
+use crate::panels::journal::JournalView;
 use crate::panels::panel_view;
 use crate::provider::ShellData;
 use crate::router::{path_for, Panel, ShortcutAction};
@@ -92,6 +93,10 @@ pub struct Shell {
     snapshot: crate::provider::ShellSnapshot,
     read_mode: bool,
     editor: Option<Entity<EditorView>>,
+    journal: Option<Entity<JournalView>>,
+    journal_start_date: Option<String>,
+    journal_calendar: bool,
+    journal_read_mode: bool,
     error: Option<String>,
     toast: Option<Toast>,
 }
@@ -108,6 +113,10 @@ impl Shell {
             snapshot,
             read_mode: false,
             editor: None,
+            journal: None,
+            journal_start_date: None,
+            journal_calendar: false,
+            journal_read_mode: false,
             error: None,
             toast: None,
         }
@@ -185,6 +194,31 @@ impl Shell {
         self.editor.as_ref()
     }
 
+    /// The live journal entity, if the journal panel has created one.
+    pub fn journal_view(&self) -> Option<&Entity<JournalView>> {
+        self.journal.as_ref()
+    }
+
+    /// Set the page/journal read mode explicitly.
+    ///
+    /// The capture harness uses `STRATUM_READ_MODE=1` to start in read mode
+    /// without synthesising a keyboard shortcut.
+    pub fn set_read_mode(&mut self, read_mode: bool) {
+        self.read_mode = read_mode;
+    }
+
+    /// Set the initial journal day and calendar state before the panel exists.
+    ///
+    /// Called by the capture harness from `STRATUM_JOURNAL_DATE` and
+    /// `STRATUM_CALENDAR`. Recreating the journal entity makes a later call take
+    /// effect deterministically.
+    pub fn set_journal_start(&mut self, start_date: Option<String>, calendar_open: bool) {
+        self.journal_start_date = start_date;
+        self.journal_calendar = calendar_open;
+        self.journal = None;
+        self.journal_read_mode = false;
+    }
+
     /// Route a Ctrl+click navigation request from the editor.
     ///
     /// Tags open the search panel. Wiki-links refresh the snapshot first, then
@@ -242,6 +276,43 @@ impl Shell {
             if let Some(editor) = &self.editor {
                 editor.update(cx, |view, _| view.clear_pending_navigation());
             }
+            self.handle_editor_navigation(&target);
+        }
+    }
+
+    /// Create the journal entity lazily, forward shell read-mode changes and
+    /// route a child editor's pending navigation.
+    ///
+    /// The journal header owns its own read-mode toggle, so the shell only
+    /// forwards a change when its own read-mode flag differs from the last value
+    /// it pushed; otherwise the header toggle would be overwritten every frame.
+    fn sync_journal(&mut self, cx: &mut Context<Self>) {
+        if self.journal.is_none() {
+            let provider = Arc::clone(&self.provider);
+            let start_date = self.journal_start_date.clone();
+            let calendar_open = self.journal_calendar;
+            let read_mode = self.read_mode;
+            self.journal = Some(cx.new(move |cx| {
+                JournalView::new(provider, start_date, calendar_open, read_mode, cx)
+            }));
+            self.journal_read_mode = read_mode;
+        }
+
+        let journal = self.journal.clone();
+        let Some(journal) = journal else {
+            return;
+        };
+
+        if self.read_mode != self.journal_read_mode {
+            let read_mode = self.read_mode;
+            journal.update(cx, |view, cx| view.set_read_mode(read_mode, cx));
+            self.journal_read_mode = read_mode;
+        }
+
+        let navigation =
+            journal.update(cx, |view, _| view.pending_navigation().map(str::to_string));
+        if let Some(target) = navigation {
+            journal.update(cx, |view, _| view.clear_pending_navigation());
             self.handle_editor_navigation(&target);
         }
     }
@@ -338,6 +409,9 @@ impl Render for Shell {
         if self.active == Panel::Page {
             self.sync_editor(cx);
         }
+        if self.active == Panel::Journal {
+            self.sync_journal(cx);
+        }
         let theme = cx.theme();
         let background = theme.colors.background;
         let foreground = theme.colors.foreground;
@@ -376,6 +450,7 @@ impl Render for Shell {
                         self.active,
                         self.current_page.as_deref(),
                         self.editor.clone(),
+                        self.journal.clone(),
                         cx,
                     ))),
             )

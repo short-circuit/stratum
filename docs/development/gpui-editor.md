@@ -139,8 +139,11 @@ decorated spans.
 
 `virtualize::VirtualLayout` provides deterministic height estimates, offsets,
 `visible_window`, `scroll_top_for_block`, `block_at_offset` and
-`anchor_offset`. The 10k-row tests pin the window bound (viewport rows plus two
-overscan windows), monotonic offsets and the inverse scroll mapping.
+`anchor_offset`. Heights also reserve 18 px per explicit line break in code and
+multi-line prose, because each break renders as its own visual line; without
+that term a multi-line code block overlaps the following row. The 10k-row tests
+pin the window bound (viewport rows plus two overscan windows), monotonic
+offsets, the inverse scroll mapping and the line-break reservation.
 
 ---
 
@@ -204,6 +207,12 @@ one decode is started per frame and the decode time is reported as part of
 so scrolling stays correct while the preview is still missing. Row geometry
 (text left, depth indent, chevron, badge and reminder
 gutter) is deterministic and shared by the caret and mouse hit testing.
+
+`EditorView::set_auto_height(true)` switches the view from filling its parent to
+sizing itself to the full content height. The journal stack uses that mode so
+several day editors can live inside one scroll container; auto-height editors
+omit the page-level attachment panel, matching the shipped `JournalPanel`,
+which never renders `AttachmentPanel`.
 
 ### Input, IME and clipboard
 

@@ -9,6 +9,9 @@
 //!
 //! with `base` 24 for paragraphs/quote/list items/tables, 32 for headings, 22 for code,
 //! 180 for mermaid, 48 for display math, 24 for inline math and 12 for dividers.
+//! Text rows additionally reserve 18 px per explicit line break, because code
+//! and multi-line prose render each break as its own visual line; without that
+//! term a multi-line code block would overlap the following row.
 //! Rows that embed an asset reserve
 //! [`crate::assets::ASSET_IMAGE_ROW_HEIGHT`] or
 //! [`crate::assets::ASSET_FILE_ROW_HEIGHT`] instead, so scrolling stays correct
@@ -42,7 +45,12 @@ impl VirtualLayout {
                     return asset_row_height(asset.kind).max(MIN_ROW_HEIGHT);
                 }
                 let content_len = row.spans.iter().map(|s| s.text.len()).sum();
-                estimate_height(&row.kind, content_len)
+                let line_breaks = row
+                    .spans
+                    .iter()
+                    .map(|span| span.text.matches('\n').count())
+                    .sum();
+                estimate_height_with_breaks(&row.kind, content_len, line_breaks)
             })
             .collect();
         Self { heights }
@@ -159,6 +167,23 @@ pub fn estimate_height(kind: &BlockKind, content_len: usize) -> f32 {
     };
     let lines = (content_len as f32 / 80.0).ceil().max(1.0);
     (base + (lines - 1.0) * 18.0).max(MIN_ROW_HEIGHT)
+}
+
+/// Height estimate that also accounts for explicit line breaks.
+///
+/// Only text-bearing rows grow per break: code and multi-line prose are drawn
+/// as one visual line per `\n`. Headings, math, Mermaid and dividers ignore the
+/// term because their content is laid out by the specialized renderer.
+fn estimate_height_with_breaks(kind: &BlockKind, content_len: usize, line_breaks: usize) -> f32 {
+    let height = estimate_height(kind, content_len);
+    if matches!(
+        kind,
+        BlockKind::Paragraph | BlockKind::Quote | BlockKind::ListItem | BlockKind::Code { .. }
+    ) {
+        (height + line_breaks as f32 * 18.0).max(MIN_ROW_HEIGHT)
+    } else {
+        height
+    }
 }
 
 #[cfg(test)]

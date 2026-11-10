@@ -13,8 +13,11 @@ use gpui_kit::*;
 use stratum_i18n::t_global;
 
 pub mod editor;
+pub mod journal;
+pub mod voice;
 
 use crate::panels::editor::EditorView;
+use crate::panels::journal::JournalView;
 use crate::router::Panel;
 use crate::shell::Shell;
 
@@ -39,17 +42,24 @@ pub fn panel_icon(panel: Panel) -> IconName {
 
 /// Render the active panel body.
 ///
-/// `editor` is the live editor entity for the open page. It is `None` in the
-/// window-free shell tests, which keeps the page panel on the shipped stub.
+/// `editor` is the live editor entity for the open page and `journal` is the
+/// live journal entity. Both are `None` in the window-free shell tests, which
+/// keeps the panels on their shipped stubs.
 pub fn panel_view(
     panel: Panel,
     page_path: Option<&str>,
     editor: Option<Entity<EditorView>>,
+    journal: Option<Entity<JournalView>>,
     cx: &mut Context<Shell>,
 ) -> impl IntoElement {
     if panel == Panel::Page {
         if let Some(editor) = editor {
             return div().size_full().child(editor);
+        }
+    }
+    if panel == Panel::Journal {
+        if let Some(journal) = journal {
+            return div().size_full().child(journal);
         }
     }
     let theme = cx.theme();

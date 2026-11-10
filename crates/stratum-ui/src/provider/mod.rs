@@ -24,14 +24,19 @@ use stratum_editor::{AssetThumbnail, AttachmentRow, BlockDto};
 
 mod assets;
 mod fixture;
+mod journal;
+mod voice;
 
 pub use assets::attachment_row;
 pub(crate) use assets::{
     attachment_row_for_bytes, attachment_row_with_mime, file_extension, file_stem,
     mime_for_extension,
 };
+pub use journal::{journal_dates_from_paths, journal_path, parse_journal_date};
 
-pub use fixture::{fixture_blocks, FixtureProvider};
+pub use fixture::{
+    fixture_blocks, FixtureProvider, FIXTURE_JOURNAL_DATES, FIXTURE_RECORDING, FIXTURE_TODAY,
+};
 
 /// Vault counters shown in the sidebar header.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -134,6 +139,59 @@ pub trait ShellData: Send + Sync {
     ///
     /// Providers without asset support accept the delete without error.
     fn delete_asset(&self, _ref_path: &str) -> Result<(), String> {
+        Ok(())
+    }
+    /// Valid journal dates present in the vault, newest first.
+    ///
+    /// Providers without journal support return an empty list, so the panel
+    /// renders only today's entry.
+    fn journal_dates(&self) -> Vec<String> {
+        Vec::new()
+    }
+    /// Ensure the local date's journal page exists and return its path.
+    ///
+    /// The default derives today's path without touching storage; providers
+    /// that can persist pages override it.
+    fn ensure_today_journal(&self) -> Result<String, String> {
+        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        Ok(journal_path(&today))
+    }
+    /// Create the journal page for `date` and return its path.
+    fn create_journal_day(&self, date: &str) -> Result<String, String> {
+        Ok(journal_path(date))
+    }
+    /// Reconcile the block database with the files on disk.
+    ///
+    /// Providers without a database accept the repair without error.
+    fn repair_db(&self) -> Result<(), String> {
+        Ok(())
+    }
+    /// Whether a speech-to-text endpoint is configured.
+    fn stt_configured(&self) -> bool {
+        false
+    }
+    /// Start a voice recording destined for `page_path`.
+    ///
+    /// Returns the recording path; providers without audio return an empty
+    /// path so the capture flow still completes.
+    fn voice_start(&self, _page_path: &str) -> Result<String, String> {
+        Ok(String::new())
+    }
+    /// Stop the active recording, returning its path and duration in seconds.
+    fn voice_stop(&self) -> Result<(String, f64), String> {
+        Ok((String::new(), 0.0))
+    }
+    /// Transcribe a saved clip into `page_path`, returning the inserted count.
+    fn voice_transcribe(&self, _recording_path: &str, _page_path: &str) -> Result<usize, String> {
+        Ok(0)
+    }
+    /// Insert a clip-reference placeholder into `page_path`.
+    fn voice_insert_clip(
+        &self,
+        _recording_path: &str,
+        _page_path: &str,
+        _seconds: f64,
+    ) -> Result<(), String> {
         Ok(())
     }
 }
@@ -293,6 +351,47 @@ impl ShellData for AppProvider {
 
     fn delete_asset(&self, ref_path: &str) -> Result<(), String> {
         self.delete_ref(ref_path)
+    }
+
+    fn journal_dates(&self) -> Vec<String> {
+        self.read_journal_dates()
+    }
+
+    fn ensure_today_journal(&self) -> Result<String, String> {
+        self.ensure_journal()
+    }
+
+    fn create_journal_day(&self, date: &str) -> Result<String, String> {
+        self.create_journal(date)
+    }
+
+    fn repair_db(&self) -> Result<(), String> {
+        self.repair_database()
+    }
+
+    fn stt_configured(&self) -> bool {
+        self.stt_is_configured()
+    }
+
+    fn voice_start(&self, page_path: &str) -> Result<String, String> {
+        self.begin_recording(page_path)
+    }
+
+    fn voice_stop(&self) -> Result<(String, f64), String> {
+        self.finish_recording()
+    }
+
+    fn voice_transcribe(&self, recording_path: &str, page_path: &str) -> Result<usize, String> {
+        self.transcribe_clip(recording_path, page_path)
+    }
+
+    fn voice_insert_clip(
+        &self,
+        recording_path: &str,
+        page_path: &str,
+        seconds: f64,
+    ) -> Result<(), String> {
+        self.insert_clip(recording_path, page_path, seconds)
     }
 
     fn ai_run(&self, call: AiCall) -> Result<String, String> {

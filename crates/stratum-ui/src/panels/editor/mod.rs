@@ -124,6 +124,10 @@ pub struct EditorView {
     attachment_error: Option<String>,
     pending_delete: Option<String>,
     last_pointer: Point<Pixels>,
+    /// When set, the editor sizes itself to its content instead of filling the
+    /// parent. Journal sections stack full-height editors inside one scroll
+    /// container, so a fill-height editor would collapse its virtual list.
+    auto_height: bool,
 }
 
 impl EditorView {
@@ -181,6 +185,7 @@ impl EditorView {
             attachment_error: None,
             pending_delete: None,
             last_pointer: point(px(0.0), px(0.0)),
+            auto_height: false,
         };
         view.refresh_attachments();
         view
@@ -218,6 +223,24 @@ impl EditorView {
     /// The current virtual layout.
     pub fn layout(&self) -> &VirtualLayout {
         &self.layout
+    }
+
+    /// Whether the editor sizes itself to its content.
+    pub fn auto_height(&self) -> bool {
+        self.auto_height
+    }
+
+    /// Size the editor to its content instead of the parent height.
+    ///
+    /// The journal stack embeds several editors inside one scroll container, so
+    /// each editor must contribute its full row height to the stack rather than
+    /// filling a viewport it does not own.
+    pub fn set_auto_height(&mut self, auto_height: bool, cx: &mut Context<Self>) {
+        if self.auto_height == auto_height {
+            return;
+        }
+        self.auto_height = auto_height;
+        cx.notify();
     }
 
     /// The scroll handle used by the virtual list and the perf capture.

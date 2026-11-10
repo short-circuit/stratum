@@ -15,6 +15,7 @@ on:
       - 'crates/stratum-ui/**'
       - 'crates/stratum-editor/**'
       - 'scripts/capture-gpui-shell.sh'
+      - 'scripts/capture-gpui-panels.sh'
       - 'scripts/capture-gpui-editor-perf.sh'
       - '.github/workflows/gpui-ci.yml'
       - '.github/actions/install-linux-deps/**'
@@ -27,6 +28,7 @@ on:
       - 'crates/stratum-ui/**'
       - 'crates/stratum-editor/**'
       - 'scripts/capture-gpui-shell.sh'
+      - 'scripts/capture-gpui-panels.sh'
       - 'scripts/capture-gpui-editor-perf.sh'
       - '.github/workflows/gpui-ci.yml'
       - '.github/actions/install-linux-deps/**'
@@ -133,11 +135,26 @@ jobs:
       - name: Capture 10k editor performance
         run: ./scripts/capture-gpui-editor-perf.sh
 
+      - name: Capture journal panels
+        run: ./scripts/capture-gpui-panels.sh
+
       - name: Upload screenshot artifact
         uses: actions/upload-artifact@v4
         with:
           name: gpui-shell-screenshot
-          path: dist/gpui-shell.png
+          path: |
+            dist/gpui-shell.png
+            dist/gpui-shell-collapsed.png
+          if-no-files-found: error
+
+      - name: Upload journal screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-journal-screenshots
+          path: |
+            dist/gpui-journal.png
+            dist/gpui-journal-calendar.png
+            dist/gpui-journal-read.png
           if-no-files-found: error
 
       - name: Upload editor performance report

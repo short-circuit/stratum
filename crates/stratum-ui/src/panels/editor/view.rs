@@ -96,13 +96,16 @@ impl Render for EditorView {
         let show_preview = !self.read_mode && self.hover_preview.is_some();
         let show_context_menu = !self.read_mode && self.context_menu.is_some();
 
-        div()
+        let auto_height = self.auto_height;
+        let content_height = self.total_height();
+        let root = div()
             .id("editor-root")
             .relative()
             .flex()
             .flex_col()
-            .size_full()
             .bg(theme.colors.background)
+            .when(auto_height, |element| element.w_full())
+            .when(!auto_height, |element| element.size_full())
             .text_color(theme.colors.foreground)
             .track_focus(&self.focus)
             .on_key_down(cx.listener(|this, event: &KeyDownEvent, window, cx| {
@@ -151,11 +154,22 @@ impl Render for EditorView {
                 });
             })
             .child(badge_strip(self, cx))
-            .child(
-                div()
-                    .relative()
-                    .flex_1()
-                    .overflow_hidden()
+            .child({
+                let mut container = div().relative().overflow_hidden();
+                container = if auto_height {
+                    // A stacked journal editor contributes its full content
+                    // height; an empty page still reserves room for the empty
+                    // message so the section is visible.
+                    let height = if self.rows.is_empty() {
+                        120.0
+                    } else {
+                        content_height
+                    };
+                    container.h(px(height))
+                } else {
+                    container.flex_1()
+                };
+                container
                     .when(self.rows.is_empty(), |element| {
                         element.child(
                             div()
@@ -178,9 +192,14 @@ impl Render for EditorView {
                     )
                     .when(show_context_menu, |element| {
                         element.child(context_menu_popup(self, cx))
-                    }),
-            )
-            .child(attachments_panel(self, cx))
+                    })
+            })
+            // Journal sections stack editors without the page-level attachment
+            // panel, matching the shipped JournalPanel (which never renders
+            // AttachmentPanel). The page editor keeps it.
+            .when(!auto_height, |element| {
+                element.child(attachments_panel(self, cx))
+            })
             .when(!self.read_mode, |element| {
                 element.child(save_chip(self, cx))
             })
@@ -201,6 +220,7 @@ impl Render for EditorView {
                         .p(px(8.0))
                         .child(hover_preview(self, cx)),
                 )
-            })
+            });
+        root
     }
 }

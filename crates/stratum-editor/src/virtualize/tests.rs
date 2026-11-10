@@ -31,6 +31,12 @@ fn rows(count: usize) -> Vec<DecoratedRow> {
     (0..count).map(|_| row(BlockKind::Paragraph)).collect()
 }
 
+fn row_with_text(kind: BlockKind, text: &str) -> DecoratedRow {
+    let mut decorated = row(kind);
+    decorated.spans[0].text = text.to_string();
+    decorated
+}
+
 #[test]
 fn visible_window_is_bounded_by_viewport_and_overscan() {
     let layout = VirtualLayout::from_rows(&rows(10_000));
@@ -93,6 +99,30 @@ fn anchor_offset_sits_inside_the_row() {
     assert!(anchor > top);
     assert!(anchor < top + height);
     assert_eq!(layout.anchor_offset(3), None);
+}
+
+#[test]
+fn multi_line_code_reserves_one_line_per_break() {
+    let code = row_with_text(
+        BlockKind::Code {
+            lang: "rust".into(),
+        },
+        "```rust\nfn main() {\n    println!(\"x\");\n}\n```",
+    );
+    let layout = VirtualLayout::from_rows(&[code]);
+    let height = layout.heights()[0];
+    // Five visual lines: the 22 px code base plus four 18 px breaks.
+    assert_eq!(height, 22.0 + 4.0 * 18.0);
+}
+
+#[test]
+fn line_breaks_do_not_grow_non_text_rows() {
+    let heading = row_with_text(BlockKind::Heading(1), "a\nb\nc");
+    let layout = VirtualLayout::from_rows(&[heading]);
+    assert_eq!(
+        layout.heights()[0],
+        estimate_height(&BlockKind::Heading(1), 5)
+    );
 }
 
 #[test]

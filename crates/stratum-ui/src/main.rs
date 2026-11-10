@@ -7,6 +7,11 @@
 //! - `STRATUM_VAULT=/path/to/vault` selects the real service-backed provider;
 //!   the current directory is used when the variable is absent.
 //! - `STRATUM_LOCALE=en|de|el|es|fr|it|ja|zh` selects the UI catalog.
+//! - `STRATUM_ROUTE=/journal` opens a route (parsed through the shared router).
+//! - `STRATUM_PAGE=pages/Welcome.md` opens a page in the editor.
+//! - `STRATUM_JOURNAL_DATE=2026-11-09` starts the journal on a day.
+//! - `STRATUM_CALENDAR=1` starts with the journal calendar expanded.
+//! - `STRATUM_READ_MODE=1` starts in read mode.
 //!
 //! Shortcuts are installed from the shared [`stratum_ui::router::SHORTCUTS`]
 //! table, with `Modifier::Ctrl` mapped to GPUI's `secondary` modifier.
@@ -17,7 +22,7 @@ use std::sync::Arc;
 use gpui_kit::*;
 use stratum_i18n::{set_locale, Locale};
 use stratum_ui::provider::provider_from_env;
-use stratum_ui::router::{keystroke_string, ShortcutAction, SHORTCUTS};
+use stratum_ui::router::{keystroke_string, parse_path, ShortcutAction, SHORTCUTS};
 use stratum_ui::{init, Shell, StratumAssets, ThemeConfig};
 
 fn main() {
@@ -50,15 +55,7 @@ fn main() {
 
             match gpui_kit::open_window(options, cx, |_window, cx| {
                 let mut shell = Shell::new(Arc::clone(&provider));
-                // The capture harness renders the collapsed rail from an env
-                // flag: Xvfb has no window manager, so synthetic key events do
-                // not reliably reach the window.
-                if std::env::var("STRATUM_COLLAPSED")
-                    .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
-                    .unwrap_or(false)
-                {
-                    shell.toggle_sidebar();
-                }
+                apply_start_state(&mut shell);
                 cx.new(|_| shell)
             }) {
                 Ok(_) => log::info!("Stratum shell opened (fixture: {fixture})"),
@@ -69,6 +66,36 @@ fn main() {
             // focus; without this the window maps but never receives keystrokes.
             cx.activate(true);
         });
+}
+
+/// Apply the deterministic start-state flags used by the capture harness.
+fn apply_start_state(shell: &mut Shell) {
+    if env_flag("STRATUM_COLLAPSED") {
+        shell.toggle_sidebar();
+    }
+    if let Ok(route) = std::env::var("STRATUM_ROUTE") {
+        match parse_path(&route) {
+            Some(panel) => shell.navigate(panel),
+            None => log::warn!("ignoring unknown STRATUM_ROUTE={route}"),
+        }
+    }
+    if let Ok(page) = std::env::var("STRATUM_PAGE") {
+        shell.open_page(page);
+    }
+    if env_flag("STRATUM_READ_MODE") {
+        shell.set_read_mode(true);
+    }
+    let journal_date = std::env::var("STRATUM_JOURNAL_DATE")
+        .ok()
+        .filter(|value| !value.is_empty());
+    shell.set_journal_start(journal_date, env_flag("STRATUM_CALENDAR"));
+}
+
+/// Read a boolean environment flag.
+fn env_flag(name: &str) -> bool {
+    std::env::var(name)
+        .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+        .unwrap_or(false)
 }
 
 /// Minimal stderr logger so startup diagnostics (missing fonts, rejected key
