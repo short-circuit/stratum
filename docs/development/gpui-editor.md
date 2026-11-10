@@ -26,6 +26,7 @@ crates/stratum-editor/
 │   ├── inline.rs         # span parser + byte-exact serializer
 │   ├── markers.rs        # marker detection, badge rows, reminder chips
 │   ├── menus.rs          # slash catalog, marker menu, wiki autocomplete, link hits
+│   ├── assets.rs         # attachment classification, row labels, thumbnail cache
 │   ├── state/            # caret/selection, edits, moves, undo, clipboard, IME
 │   ├── render.rs         # WYSIWYM decoration model (no UI types)
 │   └── virtualize.rs     # deterministic heights and viewport windows
@@ -145,14 +146,18 @@ overscan windows), monotonic offsets and the inverse scroll mapping.
 
 ## Math and Mermaid Caches
 
-`math::MathCache` and `mermaid::MermaidCache` are bounded LRU caches
-(`with_capacity`, defaults 64 math images and 32 SVG diagrams). Math renders
+`math::MathCache`, `mermaid::MermaidCache` and `assets::AssetThumbnailCache` are
+bounded LRU caches (`with_capacity`; defaults 64 math images, 32 SVG diagrams
+and 32 decoded thumbnails). Math renders
 through the pure-Rust RaTeX pipeline (`ratex-parser` → `ratex-layout` →
 `ratex-render`) and Mermaid through `mermaid-rs-renderer`; neither cache grows
 without bound. `render_page_with_assets` fills the `math` and
 `mermaid` fields of `DecoratedRow`; failures leave those fields `None` so the
 decorated text spans remain visible. The pure `render_page` path leaves both
 fields empty and is what the contract tests and the row builder use.
+`DecoratedRow::thumbnail` is always `None` from the renderer: the view decodes
+it lazily through `ShellData::read_asset_thumbnail`, exactly like math and
+Mermaid, so the headless crate stays I/O-free.
 
 ---
 
@@ -163,9 +168,14 @@ file stays under the repository limit:
 
 ```
 crates/stratum-ui/src/panels/editor/
-├── mod.rs       # EditorView state, metrics, save scheduling, asset budget
+├── mod.rs       # EditorView state, save scheduling, asset budget
 ├── view.rs      # Render impl: badge strip, virtual list, canvas input, overlays
 ├── rows.rs      # row/span/caret geometry and elements (+ rows/tests.rs)
+├── asset_rows.rs # thumbnail / file-attachment row rendering
+├── asset_state.rs # thumbnail budget, attachment list, drop-target resolution
+├── asset_actions.rs # import/delete/attach flows (background executor)
+├── attachments.rs # attachment panel (list, inline delete confirm, attach button)
+├── metrics.rs   # per-frame render measurements for the 10k capture
 ├── input/       # input/mod.rs: EntityInputHandler, keys, mouse, overlay_ops, IME
 ├── overlay.rs   # slash, wiki, marker, link-preview and dead-link popups
 ├── drag.rs      # gutter drag state, drop-target resolution and the indicator bar
@@ -173,10 +183,10 @@ crates/stratum-ui/src/panels/editor/
 └── save.rs      # SaveState/SaveStatus transitions
 ```
 
-`EditorView` owns the `EditorState`, the math/Mermaid caches, the
-`VirtualLayout`, the `VirtualListScrollHandle`, save status, overlay state, the
-focus handle and the `ShellData` provider. It delegates every editing rule to
-`stratum_editor`; the view never re-parses block text.
+`EditorView` owns the `EditorState`, the math/Mermaid/thumbnail caches, the
+attachment list, the `VirtualLayout`, the `VirtualListScrollHandle`, save status,
+overlay state, the focus handle and the `ShellData` provider. It delegates every
+editing rule to `stratum_editor`; the view never re-parses block text.
 
 ### Rendering and virtualization
 
@@ -186,7 +196,13 @@ view uses `v_virtual_list(...).track_scroll(...)` with the deterministic
 `VirtualLayout` heights and materialises only the visible window plus overscan.
 Math and Mermaid images are rendered lazily for the visible range with a budget
 of one new asset per frame, so a window full of diagrams cannot blow the frame
-work budget. Row geometry (text left, depth indent, chevron, badge and reminder
+work budget. Attachment thumbnails share that budget: the virtual-list closure
+calls `ensure_thumbnails_for_range` next to `ensure_assets_for_range`, so at most
+one decode is started per frame and the decode time is reported as part of
+`asset_p95_ms`. Image rows reserve `ASSET_IMAGE_ROW_HEIGHT` and file rows
+`ASSET_FILE_ROW_HEIGHT` in `VirtualLayout::from_rows` before a thumbnail exists,
+so scrolling stays correct while the preview is still missing. Row geometry
+(text left, depth indent, chevron, badge and reminder
 gutter) is deterministic and shared by the caret and mouse hit testing.
 
 ### Input, IME and clipboard
@@ -383,6 +399,79 @@ uses `editor.saving` and `settings.saved`; a failed write keeps the document
 dirty and surfaces the provider error. Saves go through the same
 `blocks_to_dto` seam as the service layer, so block fields stay identical.
 
+### Attachments, drag-and-drop and paste upload
+
+Asset embeds (`![[assets/foo.png]]`) are classified by
+`stratum_editor::assets::asset_kind`: raster extensions (`png`, `jpg`, `jpeg`,
+`gif`, `webp`, `bmp`) are `AssetKind::Image`; everything else, including `svg`
+(the raster decoder does not handle it), is an `AssetKind::File` row. Only the
+embed form is an asset span — the plain `[[assets/foo.png]]` form stays a wiki
+link so it round-trips byte-identically.
+
+Row promotion is a whole-content gate, matching the shipped
+`^\s*!\[\[…\]\]\s*$` converter: only a block whose entire content is a single
+`![[…]]` embed (surrounding whitespace allowed) becomes an attachment row.
+`stratum_editor::assets::first_asset_span` returns `None` for any mixed content
+(prefix/suffix text, another span kind such as a wiki link/tag/emphasis, or two
+embeds), so the row keeps the inline asset chip rendered through
+`visible_runs`/`StyledText` and the normal text height instead of losing its
+text. The view relies on this gate for both `renders_as_asset` and the virtual
+layout height reservation; there is no second mixed-content check in the UI.
+
+Rendering is split so the logic stays in the crates:
+
+- `panels/editor/asset_rows.rs` renders an image row with the decoded thumbnail
+  inside `THUMBNAIL_BOX` plus a caption line (basename, MIME, `format_size`
+  label), and a file row with `IconName::FileText`, basename and size. Without a
+  decoded thumbnail the row keeps the shipped chip fallback (path text on the
+  theme's primary/secondary pair).
+- `panels/editor/asset_state.rs` owns the thumbnail budget, the attachment list
+  and the drop-target resolution; `panels/editor/asset_actions.rs` owns the
+  import/delete/picker flows. Both run file reads and provider calls on the gpui
+  background executor, so no upload blocks a frame. A failed thumbnail decode
+  records the path in `EditorView::failed_thumbnails` so one corrupt image is
+  skipped in favour of the next image row instead of starving every later
+  thumbnail. A successful delete calls `AssetThumbnailCache::invalidate` and
+  clears the failed marker before rebuilding rows, so a deleted image cannot
+  keep a stale thumbnail.
+- `panels/editor/attachments.rs` renders the attachment panel under the editor
+  page: translated title, count, summed size, collapse toggle, attach button and
+  one row per attachment (name, MIME chip, size, delete). Delete is the shipped
+  two-step inline confirmation — the first click arms the row and shows
+  `asset.delete_confirm`, the second click deletes.
+
+Upload policy lives in `stratum_app::asset` (`asset.rs` plus `asset/image.rs`)
+and `pkm_block::assets` (`assets.rs` plus `assets/store.rs`): `ASSET_MAX_BYTES`
+is 8 MiB like `src/lib/assetUpload.ts`; oversized images are downscaled to
+`IMAGE_COMPRESS_MAX_EDGE` (2048) and re-encoded as JPEG at quality
+`IMAGE_JPEG_QUALITY` (85) only when the result is smaller, matching
+`compressImage`; an oversized non-image fails with the exact `"file_too_large"`
+sentinel the panel translates. Thumbnails decode through
+`StratumService::asset_thumbnail` at `THUMBNAIL_MAX_EDGE` (512) and are cached
+in the bounded `AssetThumbnailCache` (32 entries, LRU).
+
+Interaction:
+
+- **Drag and drop.** `view.rs` registers `.on_drop::<ExternalPaths>` on the
+  editor root, resolves the row under `window.mouse_position()` through
+  `row_index_at_point` (falling back to the caret block) and imports every
+  dropped file through `ShellData::import_asset_path` (the service reads the
+  file and applies the upload policy, so an 8 MiB drop never round-trips through
+  base64 in the shell), then inserts the
+  `![[…]]` reference through `EditorState::insert_asset_reference` — one
+  undoable history entry, dirty marking and the normal debounced save.
+- **Paste.** Ctrl+V with a `ClipboardEntry::Image` uploads the image with the
+  MIME derived from the clipboard format (`paste.png` fallback name) instead of
+  pasting text; a text clipboard keeps the previous normalize-and-insert path.
+- **Attach button.** `attach_files` opens the platform file picker
+  (`PathPromptOptions`) and imports the selection through the same flow.
+
+The panel labels are release-gated in `EDITOR_VIEW_I18N_KEYS`
+(`asset.attach`, `asset.attachments`, `asset.compressing`, `asset.delete`,
+`asset.delete_confirm`, `asset.empty`, `asset.file_too_large`,
+`asset.upload_failed`); all eight catalogs already carry them, so no catalog
+edit was needed.
+
 ### Phase-B boundary
 
 The gpui view renders `DecoratedRow`s and forwards input events to
@@ -398,14 +487,12 @@ reordering* above). Reminder mutations go through
 `EditorDocument::mutate` so revision and dirty bookkeeping stay in the
 document.
 
-Attachments are a deliberate phase-B boundary: only embeds (`![[assets/foo.png]]`)
-classify as `SpanKind::Asset` and render as a chip with the asset path text and
-the theme's primary/secondary colors; the plain `[[assets/foo.png]]` form stays a
-wiki link so it round-trips byte-identically. There are no image thumbnails, no
-file-size row and no file drag-and-drop. Pasting inserts text only; attachment
-upload, image compression and the attachment list remain in the React
-`AttachmentPanel` until phase B. The follow-up card *Attachment thumbnails,
-drag-and-drop and paste upload* covers those pieces.
+Block drag-and-drop (moving a block between parents) is still out of phase B.
+Asset handling is in: thumbnails, the file-size row, external file drops, paste
+upload, the attachment list and inline delete all ship in the view described
+above; the React `AttachmentPanel` is no longer needed for attachment work in
+the native shell. The plain `[[assets/foo.png]]` form deliberately stays a wiki
+link so it round-trips byte-identically.
 
 ---
 
@@ -425,7 +512,8 @@ release build: a debug build spends an order of magnitude more time building row
 elements, so its numbers say nothing about the 55 fps target
 (`STRATUM_PERF_PROFILE=debug` reproduces a debug run). Math/Mermaid asset
 rendering is budgeted to one new asset per frame, cached afterwards and reported
-separately as `asset_p95_ms`; it is excluded from the row-materialization figure
+separately as `asset_p95_ms`; attachment thumbnail decodes share that budget and
+the same figure. It is excluded from the row-materialization figure
 because a single diagram render can legitimately exceed one frame's budget.
 
 Reference-run measurement (Xvfb, `LIBGL_ALWAYS_SOFTWARE=1`, release build,
@@ -435,10 +523,10 @@ Reference-run measurement (Xvfb, `LIBGL_ALWAYS_SOFTWARE=1`, release build,
 |--------|-------|
 | Blocks / rows | 10 000 / 10 000 |
 | Rows materialised per frame | 2 |
-| Row-build `render_p95_ms` | 2.44 ms (budget 18.18 ms) |
-| Asset `asset_p95_ms` | 0.04 ms |
-| Frame p50 / p95 / p99 / max | 48 / 48 / 48 / 64 ms |
-| Derived frame fps p50 / p95 | 20.8 / 20.8 |
+| Row-build `render_p95_ms` | 3.87 ms (budget 18.18 ms) |
+| Asset `asset_p95_ms` | 0.004 ms |
+| Frame p50 / p95 / p99 / max | 16.7 / 33.4 / 34.1 / 50.8 ms |
+| Derived frame fps p50 / p95 | 60.0 / 29.9 |
 
 The frame deltas are dominated by the software swapchain pacing under Xvfb, not
 by editor work; the gated measurement is the row-build p95, which is an order of
@@ -478,6 +566,15 @@ cargo clippy -p stratum-editor -p stratum-ui --all-targets -- -D warnings
 # 10k perf capture (Xvfb when DISPLAY is unset)
 ./scripts/capture-gpui-editor-perf.sh
 ```
+
+The attachment suite is window-free: `pkm-block` covers classification and the
+store round-trip, `stratum-app` covers thumbnail scaling, the 8 MiB upload
+boundary and the compression-parity rule, `stratum-editor` covers the reserved
+row heights, labels and the LRU thumbnail cache, and `stratum-ui` covers the
+fixture asset round-trip, the default trait methods and the translated
+upload-error mapping. Drop and paste gestures themselves need a window and are
+covered only by the fixture provider round-trip plus the pure drop-target and
+paste-payload helpers.
 
 The GPUI CI workflow includes `crates/stratum-editor/**` and
 `scripts/capture-gpui-editor-perf.sh` in its path filters, runs the crate and

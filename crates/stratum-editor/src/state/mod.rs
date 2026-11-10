@@ -25,6 +25,9 @@
 //! - [`ime`] — composition state and UTF-16 offset translation.
 //! - [`moving`] — destination-group resolution and reversible block moves.
 //! - `text` — byte-offset and delimiter helpers shared by the above.
+//!
+//! Document bookkeeping that is not a caret edit (the dirty flag and block
+//! reminders) is implemented directly on [`EditorState`] in this module.
 
 mod ai;
 mod clipboard;
@@ -121,6 +124,39 @@ impl EditorState {
     /// Undo depth.
     pub fn history_depth(&self) -> usize {
         self.history.depth()
+    }
+
+    /// Whether the document has unsaved changes.
+    pub fn is_dirty(&self) -> bool {
+        self.doc.is_dirty()
+    }
+
+    /// Mark the document clean after a successful save.
+    pub fn mark_clean(&mut self) {
+        self.doc.mark_clean();
+    }
+
+    /// Set or clear a block reminder by writing or removing its `due` property.
+    ///
+    /// The mutation is routed through [`crate::document::EditorDocument::mutate`]
+    /// so the document revision and dirty flag stay authoritative in the
+    /// document. `iso_or_none` is stored verbatim; callers pass RFC 3339 UTC,
+    /// the same format the shipped React app writes.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PkmError::BlockNotFound`] when `block_id` is not in the
+    /// document, or whatever [`crate::markers::set_reminder`] returns.
+    pub fn set_block_reminder(
+        &mut self,
+        block_id: BlockId,
+        iso_or_none: Option<&str>,
+    ) -> PkmResult<()> {
+        if self.doc.block(block_id).is_none() {
+            return Err(PkmError::BlockNotFound(block_id.to_string()));
+        }
+        self.doc
+            .mutate(|tree| crate::markers::set_reminder(tree, block_id, iso_or_none))
     }
 
     /// Place the caret, validating the block and the char boundary.

@@ -20,9 +20,16 @@ use std::sync::Arc;
 use stratum_app::ai::AiAction;
 use stratum_app::StratumService;
 use stratum_editor::menus::{AiCall, AiCallKind, AiTransformAction};
-use stratum_editor::BlockDto;
+use stratum_editor::{AssetThumbnail, AttachmentRow, BlockDto};
 
+mod assets;
 mod fixture;
+
+pub use assets::attachment_row;
+pub(crate) use assets::{
+    attachment_row_for_bytes, attachment_row_with_mime, file_extension, file_stem,
+    mime_for_extension,
+};
 
 pub use fixture::{fixture_blocks, FixtureProvider};
 
@@ -90,6 +97,44 @@ pub trait ShellData: Send + Sync {
     /// Run one AI slash request. Providers without AI support echo the input.
     fn ai_run(&self, call: stratum_editor::menus::AiCall) -> Result<String, String> {
         Ok(call.text)
+    }
+    /// Read a decoded thumbnail for an image asset.
+    ///
+    /// Providers without asset support return `None`, and the view keeps the
+    /// shipped chip fallback instead of an image preview.
+    fn read_asset_thumbnail(&self, _ref_path: &str) -> Option<AssetThumbnail> {
+        None
+    }
+    /// The attachment rows referenced by one page.
+    ///
+    /// Providers without asset support return an empty list; the panel then
+    /// shows its empty state.
+    fn page_attachments(&self, _page_path: &str) -> Vec<AttachmentRow> {
+        Vec::new()
+    }
+    /// Import a vault-relative file path as an attachment.
+    ///
+    /// Providers that cannot persist assets return a row for `path` unchanged.
+    fn import_asset_path(&self, path: &str) -> Result<AttachmentRow, String> {
+        Ok(attachment_row(path))
+    }
+    /// Import raw bytes (a clipboard paste or drag-and-drop payload).
+    ///
+    /// Providers that cannot persist assets return a row under `assets/` with
+    /// the byte length and the provided or inferred MIME.
+    fn import_asset_bytes(
+        &self,
+        bytes: Vec<u8>,
+        name: &str,
+        mime: Option<&str>,
+    ) -> Result<AttachmentRow, String> {
+        Ok(attachment_row_for_bytes(name, bytes.len() as u64, mime))
+    }
+    /// Delete an attachment by vault-relative ref path.
+    ///
+    /// Providers without asset support accept the delete without error.
+    fn delete_asset(&self, _ref_path: &str) -> Result<(), String> {
+        Ok(())
     }
 }
 
@@ -225,6 +270,31 @@ impl ShellData for AppProvider {
         self.speak_text(text)
     }
 
+    fn read_asset_thumbnail(&self, ref_path: &str) -> Option<AssetThumbnail> {
+        self.read_thumbnail(ref_path)
+    }
+
+    fn page_attachments(&self, page_path: &str) -> Vec<AttachmentRow> {
+        self.read_attachments(page_path)
+    }
+
+    fn import_asset_path(&self, path: &str) -> Result<AttachmentRow, String> {
+        self.import_path(path)
+    }
+
+    fn import_asset_bytes(
+        &self,
+        bytes: Vec<u8>,
+        name: &str,
+        mime: Option<&str>,
+    ) -> Result<AttachmentRow, String> {
+        self.import_bytes(bytes, name, mime)
+    }
+
+    fn delete_asset(&self, ref_path: &str) -> Result<(), String> {
+        self.delete_ref(ref_path)
+    }
+
     fn ai_run(&self, call: AiCall) -> Result<String, String> {
         match call.kind {
             AiCallKind::Transform(action) => {
@@ -327,70 +397,4 @@ pub fn provider_from_env(vault_path: PathBuf, fixture: bool) -> Arc<dyn ShellDat
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn page(path: &str, modified_at: &str, blocks: u64) -> RecentPage {
-        RecentPage {
-            path: path.to_string(),
-            title: path.to_string(),
-            block_count: blocks,
-            modified_at: modified_at.to_string(),
-        }
-    }
-
-    #[test]
-    fn derive_recents_filters_journals_and_sorts_descending() {
-        let pages = vec![
-            page("journals/2026-11-09.md", "2026-11-09T09:00:00Z", 5),
-            page("pages/A.md", "2026-11-07T12:00:00Z", 7),
-            page("pages/B.md", "2026-11-09T08:00:00Z", 12),
-            page("pages/C.md", "2026-11-08T18:00:00Z", 34),
-        ];
-        let recents = derive_recents(pages);
-        let paths: Vec<_> = recents.iter().map(|page| page.path.as_str()).collect();
-        assert_eq!(paths, ["pages/B.md", "pages/C.md", "pages/A.md"]);
-        assert_eq!(recents[0].block_count, 12);
-        assert_eq!(recents[1].block_count, 34);
-        assert_eq!(recents[2].block_count, 7);
-    }
-
-    #[test]
-    fn fixture_snapshot_is_deterministic_and_journal_free() {
-        let provider = FixtureProvider::new();
-        let snapshot = provider.snapshot();
-        assert_eq!(
-            snapshot.vault,
-            Some(VaultStats {
-                block_count: 1240,
-                page_count: 87
-            })
-        );
-        assert!(!snapshot.recents.is_empty());
-        assert!(snapshot
-            .recents
-            .iter()
-            .all(|page| !page.path.starts_with("journals/")));
-        assert_eq!(snapshot, provider.refresh());
-    }
-
-    #[test]
-    fn fixture_export_reports_the_page_count() {
-        assert_eq!(FixtureProvider::new().export_html(), Ok(87));
-    }
-
-    #[test]
-    fn fixture_provider_round_trips_saved_blocks() {
-        let provider = FixtureProvider::new();
-        let mut blocks = provider
-            .load_blocks("pages/Welcome.md")
-            .expect("page exists");
-        blocks[0].content = "Changed".to_string();
-        assert_eq!(
-            provider.save_blocks("pages/Welcome.md", blocks.clone()),
-            Ok(())
-        );
-        assert_eq!(provider.load_blocks("pages/Welcome.md"), Some(blocks));
-        assert_eq!(provider.load_blocks("pages/Missing.md"), None);
-    }
-}
+mod tests;

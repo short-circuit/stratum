@@ -9,6 +9,7 @@
 //! list; the list itself owns scrolling, so the canvas never intercepts mouse
 //! events (it has no hitbox).
 
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::Instant;
 
@@ -17,6 +18,8 @@ use gpui_kit::prelude::*;
 use gpui_kit::*;
 use stratum_i18n::t_global;
 
+use crate::panels::editor::asset_state::drop_target_block;
+use crate::panels::editor::attachments::attachments_panel;
 use crate::panels::editor::context_menu::context_menu_popup;
 use crate::panels::editor::drag;
 use crate::panels::editor::input;
@@ -39,19 +42,22 @@ impl Render for EditorView {
                 .collect(),
         );
         let entity = cx.entity();
+        let drop_entity = entity.clone();
         let scroll = self.scroll.clone();
         let rows = v_virtual_list(
             entity.clone(),
             "editor-rows",
             sizes,
             move |view, range, window, cx| {
-                // Asset rendering (math/Mermaid) is budgeted separately: it is
-                // measured here but excluded from the row-materialization figure
-                // the 55 fps gate consumes, because one diagram render can
-                // legitimately exceed the per-frame budget and is cached after
-                // the first paint.
+                // Asset rendering (math/Mermaid/attachment thumbnails) is
+                // budgeted separately: it is measured here but excluded from
+                // the row-materialization figure the 55 fps gate consumes,
+                // because one diagram or thumbnail decode can legitimately
+                // exceed the per-frame budget and is cached after the first
+                // paint.
                 let assets_started = Instant::now();
                 view.ensure_assets_for_range(range.clone());
+                view.ensure_thumbnails_for_range(range.clone());
                 let assets_ms = assets_started.elapsed().as_secs_f64() * 1000.0;
                 let started = Instant::now();
                 let visible: Vec<(usize, stratum_editor::DecoratedRow)> = range
@@ -133,6 +139,17 @@ impl Render for EditorView {
             .on_click(cx.listener(|this, event: &ClickEvent, window, cx| {
                 input::handle_click(this, event, window, cx);
             }))
+            .can_drop(|_, _, _| true)
+            .on_drop::<ExternalPaths>(move |paths, window, cx| {
+                // External file drops insert attachment references into the
+                // row under the pointer, falling back to the caret block.
+                let position = window.mouse_position();
+                let dropped: Vec<PathBuf> = paths.0.iter().cloned().collect();
+                drop_entity.update(cx, |view, cx| {
+                    let block_id = drop_target_block(view, position);
+                    view.start_import_paths(dropped, block_id, cx);
+                });
+            })
             .child(badge_strip(self, cx))
             .child(
                 div()
@@ -163,6 +180,7 @@ impl Render for EditorView {
                         element.child(context_menu_popup(self, cx))
                     }),
             )
+            .child(attachments_panel(self, cx))
             .when(!self.read_mode, |element| {
                 element.child(save_chip(self, cx))
             })

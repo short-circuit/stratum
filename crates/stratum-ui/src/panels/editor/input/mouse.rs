@@ -52,6 +52,7 @@ pub fn handle_mouse_down(
     cx: &mut Context<EditorView>,
 ) {
     window.focus(&view.focus, cx);
+    view.last_pointer = event.position;
     if view.read_mode {
         cx.notify();
         return;
@@ -157,6 +158,7 @@ pub fn handle_mouse_move(
     window: &mut Window,
     cx: &mut Context<EditorView>,
 ) {
+    view.last_pointer = event.position;
     // A gutter drag owns the pointer until release; the Ctrl+hover preview stays
     // out of the way while it is in flight.
     if let Some(mut drag) = view.drag {

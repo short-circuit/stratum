@@ -12,16 +12,22 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use stratum_editor::menus::{AiCall, AiCallKind};
-use stratum_editor::BlockDto;
+use stratum_editor::{
+    asset_refs_in_document, dto_to_blocks, AttachmentRow, BlockDto, EditorDocument,
+};
 use uuid::Uuid;
 
-use super::{derive_recents, RecentPage, ShellData, ShellSnapshot, VaultStats};
+use super::{
+    attachment_row_with_mime, derive_recents, file_extension, file_stem, mime_for_extension,
+    RecentPage, ShellData, ShellSnapshot, VaultStats,
+};
 
 /// Deterministic provider used by tests and `STRATUM_FIXTURE=1`.
 pub struct FixtureProvider {
     snapshot: ShellSnapshot,
     export_pages: u64,
     pages: Mutex<HashMap<String, Vec<BlockDto>>>,
+    assets: Mutex<HashMap<String, AttachmentRow>>,
 }
 
 impl FixtureProvider {
@@ -95,7 +101,28 @@ impl FixtureProvider {
             },
             export_pages: 87,
             pages: Mutex::new(pages),
+            assets: Mutex::new(HashMap::new()),
         }
+    }
+
+    /// Insert one imported attachment row and return it.
+    ///
+    /// The vault path is deterministic: `assets/<stem>-<hash>.<ext>` where the
+    /// hash is 12 hex characters of a v5 UUID over the bytes, mirroring the
+    /// service's `sha256` naming without a crypto dependency in the shell.
+    fn import_row(&self, bytes: &[u8], name: &str, mime: Option<&str>) -> AttachmentRow {
+        let stem = sanitize_stem(file_stem(name));
+        let ext = file_extension(name);
+        let digest = Uuid::new_v5(&Uuid::NAMESPACE_OID, bytes)
+            .simple()
+            .to_string();
+        let ref_path = format!("assets/{stem}-{}.{ext}", &digest[..12]);
+        let mime = mime.unwrap_or_else(|| mime_for_extension(ext));
+        let row = attachment_row_with_mime(&ref_path, bytes.len() as u64, mime);
+        if let Ok(mut assets) = self.assets.lock() {
+            assets.insert(ref_path, row.clone());
+        }
+        row
     }
 }
 
@@ -158,6 +185,80 @@ impl ShellData for FixtureProvider {
             AiCallKind::Transform(_) | AiCallKind::Research | AiCallKind::Interlink => call.text,
         })
     }
+
+    fn page_attachments(&self, page_path: &str) -> Vec<AttachmentRow> {
+        let blocks = self.load_blocks(page_path).unwrap_or_default();
+        let Ok(document) = EditorDocument::from_blocks(page_path, dto_to_blocks(blocks)) else {
+            return Vec::new();
+        };
+        let Ok(assets) = self.assets.lock() else {
+            return Vec::new();
+        };
+        asset_refs_in_document(&document)
+            .into_iter()
+            .filter_map(|ref_path| assets.get(&ref_path).cloned())
+            .collect()
+    }
+
+    fn import_asset_path(&self, path: &str) -> Result<AttachmentRow, String> {
+        let bytes = std::fs::read(path).map_err(|error| format!("read asset file: {error}"))?;
+        let name = std::path::Path::new(path)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("file");
+        Ok(self.import_row(&bytes, name, None))
+    }
+
+    fn import_asset_bytes(
+        &self,
+        bytes: Vec<u8>,
+        name: &str,
+        mime: Option<&str>,
+    ) -> Result<AttachmentRow, String> {
+        Ok(self.import_row(&bytes, name, mime))
+    }
+
+    fn delete_asset(&self, ref_path: &str) -> Result<(), String> {
+        self.assets
+            .lock()
+            .map_err(|_| "fixture provider lock poisoned".to_string())?
+            .remove(ref_path);
+        Ok(())
+    }
+}
+
+/// Sanitize a file stem for a deterministic fixture asset name.
+///
+/// Mirrors `pkm_block::assets::sanitize_stem`: lowercase, keep `[a-z0-9._-]`,
+/// replace other characters with `-`, collapse dashes, cap at 64 characters and
+/// fall back to `asset` when nothing usable remains.
+fn sanitize_stem(name: &str) -> String {
+    let mut replaced = String::new();
+    for c in name.to_lowercase().chars() {
+        if c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-') {
+            replaced.push(c);
+        } else {
+            replaced.push('-');
+        }
+    }
+    let mut collapsed = String::new();
+    let mut previous_dash = false;
+    for c in replaced.chars() {
+        if c == '-' {
+            if !previous_dash {
+                collapsed.push(c);
+            }
+            previous_dash = true;
+        } else {
+            collapsed.push(c);
+            previous_dash = false;
+        }
+    }
+    let trimmed = collapsed.trim_matches('-');
+    if trimmed.is_empty() {
+        return "asset".to_string();
+    }
+    trimmed.chars().take(64).collect()
 }
 
 /// Build a deterministic page of `count` fixture blocks.
@@ -287,6 +388,67 @@ mod tests {
         let provider = FixtureProvider::with_welcome_blocks(10_000);
         let blocks = provider.load_blocks("pages/Welcome.md").expect("page");
         assert_eq!(blocks.len(), 10_000);
+    }
+
+    #[test]
+    fn fixture_asset_round_trip_is_deterministic() {
+        let provider = FixtureProvider::new();
+        let bytes = b"\x89PNG\r\n\x1a\nfixture".to_vec();
+        let first = provider
+            .import_asset_bytes(bytes.clone(), "photo.png", Some("image/png"))
+            .expect("import");
+        let second = provider
+            .import_asset_bytes(bytes, "photo.png", None)
+            .expect("import");
+        assert_eq!(first, second, "same bytes and name must dedupe");
+        assert!(first.ref_path.starts_with("assets/photo-"));
+        assert!(first.ref_path.ends_with(".png"));
+        assert_eq!(
+            first.ref_path.len(),
+            "assets/photo-".len() + 12 + ".png".len()
+        );
+        assert_eq!(first.mime, "image/png");
+        assert_eq!(first.size, 15);
+        assert_eq!(first.size_label, "15 B");
+
+        // The attachment is only listed once the page content references it.
+        assert!(provider.page_attachments("pages/Welcome.md").is_empty());
+        let blocks = vec![BlockDto {
+            id: Uuid::new_v4().to_string(),
+            content: format!("![[{}]]", first.ref_path),
+            parent_id: None,
+            left_id: None,
+            properties: Vec::new(),
+            marker: None,
+            priority: None,
+            collapsed: false,
+            heading_level: None,
+        }];
+        provider
+            .save_blocks("pages/Photo.md", blocks)
+            .expect("save page");
+        assert_eq!(
+            provider.page_attachments("pages/Photo.md"),
+            vec![first.clone()]
+        );
+
+        provider.delete_asset(&first.ref_path).expect("delete");
+        assert!(provider.page_attachments("pages/Photo.md").is_empty());
+        assert_eq!(provider.delete_asset(&first.ref_path), Ok(()));
+    }
+
+    #[test]
+    fn fixture_import_path_reads_the_file() {
+        let provider = FixtureProvider::new();
+        let dir = tempfile::tempdir().expect("temp dir");
+        let path = dir.path().join("Report.pdf");
+        std::fs::write(&path, b"%PDF-1.7 fixture").expect("write file");
+        let row = provider
+            .import_asset_path(path.to_str().expect("utf-8 path"))
+            .expect("import");
+        assert_eq!(row.mime, "application/pdf");
+        assert!(row.ref_path.starts_with("assets/report-"));
+        assert!(row.ref_path.ends_with(".pdf"));
     }
 
     #[test]

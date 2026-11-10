@@ -15,6 +15,7 @@ use uuid::Uuid;
 use super::ops::{child_ids, EditOp};
 use super::text::{clamp_offset, next_char_boundary, prev_char_boundary, span_delimiters};
 use super::{Caret, EditorState};
+use crate::assets::asset_reference;
 use crate::inline::SpanKind;
 
 impl EditorState {
@@ -373,29 +374,6 @@ impl EditorState {
         })
     }
 
-    /// Set or clear a block reminder by writing or removing its `due` property.
-    ///
-    /// The mutation is routed through [`crate::document::EditorDocument::mutate`]
-    /// so the document revision and dirty flag stay authoritative in the
-    /// document. `iso_or_none` is stored verbatim; callers pass RFC 3339 UTC,
-    /// the same format the shipped React app writes.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`PkmError::BlockNotFound`] when `block_id` is not in the
-    /// document, or whatever [`crate::markers::set_reminder`] returns.
-    pub fn set_block_reminder(
-        &mut self,
-        block_id: BlockId,
-        iso_or_none: Option<&str>,
-    ) -> PkmResult<()> {
-        if self.doc.block(block_id).is_none() {
-            return Err(PkmError::BlockNotFound(block_id.to_string()));
-        }
-        self.doc
-            .mutate(|tree| crate::markers::set_reminder(tree, block_id, iso_or_none))
-    }
-
     /// Replace the whole content of one block and record the edit.
     ///
     /// Used by the view for block-kind conversions (fenced code, Mermaid and
@@ -410,14 +388,35 @@ impl EditorState {
         self.apply(op)
     }
 
-    /// Whether the document has unsaved changes.
-    pub fn is_dirty(&self) -> bool {
-        self.doc.is_dirty()
-    }
-
-    /// Mark the document clean after a successful save.
-    pub fn mark_clean(&mut self) {
-        self.doc.mark_clean();
+    /// Insert an asset embed reference as a new sibling block after the caret.
+    ///
+    /// Mirrors React `insertBlock(pagePath, "![[…]]")`: when the caret block has
+    /// content, the sibling insertion is delegated to
+    /// [`Self::insert_markdown_after_caret`], which inserts a block carrying
+    /// [`asset_reference`] after the caret (same parent, left chain re-linked)
+    /// and moves the caret to the end of the new block. When the caret block is
+    /// empty its content is replaced through [`Self::replace_block_content`]
+    /// instead. Either path is a single undoable history entry and marks the
+    /// document dirty.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PkmError::Internal`] when no caret is placed, or
+    /// [`PkmError::BlockNotFound`] when the caret block is missing.
+    pub fn insert_asset_reference(&mut self, ref_path: &str) -> PkmResult<()> {
+        let reference = asset_reference(ref_path);
+        let caret = self.require_caret()?;
+        let content = self.block_content(caret.block_id)?;
+        if content.is_empty() {
+            self.replace_block_content(caret.block_id, reference.clone())?;
+            self.selection = None;
+            self.caret = Some(Caret {
+                block_id: caret.block_id,
+                byte_offset: reference.len(),
+            });
+            return Ok(());
+        }
+        self.insert_markdown_after_caret(&reference)
     }
 
     /// Toggle collapse state on the current block.

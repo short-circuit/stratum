@@ -545,6 +545,74 @@ fn insert_markdown_after_caret_links_the_chain_and_undoes() {
 }
 
 #[test]
+fn insert_asset_reference_adds_a_sibling_block_and_undoes() {
+    let a = Uuid::new_v4();
+    let b = Uuid::new_v4();
+    let mut second = block(b, "tail");
+    second.left_id = Some(a);
+    let mut state = EditorState::new(doc_with(vec![block(a, "head"), second]));
+    state.set_caret(a, 4).unwrap();
+    let before = state.document().markdown();
+    let reference = crate::assets::asset_reference("assets/pic.png");
+
+    state.insert_asset_reference("assets/pic.png").unwrap();
+    let ordered = state.document().ordered_ids();
+    assert_eq!(ordered.len(), 3);
+    let inserted = ordered[1];
+    assert_eq!(state.document().block(inserted).unwrap().content, reference);
+    assert_eq!(state.document().block(inserted).unwrap().left_id, Some(a));
+    assert_eq!(state.document().block(b).unwrap().left_id, Some(inserted));
+    assert_eq!(state.caret().unwrap().block_id, inserted);
+    assert_eq!(state.caret().unwrap().byte_offset, reference.len());
+    assert_eq!(state.history_depth(), 1);
+    assert!(state.is_dirty());
+
+    // The reference survives the save transform byte-exactly.
+    let body = state.document().body();
+    let canonical = crate::document::canonicalize_body(&body);
+    assert_eq!(canonical, body);
+    assert!(canonical.contains("![[assets/pic.png]]"));
+
+    assert!(state.undo().unwrap());
+    assert_eq!(state.document().markdown(), before);
+}
+
+#[test]
+fn insert_asset_reference_replaces_an_empty_caret_block() {
+    let id = Uuid::new_v4();
+    let mut state = EditorState::new(doc_with(vec![block(id, "")]));
+    state.set_caret(id, 0).unwrap();
+    let reference = crate::assets::asset_reference("assets/doc.pdf");
+
+    state.insert_asset_reference("assets/doc.pdf").unwrap();
+    assert_eq!(state.document().blocks().len(), 1);
+    assert_eq!(state.document().block(id).unwrap().content, reference);
+    assert_eq!(state.caret().unwrap().block_id, id);
+    assert_eq!(state.caret().unwrap().byte_offset, reference.len());
+    assert_eq!(state.history_depth(), 1);
+    assert!(state.is_dirty());
+
+    assert!(state.undo().unwrap());
+    assert_eq!(state.document().block(id).unwrap().content, "");
+}
+
+#[test]
+fn insert_asset_reference_empty_block_round_trips_through_canonicalize() {
+    let id = Uuid::new_v4();
+    let mut state = EditorState::new(doc_with(vec![block(id, "")]));
+    state.set_caret(id, 0).unwrap();
+
+    state.insert_asset_reference("assets/doc.pdf").unwrap();
+
+    // The delegated replace path produces content the save transform keeps
+    // byte-identical.
+    let body = state.document().body();
+    let canonical = crate::document::canonicalize_body(&body);
+    assert_eq!(canonical, body);
+    assert!(canonical.contains("![[assets/doc.pdf]]"));
+}
+
+#[test]
 fn apply_ai_content_covers_every_scope() {
     // ReplacePage
     let id = Uuid::new_v4();

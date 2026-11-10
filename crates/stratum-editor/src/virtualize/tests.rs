@@ -22,6 +22,8 @@ fn row(kind: BlockKind) -> DecoratedRow {
         collapsed: false,
         math: None,
         mermaid: None,
+        asset: None,
+        thumbnail: None,
     }
 }
 
@@ -129,6 +131,44 @@ fn set_height_clamps_to_the_minimum() {
     assert!(layout.set_height(1, 100.0));
     assert_eq!(layout.heights()[1], 100.0);
     assert!(!layout.set_height(5, 10.0));
+}
+
+#[test]
+fn asset_rows_reserve_their_decoded_heights() {
+    use crate::assets::{ASSET_FILE_ROW_HEIGHT, ASSET_IMAGE_ROW_HEIGHT};
+    use crate::document::EditorDocument;
+    use crate::render::{render_page, RenderMode};
+    use pkm_block::Block;
+
+    let blocks = vec![
+        Block::new(Uuid::new_v4(), "![[assets/pic.png]]".to_string()),
+        Block::new(Uuid::new_v4(), "![[assets/doc.pdf]]".to_string()),
+    ];
+    let doc = EditorDocument::from_blocks("pages/x.md", blocks).unwrap();
+    let rows = render_page(&doc, None, RenderMode::StageA, chrono::Utc::now());
+    assert_eq!(rows.len(), 2);
+    assert!(rows[0].asset.is_some());
+    assert!(rows[1].asset.is_some());
+
+    let layout = VirtualLayout::from_rows(&rows);
+    let heights = layout.heights();
+    assert!(
+        heights[0] >= ASSET_IMAGE_ROW_HEIGHT,
+        "image row {} < {ASSET_IMAGE_ROW_HEIGHT}",
+        heights[0]
+    );
+    assert!(
+        heights[1] >= ASSET_FILE_ROW_HEIGHT,
+        "file row {} < {ASSET_FILE_ROW_HEIGHT}",
+        heights[1]
+    );
+    let offsets = layout.offsets();
+    assert!(offsets[1] > offsets[0]);
+    assert!((offsets[1] - heights[0]).abs() < 0.001);
+
+    let window = layout.visible_window(0.0, 600.0, 2);
+    let max_rows = (600.0 / MIN_ROW_HEIGHT).ceil() as usize + 2 * 2 + 2;
+    assert!(window.len() <= max_rows);
 }
 
 #[test]

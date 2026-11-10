@@ -11082,6 +11082,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "gix",
+ "image",
  "latex2mathml",
  "log",
  "pkm-ai",
