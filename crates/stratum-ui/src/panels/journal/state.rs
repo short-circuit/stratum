@@ -107,8 +107,11 @@ impl JournalView {
         (self.view_year, self.view_month)
     }
 
-    /// Scroll offset of the journal container in content pixels.
-    pub(super) fn scroll_offset(&self) -> f32 {
-        self.scroll.offset().y / px(1.0)
+    /// Positive content pixels scrolled down in the journal container.
+    ///
+    /// gpui stores the raw offset as a negative value when scrolled down; this
+    /// accessor flips the sign so callers and tests see content coordinates.
+    pub fn scroll_offset(&self) -> f32 {
+        -(self.scroll.offset().y / px(1.0))
     }
 }

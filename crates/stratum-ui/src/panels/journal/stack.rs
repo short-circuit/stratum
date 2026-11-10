@@ -108,6 +108,14 @@ impl StackPlan {
         self.sections.get(index).map(|section| section.offset)
     }
 
+    /// The stack position of the section for `date`, if it exists.
+    pub fn index_of(&self, date: &str) -> Option<usize> {
+        self.sections
+            .iter()
+            .find(|section| section.date == date)
+            .map(|section| section.index)
+    }
+
     /// Section indices that must be loaded for `scroll_offset`.
     ///
     /// Today is always loaded. Past sections are loaded when their placeholder
@@ -197,6 +205,15 @@ mod tests {
         let indices = plan.load_indices(10_000.0);
         assert_eq!(indices, vec![0, 1]);
         assert!(indices.iter().all(|index| *index < plan.visible()));
+    }
+
+    #[test]
+    fn index_of_resolves_today_stacked_days_and_unknown_dates() {
+        let plan = StackPlan::build(&dates(), "2026-11-10", DEFAULT_VISIBLE_WINDOW);
+        assert_eq!(plan.index_of("2026-11-10"), Some(0));
+        assert_eq!(plan.index_of("2026-11-09"), Some(1));
+        assert_eq!(plan.index_of("2026-11-07"), Some(3));
+        assert_eq!(plan.index_of("2026-11-06"), None);
     }
 
     #[test]

@@ -43,8 +43,9 @@ pub use page::{
 };
 
 pub use fixture::{
-    fixture_blocks, FixtureProvider, FIXTURE_BACKLINK_ANCHOR, FIXTURE_BACKLINK_SOURCE,
-    FIXTURE_HIGHLIGHT_BLOCK, FIXTURE_JOURNAL_DATES, FIXTURE_PAGE, FIXTURE_RECORDING, FIXTURE_TODAY,
+    fixture_blocks, fixture_journal_blocks, FixtureProvider, FIXTURE_BACKLINK_ANCHOR,
+    FIXTURE_BACKLINK_SOURCE, FIXTURE_HIGHLIGHT_BLOCK, FIXTURE_JOURNAL_DATES, FIXTURE_PAGE,
+    FIXTURE_RECORDING, FIXTURE_TODAY,
 };
 
 /// Vault counters shown in the sidebar header.

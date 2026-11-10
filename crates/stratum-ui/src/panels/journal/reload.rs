@@ -128,6 +128,61 @@ impl JournalView {
         }
     }
 
+    /// Scroll the section for `date` into view.
+    ///
+    /// The plan index resolves the target day; an unknown date falls back to
+    /// today, matching the header's default selection.
+    pub(super) fn focus_date(&mut self, date: &str, cx: &mut Context<Self>) {
+        let index = self.plan.index_of(date).unwrap_or(0);
+        self.focus_section(index, cx);
+    }
+
+    /// Request a centred scroll for one section.
+    ///
+    /// Today resets the container to the top. A past day first grows the plan
+    /// and materialises its editor, then records the pending scroll so the next
+    /// frame that has layout bounds can centre it.
+    pub(super) fn focus_section(&mut self, index: usize, cx: &mut Context<Self>) {
+        if index == 0 {
+            self.scroll.set_offset(point(px(0.0), px(0.0)));
+            self.pending_scroll = None;
+            return;
+        }
+        if index >= self.plan.visible() {
+            let delta = index + 1 - self.plan.visible();
+            self.plan.grow(delta);
+        }
+        self.sync_stack(self.plan.offset_of(index).unwrap_or(0.0), cx);
+        self.pending_scroll = Some(index);
+    }
+
+    /// Apply a pending section scroll once layout bounds are available.
+    ///
+    /// Returns `false` while the target section has no layout bounds yet or the
+    /// viewport has not been measured; the caller asks for another frame so the
+    /// scroll lands as soon as the section is laid out. gpui clamps the offset
+    /// to the content bounds during prepaint, so no manual clamping is needed.
+    pub(super) fn apply_pending_scroll(&mut self) -> bool {
+        let Some(index) = self.pending_scroll else {
+            return true;
+        };
+        let Some(item) = self.scroll.bounds_for_item(index) else {
+            return false;
+        };
+        let viewport = self.scroll.bounds();
+        if viewport.size.height <= px(0.0) {
+            return false;
+        }
+        let viewport_top = viewport.top() / px(1.0);
+        let viewport_height = viewport.size.height / px(1.0);
+        let item_top = item.top() / px(1.0);
+        let item_height = item.size.height / px(1.0);
+        let target = viewport_top + (viewport_height - item_height) / 2.0 - item_top;
+        self.scroll.set_offset(point(px(0.0), px(target)));
+        self.pending_scroll = None;
+        true
+    }
+
     /// Copy a child editor's pending navigation into the journal view.
     pub(super) fn sync_child_navigation(&mut self, cx: &mut Context<Self>) {
         if self.pending_navigation.is_some() {

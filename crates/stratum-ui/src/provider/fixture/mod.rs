@@ -31,7 +31,7 @@ mod page;
 #[cfg(test)]
 mod tests;
 
-pub use blocks::fixture_blocks;
+pub use blocks::{fixture_blocks, fixture_journal_blocks};
 
 /// The fixture's notion of today, matching the capture harness.
 pub const FIXTURE_TODAY: &str = "2026-11-10";
@@ -89,7 +89,7 @@ impl FixtureProvider {
         pages.insert(FIXTURE_PAGE.to_string(), fixture_blocks(FIXTURE_PAGE, 12));
         for date in FIXTURE_JOURNAL_DATES {
             let path = journal_path(date);
-            pages.insert(path.clone(), fixture_blocks(&path, 5));
+            pages.insert(path.clone(), fixture_journal_blocks(date));
         }
         let raw = vec![
             RecentPage {
@@ -166,7 +166,7 @@ impl FixtureProvider {
             .map_err(|_| "fixture provider lock poisoned".to_string())?;
         pages
             .entry(path.clone())
-            .or_insert_with(|| fixture_blocks(&path, 5));
+            .or_insert_with(|| fixture_journal_blocks(date));
         Ok(path)
     }
 

@@ -28,6 +28,11 @@ fn fixture_journal_dates_and_today_are_fixed() {
         .load_blocks(&journal_path(FIXTURE_TODAY))
         .expect("today page exists");
     assert_eq!(blocks.len(), 5);
+    assert!(blocks[0].content.contains(FIXTURE_TODAY));
+    let past = provider
+        .load_blocks(&journal_path("2026-11-09"))
+        .expect("past page exists");
+    assert_ne!(blocks[0].content, past[0].content);
     assert_eq!(
         provider.create_journal_day("2026-11-06"),
         Ok(journal_path("2026-11-06"))

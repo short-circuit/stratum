@@ -126,6 +126,7 @@ pub struct JournalView {
     loading: bool,
     error: Option<String>,
     scroll: ScrollHandle,
+    pending_scroll: Option<usize>,
     pending_navigation: Option<String>,
 }
 
@@ -166,7 +167,7 @@ impl JournalView {
             editor.set_auto_height(true, cx);
             editor
         }));
-        let voice_path = journal_path(&today);
+        let voice_path = journal_path(&target_date);
         let voice_provider = provider.clone();
         let voice = cx.new(move |cx| VoiceCapture::new(voice_path, voice_provider, cx));
         let (view_year, view_month) = month_of(&target_date).unwrap_or_else(|| {
@@ -189,10 +190,13 @@ impl JournalView {
             loading: false,
             error,
             scroll: ScrollHandle::new(),
+            pending_scroll: None,
             pending_navigation: None,
         };
         view.rebuild_sections(HashMap::new());
         view.sync_stack(0.0, cx);
+        let target = view.target_date.clone();
+        view.focus_date(&target, cx);
         view
     }
 }
@@ -206,6 +210,11 @@ impl Render for JournalView {
             self.reload_today_editor(cx);
         }
         self.sync_child_navigation(cx);
+        // A pending scroll needs layout bounds from the previous frame; ask for
+        // one more frame while they are still unknown.
+        if !self.apply_pending_scroll() {
+            cx.notify();
+        }
         let offset = self.scroll_offset();
         self.sync_stack(offset, cx);
 

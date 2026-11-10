@@ -44,10 +44,17 @@ impl JournalView {
         }
         self.calendar_open = false;
         self.journal_dates = self.provider.journal_dates();
-        self.plan = StackPlan::build(&self.journal_dates, &self.today, DEFAULT_VISIBLE_WINDOW);
+        let mut plan = StackPlan::build(&self.journal_dates, &self.today, DEFAULT_VISIBLE_WINDOW);
+        let index = plan.index_of(date).unwrap_or(0);
+        if index >= plan.visible() {
+            plan.grow(index + 1 - plan.visible());
+        }
+        self.plan = plan;
         let existing = self.take_section_editors();
         self.rebuild_sections(existing);
-        self.sync_stack(0.0, cx);
+        self.voice
+            .update(cx, |voice, _| voice.set_page_path(journal_path(date)));
+        self.focus_section(index, cx);
         cx.notify();
     }
 
