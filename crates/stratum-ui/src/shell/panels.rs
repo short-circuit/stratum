@@ -1,4 +1,5 @@
-//! Search and query panel lifecycle for the shell.
+//! Search, query, Ask Notes, Templates and Flashcards panel lifecycle for the
+//! shell.
 //!
 //! Creating the panel entities, applying deterministic start states and
 //! draining their navigation/toast requests live here so [`super::mod`] stays
@@ -11,22 +12,30 @@ use gpui_kit::prelude::*;
 use gpui_kit::*;
 
 use super::Shell;
+use crate::panels::ask::{AskStart, AskView};
+use crate::panels::flashcards::{FlashcardsStart, FlashcardsView};
 use crate::panels::query::{QueryStart, QueryTab, QueryView};
 use crate::panels::search::{SearchStart, SearchView};
+use crate::panels::templates::TemplatesView;
 use crate::panels::{PanelRequest, PanelRequests};
 use crate::router::Panel;
 
-/// Deterministic start states for the search and query panels.
+/// Deterministic start states for the native panels.
 ///
-/// The capture harness fills this from `STRATUM_SEARCH`, `STRATUM_QUERY*` and
-/// tag navigation. The shell consumes the matching start when it creates the
-/// panel entity, so a later navigation falls back to the default state.
+/// The capture harness fills this from `STRATUM_SEARCH`, `STRATUM_QUERY*`,
+/// `STRATUM_ASK` and `STRATUM_FLASHCARD_REVEAL`, plus tag navigation. The shell
+/// consumes the matching start when it creates the panel entity, so a later
+/// navigation falls back to the default state.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct PanelStarts {
     /// Search panel start state.
     pub search: SearchStart,
     /// Query panel start state.
     pub query: QueryStart,
+    /// Ask Notes panel start state.
+    pub ask: AskStart,
+    /// Flashcards panel start state.
+    pub flashcards: FlashcardsStart,
 }
 
 impl PanelStarts {
@@ -36,25 +45,25 @@ impl PanelStarts {
             search: SearchStart {
                 query: Some(query.into()),
             },
-            query: QueryStart::default(),
+            ..Self::default()
         }
     }
 
     /// Build a start state that opens a query tab and optionally runs it.
     pub fn query(tab: QueryTab, run: bool) -> Self {
         Self {
-            search: SearchStart::default(),
             query: QueryStart {
                 datalog: None,
                 tab: Some(tab),
                 run,
             },
+            ..Self::default()
         }
     }
 }
 
 impl Shell {
-    /// Set the search/query start states and recreate their entities.
+    /// Set the panel start states and recreate their entities.
     ///
     /// Called by the capture harness before the first frame. Recreating the
     /// entities makes a later call take effect deterministically.
@@ -62,6 +71,8 @@ impl Shell {
         self.panel_starts = starts;
         self.search = None;
         self.query = None;
+        self.ask = None;
+        self.flashcards = None;
     }
 
     /// Set the search panel's start query (used by tag navigation).
@@ -80,11 +91,29 @@ impl Shell {
         self.query.as_ref()
     }
 
+    /// The live Ask Notes entity, if the panel has created one.
+    pub fn ask_view(&self) -> Option<&Entity<AskView>> {
+        self.ask.as_ref()
+    }
+
+    /// The live Templates entity, if the panel has created one.
+    pub fn templates_view(&self) -> Option<&Entity<TemplatesView>> {
+        self.templates.as_ref()
+    }
+
+    /// The live Flashcards entity, if the panel has created one.
+    pub fn flashcards_view(&self) -> Option<&Entity<FlashcardsView>> {
+        self.flashcards.as_ref()
+    }
+
     /// Create the active panel entity and drain its pending requests.
     pub(super) fn sync_panels(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         match self.active {
             Panel::Search => self.sync_search(window, cx),
             Panel::Query => self.sync_query(window, cx),
+            Panel::AskNotes => self.sync_ask(window, cx),
+            Panel::Templates => self.sync_templates(window, cx),
+            Panel::Flashcards => self.sync_flashcards(cx),
             _ => {}
         }
     }
@@ -113,6 +142,44 @@ impl Shell {
             return;
         };
         self.drain_panel(&query, cx);
+    }
+
+    /// Create or reuse the Ask Notes entity, then drain navigation and toasts.
+    fn sync_ask(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.ask.is_none() {
+            let provider = Arc::clone(&self.provider);
+            let start = std::mem::take(&mut self.panel_starts.ask);
+            self.ask = Some(cx.new(move |cx| AskView::new(provider, start, window, cx)));
+        }
+        let Some(ask) = self.ask.clone() else {
+            return;
+        };
+        self.drain_panel(&ask, cx);
+    }
+
+    /// Create or reuse the Templates entity, then drain navigation and toasts.
+    fn sync_templates(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.templates.is_none() {
+            let provider = Arc::clone(&self.provider);
+            self.templates = Some(cx.new(move |cx| TemplatesView::new(provider, window, cx)));
+        }
+        let Some(templates) = self.templates.clone() else {
+            return;
+        };
+        self.drain_panel(&templates, cx);
+    }
+
+    /// Create or reuse the Flashcards entity, then drain navigation and toasts.
+    fn sync_flashcards(&mut self, cx: &mut Context<Self>) {
+        if self.flashcards.is_none() {
+            let provider = Arc::clone(&self.provider);
+            let start = std::mem::take(&mut self.panel_starts.flashcards);
+            self.flashcards = Some(cx.new(move |cx| FlashcardsView::new(provider, start, cx)));
+        }
+        let Some(flashcards) = self.flashcards.clone() else {
+            return;
+        };
+        self.drain_panel(&flashcards, cx);
     }
 
     /// Drain a hosted panel's pending navigation, block-open and toast

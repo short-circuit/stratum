@@ -12,17 +12,23 @@ use gpui_kit::prelude::*;
 use gpui_kit::*;
 use stratum_i18n::t_global;
 
+pub mod ask;
 pub mod editor;
+pub mod flashcards;
 pub mod journal;
 pub mod page;
 pub mod query;
 pub mod search;
+pub mod templates;
 pub mod voice;
 
+use crate::panels::ask::AskView;
+use crate::panels::flashcards::FlashcardsView;
 use crate::panels::journal::JournalView;
 use crate::panels::page::PageView;
 use crate::panels::query::QueryView;
 use crate::panels::search::SearchView;
+use crate::panels::templates::TemplatesView;
 use crate::router::Panel;
 use crate::shell::Shell;
 
@@ -69,13 +75,20 @@ pub trait PanelRequests {
 /// Whether a panel type renders its own header instead of the shell chrome
 /// header.
 ///
-/// Page, Journal, Search and Query own the full content column (title and
-/// controls), matching the shipped routed panels. The shell additionally gates
-/// on the live entity existing, so the placeholder fallback keeps a title.
+/// Page, Journal, Search, Query, Ask Notes, Templates and Flashcards own the
+/// full content column (title and controls), matching the shipped routed
+/// panels. The shell additionally gates on the live entity existing, so the
+/// placeholder fallback keeps a title.
 pub fn panel_owns_header(panel: Panel) -> bool {
     matches!(
         panel,
-        Panel::Page | Panel::Journal | Panel::Search | Panel::Query
+        Panel::Page
+            | Panel::Journal
+            | Panel::Search
+            | Panel::Query
+            | Panel::AskNotes
+            | Panel::Templates
+            | Panel::Flashcards
     )
 }
 
@@ -98,38 +111,72 @@ pub fn panel_icon(panel: Panel) -> IconName {
     }
 }
 
+/// Live panel entities owned by the shell.
+///
+/// Bundling them keeps [`panel_view`]'s signature small. Every field is `None`
+/// in the window-free shell tests, which keeps the panels on their shipped
+/// stubs.
+pub struct PanelEntities {
+    /// Page editor entity.
+    pub page: Option<Entity<PageView>>,
+    /// Journal entity.
+    pub journal: Option<Entity<JournalView>>,
+    /// Search entity.
+    pub search: Option<Entity<SearchView>>,
+    /// Query entity.
+    pub query: Option<Entity<QueryView>>,
+    /// Ask Notes entity.
+    pub ask: Option<Entity<AskView>>,
+    /// Templates entity.
+    pub templates: Option<Entity<TemplatesView>>,
+    /// Flashcards entity.
+    pub flashcards: Option<Entity<FlashcardsView>>,
+}
+
 /// Render the active panel body.
 ///
-/// `page`, `journal`, `search` and `query` are the live entities for the open
-/// panel. All are `None` in the window-free shell tests, which keeps the panels
-/// on their shipped stubs.
+/// `page_path` is the page route parameter; `entities` carries the live panel
+/// entities. All are `None` in the window-free shell tests, which keeps the
+/// panels on their shipped stubs.
 pub fn panel_view(
     panel: Panel,
     page_path: Option<&str>,
-    page: Option<Entity<PageView>>,
-    journal: Option<Entity<JournalView>>,
-    search: Option<Entity<SearchView>>,
-    query: Option<Entity<QueryView>>,
+    entities: PanelEntities,
     cx: &mut Context<Shell>,
 ) -> impl IntoElement {
     if panel == Panel::Page {
-        if let Some(page) = page {
+        if let Some(page) = entities.page {
             return div().size_full().child(page);
         }
     }
     if panel == Panel::Journal {
-        if let Some(journal) = journal {
+        if let Some(journal) = entities.journal {
             return div().size_full().child(journal);
         }
     }
     if panel == Panel::Search {
-        if let Some(search) = search {
+        if let Some(search) = entities.search {
             return div().size_full().child(search);
         }
     }
     if panel == Panel::Query {
-        if let Some(query) = query {
+        if let Some(query) = entities.query {
             return div().size_full().child(query);
+        }
+    }
+    if panel == Panel::AskNotes {
+        if let Some(ask) = entities.ask {
+            return div().size_full().child(ask);
+        }
+    }
+    if panel == Panel::Templates {
+        if let Some(templates) = entities.templates {
+            return div().size_full().child(templates);
+        }
+    }
+    if panel == Panel::Flashcards {
+        if let Some(flashcards) = entities.flashcards {
+            return div().size_full().child(flashcards);
         }
     }
     let theme = cx.theme();

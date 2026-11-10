@@ -73,6 +73,7 @@ pub struct FixtureProvider {
     pages: Mutex<HashMap<String, Vec<BlockDto>>>,
     assets: Mutex<HashMap<String, AttachmentRow>>,
     panels: Mutex<PanelState>,
+    spoken: Mutex<Vec<String>>,
 }
 
 impl FixtureProvider {
@@ -154,7 +155,16 @@ impl FixtureProvider {
             pages: Mutex::new(pages),
             assets: Mutex::new(HashMap::new()),
             panels: Mutex::new(PanelState::new()),
+            spoken: Mutex::new(Vec::new()),
         }
+    }
+
+    /// Texts recorded by [`ShellData::speak`], in call order.
+    pub fn spoken_texts(&self) -> Vec<String> {
+        self.spoken
+            .lock()
+            .map(|texts| texts.clone())
+            .unwrap_or_default()
     }
 
     /// Insert one imported attachment row and return it.
@@ -241,6 +251,14 @@ impl ShellData for FixtureProvider {
 
     fn export_html(&self) -> Result<u64, String> {
         Ok(self.export_pages)
+    }
+
+    fn speak(&self, text: String) -> Result<(), String> {
+        self.spoken
+            .lock()
+            .map_err(|_| "fixture provider lock poisoned".to_string())?
+            .push(text);
+        Ok(())
     }
 
     fn load_blocks(&self, path: &str) -> Option<Vec<BlockDto>> {

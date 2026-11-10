@@ -66,6 +66,8 @@ pub struct TemplateRow {
     pub path: String,
     /// Optional description.
     pub description: Option<String>,
+    /// Raw template content (used to derive the placeholder chips).
+    pub content: String,
     /// Variables referenced by the template (`{{name}}` without braces).
     pub variables: Vec<String>,
 }

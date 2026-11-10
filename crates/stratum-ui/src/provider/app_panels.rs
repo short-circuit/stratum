@@ -7,6 +7,7 @@
 
 use chrono::Utc;
 use stratum_app::reminders::due::parse_due;
+use stratum_app::template::template_variables;
 
 use super::panels::{
     AskAnswer, AskSource, FlashcardRow, InstalledThemeRow, PanelData, PluginCatalogSnapshot,
@@ -14,24 +15,6 @@ use super::panels::{
     ThemeCatalogSnapshot, ThemeValuesRow, PANEL_DATA_NOT_AVAILABLE,
 };
 use super::AppProvider;
-
-/// Extract `{{variable}}` names from template content, in first-seen order.
-fn template_variables(content: &str) -> Vec<String> {
-    let mut variables = Vec::new();
-    let mut rest = content;
-    while let Some(start) = rest.find("{{") {
-        let after = &rest[start + 2..];
-        let Some(end) = after.find("}}") else {
-            break;
-        };
-        let name = after[..end].trim();
-        if !name.is_empty() && !variables.iter().any(|existing| existing == name) {
-            variables.push(name.to_string());
-        }
-        rest = &after[end + 2..];
-    }
-    variables
-}
 
 /// Map a service search result into a panel hit.
 fn search_hit(result: stratum_app::search::SearchResultDto) -> SearchHit {
@@ -143,6 +126,7 @@ impl PanelData for AppProvider {
                 name: template.name,
                 path: template.path,
                 description: template.description,
+                content: template.content,
             })
             .collect())
     }

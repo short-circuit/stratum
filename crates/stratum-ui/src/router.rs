@@ -355,6 +355,11 @@ pub fn parse_path(path: &str) -> Option<Panel> {
     if path == "/page" {
         return Some(Panel::Page);
     }
+    // The shipped React app registers Ask Notes at `/ask`; the native router
+    // also accepts the `/ask-notes` spelling used by the navigation table.
+    if path == "/ask" {
+        return Some(Panel::AskNotes);
+    }
     if let Some(rest) = path.strip_prefix("/page/") {
         let _ = percent_decode(rest);
         return Some(Panel::Page);

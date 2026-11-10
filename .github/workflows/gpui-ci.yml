@@ -135,7 +135,7 @@ jobs:
       - name: Capture 10k editor performance
         run: ./scripts/capture-gpui-editor-perf.sh
 
-      - name: Capture journal, page, search and query panels
+      - name: Capture journal, page, search, query, ask, templates and flashcards panels
         run: ./scripts/capture-gpui-panels.sh
 
       - name: Upload screenshot artifact
@@ -187,6 +187,31 @@ jobs:
             dist/gpui-query.png
             dist/gpui-query-results.png
             dist/gpui-query-datalog.png
+          if-no-files-found: error
+
+      - name: Upload ask notes screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-ask-screenshots
+          path: |
+            dist/gpui-ask.png
+          if-no-files-found: error
+
+      - name: Upload templates screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-templates-screenshots
+          path: |
+            dist/gpui-templates.png
+          if-no-files-found: error
+
+      - name: Upload flashcards screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-flashcards-screenshots
+          path: |
+            dist/gpui-flashcards.png
+            dist/gpui-flashcards-answer.png
           if-no-files-found: error
 
       - name: Upload editor performance report

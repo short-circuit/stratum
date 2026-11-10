@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Capture screenshots of the native Stratum journal, page, search and query
-# surfaces.
+# Capture screenshots of the native Stratum journal, page, search, query, Ask
+# Notes, Templates and Flashcards surfaces.
 #
 # The shell is started with STRATUM_FIXTURE=1 so the capture is deterministic
 # and needs no vault. When no DISPLAY is set the script starts a private Xvfb
 # screen, waits for the window to map, and captures the root window with
-# ImageMagick. Fourteen states are captured:
+# ImageMagick. Eighteen states are captured:
 #
 #   1. the journal route in edit mode
 #   2. the journal route with the calendar popup expanded (STRATUM_CALENDAR=1)
@@ -27,6 +27,14 @@
 #      (STRATUM_ROUTE=/query STRATUM_QUERY_RUN=1)
 #  14. the query route on the raw Datalog tab
 #      (STRATUM_ROUTE=/query STRATUM_QUERY_TAB=datalog)
+#  15. the Ask Notes route with a question answered
+#      (STRATUM_ROUTE=/ask STRATUM_ASK="what did I decide about the project?")
+#  16. the Templates route with the fixture templates
+#      (STRATUM_ROUTE=/templates)
+#  17. the Flashcards route on the first question
+#      (STRATUM_ROUTE=/flashcards)
+#  18. the Flashcards route with the first answer revealed
+#      (STRATUM_ROUTE=/flashcards STRATUM_FLASHCARD_REVEAL=1)
 #
 # The journal PNGs are written to dist/gpui-journal.png,
 # dist/gpui-journal-calendar.png and dist/gpui-journal-read.png; the page PNGs to
@@ -34,9 +42,11 @@
 # dist/gpui-page-cards.png, dist/gpui-page-highlight.png and
 # dist/gpui-page-snippet.png; the search PNGs to dist/gpui-search.png and
 # dist/gpui-search-tag.png; the query PNGs to dist/gpui-query.png,
-# dist/gpui-query-results.png and dist/gpui-query-datalog.png. Pass a path as the
-# first argument or set OUTPUT to override the journal edit-mode capture (the
-# other captures derive from its directory).
+# dist/gpui-query-results.png and dist/gpui-query-datalog.png; the Ask Notes PNG
+# to dist/gpui-ask.png; the Templates PNG to dist/gpui-templates.png; the
+# Flashcards PNGs to dist/gpui-flashcards.png and dist/gpui-flashcards-answer.png.
+# Pass a path as the first argument or set OUTPUT to override the journal
+# edit-mode capture (the other captures derive from its directory).
 #
 # Requirements: Xvfb, xdotool and ImageMagick's `import` (the CI job installs
 # them). Run from any directory; the script locates the workspace itself.
@@ -58,6 +68,10 @@ SEARCH_TAG_OUT="$OUT_DIR/gpui-search-tag.png"
 QUERY_OUT="$OUT_DIR/gpui-query.png"
 QUERY_RESULTS_OUT="$OUT_DIR/gpui-query-results.png"
 QUERY_DATALOG_OUT="$OUT_DIR/gpui-query-datalog.png"
+ASK_OUT="$OUT_DIR/gpui-ask.png"
+TEMPLATES_OUT="$OUT_DIR/gpui-templates.png"
+FLASHCARDS_OUT="$OUT_DIR/gpui-flashcards.png"
+FLASHCARDS_ANSWER_OUT="$OUT_DIR/gpui-flashcards-answer.png"
 # Deterministic block on pages/fixture.md (provider::FIXTURE_HIGHLIGHT_BLOCK).
 FIXTURE_HIGHLIGHT="413cf12c-969f-54ef-bf75-40ffd89e8618"
 LOG="${CAPTURE_LOG:-$OUT_DIR/gpui-journal.log}"
@@ -116,13 +130,14 @@ if [[ -z "${DISPLAY:-}" ]]; then
 fi
 
 # Start the shell, wait for its window, normalise its geometry and capture it.
-# $1 = extra environment assignments (space separated, empty for the default).
+# $1 = output path; the remaining arguments are environment assignments passed
+# verbatim to `env` (quoting keeps values with spaces intact).
 capture_state() {
-    local extra_env="$1"
-    local out="$2"
+    local out="$1"
+    shift
     local window_id=""
 
-    env $extra_env "$CARGO_TARGET_DIR/debug/stratum" >"$LOG" 2>&1 &
+    env "$@" "$CARGO_TARGET_DIR/debug/stratum" >"$LOG" 2>&1 &
     APP_PID=$!
 
     # gpui maps the window asynchronously; poll instead of a fixed sleep so fast
@@ -168,42 +183,53 @@ capture_state() {
     echo "captured $out (${WIDTH}x${HEIGHT})"
 }
 
-capture_state "STRATUM_ROUTE=/journal" "$OUT"
-capture_state "STRATUM_ROUTE=/journal STRATUM_CALENDAR=1" "$CALENDAR_OUT"
+capture_state "$OUT" STRATUM_ROUTE=/journal
+capture_state "$CALENDAR_OUT" STRATUM_ROUTE=/journal STRATUM_CALENDAR=1
 capture_state \
-    "STRATUM_ROUTE=/journal STRATUM_JOURNAL_DATE=2026-11-07 STRATUM_READ_MODE=1" \
-    "$READ_OUT"
+    "$READ_OUT" \
+    STRATUM_ROUTE=/journal STRATUM_JOURNAL_DATE=2026-11-07 STRATUM_READ_MODE=1
 
 capture_state \
-    "STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md" \
-    "$PAGE_OUT"
+    "$PAGE_OUT" \
+    STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md
 capture_state \
-    "STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md STRATUM_MENU=note" \
-    "$PAGE_MENU_OUT"
+    "$PAGE_MENU_OUT" \
+    STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md STRATUM_MENU=note
 capture_state \
-    "STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md STRATUM_READ_MODE=1" \
-    "$PAGE_READ_OUT"
+    "$PAGE_READ_OUT" \
+    STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md STRATUM_READ_MODE=1
 capture_state \
-    "STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md STRATUM_CARDS=open" \
-    "$PAGE_CARDS_OUT"
+    "$PAGE_CARDS_OUT" \
+    STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md STRATUM_CARDS=open
 capture_state \
-    "STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md STRATUM_HIGHLIGHT=$FIXTURE_HIGHLIGHT" \
-    "$PAGE_HIGHLIGHT_OUT"
+    "$PAGE_HIGHLIGHT_OUT" \
+    STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md "STRATUM_HIGHLIGHT=$FIXTURE_HIGHLIGHT"
 capture_state \
-    "STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md STRATUM_CARDS=open STRATUM_SNIPPET=1" \
-    "$PAGE_SNIPPET_OUT"
+    "$PAGE_SNIPPET_OUT" \
+    STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md STRATUM_CARDS=open STRATUM_SNIPPET=1
 
 capture_state \
-    "STRATUM_ROUTE=/search STRATUM_SEARCH=todo" \
-    "$SEARCH_OUT"
+    "$SEARCH_OUT" \
+    STRATUM_ROUTE=/search STRATUM_SEARCH=todo
 capture_state \
-    "STRATUM_ROUTE=/search STRATUM_SEARCH=#project" \
-    "$SEARCH_TAG_OUT"
+    "$SEARCH_TAG_OUT" \
+    STRATUM_ROUTE=/search STRATUM_SEARCH=#project
 
-capture_state "STRATUM_ROUTE=/query" "$QUERY_OUT"
+capture_state "$QUERY_OUT" STRATUM_ROUTE=/query
 capture_state \
-    "STRATUM_ROUTE=/query STRATUM_QUERY_RUN=1" \
-    "$QUERY_RESULTS_OUT"
+    "$QUERY_RESULTS_OUT" \
+    STRATUM_ROUTE=/query STRATUM_QUERY_RUN=1
 capture_state \
-    "STRATUM_ROUTE=/query STRATUM_QUERY_TAB=datalog" \
-    "$QUERY_DATALOG_OUT"
+    "$QUERY_DATALOG_OUT" \
+    STRATUM_ROUTE=/query STRATUM_QUERY_TAB=datalog
+
+capture_state \
+    "$ASK_OUT" \
+    STRATUM_ROUTE=/ask STRATUM_ASK="what did I decide about the project?"
+
+capture_state "$TEMPLATES_OUT" STRATUM_ROUTE=/templates
+
+capture_state "$FLASHCARDS_OUT" STRATUM_ROUTE=/flashcards
+capture_state \
+    "$FLASHCARDS_ANSWER_OUT" \
+    STRATUM_ROUTE=/flashcards STRATUM_FLASHCARD_REVEAL=1

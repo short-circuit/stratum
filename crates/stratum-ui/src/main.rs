@@ -20,6 +20,8 @@
 //! - `STRATUM_QUERY=<datalog>` prefills the query panel's Datalog editor.
 //! - `STRATUM_QUERY_TAB=builder|datalog` selects the query panel tab.
 //! - `STRATUM_QUERY_RUN=1` runs the query after construction.
+//! - `STRATUM_ASK=<question>` asks the question on the Ask Notes panel.
+//! - `STRATUM_FLASHCARD_REVEAL=1` reveals the first flashcard's answer.
 //!
 //! Shortcuts are installed from the shared [`stratum_ui::router::SHORTCUTS`]
 //! table, with `Modifier::Ctrl` mapped to GPUI's `secondary` modifier.
@@ -29,6 +31,8 @@ use std::sync::Arc;
 
 use gpui_kit::*;
 use stratum_i18n::{set_locale, Locale};
+use stratum_ui::panels::ask::AskStart;
+use stratum_ui::panels::flashcards::FlashcardsStart;
 use stratum_ui::panels::query::{QueryStart, QueryTab};
 use stratum_ui::panels::search::SearchStart;
 use stratum_ui::provider::provider_from_env;
@@ -106,13 +110,29 @@ fn apply_start_state(shell: &mut Shell) {
         }
     });
     let query_run = env_flag("STRATUM_QUERY_RUN");
-    if search.is_some() || query_datalog.is_some() || query_tab.is_some() || query_run {
+    let ask_question = std::env::var("STRATUM_ASK")
+        .ok()
+        .filter(|value| !value.is_empty());
+    let flashcard_reveal = env_flag("STRATUM_FLASHCARD_REVEAL");
+    if search.is_some()
+        || query_datalog.is_some()
+        || query_tab.is_some()
+        || query_run
+        || ask_question.is_some()
+        || flashcard_reveal
+    {
         shell.set_panel_start(PanelStarts {
             search: SearchStart { query: search },
             query: QueryStart {
                 datalog: query_datalog,
                 tab: query_tab,
                 run: query_run,
+            },
+            ask: AskStart {
+                question: ask_question,
+            },
+            flashcards: FlashcardsStart {
+                reveal: flashcard_reveal,
             },
         });
     }

@@ -53,4 +53,6 @@ pub mod vault;
 pub mod whiteboard;
 
 pub use events::{EventSink, NoopSink, ProgressEventPayload, ReindexResult};
+pub use flashcards::{is_correct, rating_quality, FlashcardRating};
 pub use state::{ActiveRecording, DictationSession, IndexingGuard, StratumService, VaultState};
+pub use template::template_variables;

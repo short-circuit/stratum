@@ -45,6 +45,48 @@ pub struct FlashcardDto {
     pub next_review: String,
 }
 
+/// The four SM-2 self-assessment buttons the flashcard panel offers.
+///
+/// The ratings map onto the shipped `RATINGS` table in
+/// `src/components/FlashcardsPanel/FlashcardsPanel.shared.tsx`; the numeric
+/// qualities are the SM-2 grades the backend persists.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FlashcardRating {
+    /// Complete blackout — quality 0.
+    Blackout,
+    /// Hard recall — quality 2.
+    Hard,
+    /// Correct recall — quality 3.
+    Good,
+    /// Easy recall — quality 5.
+    Easy,
+}
+
+impl FlashcardRating {
+    /// Every rating in the shipped button order.
+    pub const ALL: [FlashcardRating; 4] = [
+        FlashcardRating::Blackout,
+        FlashcardRating::Hard,
+        FlashcardRating::Good,
+        FlashcardRating::Easy,
+    ];
+}
+
+/// The SM-2 quality grade for a rating button (0/2/3/5).
+pub fn rating_quality(rating: FlashcardRating) -> u8 {
+    match rating {
+        FlashcardRating::Blackout => 0,
+        FlashcardRating::Hard => 2,
+        FlashcardRating::Good => 3,
+        FlashcardRating::Easy => 5,
+    }
+}
+
+/// Whether an SM-2 quality grade counts as a correct response (>= 3).
+pub fn is_correct(quality: u8) -> bool {
+    quality >= 3
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ReviewResult {
@@ -279,4 +321,29 @@ fn parse_cards_from_markdown(content: &str, page_path: &str) -> Vec<FlashcardDto
     }
 
     cards
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rating_qualities_match_the_shipped_table() {
+        assert_eq!(rating_quality(FlashcardRating::Blackout), 0);
+        assert_eq!(rating_quality(FlashcardRating::Hard), 2);
+        assert_eq!(rating_quality(FlashcardRating::Good), 3);
+        assert_eq!(rating_quality(FlashcardRating::Easy), 5);
+        assert_eq!(FlashcardRating::ALL.len(), 4);
+    }
+
+    #[test]
+    fn only_good_and_easy_count_as_correct() {
+        assert!(!is_correct(rating_quality(FlashcardRating::Blackout)));
+        assert!(!is_correct(rating_quality(FlashcardRating::Hard)));
+        assert!(is_correct(rating_quality(FlashcardRating::Good)));
+        assert!(is_correct(rating_quality(FlashcardRating::Easy)));
+        assert!(!is_correct(2));
+        assert!(is_correct(3));
+        assert!(is_correct(5));
+    }
 }

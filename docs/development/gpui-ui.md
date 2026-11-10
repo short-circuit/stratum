@@ -84,7 +84,7 @@ logic: data comes from an `AppProvider` implementation.
 | `assets` | `StratumAssets` (icons + fonts), `register_fonts` |
 | `provider` | `ShellData`, `ShellSnapshot`, `FixtureProvider`, `provider_from_env`, asset seam (`provider/assets.rs`), journal seam (`provider/journal.rs`), page seam (`provider/page.rs`), voice seam (`provider/voice.rs`) and the panel data seam (`provider/panels.rs`, `provider/app_panels.rs`, `provider/fixture/panels`) |
 | `shell` | header, sidebar, footer, error bar, toaster, journal/page view wiring (`shell/page.rs`), search/query panel wiring (`shell/panels.rs`) and start-state setters |
-| `panels` | panel body rendering and icon mapping; `panels/journal` (entity, state, navigation, reload, calendar/stack/read-mode surface), `panels/page` (entity, header, Note menu, move/delete dialogs, backlinks, suggestions, actions), `panels/search` (model, entity, result rows), `panels/query` (model, entity, builder rows, toolbar, dialogs, saved list, results) and `panels/voice` (capture stage machine and entity) |
+| `panels` | panel body rendering and icon mapping; `panels/journal` (entity, state, navigation, reload, calendar/stack/read-mode surface), `panels/page` (entity, header, Note menu, move/delete dialogs, backlinks, suggestions, actions), `panels/search` (model, entity, result rows), `panels/query` (model, entity, builder rows, toolbar, dialogs, saved list, results), `panels/ask` (entity, answer card), `panels/templates` (entity, variable model, cards), `panels/flashcards` (session model, entity) and `panels/voice` (capture stage machine and entity) |
 
 The provider seam is the only place the shell touches the service layer. The
 real provider drives `stratum_app::StratumService`; `FixtureProvider` returns a
@@ -174,6 +174,70 @@ editor, `STRATUM_QUERY_TAB=builder|datalog` selects the tab and
 `dist/gpui-query.png` (builder), `dist/gpui-query-results.png` (run) and
 `dist/gpui-query-datalog.png` (raw tab).
 
+### Ask Notes
+
+`panels/ask` ports the shipped desktop `AskNotesPanel`. `mod.rs` renders the
+title (`ask_notes.ask_your_notes`), the caption
+(`ask_notes.get_answers_grounded_in_your_vault_with_cited_sources`), the
+multi-line question field, Enter submission, the `ask_notes.ask` action and the
+`ask_notes.clear` reset; `answer.rs` renders the searching row
+(`ask_notes.searching_your_notes`), provider and read-aloud failures, the answer
+card with its read-aloud control (`editor.read_aloud` / `ask_notes.playing`), the
+`ask_notes.sources` citation rows (path, snippet, two-decimal score) and the
+`ask_notes.no_matching_notes_found_the_answer_is_based_on_general_knowl` caption
+when the answer had no sources. Citations are informational in the shipped UI, so
+the panel never records a pending navigation.
+
+Provider calls stay on `PanelData`: `ask_notes(question)` for the query and
+`ShellData::speak(text)` for read-aloud (the same playback path the editor uses).
+The fixture answers questions containing "decide" with two cited sources and
+returns the no-sources answer otherwise. The start flag
+`STRATUM_ASK=<question>` submits the question on construction. Capture:
+`dist/gpui-ask.png` (the two-source fixture answer).
+
+### Templates
+
+`panels/templates` ports the shipped desktop `TemplatesPanel`, extended with the
+variable-placeholder chips and the starter-template installer. `mod.rs` renders
+the title, the target-page field (`templates.target_page_path`), the variables
+editor (`templates.variables` with `query.name` / `query.value` placeholders and
+`templates.add_variable`), the `settings.install_starter_templates` action and the
+inline status area; `model.rs` owns the blank-key filtering that mirrors the
+shipped `variables.filter(([k]) => k.trim())`; `cards.rs` renders one card per
+template with the name, description, `{{name}}` placeholder chips derived from
+the template content through `stratum_app::template::template_variables`, and the
+`templates.apply` action, plus the empty state.
+
+Applying with an empty target is a no-op. On success the panel clears the target
+field and records a `templates.created` toast with the target path; a provider
+failure records the error toast. Installing starter templates refreshes the list
+and records a toast listing the installed names. Provider calls stay on
+`PanelData`: `templates()`, `apply_template(name, target, vars)` and
+`install_starter_templates()`. The fixture exposes three templates (Daily note,
+Meeting, Project). Capture: `dist/gpui-templates.png`.
+
+### Flashcards
+
+`panels/flashcards` ports the shipped desktop `FlashcardsPanel`. `model.rs` owns
+the window-free `SessionState` machine (`Loading`, `Empty`, `Card`, `Complete`,
+`Failed`), the reveal/rate/restart transitions and the
+`flashcards.card_of_count` progress caption; `mod.rs` renders the header, the
+empty-state hint (`flashcards.question` / `flashcards.answer` /
+`flashcards.properties_to_generate_cards`), the clickable question/answer card
+with its reveal labels, the source/ease/interval caption, the SM-2 rating row and
+the session-complete view with `flashcards.start_again`.
+
+Ratings use the shared `stratum_app::flashcards::{FlashcardRating,
+rating_quality, is_correct}` table (0/2/3/5; correct is quality ≥ 3), so the
+native buttons and the backend SM-2 grades cannot drift. Rating feedback uses
+`flashcards.correct` / `flashcards.review_again_soon`, and the four buttons use
+the catalog keys `flashcards.rating_blackout`, `_hard`, `_good` and `_easy`.
+Provider calls stay on `PanelData`: `flashcards()` and
+`review_card(id, quality, page_path)`. The fixture serves three cards and records
+the reviewed qualities. The start flag `STRATUM_FLASHCARD_REVEAL=1` reveals the
+first answer. Captures: `dist/gpui-flashcards.png` (question) and
+`dist/gpui-flashcards-answer.png` (revealed answer and rating row).
+
 Highlight-on-open lives in `panels/editor/reveal.rs`: `EditorView::reveal_block`
 locates the row, scrolls to the layout offset and records a highlight that the
 row renderer draws as a soft tint. The highlight clears on the next edit or when
@@ -228,6 +292,8 @@ the sidebar and `Escape` dismisses the topmost overlay.
 | `STRATUM_QUERY=<datalog>` | Prefill the query panel's Datalog editor |
 | `STRATUM_QUERY_TAB=builder\|datalog` | Select the query panel tab |
 | `STRATUM_QUERY_RUN=1` | Run the query after construction |
+| `STRATUM_ASK=<question>` | Submit a question on the Ask Notes panel |
+| `STRATUM_FLASHCARD_REVEAL=1` | Reveal the first flashcard's answer |
 
 The start-state flags are applied by `apply_start_state` in `main.rs` and exist
 for the capture harness; they do not change the interactive behaviour of the
@@ -301,8 +367,8 @@ test. The script requires `Xvfb`, `xdotool` and ImageMagick's `import`. It is
 used by the GPUI CI workflow to publish a screenshot artifact, and is safe to
 run locally without a desktop session.
 
-`scripts/capture-gpui-panels.sh` captures the journal, page, search and query
-surfaces using the start-state flags:
+`scripts/capture-gpui-panels.sh` captures the journal, page, search, query, Ask
+Notes, Templates and Flashcards surfaces using the start-state flags:
 
 ```bash
 ./scripts/capture-gpui-panels.sh
@@ -320,6 +386,10 @@ surfaces using the start-state flags:
 # → dist/gpui-query.png             (builder tab)
 # → dist/gpui-query-results.png     (STRATUM_QUERY_RUN=1)
 # → dist/gpui-query-datalog.png     (STRATUM_QUERY_TAB=datalog)
+# → dist/gpui-ask.png               (STRATUM_ROUTE=/ask STRATUM_ASK=…)
+# → dist/gpui-templates.png         (STRATUM_ROUTE=/templates)
+# → dist/gpui-flashcards.png        (STRATUM_ROUTE=/flashcards)
+# → dist/gpui-flashcards-answer.png (STRATUM_FLASHCARD_REVEAL=1)
 ```
 
 The journal edit-mode capture is the parity reference for the shipped
@@ -344,7 +414,12 @@ classified mode chip, the result rows with score labels and the result count,
 and the tag capture shows tag mode with the `#project` tag results. The query
 captures pin the `QueryPanel` surface: the builder tab shows the condition rows,
 the generated Datalog preview and the saved-query list; the run capture shows the
-result table; the Datalog capture shows the raw editor tab. The first
+result table; the Datalog capture shows the raw editor tab. The Ask Notes capture
+shows the answered question, the two cited source rows and the read-aloud
+control; the Templates capture shows the target field, the variables editor and
+the three template cards with their placeholder chips; the Flashcards captures
+show the first question and, in the revealed capture, the answer with the four
+SM-2 rating buttons. The first
 argument or `OUTPUT` overrides the journal edit-mode path and every other capture
 derives from its directory. Requirements are the same as the shell capture.
 
@@ -367,8 +442,8 @@ crates, the capture scripts or the CI wiring:
 
 1. `gpui-shell` — formatting, build, tests and clippy on **Linux, Windows and
    macOS** (fail-fast disabled, one job per OS).
-2. `gpui-capture` — Linux only: shell, journal, page, search, query and
-   editor-perf captures, plus artifact upload.
+2. `gpui-capture` — Linux only: shell, journal, page, search, query, Ask Notes,
+   Templates, Flashcards and editor-perf captures, plus artifact upload.
 
 Both jobs install the Tauri Linux dependencies through
 `.github/actions/install-linux-deps`, which now also carries the native shell
@@ -409,8 +484,18 @@ conditions, combiners and row ordering that emits the Datalog program, a raw
 Datalog tab, run/reset, saved-query list with save/rename/delete/copy, build
 errors and the result table. Both panels route their classification, score
 formatting, builder emission/parsing and saved-query display through
-`stratum-app` helpers rather than duplicating logic in the view. The routed
-search and query panels own their header, like the page and journal panels.
+`stratum-app` helpers rather than duplicating logic in the view. The Ask Notes
+view covers the shipped `AskNotesPanel`: question submission (button and Enter),
+clear, grounded answers with cited sources, the no-sources caption, read-aloud
+through the shared speak path and provider/read-aloud error states. The Templates
+view covers the shipped `TemplatesPanel` plus variable chips and the starter
+installer: target-page input, blank-key filtering, template apply with
+created/error toasts and list refresh. The Flashcards view covers the shipped
+`FlashcardsPanel`: the reveal/rate/restart session machine, SM-2 ratings backed
+by the shared `stratum-app` table, source/ease/interval captions, empty and
+completion states. The routed
+search, query, Ask Notes, Templates and Flashcards panels own their header, like
+the page and journal panels.
 Other panel bodies (graph, kanban, etc.) are the next layer; the
 route/navigation/i18n contracts are already in place for them.
 

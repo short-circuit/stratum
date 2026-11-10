@@ -10,11 +10,14 @@ use std::sync::Arc;
 // `#[gpui_kit::test]` emits and recurse forever.
 use gpui_kit::test::TestWindowExt;
 use gpui_kit::{px, size, Modifiers, TestAppContext, VisualTestContext};
+use stratum_ui::panels::ask::{AskStart, AskView};
+use stratum_ui::panels::flashcards::{FlashcardsStart, FlashcardsView};
 use stratum_ui::panels::journal::JournalView;
 use stratum_ui::panels::page::{PageStart, PageView};
 use stratum_ui::panels::query::{QueryStart, QueryView};
 use stratum_ui::panels::search::model::SearchStatus;
 use stratum_ui::panels::search::{SearchStart, SearchView};
+use stratum_ui::panels::templates::TemplatesView;
 use stratum_ui::panels::voice::{VoiceCapture, VoiceStage};
 use stratum_ui::panels::PanelRequests;
 use stratum_ui::provider::{journal_path, FixtureProvider, ShellData, FIXTURE_PAGE, FIXTURE_TODAY};
@@ -215,4 +218,102 @@ fn query_save_dialog_adds_saved_query(cx: &mut TestAppContext) {
     });
     assert_eq!(after, before + 1, "saving must append the query");
     assert!(toast.is_some(), "saving must request a success toast");
+}
+
+#[gpui_kit::test]
+fn ask_question_renders_answer_and_citations(cx: &mut TestAppContext) {
+    init(cx);
+    let fixture = Arc::new(FixtureProvider::new());
+    let provider: Arc<dyn ShellData> = fixture.clone();
+    let start = AskStart {
+        question: Some("what did I decide about the project?".to_string()),
+    };
+    let (ask, cx) = cx.add_window_view(move |window, cx| AskView::new(provider, start, window, cx));
+    cx.update(|window, cx| window.render_frame(cx));
+    let (answer, sources) = cx.update(|_window, cx| {
+        let view = ask.read(cx);
+        (
+            view.answer().map(|answer| answer.answer.clone()),
+            view.answer()
+                .map(|answer| answer.sources.len())
+                .unwrap_or(0),
+        )
+    });
+    assert_eq!(
+        answer.as_deref(),
+        Some("The notes suggest deciding after the sprint review.")
+    );
+    assert_eq!(sources, 2);
+    assert!(cx.debug_bounds("ask-answer").is_some());
+    assert!(cx.debug_bounds("ask-source-0").is_some());
+    assert!(cx.debug_bounds("ask-source-1").is_some());
+
+    let bounds = cx
+        .debug_bounds("ask-read-aloud")
+        .expect("read-aloud control rendered");
+    cx.simulate_click(bounds.center(), Modifiers::default());
+    assert_eq!(
+        fixture.spoken_texts(),
+        vec!["The notes suggest deciding after the sprint review.".to_string()]
+    );
+}
+
+#[gpui_kit::test]
+fn templates_apply_pushes_a_created_toast(cx: &mut TestAppContext) {
+    init(cx);
+    let provider: Arc<dyn ShellData> = Arc::new(FixtureProvider::new());
+    let (templates, cx) =
+        cx.add_window_view(move |window, cx| TemplatesView::new(provider, window, cx));
+    let target = "pages/from-template.md";
+    cx.update(|window, cx| templates.update(cx, |view, cx| view.set_target(target, window, cx)));
+    cx.update(|window, cx| window.render_frame(cx));
+    let bounds = cx
+        .debug_bounds("template-apply-0")
+        .expect("template apply button rendered");
+    cx.simulate_click(bounds.center(), Modifiers::default());
+    let (toast, remaining_target) = cx.update(|_window, cx| {
+        let view = templates.read(cx);
+        (
+            view.pending_toast().map(str::to_string),
+            view.target_value().to_string(),
+        )
+    });
+    let toast = toast.expect("applying a template must request a toast");
+    assert!(
+        toast.contains(target),
+        "the toast must name the target path, got {toast}"
+    );
+    assert_eq!(remaining_target, "", "the target input must clear");
+}
+
+#[gpui_kit::test]
+fn flashcard_reveal_and_rate(cx: &mut TestAppContext) {
+    init(cx);
+    let fixture = Arc::new(FixtureProvider::new());
+    let provider: Arc<dyn ShellData> = fixture.clone();
+    let (flashcards, cx) = cx.add_window_view(move |_window, cx| {
+        FlashcardsView::new(provider, FlashcardsStart::default(), cx)
+    });
+    cx.update(|window, cx| window.render_frame(cx));
+    let card = cx
+        .debug_bounds("flashcard-card")
+        .expect("flashcard rendered");
+    cx.simulate_click(card.center(), Modifiers::default());
+    cx.update(|window, cx| window.render_frame(cx));
+
+    let revealed = cx.update(|_window, cx| flashcards.read(cx).revealed());
+    assert!(revealed, "clicking the card must reveal the answer");
+    let rating = cx
+        .debug_bounds("flashcard-rating-3")
+        .expect("the rating row must render after the reveal");
+    cx.simulate_click(rating.center(), Modifiers::default());
+
+    let (reviewed, index) = cx.update(|_window, cx| {
+        (
+            fixture.reviewed_qualities(),
+            flashcards.read(cx).session().current_index(),
+        )
+    });
+    assert_eq!(reviewed, vec![("card-1".to_string(), 3)]);
+    assert_eq!(index, Some(1), "the session must advance after a rating");
 }

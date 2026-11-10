@@ -6,6 +6,7 @@
 use chrono::{Duration, Utc};
 
 use stratum_app::reminders::due::parse_due;
+use stratum_app::template::template_variables;
 
 use super::{data, panel_state, FixtureProvider};
 use crate::provider::panels::{
@@ -195,24 +196,21 @@ impl PanelData for FixtureProvider {
 
     fn templates(&self) -> Result<Vec<TemplateRow>, String> {
         Ok(vec![
-            TemplateRow {
-                name: "Daily note".to_string(),
-                path: "templates/Daily note.md".to_string(),
-                description: Some("Daily journal scaffold.".to_string()),
-                variables: vec!["date".to_string(), "title".to_string()],
-            },
-            TemplateRow {
-                name: "Meeting".to_string(),
-                path: "templates/Meeting.md".to_string(),
-                description: Some("Meeting notes with attendees.".to_string()),
-                variables: vec!["date".to_string(), "title".to_string()],
-            },
-            TemplateRow {
-                name: "Project".to_string(),
-                path: "templates/Project.md".to_string(),
-                description: Some("Project brief with a date.".to_string()),
-                variables: vec!["date".to_string(), "title".to_string()],
-            },
+            fixture_template(
+                "Daily note",
+                "Daily journal scaffold.",
+                "# {{title}}\n\n## {{date}}\n\n- Morning review\n",
+            ),
+            fixture_template(
+                "Meeting",
+                "Meeting notes with attendees.",
+                "# {{title}}\n\nDate: {{date}}\n\nAttendees: {{attendees}}\n",
+            ),
+            fixture_template(
+                "Project",
+                "Project brief with a date.",
+                "# {{title}}\n\nStarted: {{date}}\n\n## Goal\n",
+            ),
         ])
     }
 
@@ -470,5 +468,16 @@ impl PanelData for FixtureProvider {
         let mut state = panel_state(self)?;
         state.installed_themes.retain(|theme| theme.id != id);
         Ok(())
+    }
+}
+
+/// Build one deterministic fixture template row from its content.
+fn fixture_template(name: &str, description: &str, content: &str) -> TemplateRow {
+    TemplateRow {
+        name: name.to_string(),
+        path: format!("templates/{name}.md"),
+        description: Some(description.to_string()),
+        variables: template_variables(content),
+        content: content.to_string(),
     }
 }

@@ -18,12 +18,15 @@ use gpui_kit::prelude::*;
 use gpui_kit::*;
 use stratum_i18n::{t_global, tr_global};
 
+use crate::panels::ask::AskView;
 use crate::panels::editor::EditorView;
+use crate::panels::flashcards::FlashcardsView;
 use crate::panels::journal::JournalView;
 use crate::panels::page::{PageStart, PageView};
 use crate::panels::query::QueryView;
 use crate::panels::search::SearchView;
-use crate::panels::{panel_owns_header, panel_view};
+use crate::panels::templates::TemplatesView;
+use crate::panels::{panel_owns_header, panel_view, PanelEntities};
 use crate::provider::ShellData;
 use crate::router::{path_for, Panel, ShortcutAction};
 
@@ -109,6 +112,9 @@ pub struct Shell {
     journal_read_mode: bool,
     search: Option<Entity<SearchView>>,
     query: Option<Entity<QueryView>>,
+    ask: Option<Entity<AskView>>,
+    templates: Option<Entity<TemplatesView>>,
+    flashcards: Option<Entity<FlashcardsView>>,
     panel_starts: PanelStarts,
     error: Option<String>,
     toast: Option<Toast>,
@@ -135,6 +141,9 @@ impl Shell {
             journal_read_mode: false,
             search: None,
             query: None,
+            ask: None,
+            templates: None,
+            flashcards: None,
             panel_starts: PanelStarts::default(),
             error: None,
             toast: None,
@@ -205,6 +214,17 @@ impl Shell {
         if panel != Panel::Query {
             self.query = None;
             self.panel_starts.query = crate::panels::query::QueryStart::default();
+        }
+        if panel != Panel::AskNotes {
+            self.ask = None;
+            self.panel_starts.ask = crate::panels::ask::AskStart::default();
+        }
+        if panel != Panel::Templates {
+            self.templates = None;
+        }
+        if panel != Panel::Flashcards {
+            self.flashcards = None;
+            self.panel_starts.flashcards = crate::panels::flashcards::FlashcardsStart::default();
         }
         self.active = panel;
         self.read_mode = false;
@@ -412,6 +432,9 @@ impl Render for Shell {
                 Panel::Journal => self.journal.is_some(),
                 Panel::Search => self.search.is_some(),
                 Panel::Query => self.query.is_some(),
+                Panel::AskNotes => self.ask.is_some(),
+                Panel::Templates => self.templates.is_some(),
+                Panel::Flashcards => self.flashcards.is_some(),
                 _ => false,
             };
 
@@ -450,10 +473,15 @@ impl Render for Shell {
                     .child(div().flex_1().overflow_hidden().child(panel_view(
                         self.active,
                         self.current_page.as_deref(),
-                        self.page.clone(),
-                        self.journal.clone(),
-                        self.search.clone(),
-                        self.query.clone(),
+                        PanelEntities {
+                            page: self.page.clone(),
+                            journal: self.journal.clone(),
+                            search: self.search.clone(),
+                            query: self.query.clone(),
+                            ask: self.ask.clone(),
+                            templates: self.templates.clone(),
+                            flashcards: self.flashcards.clone(),
+                        },
                         cx,
                     ))),
             )
