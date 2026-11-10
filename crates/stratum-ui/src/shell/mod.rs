@@ -20,6 +20,7 @@ use stratum_i18n::{t_global, tr_global};
 
 use crate::panels::editor::EditorView;
 use crate::panels::journal::JournalView;
+use crate::panels::page::{PageStart, PageView};
 use crate::panels::panel_view;
 use crate::provider::ShellData;
 use crate::router::{path_for, Panel, ShortcutAction};
@@ -28,6 +29,7 @@ use chrome::{error_bar, header, toast_overlay};
 
 mod chrome;
 mod footer;
+mod page;
 mod sidebar;
 
 pub use sidebar::{COLLAPSED_WIDTH, EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH};
@@ -45,7 +47,7 @@ mod tests;
 /// The release gate walks this list against all eight catalogs, so adding a
 /// visible string without a catalog entry fails the build instead of leaking a
 /// raw key into the UI.
-pub const SHELL_I18N_KEYS: [&str; 29] = [
+pub const SHELL_I18N_KEYS: [&str; 30] = [
     "common.refresh",
     "export.success_html",
     "mobile_nav.ask_notes",
@@ -71,6 +73,7 @@ pub const SHELL_I18N_KEYS: [&str; 29] = [
     "sidebar.export",
     "sidebar.export_failed",
     "sidebar.export_html",
+    "sidebar.move_page_success",
     "sidebar.new_page",
     "sidebar.no_pages_yet",
     "sidebar.recent",
@@ -92,7 +95,10 @@ pub struct Shell {
     sidebar_collapsed: bool,
     snapshot: crate::provider::ShellSnapshot,
     read_mode: bool,
-    editor: Option<Entity<EditorView>>,
+    page: Option<Entity<PageView>>,
+    page_editor: Option<Entity<EditorView>>,
+    page_start: PageStart,
+    page_read_mode: bool,
     journal: Option<Entity<JournalView>>,
     journal_start_date: Option<String>,
     journal_calendar: bool,
@@ -112,7 +118,10 @@ impl Shell {
             sidebar_collapsed: false,
             snapshot,
             read_mode: false,
-            editor: None,
+            page: None,
+            page_editor: None,
+            page_start: PageStart::default(),
+            page_read_mode: false,
             journal: None,
             journal_start_date: None,
             journal_calendar: false,
@@ -171,27 +180,16 @@ impl Shell {
         }
     }
 
-    /// Navigate to a panel, clearing the editor page when leaving it.
+    /// Navigate to a panel, clearing the page entity when leaving it.
     pub fn navigate(&mut self, panel: Panel) {
         if panel != Panel::Page {
             self.current_page = None;
-            self.editor = None;
+            self.page = None;
+            self.page_editor = None;
+            self.page_start = PageStart::default();
         }
         self.active = panel;
         self.read_mode = false;
-    }
-
-    /// Open a page in the editor. The entity is created lazily by `render`.
-    pub fn open_page(&mut self, path: impl Into<String>) {
-        self.current_page = Some(path.into());
-        self.active = Panel::Page;
-        self.read_mode = false;
-        self.editor = None;
-    }
-
-    /// The live editor entity, if the page panel has created one.
-    pub fn editor(&self) -> Option<&Entity<EditorView>> {
-        self.editor.as_ref()
     }
 
     /// The live journal entity, if the journal panel has created one.
@@ -246,37 +244,6 @@ impl Shell {
             Some(path) => self.open_page(path),
             None if target.ends_with(".md") => self.open_page(target.to_string()),
             None => self.navigate(Panel::Search),
-        }
-    }
-
-    /// Create or refresh the editor entity for the current page.
-    fn sync_editor(&mut self, cx: &mut Context<Self>) {
-        let Some(path) = self.current_page.clone() else {
-            self.editor = None;
-            return;
-        };
-        let needs_new = match &self.editor {
-            Some(editor) => editor.read(cx).path() != path,
-            None => true,
-        };
-        if needs_new {
-            let provider = Arc::clone(&self.provider);
-            let read_mode = self.read_mode;
-            self.editor = Some(cx.new(move |cx| EditorView::new(path, provider, read_mode, cx)));
-        } else if let Some(editor) = &self.editor {
-            let read_mode = self.read_mode;
-            editor.update(cx, |view, cx| view.set_read_mode(read_mode, cx));
-        }
-        let navigation = self.editor.as_ref().and_then(|editor| {
-            editor.update(cx, |view, _| {
-                view.pending_navigation().map(|target| target.to_string())
-            })
-        });
-        if let Some(target) = navigation {
-            if let Some(editor) = &self.editor {
-                editor.update(cx, |view, _| view.clear_pending_navigation());
-            }
-            self.handle_editor_navigation(&target);
         }
     }
 
@@ -407,7 +374,7 @@ impl Shell {
 impl Render for Shell {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         if self.active == Panel::Page {
-            self.sync_editor(cx);
+            self.sync_page(cx);
         }
         if self.active == Panel::Journal {
             self.sync_journal(cx);
@@ -449,7 +416,7 @@ impl Render for Shell {
                     .child(div().flex_1().overflow_hidden().child(panel_view(
                         self.active,
                         self.current_page.as_deref(),
-                        self.editor.clone(),
+                        self.page.clone(),
                         self.journal.clone(),
                         cx,
                     ))),

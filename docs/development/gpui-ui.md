@@ -31,16 +31,18 @@ crates/
     │   │   ├── mod.rs      # ShellData seam and provider selection
     │   │   ├── assets.rs   # attachment/thumbnail seam
     │   │   ├── journal.rs  # journal date discovery, creation and DTO mapping
+    │   │   ├── page.rs     # page metadata, menu actions, backlinks, suggestions seam
     │   │   ├── voice.rs    # voice-capture seam (start/stop/transcribe/insert)
-    │   │   ├── fixture/    # deterministic fixture provider (pages, blocks, journal)
+    │   │   ├── fixture/    # deterministic fixture provider (pages, blocks, journal, page)
     │   │   └── tests.rs    # provider contract tests
     │   ├── router.rs       # routes, navigation, shortcuts, path codec
     │   ├── theme.rs        # shipped palette derivation mapped to gpui-kit
-    │   ├── shell/          # sidebar, footer, error/toaster chrome, journal wiring
-    │   └── panels/         # panel bodies (journal, voice) and icon mapping
+    │   ├── shell/          # sidebar, footer, error/toaster chrome, journal/page wiring
+    │   └── panels/         # panel bodies (journal, page, voice) and icon mapping
     │       ├── journal/    # JournalView: state, navigation, reload, dates, stack, header, calendar, rows, error
+    │       ├── page/       # PageView: header, Note menu, move/delete dialogs, backlinks, suggestions, actions, state
     │       └── voice/      # VoiceCapture: stage machine and gpui entity
-    └── tests/              # route, theme, layout, asset, journal and editor contracts
+    └── tests/              # route, theme, layout, asset, journal, page and editor contracts
 ```
 
 The React application is the visual ground truth. Route order, navigation
@@ -80,9 +82,9 @@ logic: data comes from an `AppProvider` implementation.
 | `router` | `Panel`, `ROUTES`, `NAV_ITEMS`, `SHORTCUTS`, `parse_path`, `path_for`, percent codec |
 | `theme` | `ThemeConfig`, `derive_palette`, `apply_to_kit`, golden palette formulas |
 | `assets` | `StratumAssets` (icons + fonts), `register_fonts` |
-| `provider` | `ShellData`, `ShellSnapshot`, `FixtureProvider`, `provider_from_env`, asset seam (`provider/assets.rs`), journal seam (`provider/journal.rs`) and voice seam (`provider/voice.rs`) |
-| `shell` | header, sidebar, footer, error bar, toaster, journal view wiring and start-state setters |
-| `panels` | panel body rendering and icon mapping; `panels/journal` (entity, state, navigation, reload, calendar/stack/read-mode surface) and `panels/voice` (capture stage machine and entity) |
+| `provider` | `ShellData`, `ShellSnapshot`, `FixtureProvider`, `provider_from_env`, asset seam (`provider/assets.rs`), journal seam (`provider/journal.rs`), page seam (`provider/page.rs`) and voice seam (`provider/voice.rs`) |
+| `shell` | header, sidebar, footer, error bar, toaster, journal/page view wiring (`shell/page.rs`) and start-state setters |
+| `panels` | panel body rendering and icon mapping; `panels/journal` (entity, state, navigation, reload, calendar/stack/read-mode surface), `panels/page` (entity, header, Note menu, move/delete dialogs, backlinks, suggestions, actions) and `panels/voice` (capture stage machine and entity) |
 
 The provider seam is the only place the shell touches the service layer. The
 real provider drives `stratum_app::StratumService`; `FixtureProvider` returns a
@@ -113,6 +115,24 @@ The voice seam (`stt_configured`, `voice_start`, `voice_stop`,
 `voice_transcribe`, `voice_insert_clip`) has neutral trait defaults so providers
 without audio support still compile. The trait defaults report STT as
 unconfigured, fail `voice_start`, return an empty take and skip insertion.
+
+The page seam mirrors the shipped `PageView`: `page_info` returns the title,
+slug, block count and modification time, the menu actions map onto
+`reindex_page`, `normalize_file`, `move_page` and `delete_page`, `backlinks` and
+`backlink_snippet` back the linked/unlinked card, and `suggest_connections` /
+`insert_block` back the related-note card. `AppProvider` maps these onto
+`stratum_app::StratumService`; `FixtureProvider` returns deterministic page
+metadata, two linked + one unlinked backlink, one snippet and two suggestions for
+`pages/fixture.md`. The pure helpers (`normalize_move_path`, `group_backlinks`,
+`clamp_relevance`) live in `provider/page.rs` and are covered by window-free
+tests.
+
+Highlight-on-open lives in `panels/editor/reveal.rs`: `EditorView::reveal_block`
+locates the row, scrolls to the layout offset and records a highlight that the
+row renderer draws as a soft tint. The highlight clears on the next edit or when
+another block is revealed. The shell exposes
+`Shell::open_page_with_highlight(path, block_id)` for navigation that carries a
+block anchor.
 
 ---
 
@@ -153,6 +173,9 @@ the sidebar and `Escape` dismisses the topmost overlay.
 | `STRATUM_JOURNAL_DATE=2026-11-09` | Start the journal on a specific day |
 | `STRATUM_CALENDAR=1` | Start with the journal calendar expanded |
 | `STRATUM_READ_MODE=1` | Start in read mode |
+| `STRATUM_MENU=note` | Start with the page Note menu open |
+| `STRATUM_CARDS=open` | Start with the page backlinks/suggestions expanded |
+| `STRATUM_HIGHLIGHT=<block-id>` | Reveal a block when the page opens |
 
 The start-state flags are applied by `apply_start_state` in `main.rs` and exist
 for the capture harness; they do not change the interactive behaviour of the
@@ -182,6 +205,11 @@ The suites cover:
   calendar grid generation, the seven-slot week layout, the lazy stack plan and
   window growth, the voice stage machine, the fixture journal/voice data and the
   `JOURNAL_I18N_KEYS` release gate in all eight catalogs.
+- The page surface (`tests/page_contract.rs`): the Note menu order/labels and
+  destructive styling, move-path validation, backlink grouping, relevance
+  clamping, the suggestion state machine, the fixture page seam and the
+  `PAGE_I18N_KEYS` release gate in all eight catalogs. Unit tests also cover the
+  highlight reveal model and the delete-confirmation message.
 
 `stratum_ui` unit tests use the built-in `#[test]` attribute. `gpui_kit::*`
 re-exports GPUI's own `test` attribute macro, so test modules that glob-import
@@ -217,23 +245,40 @@ test. The script requires `Xvfb`, `xdotool` and ImageMagick's `import`. It is
 used by the GPUI CI workflow to publish a screenshot artifact, and is safe to
 run locally without a desktop session.
 
-`scripts/capture-gpui-panels.sh` captures the journal surface in three states
-using the start-state flags:
+`scripts/capture-gpui-panels.sh` captures the journal and page surfaces using
+the start-state flags:
 
 ```bash
 ./scripts/capture-gpui-panels.sh
 # → dist/gpui-journal.png           (edit mode)
 # → dist/gpui-journal-calendar.png  (STRATUM_CALENDAR=1)
 # → dist/gpui-journal-read.png      (past day, STRATUM_READ_MODE=1)
+# → dist/gpui-page.png              (fixture page, edit mode)
+# → dist/gpui-page-note-menu.png    (STRATUM_MENU=note)
+# → dist/gpui-page-read.png         (STRATUM_READ_MODE=1)
+# → dist/gpui-page-cards.png        (STRATUM_CARDS=open)
+# → dist/gpui-page-highlight.png    (STRATUM_HIGHLIGHT=<fixture block id>)
 ```
 
-The edit-mode capture is the parity reference for the shipped `JournalPanel`:
-the header shows the localized day label with previous/next-day and calendar
-controls, the today section renders the editor, and the stacked past days follow
-the same section order as the React panel. The calendar capture pins the popup
-geometry and weekday headers; the read capture pins the read-mode treatment of
-a past day. The first argument or `OUTPUT` overrides the edit-mode path and the
-other two derive from it. Requirements are the same as the shell capture.
+The journal edit-mode capture is the parity reference for the shipped
+`JournalPanel`: the header shows the localized day label with previous/next-day
+and calendar controls, the today section renders the editor, and the stacked past
+days follow the same section order as the React panel. The calendar capture pins
+the popup geometry and weekday headers; the read capture pins the read-mode
+treatment of a past day.
+
+The page captures pin the shipped `PageView`: the header shows the title, path
+chip, voice/attach/read controls and the `Note` menu; the Note-menu capture shows
+the ordered actions; the read capture shows the read-mode treatment and the
+edit-mode button; the cards capture shows the backlinks and suggestions cards
+expanded; the highlight capture shows the revealed block tint. The first
+argument or `OUTPUT` overrides the journal edit-mode path and every other capture
+derives from its directory. Requirements are the same as the shell capture.
+
+Deliberate deviations: the page header reuses the shared `VoiceCapture` control
+instead of the React `DictationPanel` option toggles (diarize/summarize/identify),
+and the attachment card is rendered by the editor view rather than duplicated in
+the page panel.
 
 ---
 
@@ -244,8 +289,8 @@ crates, the capture scripts or the CI wiring:
 
 1. `gpui-shell` — formatting, build, tests and clippy on **Linux, Windows and
    macOS** (fail-fast disabled, one job per OS).
-2. `gpui-capture` — Linux only: shell, journal and editor-perf captures, plus
-   artifact upload.
+2. `gpui-capture` — Linux only: shell, journal, page and editor-perf captures,
+   plus artifact upload.
 
 Both jobs install the Tauri Linux dependencies through
 `.github/actions/install-linux-deps`, which now also carries the native shell
@@ -261,15 +306,23 @@ its `gpui-capture` job.
 
 ## Current Scope and Limitations
 
-The native shell reproduces the application chrome and implements the editor
-and journal surfaces. The journal view covers the shipped `JournalPanel`
+The native shell reproduces the application chrome and implements the editor,
+journal and page surfaces. The journal view covers the shipped `JournalPanel`
 behaviour: localized day labels, previous/next-day navigation, the month
 calendar with journal/today markers, a lazily loaded stack of past days, read
 mode and the voice-capture flow. Stacked day editors use the editor's
 auto-height mode, so each section contributes its full content height to the
 journal scroll container; journal editors omit the page-level attachment panel,
-matching `JournalPanel`. Other panel bodies (graph, search, etc.) are the next
-layer; the route/navigation/i18n contracts are already in place for them.
+matching `JournalPanel`.
+
+The page view covers the shipped `PageView` behaviour: title/path header, the
+shared voice-capture control, attachment picker, read/edit mode, the `Note` menu
+(reindex, normalize, move/rename with path validation, delete with confirmation),
+backlinks with linked/unlinked partitions and bounded snippets, related-note
+suggestions with add-link, and highlight-on-open. Deleting returns to the journal
+home; moving opens the new path with the localized success toast. Other panel
+bodies (graph, search, etc.) are the next layer; the route/navigation/i18n
+contracts are already in place for them.
 
 The toaster dismisses manually or through `Escape`; there is no timer-based
 auto-dismiss yet. This is intentional for the E2 shell and is documented in

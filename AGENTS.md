@@ -485,8 +485,9 @@ frozen reference application and are never modified by shell work.
 - `stratum-ui` owns the route/navigation/shortcut tables (`router`), the theme
   derivation (`theme`), the embedded asset source and Inter faces (`assets`),
   the `ShellData` provider seam (`provider`, with `provider/assets.rs`,
-  `provider/journal.rs`, `provider/voice.rs` and the `provider/fixture/`
-  deterministic provider), the chrome (`shell`) and the panel bodies (`panels`).
+  `provider/journal.rs`, `provider/page.rs`, `provider/voice.rs` and the
+  `provider/fixture/` deterministic provider), the chrome (`shell`, including
+  the page lifecycle in `shell/page.rs`) and the panel bodies (`panels`).
 - The native journal surface lives in `crates/stratum-ui/src/panels/journal/`:
   `mod.rs` (`JournalView` entity and render), `state.rs` (accessors and
   read-mode switch), `navigation.rs` (day/month selection), `reload.rs`
@@ -500,6 +501,18 @@ frozen reference application and are never modified by shell work.
   `tests/journal_contract.rs` covers dates, calendar/week layout, the stack
   plan, the voice stages, the fixture journal/voice data and the
   `JOURNAL_I18N_KEYS` catalog gate without opening a window.
+- The native page surface lives in `crates/stratum-ui/src/panels/page/`:
+  `mod.rs` (`PageView` entity, render and start state), `state.rs` (accessors,
+  read-mode forwarding, editor reload, navigation), `header.rs` (title, path
+  chip, voice/attach/read controls and Note menu trigger), `menu.rs` (Note menu
+  model and popup), `move_dialog.rs` (move/rename validation and dialog),
+  `delete_dialog.rs` (delete confirmation), `backlinks.rs` (linked/unlinked
+  references with bounded snippets), `suggestions.rs` (related-note suggestions
+  with add-link) and `actions.rs` (reindex/normalize/delete flows). The page
+  header reuses `panels/voice/` for the mic control. `tests/page_contract.rs`
+  covers the Note menu order, move validation, backlink grouping, relevance
+  clamping, the suggestion state machine, the fixture page seam and the
+  `PAGE_I18N_KEYS` catalog gate without opening a window.
 - `stratum-editor` is the headless block-editor engine the phase-B editor view
   renders (`DecoratedRow`s from `render`). It owns document canonicalization,
   inline spans, editing/undo/IME, slash and marker menus, wiki-link helpers,

@@ -22,10 +22,12 @@ use uuid::Uuid;
 use super::journal::{journal_dates_from_paths, journal_path};
 use super::{
     attachment_row_with_mime, derive_recents, file_extension, file_stem, mime_for_extension,
-    RecentPage, ShellData, ShellSnapshot, VaultStats,
+    BacklinkRow, BacklinkSnippet, ConnectionRow, PageInfo, RecentPage, ReindexSummary, ShellData,
+    ShellSnapshot, VaultStats,
 };
 
 mod blocks;
+mod page;
 #[cfg(test)]
 mod tests;
 
@@ -37,6 +39,14 @@ pub const FIXTURE_TODAY: &str = "2026-11-10";
 pub const FIXTURE_JOURNAL_DATES: [&str; 3] = ["2026-11-09", "2026-11-08", "2026-11-07"];
 /// Recording path reported by the fixture voice capture.
 pub const FIXTURE_RECORDING: &str = "assets/voice/fixture.flac";
+/// The fixture page used by the page-panel captures.
+pub const FIXTURE_PAGE: &str = "pages/fixture.md";
+/// Deterministic fixture block revealed by `STRATUM_HIGHLIGHT`.
+pub const FIXTURE_HIGHLIGHT_BLOCK: &str = "413cf12c-969f-54ef-bf75-40ffd89e8618";
+/// Source page of the fixture's linked backlinks.
+pub const FIXTURE_BACKLINK_SOURCE: &str = "pages/Project Notes.md";
+/// Anchor block id used by the fixture backlink snippet.
+pub const FIXTURE_BACKLINK_ANCHOR: &str = "11111111-1111-5111-8111-111111111111";
 
 /// Deterministic provider used by tests and `STRATUM_FIXTURE=1`.
 pub struct FixtureProvider {
@@ -76,11 +86,18 @@ impl FixtureProvider {
             "pages/Reading List.md".to_string(),
             fixture_blocks("pages/Reading List.md", 7),
         );
+        pages.insert(FIXTURE_PAGE.to_string(), fixture_blocks(FIXTURE_PAGE, 12));
         for date in FIXTURE_JOURNAL_DATES {
             let path = journal_path(date);
             pages.insert(path.clone(), fixture_blocks(&path, 5));
         }
         let raw = vec![
+            RecentPage {
+                path: FIXTURE_PAGE.to_string(),
+                title: "Fixture Note".to_string(),
+                block_count: 12,
+                modified_at: "2026-11-10T10:00:00Z".to_string(),
+            },
             RecentPage {
                 path: journal_path(FIXTURE_JOURNAL_DATES[0]),
                 title: FIXTURE_JOURNAL_DATES[0].to_string(),
@@ -332,6 +349,42 @@ impl ShellData for FixtureProvider {
             .map_err(|_| "fixture provider lock poisoned".to_string())?
             .remove(ref_path);
         Ok(())
+    }
+
+    fn page_info(&self, path: &str) -> Option<PageInfo> {
+        self.fixture_page_info(path)
+    }
+
+    fn reindex_page(&self, path: &str) -> Result<ReindexSummary, String> {
+        self.fixture_reindex(path)
+    }
+
+    fn normalize_page(&self, path: &str) -> Result<(), String> {
+        self.fixture_normalize(path)
+    }
+
+    fn move_page(&self, old_path: &str, new_path: &str) -> Result<String, String> {
+        self.fixture_move(old_path, new_path)
+    }
+
+    fn delete_page(&self, path: &str) -> Result<(), String> {
+        self.fixture_delete(path)
+    }
+
+    fn backlinks(&self, path: &str) -> Vec<BacklinkRow> {
+        self.fixture_backlinks(path)
+    }
+
+    fn backlink_snippet(&self, note_id: &str, anchor_id: &str) -> Option<BacklinkSnippet> {
+        self.fixture_snippet(note_id, anchor_id)
+    }
+
+    fn suggest_connections(&self, path: &str) -> Result<Vec<ConnectionRow>, String> {
+        self.fixture_suggestions(path)
+    }
+
+    fn insert_block(&self, path: &str, markdown: &str) -> Result<(), String> {
+        self.fixture_insert(path, markdown)
     }
 }
 

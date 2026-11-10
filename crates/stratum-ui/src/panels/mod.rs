@@ -1,10 +1,10 @@
 //! Panel bodies hosted by the shell.
 //!
-//! The shell milestone owns the chrome. Non-editor panels are rendered as
-//! titled placeholders so navigation can be exercised end to end; the editor
-//! panel renders the real [`crate::panels::editor::EditorView`] when the shell
-//! has created one. Without an editor entity (for example the window-free shell
-//! tests) the page panel falls back to the shipped empty-state hint.
+//! The shell milestone owns the chrome. Non-page panels are rendered as titled
+//! placeholders so navigation can be exercised end to end; the page panel
+//! renders the real [`crate::panels::page::PageView`] when the shell has created
+//! one. Without a page entity (for example the window-free shell tests) the page
+//! panel falls back to the shipped empty-state hint.
 
 use gpui_kit::assets::IconName;
 use gpui_kit::component::{ActiveTheme, Icon, Sizable};
@@ -14,10 +14,11 @@ use stratum_i18n::t_global;
 
 pub mod editor;
 pub mod journal;
+pub mod page;
 pub mod voice;
 
-use crate::panels::editor::EditorView;
 use crate::panels::journal::JournalView;
+use crate::panels::page::PageView;
 use crate::router::Panel;
 use crate::shell::Shell;
 
@@ -42,19 +43,19 @@ pub fn panel_icon(panel: Panel) -> IconName {
 
 /// Render the active panel body.
 ///
-/// `editor` is the live editor entity for the open page and `journal` is the
-/// live journal entity. Both are `None` in the window-free shell tests, which
-/// keeps the panels on their shipped stubs.
+/// `page` is the live page entity for the open page and `journal` is the live
+/// journal entity. Both are `None` in the window-free shell tests, which keeps
+/// the panels on their shipped stubs.
 pub fn panel_view(
     panel: Panel,
     page_path: Option<&str>,
-    editor: Option<Entity<EditorView>>,
+    page: Option<Entity<PageView>>,
     journal: Option<Entity<JournalView>>,
     cx: &mut Context<Shell>,
 ) -> impl IntoElement {
     if panel == Panel::Page {
-        if let Some(editor) = editor {
-            return div().size_full().child(editor);
+        if let Some(page) = page {
+            return div().size_full().child(page);
         }
     }
     if panel == Panel::Journal {

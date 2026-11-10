@@ -17,14 +17,18 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use stratum_app::ai::AiAction;
 use stratum_app::StratumService;
-use stratum_editor::menus::{AiCall, AiCallKind, AiTransformAction};
 use stratum_editor::{AssetThumbnail, AttachmentRow, BlockDto};
 
+use convert::{app_block_to_editor, editor_block_to_app};
+
+mod app;
 mod assets;
+mod audio;
+mod convert;
 mod fixture;
 mod journal;
+mod page;
 mod voice;
 
 pub use assets::attachment_row;
@@ -33,9 +37,14 @@ pub(crate) use assets::{
     mime_for_extension,
 };
 pub use journal::{journal_dates_from_paths, journal_path, parse_journal_date};
+pub use page::{
+    clamp_relevance, group_backlinks, normalize_move_path, BacklinkRow, BacklinkSnippet,
+    ConnectionRow, PageInfo, ReindexSummary,
+};
 
 pub use fixture::{
-    fixture_blocks, FixtureProvider, FIXTURE_JOURNAL_DATES, FIXTURE_RECORDING, FIXTURE_TODAY,
+    fixture_blocks, FixtureProvider, FIXTURE_BACKLINK_ANCHOR, FIXTURE_BACKLINK_SOURCE,
+    FIXTURE_HIGHLIGHT_BLOCK, FIXTURE_JOURNAL_DATES, FIXTURE_PAGE, FIXTURE_RECORDING, FIXTURE_TODAY,
 };
 
 /// Vault counters shown in the sidebar header.
@@ -194,6 +203,49 @@ pub trait ShellData: Send + Sync {
     ) -> Result<(), String> {
         Ok(())
     }
+    /// Read page metadata (title, slug, block count, modification time).
+    ///
+    /// Providers without page metadata return `None`; the header then falls
+    /// back to the path's file stem.
+    fn page_info(&self, _path: &str) -> Option<PageInfo> {
+        None
+    }
+    /// Reindex one page from disk into SQLite and the search index.
+    ///
+    /// Providers without an index accept the request and report zero work.
+    fn reindex_page(&self, _path: &str) -> Result<ReindexSummary, String> {
+        Ok(ReindexSummary::default())
+    }
+    /// Normalize one page file through the block parser.
+    fn normalize_page(&self, _path: &str) -> Result<(), String> {
+        Ok(())
+    }
+    /// Move/rename a page, returning the stored new path.
+    ///
+    /// Providers without storage return the normalized target path.
+    fn move_page(&self, _old_path: &str, new_path: &str) -> Result<String, String> {
+        Ok(normalize_move_path(new_path))
+    }
+    /// Delete a page.
+    fn delete_page(&self, _path: &str) -> Result<(), String> {
+        Ok(())
+    }
+    /// Linked references and unlinked mentions for one page.
+    fn backlinks(&self, _path: &str) -> Vec<BacklinkRow> {
+        Vec::new()
+    }
+    /// The bounded snippet around a backlink anchor.
+    fn backlink_snippet(&self, _note_id: &str, _anchor_id: &str) -> Option<BacklinkSnippet> {
+        None
+    }
+    /// Related-note suggestions for one page.
+    fn suggest_connections(&self, _path: &str) -> Result<Vec<ConnectionRow>, String> {
+        Ok(Vec::new())
+    }
+    /// Append one markdown block to a page.
+    fn insert_block(&self, _path: &str, _markdown: &str) -> Result<(), String> {
+        Ok(())
+    }
 }
 
 /// Real provider backed by the headless service layer.
@@ -267,211 +319,6 @@ impl AppProvider {
             .block_on(self.service.save_blocks(path.to_string(), app_blocks, None))
             .map_err(|error| error.to_string())
     }
-
-    /// Synthesize `text` and start playback on a detached thread.
-    ///
-    /// Synthesis is fallible and reported to the caller; playback failures are
-    /// logged only, because audio is a best-effort side effect and must not turn
-    /// an otherwise successful read-aloud request into an error. The thread owns
-    /// the `OutputStream` for the whole playback, since dropping it stops audio.
-    fn speak_text(&self, text: String) -> Result<(), String> {
-        let result = self.runtime.block_on(self.service.tts_speak(text))?;
-        use base64::Engine;
-        let bytes = base64::engine::general_purpose::STANDARD
-            .decode(result.audio_b64.as_bytes())
-            .map_err(|error| format!("TTS audio decode failed: {error}"))?;
-        std::thread::spawn(move || {
-            if let Err(error) = play_audio(bytes) {
-                log::warn!("read-aloud playback failed: {error}");
-            }
-        });
-        Ok(())
-    }
-}
-
-impl ShellData for AppProvider {
-    fn snapshot(&self) -> ShellSnapshot {
-        ShellSnapshot {
-            vault: self.read_vault(),
-            recents: self.read_recents(),
-        }
-    }
-
-    fn refresh(&self) -> ShellSnapshot {
-        self.snapshot()
-    }
-
-    fn export_html(&self) -> Result<u64, String> {
-        self.runtime
-            .block_on(self.service.export_html("/tmp/stratum-export".to_string()))
-            .map(|result| result.pages_exported as u64)
-    }
-
-    fn load_blocks(&self, path: &str) -> Option<Vec<BlockDto>> {
-        self.read_blocks(path)
-    }
-
-    fn save_blocks(&self, path: &str, blocks: Vec<BlockDto>) -> Result<(), String> {
-        self.write_blocks(path, blocks)
-    }
-
-    fn create_page(&self, path: &str, title: Option<&str>) -> Result<String, String> {
-        self.runtime
-            .block_on(
-                self.service
-                    .create_page(path.to_string(), title.map(str::to_string)),
-            )
-            .map(|page| page.path)
-    }
-
-    fn speak(&self, text: String) -> Result<(), String> {
-        self.speak_text(text)
-    }
-
-    fn read_asset_thumbnail(&self, ref_path: &str) -> Option<AssetThumbnail> {
-        self.read_thumbnail(ref_path)
-    }
-
-    fn page_attachments(&self, page_path: &str) -> Vec<AttachmentRow> {
-        self.read_attachments(page_path)
-    }
-
-    fn import_asset_path(&self, path: &str) -> Result<AttachmentRow, String> {
-        self.import_path(path)
-    }
-
-    fn import_asset_bytes(
-        &self,
-        bytes: Vec<u8>,
-        name: &str,
-        mime: Option<&str>,
-    ) -> Result<AttachmentRow, String> {
-        self.import_bytes(bytes, name, mime)
-    }
-
-    fn delete_asset(&self, ref_path: &str) -> Result<(), String> {
-        self.delete_ref(ref_path)
-    }
-
-    fn journal_dates(&self) -> Vec<String> {
-        self.read_journal_dates()
-    }
-
-    fn ensure_today_journal(&self) -> Result<String, String> {
-        self.ensure_journal()
-    }
-
-    fn create_journal_day(&self, date: &str) -> Result<String, String> {
-        self.create_journal(date)
-    }
-
-    fn repair_db(&self) -> Result<(), String> {
-        self.repair_database()
-    }
-
-    fn stt_configured(&self) -> bool {
-        self.stt_is_configured()
-    }
-
-    fn voice_start(&self, page_path: &str) -> Result<String, String> {
-        self.begin_recording(page_path)
-    }
-
-    fn voice_stop(&self) -> Result<(String, f64), String> {
-        self.finish_recording()
-    }
-
-    fn voice_transcribe(&self, recording_path: &str, page_path: &str) -> Result<usize, String> {
-        self.transcribe_clip(recording_path, page_path)
-    }
-
-    fn voice_insert_clip(
-        &self,
-        recording_path: &str,
-        page_path: &str,
-        seconds: f64,
-    ) -> Result<(), String> {
-        self.insert_clip(recording_path, page_path, seconds)
-    }
-
-    fn ai_run(&self, call: AiCall) -> Result<String, String> {
-        match call.kind {
-            AiCallKind::Transform(action) => {
-                let action = match action {
-                    AiTransformAction::Rewrite => AiAction::Rewrite,
-                    AiTransformAction::Format => AiAction::Format,
-                    AiTransformAction::Structure => AiAction::Structure,
-                    AiTransformAction::Summarize => AiAction::Summarize,
-                    AiTransformAction::Connect => AiAction::Connect,
-                };
-                self.runtime
-                    .block_on(
-                        self.service
-                            .ai_transform_block(call.text, action, call.page_path),
-                    )
-                    .map(|result| result.content)
-            }
-            AiCallKind::Research => self
-                .runtime
-                .block_on(self.service.ai_research(call.text))
-                .map(|result| result.findings),
-            AiCallKind::Interlink => self
-                .runtime
-                .block_on(self.service.ai_interlink_notes(call.text, call.page_path))
-                .map(|result| result.content),
-            AiCallKind::Mermaid => self
-                .runtime
-                .block_on(self.service.generate_mermaid(call.text))
-                .map(|result| result.content),
-        }
-    }
-}
-
-/// Convert an `stratum-app` block DTO into the editor DTO (field-identical).
-fn app_block_to_editor(dto: stratum_app::block::BlockDto) -> BlockDto {
-    BlockDto {
-        id: dto.id,
-        content: dto.content,
-        parent_id: dto.parent_id,
-        left_id: dto.left_id,
-        properties: dto.properties,
-        marker: dto.marker,
-        priority: dto.priority,
-        collapsed: dto.collapsed,
-        heading_level: dto.heading_level,
-    }
-}
-
-/// Convert an editor DTO into the `stratum-app` block DTO (field-identical).
-fn editor_block_to_app(dto: BlockDto) -> stratum_app::block::BlockDto {
-    stratum_app::block::BlockDto {
-        id: dto.id,
-        content: dto.content,
-        parent_id: dto.parent_id,
-        left_id: dto.left_id,
-        properties: dto.properties,
-        marker: dto.marker,
-        priority: dto.priority,
-        collapsed: dto.collapsed,
-        heading_level: dto.heading_level,
-    }
-}
-
-/// Decode and play one synthesized audio buffer.
-///
-/// The `OutputStream` is kept alive on the stack for the duration of playback:
-/// dropping it stops the audio device, so it must outlive `sleep_until_end`.
-fn play_audio(bytes: Vec<u8>) -> Result<(), String> {
-    use std::io::Cursor;
-
-    use rodio::{Decoder, OutputStream, Sink};
-
-    let (_stream, handle) = OutputStream::try_default().map_err(|error| error.to_string())?;
-    let sink = Sink::try_new(&handle).map_err(|error| error.to_string())?;
-    let source = Decoder::new(Cursor::new(bytes)).map_err(|error| error.to_string())?;
-    sink.append(source);
-    sink.sleep_until_end();
-    Ok(())
 }
 
 /// Derive the recent-page list: exclude the journal namespace and sort by

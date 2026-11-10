@@ -1,20 +1,27 @@
 #!/usr/bin/env bash
-# Capture screenshots of the native Stratum journal surface.
+# Capture screenshots of the native Stratum journal and page surfaces.
 #
 # The shell is started with STRATUM_FIXTURE=1 so the capture is deterministic
 # and needs no vault. When no DISPLAY is set the script starts a private Xvfb
 # screen, waits for the window to map, and captures the root window with
-# ImageMagick. Three states are captured:
+# ImageMagick. Eight states are captured:
 #
 #   1. the journal route in edit mode
 #   2. the journal route with the calendar popup expanded (STRATUM_CALENDAR=1)
 #   3. the journal route on a past day in read mode
 #      (STRATUM_JOURNAL_DATE=2026-11-09 STRATUM_READ_MODE=1)
+#   4. the fixture page in edit mode (STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md)
+#   5. the fixture page with the Note menu open (STRATUM_MENU=note)
+#   6. the fixture page in read mode (STRATUM_READ_MODE=1)
+#   7. the fixture page with backlinks/suggestions expanded (STRATUM_CARDS=open)
+#   8. the fixture page with a block revealed (STRATUM_HIGHLIGHT=<fixture id>)
 #
-# The PNGs are written to dist/gpui-journal.png, dist/gpui-journal-calendar.png
-# and dist/gpui-journal-read.png by default; pass a path as the first argument
-# or set OUTPUT to override the edit-mode capture (the other two derive from
-# it).
+# The journal PNGs are written to dist/gpui-journal.png,
+# dist/gpui-journal-calendar.png and dist/gpui-journal-read.png; the page PNGs to
+# dist/gpui-page.png, dist/gpui-page-note-menu.png, dist/gpui-page-read.png,
+# dist/gpui-page-cards.png and dist/gpui-page-highlight.png. Pass a path as the
+# first argument or set OUTPUT to override the journal edit-mode capture (the
+# other captures derive from its directory).
 #
 # Requirements: Xvfb, xdotool and ImageMagick's `import` (the CI job installs
 # them). Run from any directory; the script locates the workspace itself.
@@ -24,7 +31,15 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="${1:-${OUTPUT:-$ROOT/dist/gpui-journal.png}}"
 CALENDAR_OUT="${OUT%.png}-calendar.png"
 READ_OUT="${OUT%.png}-read.png"
-LOG="${CAPTURE_LOG:-$ROOT/dist/gpui-journal.log}"
+OUT_DIR="$(dirname "$OUT")"
+PAGE_OUT="$OUT_DIR/gpui-page.png"
+PAGE_MENU_OUT="$OUT_DIR/gpui-page-note-menu.png"
+PAGE_READ_OUT="$OUT_DIR/gpui-page-read.png"
+PAGE_CARDS_OUT="$OUT_DIR/gpui-page-cards.png"
+PAGE_HIGHLIGHT_OUT="$OUT_DIR/gpui-page-highlight.png"
+# Deterministic block on pages/fixture.md (provider::FIXTURE_HIGHLIGHT_BLOCK).
+FIXTURE_HIGHLIGHT="413cf12c-969f-54ef-bf75-40ffd89e8618"
+LOG="${CAPTURE_LOG:-$OUT_DIR/gpui-journal.log}"
 WIDTH="${CAPTURE_WIDTH:-1280}"
 HEIGHT="${CAPTURE_HEIGHT:-720}"
 DISPLAY_NUM="${CAPTURE_DISPLAY:-99}"
@@ -36,6 +51,9 @@ export STRATUM_LOCALE="${STRATUM_LOCALE:-en}"
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/target}"
 export LIBGL_ALWAYS_SOFTWARE=1
 export WINIT_UNIX_BACKEND=x11
+# gpui prefers Wayland when it is advertised, but the capture drives the window
+# through xdotool, so force the X11 backend even on a Wayland session.
+unset WAYLAND_DISPLAY
 export RUST_BACKTRACE=1
 
 for tool in Xvfb xdotool import; do
@@ -134,3 +152,19 @@ capture_state "STRATUM_ROUTE=/journal STRATUM_CALENDAR=1" "$CALENDAR_OUT"
 capture_state \
     "STRATUM_ROUTE=/journal STRATUM_JOURNAL_DATE=2026-11-09 STRATUM_READ_MODE=1" \
     "$READ_OUT"
+
+capture_state \
+    "STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md" \
+    "$PAGE_OUT"
+capture_state \
+    "STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md STRATUM_MENU=note" \
+    "$PAGE_MENU_OUT"
+capture_state \
+    "STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md STRATUM_READ_MODE=1" \
+    "$PAGE_READ_OUT"
+capture_state \
+    "STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md STRATUM_CARDS=open" \
+    "$PAGE_CARDS_OUT"
+capture_state \
+    "STRATUM_ROUTE=page STRATUM_PAGE=pages/fixture.md STRATUM_HIGHLIGHT=$FIXTURE_HIGHLIGHT" \
+    "$PAGE_HIGHLIGHT_OUT"

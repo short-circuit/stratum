@@ -46,6 +46,7 @@ use stratum_i18n::{t_global, tr_global};
 use crate::provider::ShellData;
 
 use self::drag::{DragState, DropTarget};
+use self::reveal::RevealState;
 
 mod ai;
 pub use ai::AiStatus;
@@ -59,6 +60,7 @@ pub mod drag;
 pub mod input;
 mod metrics;
 pub mod overlay;
+pub mod reveal;
 pub mod rows;
 pub mod save;
 pub mod view;
@@ -128,6 +130,8 @@ pub struct EditorView {
     /// parent. Journal sections stack full-height editors inside one scroll
     /// container, so a fill-height editor would collapse its virtual list.
     auto_height: bool,
+    /// Highlight-on-open state.
+    reveal: RevealState,
 }
 
 impl EditorView {
@@ -186,6 +190,7 @@ impl EditorView {
             pending_delete: None,
             last_pointer: point(px(0.0), px(0.0)),
             auto_height: false,
+            reveal: RevealState::new(),
         };
         view.refresh_attachments();
         view
@@ -223,24 +228,6 @@ impl EditorView {
     /// The current virtual layout.
     pub fn layout(&self) -> &VirtualLayout {
         &self.layout
-    }
-
-    /// Whether the editor sizes itself to its content.
-    pub fn auto_height(&self) -> bool {
-        self.auto_height
-    }
-
-    /// Size the editor to its content instead of the parent height.
-    ///
-    /// The journal stack embeds several editors inside one scroll container, so
-    /// each editor must contribute its full row height to the stack rather than
-    /// filling a viewport it does not own.
-    pub fn set_auto_height(&mut self, auto_height: bool, cx: &mut Context<Self>) {
-        if self.auto_height == auto_height {
-            return;
-        }
-        self.auto_height = auto_height;
-        cx.notify();
     }
 
     /// The scroll handle used by the virtual list and the perf capture.
@@ -376,6 +363,8 @@ impl EditorView {
 
     /// Mark the document dirty and schedule the debounced save.
     pub(crate) fn after_edit(&mut self, cx: &mut Context<Self>) {
+        // A highlight-on-open marker only survives until the user edits.
+        self.reveal.clear();
         self.rebuild_rows();
         self.save.mark_dirty();
         self.schedule_save(cx);

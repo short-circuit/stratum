@@ -17,10 +17,13 @@ use std::sync::Arc;
 use gpui_kit::component::{ActiveTheme, Icon, Sizable, Theme};
 use gpui_kit::prelude::*;
 use gpui_kit::*;
-use stratum_editor::{BlockKind, DecoratedRow, DecoratedSpan, SpanKind};
+use stratum_editor::{BlockKind, DecoratedRow};
 
+use self::style::{floor_char_boundary, marker_badge, span_style};
 use crate::panels::editor::asset_rows;
 use crate::panels::editor::EditorView;
+
+mod style;
 
 /// Width used for virtual-list item measurement.
 pub const ROW_WIDTH: f32 = 1000.0;
@@ -34,15 +37,6 @@ pub const CHEVRON_WIDTH: f32 = 20.0;
 pub const BADGE_WIDTH: f32 = 60.0;
 /// Width reserved for a reminder chip.
 pub const REMINDER_WIDTH: f32 = 96.0;
-
-/// A resolved inline text style.
-struct SpanStyle {
-    font: Font,
-    color: Hsla,
-    background: Option<Hsla>,
-    underline: Option<UnderlineStyle>,
-    strikethrough: Option<StrikethroughStyle>,
-}
 
 /// The left offset of the row text, including nesting indentation.
 pub fn row_text_left(depth: usize) -> f32 {
@@ -273,6 +267,15 @@ pub fn row_element(
         .text_color(theme.colors.foreground)
         .cursor_text();
 
+    // Highlight-on-open: the revealed block keeps a soft tint until the user
+    // edits or another reveal replaces it.
+    if view
+        .highlight_block()
+        .is_some_and(|block_id| block_id == row.block_id.to_string())
+    {
+        element = element.bg(theme.colors.warning.opacity(0.18));
+    }
+
     // The indent gutter is the drag affordance: it covers only the empty space
     // left of the row text, carries no listeners (the press bubbles to the root
     // handler) and stays cheap by rendering no children or text.
@@ -381,114 +384,6 @@ pub fn row_element(
     }
 
     element.into_any_element()
-}
-
-fn marker_badge(badge: &stratum_editor::MarkerBadge, theme: &Theme) -> impl IntoElement {
-    let marker = badge
-        .marker
-        .map(|marker| marker.as_str())
-        .unwrap_or_default();
-    let priority = badge
-        .priority
-        .map(|priority| priority.as_str())
-        .unwrap_or_default();
-    let label = if priority.is_empty() {
-        marker.to_string()
-    } else if marker.is_empty() {
-        format!("[{priority}]")
-    } else {
-        format!("{marker} [{priority}]")
-    };
-    div()
-        .flex()
-        .items_center()
-        .justify_center()
-        .w(px(BADGE_WIDTH))
-        .h_full()
-        .text_size(px(10.0))
-        .font_weight(FontWeight::SEMIBOLD)
-        .text_color(theme.colors.accent_foreground)
-        .child(label)
-}
-
-fn span_style(span: &DecoratedSpan, row: &DecoratedRow, theme: &Theme) -> SpanStyle {
-    let base_font = font(theme.font_family.clone());
-    let mono_font = font(theme.mono_font_family.clone());
-    let mut font = base_font;
-    let mut color = if span.syntax {
-        theme.colors.muted_foreground
-    } else {
-        theme.colors.foreground
-    };
-    let mut background = None;
-    let mut underline = None;
-    let mut strikethrough = None;
-
-    if matches!(&row.kind, BlockKind::Heading(_)) {
-        font = font.bold();
-    }
-
-    match &span.kind {
-        SpanKind::Bold => font = font.bold(),
-        SpanKind::Italic => font = font.italic(),
-        SpanKind::Strike => {
-            strikethrough = Some(StrikethroughStyle {
-                thickness: px(1.0),
-                color: Some(color),
-            });
-        }
-        SpanKind::Code => {
-            font = mono_font.clone();
-            if !span.syntax {
-                background = Some(theme.colors.secondary);
-            }
-        }
-        SpanKind::Highlight => {
-            background = Some(theme.colors.warning.opacity(0.25));
-        }
-        SpanKind::Link { .. } | SpanKind::WikiLink { .. } | SpanKind::BlockRef { .. } => {
-            color = theme.colors.link;
-            underline = Some(UnderlineStyle {
-                thickness: px(1.0),
-                color: Some(color),
-                wavy: false,
-            });
-        }
-        SpanKind::Asset { .. } => {
-            // The chip fallback keeps the path text on the theme's primary /
-            // secondary pair; decoded images and file attachments are rendered
-            // by `asset_rows` instead of the decorated spans.
-            color = theme.colors.primary;
-            background = Some(theme.colors.secondary);
-        }
-        SpanKind::Tag => color = theme.colors.primary,
-        SpanKind::Math { .. } => {
-            font = mono_font.clone();
-            color = theme.colors.link;
-        }
-        SpanKind::Text => {}
-    }
-
-    if matches!(&row.kind, BlockKind::Code { .. } | BlockKind::Mermaid) {
-        font = mono_font;
-        color = theme.colors.foreground;
-    }
-
-    SpanStyle {
-        font,
-        color,
-        background,
-        underline,
-        strikethrough,
-    }
-}
-
-fn floor_char_boundary(text: &str, mut index: usize) -> usize {
-    index = index.min(text.len());
-    while index > 0 && !text.is_char_boundary(index) {
-        index -= 1;
-    }
-    index
 }
 
 #[cfg(test)]

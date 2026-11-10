@@ -12,6 +12,9 @@
 //! - `STRATUM_JOURNAL_DATE=2026-11-09` starts the journal on a day.
 //! - `STRATUM_CALENDAR=1` starts with the journal calendar expanded.
 //! - `STRATUM_READ_MODE=1` starts in read mode.
+//! - `STRATUM_MENU=note` starts with the page Note menu open.
+//! - `STRATUM_CARDS=open` starts with the page backlinks/suggestions expanded.
+//! - `STRATUM_HIGHLIGHT=<block-id>` reveals a block when the page opens.
 //!
 //! Shortcuts are installed from the shared [`stratum_ui::router::SHORTCUTS`]
 //! table, with `Modifier::Ctrl` mapped to GPUI's `secondary` modifier.
@@ -80,11 +83,24 @@ fn apply_start_state(shell: &mut Shell) {
         }
     }
     if let Ok(page) = std::env::var("STRATUM_PAGE") {
-        shell.open_page(page);
+        let highlight = std::env::var("STRATUM_HIGHLIGHT")
+            .ok()
+            .filter(|value| !value.is_empty());
+        match highlight {
+            Some(block_id) => shell.open_page_with_highlight(page, block_id),
+            None => shell.open_page(page),
+        }
     }
     if env_flag("STRATUM_READ_MODE") {
         shell.set_read_mode(true);
     }
+    let menu_open = std::env::var("STRATUM_MENU")
+        .map(|value| value.eq_ignore_ascii_case("note"))
+        .unwrap_or(false);
+    let cards_open = std::env::var("STRATUM_CARDS")
+        .map(|value| value.eq_ignore_ascii_case("open"))
+        .unwrap_or(false);
+    shell.set_page_start(menu_open, cards_open, None);
     let journal_date = std::env::var("STRATUM_JOURNAL_DATE")
         .ok()
         .filter(|value| !value.is_empty());
