@@ -26,9 +26,11 @@ use super::{
     BacklinkRow, BacklinkSnippet, ConnectionRow, PageInfo, RecentPage, ReindexSummary, ShellData,
     ShellSnapshot, VaultStats,
 };
+use panels::PanelState;
 
 mod blocks;
 mod page;
+mod panels;
 #[cfg(test)]
 mod tests;
 
@@ -70,6 +72,7 @@ pub struct FixtureProvider {
     export_pages: u64,
     pages: Mutex<HashMap<String, Vec<BlockDto>>>,
     assets: Mutex<HashMap<String, AttachmentRow>>,
+    panels: Mutex<PanelState>,
 }
 
 impl FixtureProvider {
@@ -150,6 +153,7 @@ impl FixtureProvider {
             export_pages: 87,
             pages: Mutex::new(pages),
             assets: Mutex::new(HashMap::new()),
+            panels: Mutex::new(PanelState::new()),
         }
     }
 

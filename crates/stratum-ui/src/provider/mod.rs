@@ -23,12 +23,14 @@ use stratum_editor::{AssetThumbnail, AttachmentRow, BlockDto};
 use convert::{app_block_to_editor, editor_block_to_app};
 
 mod app;
+mod app_panels;
 mod assets;
 mod audio;
 mod convert;
 mod fixture;
 mod journal;
 mod page;
+pub mod panels;
 mod voice;
 
 pub use assets::attachment_row;
@@ -40,6 +42,12 @@ pub use journal::{journal_dates_from_paths, journal_path, parse_journal_date};
 pub use page::{
     clamp_relevance, group_backlinks, normalize_move_path, BacklinkRow, BacklinkSnippet,
     ConnectionRow, PageInfo, ReindexSummary,
+};
+pub use panels::{
+    AskAnswer, AskSource, FlashcardRow, InstalledThemeRow, PanelData, PluginCatalogEntry,
+    PluginCatalogSnapshot, PluginRow, PluginTestResult, QueryTable, ReminderRow, SavedQueryRow,
+    SearchHit, TemplateRow, ThemeCatalogEntry, ThemeCatalogSnapshot, ThemeValuesRow,
+    PANEL_DATA_NOT_AVAILABLE,
 };
 
 pub use fixture::{
@@ -80,7 +88,11 @@ pub struct ShellSnapshot {
 }
 
 /// Shell data operations.
-pub trait ShellData: Send + Sync {
+///
+/// Panel data is a supertrait: every shell provider also answers the
+/// [`PanelData`] contract, whose methods carry safe defaults so existing
+/// providers and window-free tests keep compiling.
+pub trait ShellData: PanelData {
     /// Read the current snapshot.
     fn snapshot(&self) -> ShellSnapshot;
     /// Refresh and return a new snapshot.
