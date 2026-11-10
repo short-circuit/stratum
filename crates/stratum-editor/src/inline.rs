@@ -42,7 +42,8 @@ pub enum SpanKind {
     Math { display: bool },
     /// `((block-id))`.
     BlockRef { id: String },
-    /// `![[path]]` asset reference.
+    /// `![[path]]` asset embed. `text` holds the raw inner text so labels and
+    /// surrounding whitespace round-trip byte-exactly.
     Asset { path: String },
 }
 
@@ -291,11 +292,11 @@ pub fn render_inline(spans: &[Span]) -> String {
             }
             SpanKind::Asset { path } => {
                 out.push_str("![[");
-                if span.text.is_empty() || span.text == *path {
+                // `text` is the raw inner text, so labels and surrounding
+                // whitespace survive byte-for-byte.
+                if span.text.is_empty() {
                     out.push_str(path);
                 } else {
-                    out.push_str(path);
-                    out.push('|');
                     out.push_str(&span.text);
                 }
                 out.push_str("]]");
@@ -335,7 +336,15 @@ fn match_wikilink(text: &str, start: usize) -> Option<(SpanKind, String, usize)>
     let inner = &text[inner_start..inner_end];
     let target = inner.split('|').next().unwrap_or(inner).trim().to_string();
     let end = inner_end + 2;
-    Some((SpanKind::WikiLink { target, embed }, inner.to_string(), end))
+    // Only embeds (`![[…]]`) become asset spans. The plain `[[assets/…]]` form
+    // stays a wiki link so it round-trips byte-identically and keeps its link
+    // semantics.
+    let kind = if embed && pkm_markdown::linker::is_asset_link_target(&target) {
+        SpanKind::Asset { path: target }
+    } else {
+        SpanKind::WikiLink { target, embed }
+    };
+    Some((kind, inner.to_string(), end))
 }
 
 /// Match `[label](url)` at `start`.

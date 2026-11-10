@@ -74,11 +74,47 @@ fn parses_wiki_links_and_embeds() {
     assert_eq!(spans[0].text, "Target|display");
     assert_eq!(
         spans[2].kind,
-        SpanKind::WikiLink {
-            target: "assets/x.png".into(),
-            embed: true
+        SpanKind::Asset {
+            path: "assets/x.png".into()
         }
     );
+}
+
+#[test]
+fn asset_embeds_classify_but_plain_asset_links_stay_wiki() {
+    let embed = "![[assets/foo.png|My chart]]";
+    let spans = parse_inline(embed);
+    assert_eq!(spans.len(), 1);
+    assert_eq!(
+        spans[0].kind,
+        SpanKind::Asset {
+            path: "assets/foo.png".into()
+        }
+    );
+    assert_eq!(render_inline(&spans), embed);
+
+    let plain = "[[assets/bar.pdf]]";
+    let spans = parse_inline(plain);
+    assert_eq!(spans.len(), 1);
+    assert_eq!(
+        spans[0].kind,
+        SpanKind::WikiLink {
+            target: "assets/bar.pdf".into(),
+            embed: false
+        }
+    );
+    assert_eq!(render_inline(&spans), plain);
+
+    let spaced = "![[ assets/foo.png ]]";
+    let spans = parse_inline(spaced);
+    assert_eq!(spans.len(), 1);
+    assert_eq!(
+        spans[0].kind,
+        SpanKind::Asset {
+            path: "assets/foo.png".into()
+        }
+    );
+    assert_eq!(render_inline(&spans), spaced);
 }
 
 #[test]

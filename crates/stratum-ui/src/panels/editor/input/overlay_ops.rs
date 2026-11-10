@@ -46,6 +46,28 @@ pub(crate) fn apply_overlay(
     }
 }
 
+/// Caret offset after a slash action has replaced the block content.
+///
+/// Fenced actions must place the caret on the first line INSIDE the opening
+/// fence: leaving it before the fence makes the next keystrokes land outside
+/// the block and breaks code/Mermaid/math classification.
+pub(crate) fn slash_caret_offset(
+    action: Option<SlashAction>,
+    replacement: &str,
+    token_start: usize,
+) -> usize {
+    match action {
+        Some(SlashAction::Quote) => token_start.saturating_add(2),
+        Some(SlashAction::CodeBlock)
+        | Some(SlashAction::Mermaid)
+        | Some(SlashAction::MathEquation) => replacement
+            .find('\n')
+            .map(|index| index + 1)
+            .unwrap_or(replacement.len()),
+        _ => token_start.min(replacement.len()),
+    }
+}
+
 fn apply_slash(
     view: &mut EditorView,
     query: &str,
@@ -102,14 +124,10 @@ fn apply_slash(
         }
         _ => stripped,
     };
-    let replacement_len = replacement.len();
+    let caret_offset = slash_caret_offset(action, &replacement, token_start);
     let _ = view
         .state
         .replace_block_content(caret.block_id, replacement);
-    let caret_offset = match action {
-        Some(SlashAction::Quote) => token_start.saturating_add(2),
-        _ => token_start.min(replacement_len),
-    };
     let _ = view.state.set_caret(caret.block_id, caret_offset);
     match action {
         Some(SlashAction::Paragraph) | Some(SlashAction::Quote) => {

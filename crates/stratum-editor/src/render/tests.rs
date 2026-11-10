@@ -124,6 +124,26 @@ fn code_bodies_are_opaque_text_spans() {
 }
 
 #[test]
+fn asset_embeds_render_as_asset_spans() {
+    let id = Uuid::new_v4();
+    let doc = doc_with(vec![block(id, "![[assets/foo.png]]")]);
+    let rows = render_page(&doc, None, RenderMode::StageA, now());
+    let content: Vec<&DecoratedSpan> = rows[0].spans.iter().filter(|s| !s.syntax).collect();
+    assert_eq!(content.len(), 1);
+    assert_eq!(
+        content[0].kind,
+        SpanKind::Asset {
+            path: "assets/foo.png".into()
+        }
+    );
+    assert_eq!(content[0].text, "assets/foo.png");
+    assert!(!rows[0]
+        .spans
+        .iter()
+        .any(|s| matches!(s.kind, SpanKind::WikiLink { embed: true, .. })));
+}
+
+#[test]
 fn row_order_matches_depth_first_order() {
     let a = Uuid::new_v4();
     let b = Uuid::new_v4();

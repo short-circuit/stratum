@@ -258,6 +258,10 @@ path (the service uses it to pick journal vs. page context), exactly like
 
 ### Slash catalogue mapping
 
+Inserting code, Mermaid or math places the caret on the first line inside the
+opening fence, so the next keystrokes stay inside the block and keep it
+classified as code/Mermaid/math.
+
 | Action id | Engine behaviour | Service call | Result scope |
 |-----------|------------------|--------------|--------------|
 | `paragraph` | clear heading level | — | in place |
@@ -333,9 +337,10 @@ mutations go through `EditorState::set_block_reminder`, which routes the write
 through `EditorDocument::mutate` so revision and dirty bookkeeping stay in the
 document.
 
-Attachments are a deliberate phase-B boundary: asset references
-(`![[assets/foo.png]]`) render as a chip with the asset path text and the
-theme's primary/secondary colors, but there are no image thumbnails, no
+Attachments are a deliberate phase-B boundary: only embeds (`![[assets/foo.png]]`)
+classify as `SpanKind::Asset` and render as a chip with the asset path text and
+the theme's primary/secondary colors; the plain `[[assets/foo.png]]` form stays a
+wiki link so it round-trips byte-identically. There are no image thumbnails, no
 file-size row and no file drag-and-drop. Pasting inserts text only; attachment
 upload, image compression and the attachment list remain in the React
 `AttachmentPanel` until phase B. The follow-up card *Attachment thumbnails,
