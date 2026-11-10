@@ -1,4 +1,12 @@
-//! Datalog query commands: execute a query and manage saved queries.
+//! Datalog query commands: execute a query, manage saved queries, port the
+//! visual filter builder, and format saved-query timestamps.
+//!
+//! The command methods mirror the original IPC surface. [`builder`] owns the
+//! pure visual-builder port (field whitelist, EDN emission and round-trip
+//! parsing); [`display`] owns timestamp formatting.
+
+pub mod builder;
+pub mod display;
 
 use crate::state::StratumService;
 use pkm_query::engine::QueryEngine;
