@@ -195,6 +195,28 @@ mod tests {
     }
 
     #[test]
+    fn mixed_image_rows_do_not_promote_even_with_a_thumbnail() {
+        let mut row = row_for("see ![[assets/photo.png]] above");
+        assert!(
+            row.asset.is_none(),
+            "mixed content must not carry an asset span"
+        );
+        assert!(!renders_as_asset(&row));
+
+        // A decoded thumbnail must not flip a mixed row into an asset row.
+        row.thumbnail = Some(Arc::new(thumbnail()));
+        assert!(row.asset.is_none());
+        assert!(!renders_as_asset(&row));
+    }
+
+    #[test]
+    fn mixed_file_rows_do_not_promote() {
+        let row = row_for("report: ![[assets/report.pdf]] attached");
+        assert!(row.asset.is_none());
+        assert!(!renders_as_asset(&row));
+    }
+
+    #[test]
     fn thumbnails_fit_the_shared_box_without_upscaling() {
         let thumbnail = thumbnail();
         assert_eq!(

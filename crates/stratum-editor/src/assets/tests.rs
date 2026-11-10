@@ -78,21 +78,148 @@ fn display_name_is_the_basename() {
     assert_eq!(display_name(""), "");
 }
 
+/// One span with the real payload shape (non-syntax asset span).
+fn asset_payload(path: &str) -> DecoratedSpan {
+    DecoratedSpan {
+        text: path.to_string(),
+        kind: SpanKind::Asset {
+            path: path.to_string(),
+        },
+        syntax: false,
+        hidden: false,
+    }
+}
+
+/// One syntax delimiter span of an asset embed (`![[` / `]]`).
+fn asset_delimiter(text: &str, path: &str) -> DecoratedSpan {
+    DecoratedSpan {
+        text: text.to_string(),
+        kind: SpanKind::Asset {
+            path: path.to_string(),
+        },
+        syntax: true,
+        hidden: false,
+    }
+}
+
+/// The real rendered span shape for a single `![[path]]` embed.
+fn embed_spans(path: &str) -> Vec<DecoratedSpan> {
+    vec![
+        asset_delimiter("![[", path),
+        asset_payload(path),
+        asset_delimiter("]]", path),
+    ]
+}
+
+fn text(text: &str) -> DecoratedSpan {
+    DecoratedSpan {
+        text: text.to_string(),
+        kind: SpanKind::Text,
+        syntax: false,
+        hidden: false,
+    }
+}
+
 #[test]
-fn first_asset_span_returns_the_first_embed_in_order() {
-    let spans = vec![
-        span(SpanKind::Text),
-        span(SpanKind::Asset {
-            path: "assets/one.png".into(),
-        }),
-        span(SpanKind::Asset {
-            path: "assets/two.pdf".into(),
-        }),
-    ];
-    let found = first_asset_span(&spans).expect("asset span");
-    assert_eq!(found.path, "assets/one.png");
+fn first_asset_span_accepts_a_whole_content_embed() {
+    let found = first_asset_span(&embed_spans("assets/photo.png")).expect("asset span");
+    assert_eq!(found.path, "assets/photo.png");
     assert_eq!(found.kind, AssetKind::Image);
-    assert_eq!(first_asset_span(&[span(SpanKind::Text)]), None);
+
+    let file = first_asset_span(&embed_spans("assets/report.pdf")).expect("asset span");
+    assert_eq!(file.kind, AssetKind::File);
+}
+
+#[test]
+fn first_asset_span_allows_surrounding_whitespace() {
+    let mut spans = vec![text("  \n\t")];
+    spans.extend(embed_spans("assets/photo.png"));
+    spans.push(text(" "));
+    let found = first_asset_span(&spans).expect("asset span");
+    assert_eq!(found.path, "assets/photo.png");
+}
+
+#[test]
+fn first_asset_span_rejects_prefix_text() {
+    let mut spans = vec![text("see ")];
+    spans.extend(embed_spans("assets/photo.png"));
+    assert_eq!(first_asset_span(&spans), None);
+}
+
+#[test]
+fn first_asset_span_rejects_suffix_text() {
+    let mut spans = embed_spans("assets/photo.png");
+    spans.push(text(" above"));
+    assert_eq!(first_asset_span(&spans), None);
+}
+
+#[test]
+fn first_asset_span_rejects_text_on_both_sides() {
+    let mut spans = vec![text("report: ")];
+    spans.extend(embed_spans("assets/report.pdf"));
+    spans.push(text(" attached"));
+    assert_eq!(first_asset_span(&spans), None);
+}
+
+#[test]
+fn first_asset_span_rejects_two_embeds() {
+    let mut spans = embed_spans("assets/one.png");
+    spans.extend(embed_spans("assets/two.pdf"));
+    assert_eq!(first_asset_span(&spans), None);
+}
+
+#[test]
+fn first_asset_span_rejects_rows_without_an_embed() {
+    assert_eq!(first_asset_span(&[]), None);
+    assert_eq!(first_asset_span(&[text("just text")]), None);
+    assert_eq!(first_asset_span(&[text("   ")]), None);
+}
+
+#[test]
+fn first_asset_span_rejects_other_span_kinds() {
+    // A wiki link, tag or emphasis means the row is more than the embed.
+    for other in [
+        span(SpanKind::WikiLink {
+            target: "Other".into(),
+            embed: false,
+        }),
+        span(SpanKind::Tag),
+        span(SpanKind::Bold),
+        span(SpanKind::Code),
+    ] {
+        let mut spans = embed_spans("assets/photo.png");
+        spans.push(other);
+        assert_eq!(first_asset_span(&spans), None);
+    }
+}
+
+#[test]
+fn first_asset_span_matches_real_rendered_rows() {
+    use crate::render::{render_page, RenderMode};
+
+    let whole = EditorDocument::from_blocks(
+        "pages/x.md",
+        vec![Block::new(
+            Uuid::new_v4(),
+            "![[assets/photo.png]]".to_string(),
+        )],
+    )
+    .unwrap();
+    let whole_rows = render_page(&whole, None, RenderMode::StageA, chrono::Utc::now());
+    let found = first_asset_span(&whole_rows[0].spans).expect("whole-content embed");
+    assert_eq!(found.path, "assets/photo.png");
+    assert_eq!(found.kind, AssetKind::Image);
+
+    let mixed = EditorDocument::from_blocks(
+        "pages/x.md",
+        vec![Block::new(
+            Uuid::new_v4(),
+            "see ![[assets/photo.png]] above".to_string(),
+        )],
+    )
+    .unwrap();
+    let mixed_rows = render_page(&mixed, None, RenderMode::StageA, chrono::Utc::now());
+    assert_eq!(first_asset_span(&mixed_rows[0].spans), None);
 }
 
 #[test]
@@ -176,6 +303,30 @@ fn cache_reinsert_does_not_grow_past_the_bound() {
     assert_eq!(cache.len(), 1);
     let entry = cache.get("assets/a.png").expect("entry");
     assert_eq!(entry.width, 20);
+}
+
+#[test]
+fn cache_invalidate_removes_the_entry_and_its_recency_slot() {
+    let mut cache = AssetThumbnailCache::new(2);
+    cache.insert("assets/a.png", thumbnail(10, 10));
+    cache.insert("assets/b.png", thumbnail(10, 10));
+    assert_eq!(cache.len(), 2);
+
+    cache.invalidate("assets/a.png");
+    assert_eq!(cache.len(), 1);
+    assert!(cache.get("assets/a.png").is_none());
+    assert!(cache.get("assets/b.png").is_some());
+
+    // The stale recency slot is gone too: filling the cache must not evict the
+    // surviving entry because of a phantom `a` entry.
+    cache.insert("assets/c.png", thumbnail(10, 10));
+    assert_eq!(cache.len(), 2);
+    assert!(cache.get("assets/b.png").is_some());
+    assert!(cache.get("assets/c.png").is_some());
+
+    // Invalidating an absent path is a no-op.
+    cache.invalidate("assets/missing.png");
+    assert_eq!(cache.len(), 2);
 }
 
 #[test]

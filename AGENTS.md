@@ -491,7 +491,9 @@ frozen reference application and are never modified by shell work.
   inline spans, editing/undo/IME, slash and marker menus, wiki-link helpers,
   marker/reminder models, math/Mermaid/attachment-thumbnail caches,
   attachment classification/row labels (`assets`), reserved asset row heights
-  and virtualization, and has no UI dependencies.
+  and virtualization, and has no UI dependencies. Attachment rows only promote
+  for whole-content `![[…]]` embeds (surrounding whitespace allowed); mixed
+  content keeps the inline asset chip and the normal text height.
 - The native editor view lives in `crates/stratum-ui/src/panels/editor/`:
   `mod.rs` (EditorView state, save scheduling, asset budget), `metrics.rs`
   (per-frame measurements), `view.rs` (virtual list, canvas input, overlays,

@@ -79,16 +79,47 @@ pub struct AssetSpan {
     pub kind: AssetKind,
 }
 
-/// Find the first asset embed span in `spans`, in order.
+/// Find the asset embed that makes up the whole row content.
 ///
-/// Returns `None` when the row carries no `![[…]]` asset embed.
+/// Returns `Some` only when the row's entire content is exactly one `![[…]]`
+/// asset embed, with surrounding whitespace allowed. Concretely, there must be
+/// exactly one non-syntax [`SpanKind::Asset`] payload span, and every other
+/// span must be either a syntax delimiter of that embed (`syntax == true`,
+/// `SpanKind::Asset`) or a [`SpanKind::Text`] span whose text is whitespace
+/// only. Mixed content (non-whitespace text, any other span kind such as a wiki
+/// link, tag or emphasis) and rows with two or more embeds return `None`.
+///
+/// This is the converter parity gate for the shipped
+/// `^\s*!\[\[…\]\]\s*$` rule: the view promotes a row to a thumbnail/file
+/// attachment row based on this result, so a mixed row keeps its inline asset
+/// chip and normal text height instead of losing its text.
 pub fn first_asset_span(spans: &[DecoratedSpan]) -> Option<AssetSpan> {
-    spans.iter().find_map(|span| match &span.kind {
-        SpanKind::Asset { path } => Some(AssetSpan {
-            path: path.clone(),
-            kind: asset_kind(path),
-        }),
-        _ => None,
+    let mut payload: Option<&str> = None;
+    for span in spans {
+        match &span.kind {
+            // A syntax delimiter of the embed (`![[` / `]]`).
+            SpanKind::Asset { .. } if span.syntax => {}
+            // The single payload span carrying the asset path.
+            SpanKind::Asset { path } => {
+                if payload.is_some() {
+                    // Two or more embeds: the row is mixed content.
+                    return None;
+                }
+                payload = Some(path);
+            }
+            // Whitespace around the embed is allowed by the converter rule.
+            SpanKind::Text => {
+                if !span.text.trim().is_empty() {
+                    return None;
+                }
+            }
+            // Any other span kind means the row carries more than the embed.
+            _ => return None,
+        }
+    }
+    payload.map(|path| AssetSpan {
+        path: path.to_string(),
+        kind: asset_kind(path),
     })
 }
 
@@ -271,6 +302,22 @@ impl AssetThumbnailCache {
         order.push(ref_path.to_string());
         self.entries
             .insert(ref_path.to_string(), Arc::new(thumbnail));
+    }
+
+    /// Drop a cached thumbnail and its recency slot.
+    ///
+    /// The view calls this after a successful attachment delete so a later
+    /// re-import of the same path cannot reuse a stale decode. A path that is
+    /// not cached is a no-op.
+    pub fn invalidate(&mut self, ref_path: &str) {
+        self.entries.remove(ref_path);
+        let mut order = self
+            .order
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(position) = order.iter().position(|entry| entry == ref_path) {
+            order.remove(position);
+        }
     }
 
     /// Number of cached thumbnails.

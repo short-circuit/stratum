@@ -80,12 +80,14 @@ pub enum ThumbnailTask {
 /// Returns `None` when the range has no image row that still needs a
 /// thumbnail, or when `budget` is exhausted. Rows that already carry a
 /// thumbnail are skipped; the first remaining image row is returned, preferring
-/// an already-cached thumbnail over a provider decode. Callers attach a
-/// [`ThumbnailTask::Cached`] result without spending budget and spend one unit
-/// for a [`ThumbnailTask::Fetch`], so the loop always makes progress.
+/// an already-cached thumbnail over a provider decode. Paths in `failed` are
+/// skipped so one corrupt image cannot starve every later thumbnail. Callers
+/// attach a [`ThumbnailTask::Cached`] result without spending budget and spend
+/// one unit for a [`ThumbnailTask::Fetch`], so the loop always makes progress.
 pub fn next_thumbnail_task(
     rows: &[DecoratedRow],
     cache: &AssetThumbnailCache,
+    failed: &std::collections::HashSet<String>,
     range: std::ops::Range<usize>,
     budget: usize,
 ) -> Option<ThumbnailTask> {
@@ -101,6 +103,9 @@ pub fn next_thumbnail_task(
             continue;
         };
         if asset.kind != AssetKind::Image {
+            continue;
+        }
+        if failed.contains(&asset.path) {
             continue;
         }
         if let Some(thumbnail) = cache.get(&asset.path) {
@@ -169,21 +174,31 @@ mod tests {
     };
     use stratum_i18n::t_global;
 
-    /// Build decorated rows for one asset embed.
-    fn asset_rows(content: &str) -> Vec<DecoratedRow> {
-        let blocks = dto_to_blocks(vec![BlockDto {
-            id: Uuid::new_v4().to_string(),
-            content: content.to_string(),
-            parent_id: None,
-            left_id: None,
-            properties: Vec::new(),
-            marker: None,
-            priority: None,
-            collapsed: false,
-            heading_level: None,
-        }]);
+    /// Build decorated rows for a sequence of block contents.
+    fn rows_for(contents: &[&str]) -> Vec<DecoratedRow> {
+        let blocks = dto_to_blocks(
+            contents
+                .iter()
+                .map(|content| BlockDto {
+                    id: Uuid::new_v4().to_string(),
+                    content: content.to_string(),
+                    parent_id: None,
+                    left_id: None,
+                    properties: Vec::new(),
+                    marker: None,
+                    priority: None,
+                    collapsed: false,
+                    heading_level: None,
+                })
+                .collect(),
+        );
         let document = EditorDocument::from_blocks("pages/Test.md", blocks).expect("document");
         render_page(&document, None, RenderMode::StageA, Utc::now())
+    }
+
+    /// Build decorated rows for one asset embed.
+    fn asset_rows(content: &str) -> Vec<DecoratedRow> {
+        rows_for(&[content])
     }
 
     fn thumbnail() -> AssetThumbnail {
@@ -209,20 +224,24 @@ mod tests {
     fn thumbnail_task_prefers_cache_then_fetch() {
         let rows = asset_rows("![[assets/photo.png]]");
         assert!(rows[0].thumbnail.is_none());
+        let failed = std::collections::HashSet::new();
         let cache = AssetThumbnailCache::new(4);
         assert_eq!(
-            next_thumbnail_task(&rows, &cache, 0..rows.len(), 1),
+            next_thumbnail_task(&rows, &cache, &failed, 0..rows.len(), 1),
             Some(ThumbnailTask::Fetch {
                 index: 0,
                 path: "assets/photo.png".to_string()
             })
         );
-        assert_eq!(next_thumbnail_task(&rows, &cache, 0..rows.len(), 0), None);
+        assert_eq!(
+            next_thumbnail_task(&rows, &cache, &failed, 0..rows.len(), 0),
+            None
+        );
 
         let mut cache = AssetThumbnailCache::new(4);
         cache.insert("assets/photo.png", thumbnail());
         let Some(ThumbnailTask::Cached { index, thumbnail }) =
-            next_thumbnail_task(&rows, &cache, 0..rows.len(), 1)
+            next_thumbnail_task(&rows, &cache, &failed, 0..rows.len(), 1)
         else {
             panic!("cached thumbnail expected");
         };
@@ -233,12 +252,31 @@ mod tests {
     #[test]
     fn thumbnail_task_skips_file_rows_and_empty_ranges() {
         let rows = asset_rows("![[assets/report.pdf]]");
+        let failed = std::collections::HashSet::new();
         let cache = AssetThumbnailCache::new(4);
-        assert_eq!(next_thumbnail_task(&rows, &cache, 0..rows.len(), 1), None);
         assert_eq!(
-            next_thumbnail_task(&rows, &cache, 5..9, 1),
+            next_thumbnail_task(&rows, &cache, &failed, 0..rows.len(), 1),
+            None
+        );
+        assert_eq!(
+            next_thumbnail_task(&rows, &cache, &failed, 5..9, 1),
             None,
             "out-of-range indices are ignored"
+        );
+    }
+
+    #[test]
+    fn thumbnail_task_skips_failed_paths_in_favour_of_the_next_image() {
+        let rows = rows_for(&["![[assets/broken.png]]", "![[assets/photo.png]]"]);
+        let cache = AssetThumbnailCache::new(4);
+        let mut failed = std::collections::HashSet::new();
+        failed.insert("assets/broken.png".to_string());
+        assert_eq!(
+            next_thumbnail_task(&rows, &cache, &failed, 0..rows.len(), 1),
+            Some(ThumbnailTask::Fetch {
+                index: 1,
+                path: "assets/photo.png".to_string()
+            })
         );
     }
 

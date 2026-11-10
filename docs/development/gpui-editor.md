@@ -354,6 +354,16 @@ Asset embeds (`![[assets/foo.png]]`) are classified by
 embed form is an asset span — the plain `[[assets/foo.png]]` form stays a wiki
 link so it round-trips byte-identically.
 
+Row promotion is a whole-content gate, matching the shipped
+`^\s*!\[\[…\]\]\s*$` converter: only a block whose entire content is a single
+`![[…]]` embed (surrounding whitespace allowed) becomes an attachment row.
+`stratum_editor::assets::first_asset_span` returns `None` for any mixed content
+(prefix/suffix text, another span kind such as a wiki link/tag/emphasis, or two
+embeds), so the row keeps the inline asset chip rendered through
+`visible_runs`/`StyledText` and the normal text height instead of losing its
+text. The view relies on this gate for both `renders_as_asset` and the virtual
+layout height reservation; there is no second mixed-content check in the UI.
+
 Rendering is split so the logic stays in the crates:
 
 - `panels/editor/asset_rows.rs` renders an image row with the decoded thumbnail
@@ -364,7 +374,12 @@ Rendering is split so the logic stays in the crates:
 - `panels/editor/asset_state.rs` owns the thumbnail budget, the attachment list
   and the drop-target resolution; `panels/editor/asset_actions.rs` owns the
   import/delete/picker flows. Both run file reads and provider calls on the gpui
-  background executor, so no upload blocks a frame.
+  background executor, so no upload blocks a frame. A failed thumbnail decode
+  records the path in `EditorView::failed_thumbnails` so one corrupt image is
+  skipped in favour of the next image row instead of starving every later
+  thumbnail. A successful delete calls `AssetThumbnailCache::invalidate` and
+  clears the failed marker before rebuilding rows, so a deleted image cannot
+  keep a stale thumbnail.
 - `panels/editor/attachments.rs` renders the attachment panel under the editor
   page: translated title, count, summed size, collapse toggle, attach button and
   one row per attachment (name, MIME chip, size, delete). Delete is the shipped

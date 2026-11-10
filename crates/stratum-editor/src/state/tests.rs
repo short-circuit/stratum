@@ -597,6 +597,22 @@ fn insert_asset_reference_replaces_an_empty_caret_block() {
 }
 
 #[test]
+fn insert_asset_reference_empty_block_round_trips_through_canonicalize() {
+    let id = Uuid::new_v4();
+    let mut state = EditorState::new(doc_with(vec![block(id, "")]));
+    state.set_caret(id, 0).unwrap();
+
+    state.insert_asset_reference("assets/doc.pdf").unwrap();
+
+    // The delegated replace path produces content the save transform keeps
+    // byte-identical.
+    let body = state.document().body();
+    let canonical = crate::document::canonicalize_body(&body);
+    assert_eq!(canonical, body);
+    assert!(canonical.contains("![[assets/doc.pdf]]"));
+}
+
+#[test]
 fn apply_ai_content_covers_every_scope() {
     // ReplacePage
     let id = Uuid::new_v4();

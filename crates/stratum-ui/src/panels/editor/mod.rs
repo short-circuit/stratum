@@ -11,7 +11,9 @@
 //! - [`view`] — the `Render` implementation and the input-handler canvas.
 //! - [`rows`] — row, span and caret elements built from decorated rows.
 //! - [`asset_rows`] — attachment thumbnail/file rows.
-//! - [`asset_state`] — thumbnail cache, attachment list and import/delete flows.
+//! - [`asset_state`] — thumbnail budget, attachment list and drop-target
+//!   resolution.
+//! - [`asset_actions`] — import/delete/attach flows on the background executor.
 //! - [`attachments`] — the attachment panel under the editor page.
 //! - [`input`] — `EntityInputHandler`, key handling, clipboard and IME wiring.
 //! - [`overlay`] — slash menu, wiki autocomplete, marker menu, save chip,
@@ -24,6 +26,7 @@
 //! All user-facing strings are translation keys resolved through
 //! `stratum_i18n`; [`EDITOR_VIEW_I18N_KEYS`] is the release gate list.
 
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -107,6 +110,8 @@ pub struct EditorView {
     save_generation: u64,
     asset_budget: usize,
     thumbnails: AssetThumbnailCache,
+    /// Asset paths whose thumbnail decode failed; skipped until re-decoded.
+    failed_thumbnails: HashSet<String>,
     attachments: Vec<AttachmentRow>,
     attachments_open: bool,
     attachment_busy: bool,
@@ -161,6 +166,7 @@ impl EditorView {
             save_generation: 0,
             asset_budget: 1,
             thumbnails: AssetThumbnailCache::default(),
+            failed_thumbnails: HashSet::new(),
             attachments: Vec::new(),
             attachments_open: true,
             attachment_busy: false,

@@ -8,12 +8,11 @@
 use std::ops::Range;
 
 use pkm_block::ops;
-use pkm_block::{Block, BlockId, Priority, TaskMarker};
+use pkm_block::{BlockId, Priority, TaskMarker};
 use pkm_core::{PkmError, PkmResult};
 use uuid::Uuid;
 
 use super::ops::{child_ids, EditOp};
-use super::splice::LinkChange;
 use super::text::{clamp_offset, next_char_boundary, prev_char_boundary, span_delimiters};
 use super::{Caret, EditorState};
 use crate::assets::asset_reference;
@@ -392,11 +391,13 @@ impl EditorState {
     /// Insert an asset embed reference as a new sibling block after the caret.
     ///
     /// Mirrors React `insertBlock(pagePath, "![[…]]")`: when the caret block has
-    /// content, a sibling block carrying [`asset_reference`] is inserted after
-    /// it (same parent, left chain re-linked) and the caret moves into the new
-    /// block. When the caret block is empty its content is replaced instead.
-    /// Either path is a single undoable history entry and marks the document
-    /// dirty.
+    /// content, the sibling insertion is delegated to
+    /// [`Self::insert_markdown_after_caret`], which inserts a block carrying
+    /// [`asset_reference`] after the caret (same parent, left chain re-linked)
+    /// and moves the caret to the end of the new block. When the caret block is
+    /// empty its content is replaced through [`Self::replace_block_content`]
+    /// instead. Either path is a single undoable history entry and marks the
+    /// document dirty.
     ///
     /// # Errors
     ///
@@ -407,11 +408,7 @@ impl EditorState {
         let caret = self.require_caret()?;
         let content = self.block_content(caret.block_id)?;
         if content.is_empty() {
-            self.apply(EditOp::SetContent {
-                block_id: caret.block_id,
-                old: content,
-                new: reference.clone(),
-            })?;
+            self.replace_block_content(caret.block_id, reference.clone())?;
             self.selection = None;
             self.caret = Some(Caret {
                 block_id: caret.block_id,
@@ -419,41 +416,7 @@ impl EditorState {
             });
             return Ok(());
         }
-
-        let caret_parent = self.doc.block(caret.block_id).and_then(|b| b.parent_id);
-        let new_block_id = Uuid::new_v4();
-        let mut inserted = Block::new(new_block_id, reference.clone());
-        inserted.parent_id = caret_parent;
-        inserted.left_id = Some(caret.block_id);
-
-        // Re-link the sibling that followed the caret so the chain stays whole.
-        let mut links = Vec::new();
-        if let Some(next) =
-            self.doc.tree().all_blocks().find(|block| {
-                block.left_id == Some(caret.block_id) && block.parent_id == caret_parent
-            })
-        {
-            links.push(LinkChange {
-                block_id: next.id,
-                old_parent: next.parent_id,
-                new_parent: next.parent_id,
-                old_left: next.left_id,
-                new_left: Some(new_block_id),
-            });
-        }
-
-        self.apply(EditOp::SpliceBlocks {
-            removed: Vec::new(),
-            inserted: vec![inserted],
-            links,
-            contents: Vec::new(),
-        })?;
-        self.selection = None;
-        self.caret = Some(Caret {
-            block_id: new_block_id,
-            byte_offset: reference.len(),
-        });
-        Ok(())
+        self.insert_markdown_after_caret(&reference)
     }
 
     /// Toggle collapse state on the current block.

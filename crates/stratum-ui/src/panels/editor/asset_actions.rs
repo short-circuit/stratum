@@ -61,12 +61,15 @@ impl EditorView {
     /// The shared [`EditorView::asset_budget`] caps provider decodes at one new
     /// thumbnail per frame; cached thumbnails are attached without spending
     /// budget. A failed decode leaves the row's `thumbnail` empty so the chip
-    /// fallback stays visible.
+    /// fallback stays visible, and records the path in
+    /// [`EditorView::failed_thumbnails`] so one corrupt image cannot starve
+    /// every later thumbnail.
     pub(crate) fn ensure_thumbnails_for_range(&mut self, range: std::ops::Range<usize>) {
         while self.asset_budget > 0 {
             let Some(task) = next_thumbnail_task(
                 &self.rows,
                 &self.thumbnails,
+                &self.failed_thumbnails,
                 range.clone(),
                 self.asset_budget,
             ) else {
@@ -80,10 +83,16 @@ impl EditorView {
                 }
                 ThumbnailTask::Fetch { index, path } => {
                     self.asset_budget = self.asset_budget.saturating_sub(1);
-                    if let Some(thumbnail) = self.provider.read_asset_thumbnail(&path) {
-                        self.thumbnails.insert(&path, thumbnail);
-                        if let Some(row) = self.rows.get_mut(index) {
-                            row.thumbnail = self.thumbnails.get(&path);
+                    match self.provider.read_asset_thumbnail(&path) {
+                        Some(thumbnail) => {
+                            self.failed_thumbnails.remove(&path);
+                            self.thumbnails.insert(&path, thumbnail);
+                            if let Some(row) = self.rows.get_mut(index) {
+                                row.thumbnail = self.thumbnails.get(&path);
+                            }
+                        }
+                        None => {
+                            self.failed_thumbnails.insert(path);
                         }
                     }
                 }
@@ -194,11 +203,19 @@ impl EditorView {
     }
 
     /// Delete an attachment through the provider and reload the panel.
+    ///
+    /// A successful delete invalidates the cached thumbnail and clears the
+    /// failed-decode marker before the rows are rebuilt.
     pub fn delete_attachment(&mut self, ref_path: &str, cx: &mut Context<Self>) {
         self.pending_delete = None;
         self.attachment_error = None;
         match self.provider.delete_asset(ref_path) {
             Ok(()) => {
+                // Drop the cached decode and any failed-decode marker so a
+                // later re-import of the same path cannot reuse a stale
+                // thumbnail or stay stuck in the failure set.
+                self.thumbnails.invalidate(ref_path);
+                self.failed_thumbnails.remove(ref_path);
                 self.refresh_attachments();
                 self.rebuild_rows();
             }

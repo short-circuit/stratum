@@ -12,6 +12,7 @@ use stratum_editor::{
     RenderMode, VirtualLayout, ASSET_FILE_ROW_HEIGHT, ASSET_IMAGE_ROW_HEIGHT, EDITOR_I18N_KEYS,
 };
 use stratum_i18n::{t, Locale};
+use stratum_ui::panels::editor::asset_rows::renders_as_asset;
 use stratum_ui::panels::editor::asset_state::upload_error_key;
 use stratum_ui::panels::editor::rows::{
     marker_prefix_len, source_offset_for_visible, visible_offset_for_source, visible_text,
@@ -234,6 +235,53 @@ fn asset_embeds_reserve_attachment_rows() {
     assert!(
         file_layout.heights()[0] >= ASSET_FILE_ROW_HEIGHT,
         "file rows reserve the file-chip height"
+    );
+}
+
+#[test]
+fn mixed_content_rows_keep_text_and_text_height() {
+    let image_blocks = vec![paragraph(
+        "55555555-5555-5555-5555-555555555555",
+        "see ![[assets/photo.png]] above",
+    )];
+    let image_document = document_from("pages/Photo.md", image_blocks);
+    let image_state = EditorState::new(image_document);
+    let image_rows = build_rows_for_state(&image_state, true);
+    let image_row = image_rows.first().expect("mixed image row");
+    assert!(
+        image_row.asset.is_none(),
+        "mixed image rows must not promote to attachment rows"
+    );
+    assert!(!renders_as_asset(image_row));
+    let image_text = visible_text(image_row);
+    assert!(image_text.contains("see "), "{image_text}");
+    assert!(image_text.contains(" above"), "{image_text}");
+    let image_layout = VirtualLayout::from_rows(&image_rows);
+    assert!(
+        image_layout.heights()[0] < ASSET_IMAGE_ROW_HEIGHT,
+        "mixed image rows keep the normal text height"
+    );
+
+    let file_blocks = vec![paragraph(
+        "66666666-6666-6666-6666-666666666666",
+        "report: ![[assets/report.pdf]] attached",
+    )];
+    let file_document = document_from("pages/Report.md", file_blocks);
+    let file_state = EditorState::new(file_document);
+    let file_rows = build_rows_for_state(&file_state, true);
+    let file_row = file_rows.first().expect("mixed file row");
+    assert!(
+        file_row.asset.is_none(),
+        "mixed file rows must not promote to attachment rows"
+    );
+    assert!(!renders_as_asset(file_row));
+    let file_text = visible_text(file_row);
+    assert!(file_text.contains("report: "), "{file_text}");
+    assert!(file_text.contains(" attached"), "{file_text}");
+    let file_layout = VirtualLayout::from_rows(&file_rows);
+    assert!(
+        file_layout.heights()[0] < ASSET_FILE_ROW_HEIGHT,
+        "mixed file rows keep the normal text height"
     );
 }
 
