@@ -125,6 +125,7 @@ impl JournalView {
             && self.plan.visible() < self.plan.total()
         {
             self.plan.grow(DEFAULT_VISIBLE_WINDOW);
+            self.extend_sections();
         }
     }
 
@@ -151,6 +152,7 @@ impl JournalView {
         if index >= self.plan.visible() {
             let delta = index + 1 - self.plan.visible();
             self.plan.grow(delta);
+            self.extend_sections();
         }
         self.sync_stack(self.plan.offset_of(index).unwrap_or(0.0), cx);
         self.pending_scroll = Some(index);
@@ -231,5 +233,32 @@ impl JournalView {
                 editor: existing.remove(&section.path),
             })
             .collect();
+    }
+
+    /// Append placeholders for plan slots beyond the current section list.
+    ///
+    /// `sections[i]` mirrors plan slot `i + 1` (slot 0 is today), and
+    /// [`Self::sync_stack`] resolves a slot through `sections.get(index - 1)`.
+    /// When [`StackPlan::grow`] widens the window past the placeholders built by
+    /// [`Self::rebuild_sections`], any slot without a matching section would be
+    /// skipped forever. This appends an editor-less [`SectionState`] for every
+    /// plan section at `self.sections.len() + 1` or beyond so the list stays
+    /// aligned with the plan window.
+    pub(super) fn extend_sections(&mut self) {
+        let next = self.sections.len() + 1;
+        let missing: Vec<(String, String)> = self
+            .plan
+            .sections()
+            .iter()
+            .filter(|section| section.index >= next)
+            .map(|section| (section.date.clone(), section.path.clone()))
+            .collect();
+        for (date, path) in missing {
+            self.sections.push(SectionState {
+                date,
+                path,
+                editor: None,
+            });
+        }
     }
 }
