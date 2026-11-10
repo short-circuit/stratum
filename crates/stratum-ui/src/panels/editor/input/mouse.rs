@@ -50,6 +50,7 @@ pub fn handle_mouse_down(
     cx: &mut Context<EditorView>,
 ) {
     window.focus(&view.focus, cx);
+    view.last_pointer = event.position;
     if view.read_mode {
         cx.notify();
         return;
@@ -132,6 +133,7 @@ pub fn handle_mouse_move(
     window: &mut Window,
     cx: &mut Context<EditorView>,
 ) {
+    view.last_pointer = event.position;
     if !event.modifiers.control {
         if view.hover_preview.take().is_some() {
             cx.notify();

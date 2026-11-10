@@ -8,13 +8,15 @@
 use std::ops::Range;
 
 use pkm_block::ops;
-use pkm_block::{BlockId, Priority, TaskMarker};
+use pkm_block::{Block, BlockId, Priority, TaskMarker};
 use pkm_core::{PkmError, PkmResult};
 use uuid::Uuid;
 
 use super::ops::{child_ids, EditOp};
+use super::splice::LinkChange;
 use super::text::{clamp_offset, next_char_boundary, prev_char_boundary, span_delimiters};
 use super::{Caret, EditorState};
+use crate::assets::asset_reference;
 use crate::inline::SpanKind;
 
 impl EditorState {
@@ -373,29 +375,6 @@ impl EditorState {
         })
     }
 
-    /// Set or clear a block reminder by writing or removing its `due` property.
-    ///
-    /// The mutation is routed through [`crate::document::EditorDocument::mutate`]
-    /// so the document revision and dirty flag stay authoritative in the
-    /// document. `iso_or_none` is stored verbatim; callers pass RFC 3339 UTC,
-    /// the same format the shipped React app writes.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`PkmError::BlockNotFound`] when `block_id` is not in the
-    /// document, or whatever [`crate::markers::set_reminder`] returns.
-    pub fn set_block_reminder(
-        &mut self,
-        block_id: BlockId,
-        iso_or_none: Option<&str>,
-    ) -> PkmResult<()> {
-        if self.doc.block(block_id).is_none() {
-            return Err(PkmError::BlockNotFound(block_id.to_string()));
-        }
-        self.doc
-            .mutate(|tree| crate::markers::set_reminder(tree, block_id, iso_or_none))
-    }
-
     /// Replace the whole content of one block and record the edit.
     ///
     /// Used by the view for block-kind conversions (fenced code, Mermaid and
@@ -410,14 +389,71 @@ impl EditorState {
         self.apply(op)
     }
 
-    /// Whether the document has unsaved changes.
-    pub fn is_dirty(&self) -> bool {
-        self.doc.is_dirty()
-    }
+    /// Insert an asset embed reference as a new sibling block after the caret.
+    ///
+    /// Mirrors React `insertBlock(pagePath, "![[…]]")`: when the caret block has
+    /// content, a sibling block carrying [`asset_reference`] is inserted after
+    /// it (same parent, left chain re-linked) and the caret moves into the new
+    /// block. When the caret block is empty its content is replaced instead.
+    /// Either path is a single undoable history entry and marks the document
+    /// dirty.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PkmError::Internal`] when no caret is placed, or
+    /// [`PkmError::BlockNotFound`] when the caret block is missing.
+    pub fn insert_asset_reference(&mut self, ref_path: &str) -> PkmResult<()> {
+        let reference = asset_reference(ref_path);
+        let caret = self.require_caret()?;
+        let content = self.block_content(caret.block_id)?;
+        if content.is_empty() {
+            self.apply(EditOp::SetContent {
+                block_id: caret.block_id,
+                old: content,
+                new: reference.clone(),
+            })?;
+            self.selection = None;
+            self.caret = Some(Caret {
+                block_id: caret.block_id,
+                byte_offset: reference.len(),
+            });
+            return Ok(());
+        }
 
-    /// Mark the document clean after a successful save.
-    pub fn mark_clean(&mut self) {
-        self.doc.mark_clean();
+        let caret_parent = self.doc.block(caret.block_id).and_then(|b| b.parent_id);
+        let new_block_id = Uuid::new_v4();
+        let mut inserted = Block::new(new_block_id, reference.clone());
+        inserted.parent_id = caret_parent;
+        inserted.left_id = Some(caret.block_id);
+
+        // Re-link the sibling that followed the caret so the chain stays whole.
+        let mut links = Vec::new();
+        if let Some(next) =
+            self.doc.tree().all_blocks().find(|block| {
+                block.left_id == Some(caret.block_id) && block.parent_id == caret_parent
+            })
+        {
+            links.push(LinkChange {
+                block_id: next.id,
+                old_parent: next.parent_id,
+                new_parent: next.parent_id,
+                old_left: next.left_id,
+                new_left: Some(new_block_id),
+            });
+        }
+
+        self.apply(EditOp::SpliceBlocks {
+            removed: Vec::new(),
+            inserted: vec![inserted],
+            links,
+            contents: Vec::new(),
+        })?;
+        self.selection = None;
+        self.caret = Some(Caret {
+            block_id: new_block_id,
+            byte_offset: reference.len(),
+        });
+        Ok(())
     }
 
     /// Toggle collapse state on the current block.

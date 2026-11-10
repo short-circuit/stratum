@@ -6,6 +6,7 @@
 
 use gpui_kit::*;
 
+use crate::panels::editor::asset_state::mime_for_image_format;
 use crate::panels::editor::overlay::OverlayState;
 use crate::panels::editor::EditorView;
 
@@ -163,14 +164,28 @@ fn handle_control_key(
             true
         }
         "v" => {
-            let text = cx
-                .read_from_clipboard()
-                .and_then(|item| item.text())
-                .unwrap_or_default();
-            if !text.is_empty() {
-                let payload = stratum_editor::normalize_paste(&text);
-                let result = view.state.insert_text(&payload);
-                finish_edit(view, result, cx);
+            if let Some(item) = cx.read_from_clipboard() {
+                // A clipboard image is uploaded as an attachment instead of
+                // pasted as text; React's BlockNote upload hook does the same.
+                if let Some(image) = item.entries().iter().find_map(|entry| match entry {
+                    ClipboardEntry::Image(image) => Some(image),
+                    _ => None,
+                }) {
+                    let name = format!("paste.{}", image.format.extension());
+                    view.start_import_bytes(
+                        image.bytes.clone(),
+                        name,
+                        Some(mime_for_image_format(image.format)),
+                        cx,
+                    );
+                    return true;
+                }
+                let text = item.text().unwrap_or_default();
+                if !text.is_empty() {
+                    let payload = stratum_editor::normalize_paste(&text);
+                    let result = view.state.insert_text(&payload);
+                    finish_edit(view, result, cx);
+                }
             }
             true
         }

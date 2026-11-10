@@ -72,13 +72,24 @@ logic: data comes from an `AppProvider` implementation.
 | `router` | `Panel`, `ROUTES`, `NAV_ITEMS`, `SHORTCUTS`, `parse_path`, `path_for`, percent codec |
 | `theme` | `ThemeConfig`, `derive_palette`, `apply_to_kit`, golden palette formulas |
 | `assets` | `StratumAssets` (icons + fonts), `register_fonts` |
-| `provider` | `ShellData`, `ShellSnapshot`, `FixtureProvider`, `provider_from_env` |
+| `provider` | `ShellData`, `ShellSnapshot`, `FixtureProvider`, `provider_from_env`, asset seam (`provider/assets.rs`) |
 | `shell` | header, sidebar, footer, error bar, toaster |
 | `panels` | panel stub rendering and icon mapping |
 
 The provider seam is the only place the shell touches the service layer. The
 real provider drives `stratum_app::StratumService`; `FixtureProvider` returns a
 deterministic 87-page snapshot for tests and the capture harness.
+
+`ShellData` also carries the attachment seam used by the native editor
+(`read_asset_thumbnail`, `page_attachments`, `import_asset_bytes`,
+`import_asset_path`, `delete_asset`). The trait defaults keep providers without
+asset support compiling — no thumbnail, an empty list, a pass-through row and a
+no-op delete. `AppProvider` maps the seam onto `stratum_app::asset`
+(`asset_thumbnail`, `import_asset_bytes_checked`, `import_asset_path_checked`,
+`get_page_asset_refs`, `delete_asset`); `FixtureProvider` keeps an in-memory
+asset map with deterministic `assets/<stem>-<12 hex>.<ext>` names (v5 UUID over
+the bytes) and lists the rows whose references appear in the saved page content,
+so the drop/paste flow is testable without a vault.
 
 ---
 

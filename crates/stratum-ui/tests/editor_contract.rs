@@ -8,10 +8,11 @@
 
 use stratum_editor::virtualize::MIN_ROW_HEIGHT;
 use stratum_editor::{
-    byte_to_utf16, dto_to_blocks, utf16_to_byte, BlockDto, EditorDocument, EditorState, RenderMode,
-    VirtualLayout, EDITOR_I18N_KEYS,
+    byte_to_utf16, dto_to_blocks, utf16_to_byte, AssetKind, BlockDto, EditorDocument, EditorState,
+    RenderMode, VirtualLayout, ASSET_FILE_ROW_HEIGHT, ASSET_IMAGE_ROW_HEIGHT, EDITOR_I18N_KEYS,
 };
 use stratum_i18n::{t, Locale};
+use stratum_ui::panels::editor::asset_state::upload_error_key;
 use stratum_ui::panels::editor::rows::{
     marker_prefix_len, source_offset_for_visible, visible_offset_for_source, visible_text,
 };
@@ -193,6 +194,85 @@ fn slash_and_marker_catalogues_use_translated_keys() {
         for locale in Locale::ALL {
             assert_ne!(t(locale, key), key, "{key} missing in {}", locale.code());
         }
+    }
+}
+
+#[test]
+fn asset_embeds_reserve_attachment_rows() {
+    let image_blocks = vec![paragraph(
+        "33333333-3333-3333-3333-333333333333",
+        "![[assets/photo.png]]",
+    )];
+    let image_document = document_from("pages/Photo.md", image_blocks);
+    let image_state = EditorState::new(image_document);
+    let image_rows = build_rows_for_state(&image_state, true);
+    let image_row = image_rows.first().expect("image row");
+    let image_asset = image_row.asset.as_ref().expect("image asset span");
+    assert_eq!(image_asset.kind, AssetKind::Image);
+    assert!(
+        image_row.thumbnail.is_none(),
+        "renderer leaves thumbnails lazy"
+    );
+    let image_layout = VirtualLayout::from_rows(&image_rows);
+    assert!(
+        image_layout.heights()[0] >= ASSET_IMAGE_ROW_HEIGHT,
+        "image rows reserve the thumbnail height"
+    );
+
+    let file_blocks = vec![paragraph(
+        "44444444-4444-4444-4444-444444444444",
+        "![[assets/report.pdf]]",
+    )];
+    let file_document = document_from("pages/Report.md", file_blocks);
+    let file_state = EditorState::new(file_document);
+    let file_rows = build_rows_for_state(&file_state, true);
+    let file_row = file_rows.first().expect("file row");
+    let file_asset = file_row.asset.as_ref().expect("file asset span");
+    assert_eq!(file_asset.kind, AssetKind::File);
+    assert!(file_row.thumbnail.is_none());
+    let file_layout = VirtualLayout::from_rows(&file_rows);
+    assert!(
+        file_layout.heights()[0] >= ASSET_FILE_ROW_HEIGHT,
+        "file rows reserve the file-chip height"
+    );
+}
+
+#[test]
+fn attachment_keys_are_release_gated_in_every_locale() {
+    for key in [
+        "asset.attach",
+        "asset.attachments",
+        "asset.compressing",
+        "asset.delete",
+        "asset.delete_confirm",
+        "asset.empty",
+        "asset.file_too_large",
+        "asset.upload_failed",
+    ] {
+        assert!(
+            EDITOR_VIEW_I18N_KEYS.contains(&key),
+            "{key} is missing from the release gate list"
+        );
+        for locale in Locale::ALL {
+            assert_ne!(t(locale, key), key, "{key} missing in {}", locale.code());
+        }
+    }
+}
+
+#[test]
+fn upload_errors_map_to_translated_labels() {
+    let too_large = upload_error_key("file_too_large");
+    let generic = upload_error_key("disk full");
+    assert_eq!(too_large, "asset.file_too_large");
+    assert_eq!(generic, "asset.upload_failed");
+    for locale in Locale::ALL {
+        assert_ne!(t(locale, too_large), too_large);
+        assert_ne!(t(locale, generic), generic);
+        assert_ne!(
+            t(locale, too_large),
+            t(locale, generic),
+            "the size limit must not read as a generic failure"
+        );
     }
 }
 

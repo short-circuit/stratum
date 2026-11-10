@@ -10,12 +10,16 @@
 //!
 //! - [`view`] — the `Render` implementation and the input-handler canvas.
 //! - [`rows`] — row, span and caret elements built from decorated rows.
+//! - [`asset_rows`] — attachment thumbnail/file rows.
+//! - [`asset_state`] — thumbnail cache, attachment list and import/delete flows.
+//! - [`attachments`] — the attachment panel under the editor page.
 //! - [`input`] — `EntityInputHandler`, key handling, clipboard and IME wiring.
 //! - [`overlay`] — slash menu, wiki autocomplete, marker menu, save chip,
 //!   link preview and dead-link popup.
 //! - [`context_menu`] — the right-click block menu (read aloud, clipboard,
 //!   marker and reminder actions).
 //! - [`save`] — save-status transitions and the debounced persistence helper.
+//! - [`metrics`] — per-frame render measurements for the 10k perf capture.
 //!
 //! All user-facing strings are translation keys resolved through
 //! `stratum_i18n`; [`EDITOR_VIEW_I18N_KEYS`] is the release gate list.
@@ -29,8 +33,9 @@ use gpui_kit::prelude::*;
 use gpui_kit::*;
 use stratum_editor::menus::{AiCall, LinkPreview};
 use stratum_editor::{
-    blocks_to_dto, dto_to_blocks, math_source, mermaid_source, render_page, DecoratedRow,
-    EditorDocument, EditorState, MathCache, MathOptions, MermaidCache, RenderMode, VirtualLayout,
+    blocks_to_dto, dto_to_blocks, math_source, mermaid_source, render_page, AssetThumbnailCache,
+    AttachmentRow, DecoratedRow, EditorDocument, EditorState, MathCache, MathOptions, MermaidCache,
+    RenderMode, VirtualLayout,
 };
 use stratum_i18n::{t_global, tr_global};
 
@@ -39,14 +44,20 @@ use crate::provider::ShellData;
 mod ai;
 pub use ai::AiStatus;
 
+pub mod asset_actions;
+pub mod asset_rows;
+pub mod asset_state;
+pub mod attachments;
 pub mod context_menu;
 pub mod input;
+mod metrics;
 pub mod overlay;
 pub mod rows;
 pub mod save;
 pub mod view;
 
 pub use context_menu::{ContextAction, ContextMenuItem, ContextMenuState, CONTEXT_MENU_ITEMS};
+pub use metrics::EditorMetrics;
 pub use overlay::{detect_overlay, OverlayState};
 pub use save::{SaveState, SaveStatus};
 
@@ -55,6 +66,14 @@ pub use save::{SaveState, SaveStatus};
 /// The contract test walks this list against the shipped catalogs. Slash and
 /// marker labels are covered by [`stratum_editor::EDITOR_I18N_KEYS`].
 pub const EDITOR_VIEW_I18N_KEYS: &[&str] = &[
+    "asset.attach",
+    "asset.attachments",
+    "asset.compressing",
+    "asset.delete",
+    "asset.delete_confirm",
+    "asset.empty",
+    "asset.file_too_large",
+    "asset.upload_failed",
     "backlink_snippet_body.ctrl_click_to_navigate",
     "editor.create_page",
     "editor.saving",
@@ -64,59 +83,6 @@ pub const EDITOR_VIEW_I18N_KEYS: &[&str] = &[
     "reminders.chip.title",
     "settings.saved",
 ];
-
-/// Per-frame render measurements used by the 10k perf capture.
-#[derive(Debug, Default)]
-pub struct EditorMetrics {
-    render_ms: Vec<f64>,
-    assets_ms: Vec<f64>,
-    rows_rendered: usize,
-    frames: usize,
-}
-
-impl EditorMetrics {
-    /// Record one row-materialization pass.
-    pub fn record(&mut self, elapsed_ms: f64, rows: usize) {
-        self.frames += 1;
-        self.rows_rendered = rows;
-        self.render_ms.push(elapsed_ms);
-    }
-
-    /// Record the math/Mermaid asset-rendering time of one pass.
-    ///
-    /// Asset rendering is intentionally not part of the row-materialization
-    /// figure: it is budgeted to one new asset per frame and cached afterwards,
-    /// so a single diagram render may exceed the per-frame work budget without
-    /// stalling scrolling.
-    pub fn record_assets(&mut self, elapsed_ms: f64) {
-        self.assets_ms.push(elapsed_ms);
-    }
-
-    /// All recorded row-materialization durations in milliseconds.
-    pub fn render_ms(&self) -> &[f64] {
-        &self.render_ms
-    }
-
-    /// All recorded asset-rendering durations in milliseconds.
-    pub fn assets_ms(&self) -> &[f64] {
-        &self.assets_ms
-    }
-
-    /// Rows materialized in the last pass.
-    pub fn rows_rendered(&self) -> usize {
-        self.rows_rendered
-    }
-
-    /// Number of recorded passes.
-    pub fn frames(&self) -> usize {
-        self.frames
-    }
-
-    /// The last recorded duration.
-    pub fn last_render_ms(&self) -> f64 {
-        self.render_ms.last().copied().unwrap_or(0.0)
-    }
-}
 
 /// The native block-editor view for one page.
 pub struct EditorView {
@@ -140,6 +106,13 @@ pub struct EditorView {
     pending_ai: Option<AiCall>,
     save_generation: u64,
     asset_budget: usize,
+    thumbnails: AssetThumbnailCache,
+    attachments: Vec<AttachmentRow>,
+    attachments_open: bool,
+    attachment_busy: bool,
+    attachment_error: Option<String>,
+    pending_delete: Option<String>,
+    last_pointer: Point<Pixels>,
 }
 
 impl EditorView {
@@ -166,7 +139,7 @@ impl EditorView {
         }
         let rows = build_rows_for_state(&state, read_mode);
         let layout = VirtualLayout::from_rows(&rows);
-        Self {
+        let mut view = Self {
             focus: cx.focus_handle(),
             provider,
             path,
@@ -187,7 +160,16 @@ impl EditorView {
             pending_ai: None,
             save_generation: 0,
             asset_budget: 1,
-        }
+            thumbnails: AssetThumbnailCache::default(),
+            attachments: Vec::new(),
+            attachments_open: true,
+            attachment_busy: false,
+            attachment_error: None,
+            pending_delete: None,
+            last_pointer: point(px(0.0), px(0.0)),
+        };
+        view.refresh_attachments();
+        view
     }
 
     /// The page path this editor was opened from.

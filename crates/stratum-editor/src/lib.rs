@@ -16,6 +16,8 @@
 //! - [`dto`] — serde DTOs that are field-compatible with
 //!   `stratum_app::block::BlockDto` and `src/lib/types.ts`.
 //! - [`inline`] — inline span parsing and byte-exact re-serialization.
+//! - [`assets`] — attachment classification, row labels, bounded thumbnail
+//!   cache and reserved asset row heights.
 //! - [`markers`] — marker detection, badge rows and reminder chips.
 //! - [`state`] — [`state::EditorState`]: caret/selection, editing operations,
 //!   undo/redo, clipboard, paste normalization and IME composition.
@@ -36,6 +38,7 @@
 //! Fallible operations return [`pkm_core::PkmResult`]. No crate-local error
 //! type is defined; missing variants belong in `pkm_core::PkmError`.
 
+pub mod assets;
 pub mod document;
 pub mod dto;
 pub mod inline;
@@ -47,6 +50,12 @@ pub mod render;
 pub mod state;
 pub mod virtualize;
 
+pub use assets::{
+    asset_kind, asset_reference, asset_refs_in_document, asset_row_height, attachment_rows,
+    display_name, first_asset_span, format_size, AssetKind, AssetRefInput, AssetSpan,
+    AssetThumbnail, AssetThumbnailCache, AttachmentRow, ASSET_FILE_ROW_HEIGHT,
+    ASSET_IMAGE_ROW_HEIGHT, THUMBNAIL_BOX,
+};
 pub use document::{canonicalize_body, EditorDocument};
 pub use dto::{block_to_dto, blocks_to_dto, dto_to_blocks, BlockDto, BlockListDto, PageDoc};
 pub use inline::{parse_inline, render_inline, Span, SpanKind};

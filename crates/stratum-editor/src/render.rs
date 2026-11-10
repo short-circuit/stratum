@@ -13,6 +13,7 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use pkm_block::{Block, BlockId, Priority, TaskMarker};
 
+use crate::assets::{first_asset_span, AssetSpan, AssetThumbnail};
 use crate::document::EditorDocument;
 use crate::inline::{parse_inline, SpanKind};
 use crate::markers::{reminder_chips, MarkerBadge, ReminderChip};
@@ -53,6 +54,10 @@ pub struct DecoratedSpan {
 }
 
 /// One decorated row.
+///
+/// `math`, `mermaid` and `thumbnail` carry lazily rendered media. `asset`
+/// classifies the first `![[…]]` embed in the row so the view can reserve a
+/// thumbnail or file row without re-parsing spans.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DecoratedRow {
     pub block_id: BlockId,
@@ -68,12 +73,19 @@ pub struct DecoratedRow {
     pub math: Option<Arc<MathImage>>,
     /// Rendered Mermaid SVG, filled by [`render_page_with_assets`].
     pub mermaid: Option<Arc<String>>,
+    /// First `![[…]]` asset embed in the row, classified by
+    /// [`crate::assets::asset_kind`].
+    pub asset: Option<AssetSpan>,
+    /// Decoded image thumbnail. Left `None` by the renderer; the view fills it
+    /// lazily through [`crate::assets::AssetThumbnailCache`].
+    pub thumbnail: Option<Arc<AssetThumbnail>>,
 }
 
 /// Render the page into decorated rows in document order.
 ///
-/// This is the pure decoration pass: math and Mermaid assets are left `None`.
-/// Use [`render_page_with_assets`] when the view needs rendered images.
+/// This is the pure decoration pass: math and Mermaid assets are left `None`,
+/// as are decoded asset thumbnails. Use [`render_page_with_assets`] when the
+/// view needs rendered images.
 pub fn render_page(
     doc: &EditorDocument,
     focus: Option<BlockId>,
@@ -131,18 +143,22 @@ fn render_rows(
         let mermaid = mermaid_cache.as_deref_mut().and_then(|cache| {
             mermaid_source(&block.content).and_then(|source| cache.render(source, "modern").ok())
         });
+        let spans = build_spans(block, &kind, focus, mode);
+        let asset = first_asset_span(&spans);
         rows.push(DecoratedRow {
             block_id: block.id,
             depth,
             kind: kind.clone(),
             marker: block.marker,
             priority: block.priority,
-            spans: build_spans(block, &kind, focus, mode),
+            spans,
             badge,
             reminder,
             collapsed: block.meta.collapsed,
             math,
             mermaid,
+            asset,
+            thumbnail: None,
         });
     }
     rows

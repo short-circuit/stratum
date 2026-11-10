@@ -19,6 +19,7 @@ use gpui_kit::prelude::*;
 use gpui_kit::*;
 use stratum_editor::{BlockKind, DecoratedRow, DecoratedSpan, SpanKind};
 
+use crate::panels::editor::asset_rows;
 use crate::panels::editor::EditorView;
 
 /// Width used for virtual-list item measurement.
@@ -344,6 +345,8 @@ pub fn row_element(
                 .max_w(px(ROW_WIDTH - text_left - inline - 24.0))
                 .max_h(px(height)),
         );
+    } else if asset_rows::renders_as_asset(row) {
+        element = element.child(asset_rows::asset_row_element(view, row, theme));
     } else {
         let (text, runs) = visible_runs(row, theme);
         element = element.child(StyledText::new(text).with_runs(runs));
@@ -436,9 +439,9 @@ fn span_style(span: &DecoratedSpan, row: &DecoratedRow, theme: &Theme) -> SpanSt
             });
         }
         SpanKind::Asset { .. } => {
-            // Asset references render as a distinct chip with the path text;
-            // thumbnails and attachment controls stay in the React panel until
-            // phase B adds them.
+            // The chip fallback keeps the path text on the theme's primary /
+            // secondary pair; decoded images and file attachments are rendered
+            // by `asset_rows` instead of the decorated spans.
             color = theme.colors.primary;
             background = Some(theme.colors.secondary);
         }

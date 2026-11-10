@@ -9,11 +9,16 @@
 //!
 //! with `base` 24 for paragraphs/quote/list items, 32 for headings, 22 for code,
 //! 180 for mermaid, 48 for display math, 24 for inline math and 12 for dividers.
-//! Heights are clamped to a minimum of [`MIN_ROW_HEIGHT`] so the visible-window
-//! bound holds even for malformed layouts.
+//! Rows that embed an asset reserve
+//! [`crate::assets::ASSET_IMAGE_ROW_HEIGHT`] or
+//! [`crate::assets::ASSET_FILE_ROW_HEIGHT`] instead, so scrolling stays correct
+//! before a thumbnail is decoded. Heights are clamped to a minimum of
+//! [`MIN_ROW_HEIGHT`] so the visible-window bound holds even for malformed
+//! layouts.
 
 use std::ops::Range;
 
+use crate::assets::asset_row_height;
 use crate::render::{BlockKind, DecoratedRow};
 
 /// Minimum row height used by the visible-window bound.
@@ -31,6 +36,11 @@ impl VirtualLayout {
         let heights = rows
             .iter()
             .map(|row| {
+                if let Some(asset) = &row.asset {
+                    // Image rows are much taller than text rows; reserving the
+                    // asset height keeps offsets stable before decoding.
+                    return asset_row_height(asset.kind).max(MIN_ROW_HEIGHT);
+                }
                 let content_len = row.spans.iter().map(|s| s.text.len()).sum();
                 estimate_height(&row.kind, content_len)
             })

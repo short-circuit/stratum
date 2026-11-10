@@ -489,15 +489,22 @@ frozen reference application and are never modified by shell work.
 - `stratum-editor` is the headless block-editor engine the phase-B editor view
   renders (`DecoratedRow`s from `render`). It owns document canonicalization,
   inline spans, editing/undo/IME, slash and marker menus, wiki-link helpers,
-  marker/reminder models, math/Mermaid caches and virtualization, and has no UI
-  dependencies.
+  marker/reminder models, math/Mermaid/attachment-thumbnail caches,
+  attachment classification/row labels (`assets`), reserved asset row heights
+  and virtualization, and has no UI dependencies.
 - The native editor view lives in `crates/stratum-ui/src/panels/editor/`:
-  `mod.rs` (EditorView state, metrics, save scheduling, asset budget),
-  `view.rs` (virtual list, canvas input, overlays), `rows.rs` (row/span/caret
-  geometry), `input.rs` (EntityInputHandler, key/mouse, clipboard, IME),
-  `overlay.rs` (slash/wiki/marker/link/dead-link popups), `context_menu.rs`
+  `mod.rs` (EditorView state, save scheduling, asset budget), `metrics.rs`
+  (per-frame measurements), `view.rs` (virtual list, canvas input, overlays,
+  external file drop), `rows.rs` (row/span/caret geometry), `asset_rows.rs`
+  (thumbnail and file-attachment rows), `asset_state.rs` (thumbnail budget,
+  attachment list, drop target), `asset_actions.rs` (import/delete/picker flows),
+  `attachments.rs` (attachment panel with inline delete confirm), `input.rs`
+  (EntityInputHandler, key/mouse, clipboard image paste, IME), `overlay.rs`
+  (slash/wiki/marker/link/dead-link popups), `context_menu.rs`
   (right-click block menu: read aloud, copy/cut, marker, reminder) and `save.rs`
-  (save-status transitions). Read-aloud goes through `ShellData::speak` →
+  (save-status transitions). Asset logic lives in `pkm-block::assets` and
+  `stratum-app::asset` (8 MiB limit, image compression parity with
+  `src/lib/assetUpload.ts`, thumbnail decode). Read-aloud goes through `ShellData::speak` →
   `StratumService::tts_speak` → base64 decode → `rodio` playback. `tests/editor_contract.rs` covers the 10k layout,
   focused-line delimiter visibility, catalogues, save transitions and UTF-16
   helpers without opening a window.
