@@ -257,7 +257,10 @@ so the native panel and the React reminder utilities agree on the same rules.
 three sections with per-row snooze/complete/open/change chips, the empty state
 and the provider failure line; `dialog.rs` renders the due dialog (input, the
 `reminders.dialog.in_1_hour` / `_tomorrow_0900` / `_evening_1800` quick choices,
-the invalid hint, the clear/cancel/save actions and the provider error).
+the invalid hint, the clear/cancel/save actions and the provider error). The row
+chips use the catalog labels (`reminders.panel.snooze_10min`, `snooze_1h`,
+`complete`, `open`) instead of the shipped literal `10m` / `1h` / `Done` /
+`Open` strings, so the reminder actions localize with the rest of the UI.
 
 Provider calls stay on `PanelData`: `reminders()`, `snooze_reminder`,
 `clear_reminder` and `set_reminder`. "Open" records a pending block-open request
