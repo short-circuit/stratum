@@ -22,6 +22,7 @@ members = [
     "crates/stratum-i18n",
     "crates/stratum-ui",
     "crates/stratum-editor",
+    "crates/stratum-graph",
     "src-tauri",
 ]
 

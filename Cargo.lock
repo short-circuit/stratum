@@ -11807,6 +11807,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "stratum-graph"
+version = "1.0.0"
+dependencies = [
+ "ab_glyph",
+ "bytemuck",
+ "image",
+ "log",
+ "pkm-core",
+ "pollster 0.2.5",
+ "rayon",
+ "tempfile",
+ "wgpu",
+]
+
+[[package]]
 name = "stratum-i18n"
 version = "1.0.0"
 dependencies = [

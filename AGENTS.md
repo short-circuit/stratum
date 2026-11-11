@@ -75,6 +75,7 @@ stratum/
 │   ├── pkm-watcher/            # File system watcher
 │   ├── stratum-app/            # Headless service layer behind every Tauri command (no tauri deps)
 │   ├── stratum-editor/         # Headless block-editor engine: document, spans, state, undo, menus (no UI deps)
+│   ├── stratum-graph/          # Deterministic d3-force-3d graph physics + headless wgpu 3D renderer
 │   ├── stratum-i18n/           # Embedded locale catalogs, interpolation and parity gates (native shell)
 │   └── stratum-ui/             # Native GPUI desktop shell (E2) on top of stratum-app
 ├── src/                        # React + TypeScript frontend
@@ -268,6 +269,7 @@ stratum-app    →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pk
 pkm-tests      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-sync, pkm-query, pkm-ai, pkm-plugin, stratum-tauri
 pkm-cli        →  pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
 stratum-editor →  pkm-core, pkm-block, pkm-markdown
+stratum-graph  →  pkm-core
 stratum-i18n   →  pkm-core
 stratum-ui     →  gpui-kit (external), rodio (external), stratum-i18n, stratum-app, pkm-core
 src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-dictation, pkm-plugin, stratum-app
