@@ -6,6 +6,7 @@
 //! RGBA byte buffer, so the smoke test can compare renders byte-for-byte.
 
 use crate::camera::Camera;
+use crate::curve::link_curve_points;
 use crate::render::sdf::{GlyphAtlas, ATLAS_SIZE, FONT_BYTES};
 use crate::render::{Frame, RenderConfig};
 use crate::scene::Scene;
@@ -52,27 +53,47 @@ impl SoftwareRenderer {
             .map(|node| project_point(&view_proj, node.position, camera, width, height, scale))
             .collect();
 
-        for link in &scene.links {
-            let (Some(source), Some(target)) = (
-                projected.get(link.source).copied().flatten(),
-                projected.get(link.target).copied().flatten(),
-            ) else {
+        for (link_index, link) in scene.links.iter().enumerate() {
+            let (Some(source_node), Some(target_node)) =
+                (scene.nodes.get(link.source), scene.nodes.get(link.target))
+            else {
                 continue;
             };
-            let distance = (source.distance + target.distance) * 0.5;
+            let distance = match (
+                projected.get(link.source).copied().flatten(),
+                projected.get(link.target).copied().flatten(),
+            ) {
+                (Some(source), Some(target)) => (source.distance + target.distance) * 0.5,
+                _ => continue,
+            };
             let width_px = (link.width * scale / distance.max(1.0)).max(1.0);
-            draw_line(
-                &mut pixels,
-                width,
-                height,
-                source.x,
-                source.y,
-                target.x,
-                target.y,
-                width_px,
-                link.color,
-                link.opacity,
+            let points = link_curve_points(
+                source_node.position,
+                target_node.position,
+                link.curvature,
+                link_index,
             );
+            let projected_points: Vec<Projected> = points
+                .iter()
+                .filter_map(|point| project_point(&view_proj, *point, camera, width, height, scale))
+                .collect();
+            if projected_points.len() != points.len() {
+                continue;
+            }
+            for segment in projected_points.windows(2) {
+                draw_line(
+                    &mut pixels,
+                    width,
+                    height,
+                    segment[0].x,
+                    segment[0].y,
+                    segment[1].x,
+                    segment[1].y,
+                    width_px,
+                    link.color,
+                    link.opacity,
+                );
+            }
         }
 
         let mut order: Vec<(usize, f32)> = projected

@@ -1,18 +1,28 @@
 //! Golden runner for the headless graph renderer.
 //!
 //! The runner generates deterministic fixture graphs, advances the ported
-//! simulation, renders a fixed number of frames through the requested backend,
-//! writes PNG captures and a JSON report, and optionally enforces the mean FPS
-//! gate. It is intentionally dependency-free (no clap/serde) so the crate stays
+//! simulation, frames the graph with [`Camera::fit_to_positions`], renders a
+//! fixed number of frames through the requested backend, writes PNG captures plus
+//! JSON/markdown reports, and optionally enforces the frame-rate and memory
+//! gates. It is intentionally dependency-free (no clap/serde) so the crate stays
 //! small and reproducible offline.
 
 use pkm_core::{PkmError, PkmResult};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 use stratum_graph::{
-    fixture, Camera, FrameTimer, RenderConfig, Renderer, Scene, Simulation, MIN_GOLDEN_FPS,
-    WORK_BUDGET_MS,
+    fixture, peak_rss_mb, Camera, FrameTimer, RenderConfig, Renderer, Scene, Simulation,
+    MIN_GOLDEN_FPS, WORK_BUDGET_MS,
 };
+
+/// The card memory gate for the 20k fixture.
+const MEMORY_GATE_MB: f64 = 800.0;
+/// Fixture size the memory gate applies to.
+const MEMORY_GATE_FIXTURE: usize = 20_000;
+/// Round-1.5 acceptance p95 budget for the 10k fixture (60 fps).
+const BUDGET_10K_MS: f64 = 16.6;
+/// Round-1.5 acceptance p95 budget for the 20k fixture (45 fps).
+const BUDGET_20K_MS: f64 = 22.2;
 
 /// Parsed command-line options.
 struct Options {
@@ -50,8 +60,13 @@ struct FixtureReport {
     tick_ms: f64,
     frame_count: usize,
     mean_ms: f64,
+    p50_ms: f64,
     p95_ms: f64,
+    max_ms: f64,
     fps: f64,
+    peak_rss_mb: f64,
+    hash: String,
+    budget_ms: f64,
     passed: bool,
     png: String,
     pick: Option<usize>,
@@ -91,14 +106,18 @@ fn run() -> PkmResult<()> {
     for count in &options.fixtures {
         let report = run_fixture(&mut renderer, &options, *count)?;
         println!(
-            "fixture nodes={} edges={} tick_ms={:.2} frames={} mean_ms={:.2} p95_ms={:.2} fps={:.2} passed={} pick={:?} png={}",
+            "fixture nodes={} edges={} tick_ms={:.2} frames={} mean_ms={:.2} p50_ms={:.2} p95_ms={:.2} max_ms={:.2} fps={:.2} peak_rss_mb={:.1} hash={} passed={} pick={:?} png={}",
             report.nodes,
             report.edges,
             report.tick_ms,
             report.frame_count,
             report.mean_ms,
+            report.p50_ms,
             report.p95_ms,
+            report.max_ms,
             report.fps,
+            report.peak_rss_mb,
+            report.hash,
             report.passed,
             report.pick,
             report.png
@@ -107,6 +126,15 @@ fn run() -> PkmResult<()> {
             return Err(PkmError::Render(format!(
                 "fixture {} rendered at {:.2} fps, below the {:.2} fps gate",
                 report.nodes, report.fps, MIN_GOLDEN_FPS
+            )));
+        }
+        if options.assert_fps
+            && report.nodes >= MEMORY_GATE_FIXTURE
+            && report.peak_rss_mb > MEMORY_GATE_MB
+        {
+            return Err(PkmError::Render(format!(
+                "fixture {} peak RSS {:.1} MB exceeds the {:.1} MB gate",
+                report.nodes, report.peak_rss_mb, MEMORY_GATE_MB
             )));
         }
         reports.push(report);
@@ -119,8 +147,31 @@ fn run() -> PkmResult<()> {
         &options,
         &reports,
     )?;
-    println!("graph_golden report written to {}", report_path.display());
+    let markdown_path = options.out.join("report.md");
+    write_markdown_report(
+        &markdown_path,
+        renderer.backend(),
+        renderer.adapter_name(),
+        &options,
+        &reports,
+    )?;
+    println!(
+        "graph_golden report written to {} and {}",
+        report_path.display(),
+        markdown_path.display()
+    );
     Ok(())
+}
+
+/// Acceptance budget for a fixture size.
+fn round_budget_ms(nodes: usize) -> f64 {
+    if nodes >= MEMORY_GATE_FIXTURE {
+        BUDGET_20K_MS
+    } else if nodes >= 10_000 {
+        BUDGET_10K_MS
+    } else {
+        WORK_BUDGET_MS
+    }
 }
 
 fn run_fixture(
@@ -141,7 +192,8 @@ fn run_fixture(
         ..RenderConfig::default()
     };
     let scene = Scene::build(&data, &positions, &config.scene_options())?;
-    let camera = Camera::default();
+    let mut camera = Camera::default();
+    camera.fit_to_positions(&positions);
     let mut timer = FrameTimer::new();
     let mut last_frame = None;
     for _ in 0..options.frames.max(1) {
@@ -150,11 +202,14 @@ fn run_fixture(
         timer.record(start.elapsed());
         last_frame = Some(frame);
     }
-    let report = timer.report(WORK_BUDGET_MS);
+    let budget_ms = round_budget_ms(count);
+    let report = timer.report(budget_ms);
     let png_path = options.out.join(format!("graph-{count}.png"));
     let frame = last_frame
         .ok_or_else(|| PkmError::Render(format!("fixture {count} produced no rendered frame")))?;
     frame.save_png(&png_path)?;
+    let hash = frame.content_hash();
+    let peak_rss_mb = peak_rss_mb();
     let pick = match scene.project_node(&camera, options.width, options.height, 0) {
         Some((x, y)) => renderer.pick(&scene, &camera, x, y)?,
         None => None,
@@ -165,8 +220,13 @@ fn run_fixture(
         tick_ms,
         frame_count: report.frame_count,
         mean_ms: report.mean_ms,
+        p50_ms: report.p50_ms,
         p95_ms: report.p95_ms,
+        max_ms: report.max_ms,
         fps: report.fps,
+        peak_rss_mb,
+        hash,
+        budget_ms,
         passed: report.passed,
         png: png_path.display().to_string(),
         pick,
@@ -262,6 +322,15 @@ fn print_help() {
     );
 }
 
+/// Whether every fixture met its round budget and the 20k memory gate.
+fn verdict(reports: &[FixtureReport]) -> bool {
+    reports.iter().all(|report| report.passed)
+        && reports
+            .iter()
+            .filter(|report| report.nodes >= MEMORY_GATE_FIXTURE)
+            .all(|report| report.peak_rss_mb <= MEMORY_GATE_MB)
+}
+
 fn write_report(
     path: &Path,
     backend: &str,
@@ -284,6 +353,11 @@ fn write_report(
         "  \"work_budget_ms\": {:.2},\n  \"min_fps\": {:.2},\n",
         WORK_BUDGET_MS, MIN_GOLDEN_FPS
     ));
+    json.push_str(&format!(
+        "  \"memory_gate_mb\": {:.1},\n  \"verdict\": \"{}\",\n",
+        MEMORY_GATE_MB,
+        if verdict(reports) { "pass" } else { "fail" }
+    ));
     json.push_str("  \"fixtures\": [\n");
     for (index, report) in reports.iter().enumerate() {
         json.push_str("    {\n");
@@ -292,8 +366,16 @@ fn write_report(
         json.push_str(&format!("      \"tick_ms\": {:.3},\n", report.tick_ms));
         json.push_str(&format!("      \"frame_count\": {},\n", report.frame_count));
         json.push_str(&format!("      \"mean_ms\": {:.3},\n", report.mean_ms));
+        json.push_str(&format!("      \"p50_ms\": {:.3},\n", report.p50_ms));
         json.push_str(&format!("      \"p95_ms\": {:.3},\n", report.p95_ms));
+        json.push_str(&format!("      \"max_ms\": {:.3},\n", report.max_ms));
         json.push_str(&format!("      \"fps\": {:.3},\n", report.fps));
+        json.push_str(&format!("      \"budget_ms\": {:.2},\n", report.budget_ms));
+        json.push_str(&format!(
+            "      \"peak_rss_mb\": {:.1},\n",
+            report.peak_rss_mb
+        ));
+        json.push_str(&format!("      \"hash\": \"{}\",\n", report.hash));
         json.push_str(&format!("      \"passed\": {},\n", report.passed));
         json.push_str(&format!("      \"pick\": {},\n", option_json(report.pick)));
         json.push_str(&format!(
@@ -309,6 +391,53 @@ fn write_report(
     json.push_str("  ]\n}\n");
     std::fs::write(path, json)
         .map_err(|error| PkmError::Render(format!("write golden report failed: {error}")))
+}
+
+fn write_markdown_report(
+    path: &Path,
+    backend: &str,
+    adapter: Option<&str>,
+    options: &Options,
+    reports: &[FixtureReport],
+) -> PkmResult<()> {
+    let passed = verdict(reports);
+    let mut markdown = String::new();
+    markdown.push_str("# stratum-graph golden report\n\n");
+    markdown.push_str(&format!("- backend: `{}`\n", backend));
+    markdown.push_str(&format!("- adapter: `{}`\n", adapter.unwrap_or("software")));
+    markdown.push_str(&format!(
+        "- seed: `{}` / ticks: `{}` / frames: `{}` / viewport: `{}x{}`\n",
+        options.seed, options.ticks, options.frames, options.width, options.height
+    ));
+    markdown.push_str(&format!(
+        "- memory gate: `{:.1} MB` at `{}` nodes\n",
+        MEMORY_GATE_MB, MEMORY_GATE_FIXTURE
+    ));
+    markdown.push_str(&format!(
+        "- verdict: **{}**\n\n",
+        if passed { "PASS" } else { "FAIL" }
+    ));
+    markdown.push_str(
+        "| nodes | edges | tick ms | p50 frame ms | p95 frame ms | max frame ms | fps | peak RSS MB | golden frame hash | PNG |\n",
+    );
+    markdown.push_str("|---:|---:|---:|---:|---:|---:|---:|---:|---|---|\n");
+    for report in reports {
+        markdown.push_str(&format!(
+            "| {} | {} | {:.2} | {:.2} | {:.2} | {:.2} | {:.2} | {:.1} | `{}` | `{}` |\n",
+            report.nodes,
+            report.edges,
+            report.tick_ms,
+            report.p50_ms,
+            report.p95_ms,
+            report.max_ms,
+            report.fps,
+            report.peak_rss_mb,
+            report.hash,
+            report.png
+        ));
+    }
+    std::fs::write(path, markdown)
+        .map_err(|error| PkmError::Render(format!("write golden markdown failed: {error}")))
 }
 
 fn option_json(value: Option<usize>) -> String {

@@ -7,10 +7,9 @@
 
 use stratum_graph::{fixture, Camera, RenderConfig, Renderer, Scene, SceneOptions, Vec3};
 
-fn smoke_scene() -> Scene {
-    let data = fixture(200, 1);
-    let mut positions = Vec::with_capacity(data.nodes.len());
-    for index in 0..data.nodes.len() {
+fn smoke_positions(count: usize) -> Vec<Vec3> {
+    let mut positions = Vec::with_capacity(count);
+    for index in 0..count {
         if index == 0 {
             positions.push(Vec3::ZERO);
         } else {
@@ -19,7 +18,21 @@ fn smoke_scene() -> Scene {
             positions.push(Vec3::new(-120.0 + column * 12.0, 50.0 - row * 10.0, 0.0));
         }
     }
-    Scene::build(&data, &positions, &SceneOptions::default()).expect("scene")
+    positions
+}
+
+fn smoke_scene_with(curvature: f32) -> Scene {
+    let data = fixture(200, 1);
+    let positions = smoke_positions(data.nodes.len());
+    let options = SceneOptions {
+        link_curvature: curvature,
+        ..SceneOptions::default()
+    };
+    Scene::build(&data, &positions, &options).expect("scene")
+}
+
+fn smoke_scene() -> Scene {
+    smoke_scene_with(SceneOptions::default().link_curvature)
 }
 
 fn non_background_pixels(frame: &stratum_graph::Frame, background: [u8; 4]) -> usize {
@@ -84,4 +97,26 @@ fn software_render_smoke() {
     };
     let renderer = Renderer::software(config).expect("software renderer");
     run_smoke(renderer, config, "software");
+}
+
+#[test]
+fn curved_and_straight_scenes_render_differently() {
+    let config = RenderConfig {
+        width: 320,
+        height: 180,
+        ..RenderConfig::default()
+    };
+    let mut renderer = Renderer::software(config).expect("software renderer");
+    let camera = Camera::default();
+    let curved = renderer
+        .render(&smoke_scene_with(0.15), &camera)
+        .expect("curved frame");
+    let straight = renderer
+        .render(&smoke_scene_with(0.0), &camera)
+        .expect("straight frame");
+    assert_ne!(
+        curved.rgba(),
+        straight.rgba(),
+        "curved links must change the rendered frame"
+    );
 }

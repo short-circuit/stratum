@@ -16,6 +16,12 @@ pub const NODE_RADIUS: f32 = 4.0;
 pub const LABEL_HEIGHT: f32 = 6.0;
 /// The shipped default label cap.
 pub const MAX_LABELS: usize = 2048;
+/// The shipped `DEFAULT_SETTINGS.link_curvature` value.
+pub const DEFAULT_LINK_CURVATURE: f32 = 0.15;
+
+pub use crate::curve::{
+    link_curve_control, link_curve_points, link_perpendicular, LINK_CURVE_SEGMENTS,
+};
 
 /// Default graph background colour (sRGB bytes).
 pub const DEFAULT_BACKGROUND: [u8; 4] = [0x0b, 0x0f, 0x14, 0xff];
@@ -50,6 +56,14 @@ pub struct SceneLink {
     pub width: f32,
     /// Opacity (`0..1`).
     pub opacity: f32,
+    /// Signed perpendicular control-point offset in world units.
+    ///
+    /// The shipped panel stores `link_curvature` in `DEFAULT_SETTINGS` and hands
+    /// it to three.js as `linkCurvature`; the Rust port keeps the same render
+    /// setting and resolves it to a world-space offset here. The value is
+    /// `link_curvature * length` (sign alternating deterministically per link),
+    /// so `0.0` produces a straight segment.
+    pub curvature: f32,
 }
 
 /// A renderable label.
@@ -76,6 +90,12 @@ pub struct SceneOptions {
     pub max_labels: usize,
     /// Label text height.
     pub label_height: f32,
+    /// Link curvature setting (`0..`; the shipped default is `0.15`).
+    ///
+    /// Carried on the render options exactly like the shipped panel stores it in
+    /// `DEFAULT_SETTINGS`; it is not a physics parameter even though the panel
+    /// keeps it on the same settings struct.
+    pub link_curvature: f32,
     /// Background sRGB bytes.
     pub background: [u8; 4],
     /// Text/link sRGB colour.
@@ -88,6 +108,7 @@ impl Default for SceneOptions {
             highlight: None,
             max_labels: MAX_LABELS,
             label_height: LABEL_HEIGHT,
+            link_curvature: DEFAULT_LINK_CURVATURE,
             background: DEFAULT_BACKGROUND,
             text_color: DEFAULT_TEXT_COLOR,
         }
@@ -151,7 +172,7 @@ impl Scene {
         for (index, node) in data.nodes.iter().enumerate() {
             index_by_id.insert(node.id.as_str(), index);
         }
-        let links = data
+        let mut links: Vec<SceneLink> = data
             .edges
             .iter()
             .filter_map(|edge| {
@@ -176,9 +197,22 @@ impl Scene {
                     color: options.text_color,
                     width,
                     opacity: 1.0,
+                    curvature: 0.0,
                 })
             })
             .collect();
+        // Resolve the render-only curvature setting into a signed world-space
+        // control offset. The link index seeds the deterministic perpendicular
+        // direction, so no RNG state leaks between links or builds.
+        for (link_index, link) in links.iter_mut().enumerate() {
+            let length = positions[link.target].sub(positions[link.source]).length();
+            if options.link_curvature == 0.0 || length <= f32::EPSILON {
+                link.curvature = 0.0;
+            } else {
+                let sign = if link_index % 2 == 0 { 1.0 } else { -1.0 };
+                link.curvature = options.link_curvature * length * sign;
+            }
+        }
         let labels = build_labels(data, positions, options);
         Ok(Self {
             nodes,
@@ -330,5 +364,82 @@ mod tests {
             .expect("node visible");
         assert_eq!(scene.pick_cpu(&camera, x, y, 1280, 720), Some(0));
         assert_eq!(scene.pick_cpu(&camera, 1.0, 1.0, 1280, 720), None);
+    }
+
+    fn single_link() -> GraphData {
+        let node = |id: &str| crate::data::GraphNode {
+            id: id.into(),
+            title: id.into(),
+            path: format!("{id}.md"),
+            tags: vec![],
+            degree: 1,
+        };
+        GraphData::new(
+            vec![node("a"), node("b")],
+            vec![crate::data::GraphEdge {
+                source: "a".into(),
+                target: "b".into(),
+                label: None,
+            }],
+            "/fixture",
+        )
+    }
+
+    #[test]
+    fn link_curvature_offsets_the_control_point_perpendicular() {
+        let data = single_link();
+        let positions = vec![Vec3::new(-50.0, 0.0, 0.0), Vec3::new(50.0, 0.0, 0.0)];
+        let options = SceneOptions {
+            link_curvature: 0.15,
+            ..SceneOptions::default()
+        };
+        let scene = Scene::build(&data, &positions, &options).expect("scene");
+        let link = &scene.links[0];
+        let start = positions[link.source];
+        let end = positions[link.target];
+        let length = end.sub(start).length();
+        let expected = 0.15 * length;
+        assert!(
+            (link.curvature.abs() - expected).abs() < 1e-3,
+            "curvature {} != {expected}",
+            link.curvature
+        );
+        let midpoint = start.lerp(end, 0.5);
+        let control = link_curve_control(start, end, link.curvature, 0);
+        let offset = control.sub(midpoint);
+        assert!(
+            (offset.length() - expected).abs() < 1e-3,
+            "control offset {} != {expected}",
+            offset.length()
+        );
+        assert!(offset.dot(end.sub(start).normalized()).abs() < 1e-3);
+        // The deterministic perpendicular is a unit vector orthogonal to the link.
+        let perpendicular = link_perpendicular(end.sub(start), 0);
+        assert!((perpendicular.length() - 1.0).abs() < 1e-3);
+        assert!(perpendicular.dot(end.sub(start).normalized()).abs() < 1e-3);
+    }
+
+    #[test]
+    fn zero_curvature_keeps_the_link_straight() {
+        let data = single_link();
+        let positions = vec![Vec3::new(-50.0, 0.0, 0.0), Vec3::new(50.0, 0.0, 0.0)];
+        let options = SceneOptions {
+            link_curvature: 0.0,
+            ..SceneOptions::default()
+        };
+        let scene = Scene::build(&data, &positions, &options).expect("scene");
+        let link = &scene.links[0];
+        assert_eq!(link.curvature, 0.0);
+        let start = positions[link.source];
+        let end = positions[link.target];
+        let midpoint = start.lerp(end, 0.5);
+        assert_eq!(link_curve_control(start, end, 0.0, 0), midpoint);
+        let points = link_curve_points(start, end, 0.0, 0);
+        let direction = end.sub(start).normalized();
+        for point in points {
+            let offset = point.sub(midpoint);
+            assert!(offset.dot(direction).abs() <= offset.length() + 1e-4);
+            assert!(offset.cross(direction).length() < 1e-3);
+        }
     }
 }

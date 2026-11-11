@@ -32,6 +32,13 @@ pub struct ForceParams {
     pub velocity_decay: f64,
     /// Alpha below which the simulation is considered cooled.
     pub alpha_min: f64,
+    /// Link curvature (`0.15` in the shipped panel `DEFAULT_SETTINGS`).
+    ///
+    /// This is a render parameter carried on the force settings struct exactly
+    /// like the shipped panel stores it next to the physics settings; the
+    /// simulation itself never reads it. [`crate::scene::SceneOptions`] owns the
+    /// value used for rendering.
+    pub link_curvature: f64,
 }
 
 impl Default for ForceParams {
@@ -44,6 +51,7 @@ impl Default for ForceParams {
             alpha_decay: 0.15,
             velocity_decay: 0.4,
             alpha_min: 0.001,
+            link_curvature: 0.15,
         }
     }
 }
@@ -336,6 +344,7 @@ mod tests {
             Vec3::new(node.x as f32, node.y as f32, node.z as f32),
             crate::data::seed_position("note-0000")
         );
+        assert_eq!(sim.params().link_curvature, 0.15);
     }
 
     #[test]

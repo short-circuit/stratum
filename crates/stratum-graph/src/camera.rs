@@ -168,6 +168,56 @@ impl Camera {
         );
     }
 
+    /// Frame a set of world positions.
+    ///
+    /// Centres the target on the bounding-box centre and places the camera on
+    /// the +Z axis at the distance where the bounding sphere fits the vertical
+    /// field of view with a 1.2 safety factor. This mirrors the shipped
+    /// `3d-force-graph` behaviour of framing the graph when it loads instead of
+    /// leaving the fixed default camera clipping large graphs.
+    ///
+    /// An empty slice leaves the camera unchanged. The far plane is extended
+    /// when the fitted distance would otherwise clip the sphere.
+    pub fn fit_to_positions(&mut self, positions: &[Vec3]) {
+        if positions.is_empty() {
+            return;
+        }
+        let mut minimum = Vec3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY);
+        let mut maximum = Vec3::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY);
+        for position in positions {
+            if !position.x.is_finite() || !position.y.is_finite() || !position.z.is_finite() {
+                continue;
+            }
+            minimum = Vec3::new(
+                minimum.x.min(position.x),
+                minimum.y.min(position.y),
+                minimum.z.min(position.z),
+            );
+            maximum = Vec3::new(
+                maximum.x.max(position.x),
+                maximum.y.max(position.y),
+                maximum.z.max(position.z),
+            );
+        }
+        if !minimum.x.is_finite() || !maximum.x.is_finite() {
+            return;
+        }
+        let centre = minimum.add(maximum).scale(0.5);
+        let radius = positions
+            .iter()
+            .filter(|position| {
+                position.x.is_finite() && position.y.is_finite() && position.z.is_finite()
+            })
+            .map(|position| position.sub(centre).length())
+            .fold(0.0_f32, f32::max)
+            .max(1.0);
+        let distance = radius / (self.fov_y * 0.5).sin() * 1.2;
+        self.position = centre.add(Vec3::new(0.0, 0.0, distance));
+        self.target = centre;
+        // Keep the whole bounding sphere between the near and far planes.
+        self.far = self.far.max(distance + radius * 2.0);
+    }
+
     /// Start the shipped 500 ms cubic focus tween toward `node_position`.
     pub fn focus_tween(&self, node_position: Vec3, now: Instant) -> FocusTween {
         let dest_position = self.position.add(node_position.sub(self.target));
@@ -289,6 +339,41 @@ mod tests {
         camera.pan(1.0, 2.0);
         assert!((camera.position.x - position.x).abs() > 1e-6);
         assert!((camera.target.y - target.y).abs() > 1e-6);
+    }
+
+    #[test]
+    fn fit_to_positions_frames_every_input_position() {
+        let positions: Vec<Vec3> = (0..64)
+            .map(|index| {
+                let column = (index % 8) as f32;
+                let row = (index / 8) as f32;
+                Vec3::new(column * 24.0 - 84.0, row * 18.0 - 63.0, column * 3.0 - 9.0)
+            })
+            .collect();
+        let mut camera = Camera::default();
+        camera.fit_to_positions(&positions);
+        for position in &positions {
+            let (x, y, _) = camera
+                .project(*position, 1280, 720)
+                .unwrap_or_else(|| panic!("position {position:?} was clipped"));
+            assert!(
+                (0.0..1280.0).contains(&x) && (0.0..720.0).contains(&y),
+                "position {position:?} projected to ({x}, {y})"
+            );
+        }
+        let centre = positions
+            .iter()
+            .fold(Vec3::ZERO, |sum, position| sum.add(*position))
+            .scale(1.0 / positions.len() as f32);
+        assert!((camera.target.sub(centre).length() - 0.0).abs() < 1e-2);
+    }
+
+    #[test]
+    fn fit_to_positions_ignores_an_empty_slice() {
+        let mut camera = Camera::default();
+        let before = camera;
+        camera.fit_to_positions(&[]);
+        assert_eq!(camera, before);
     }
 
     #[test]

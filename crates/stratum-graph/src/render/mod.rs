@@ -24,7 +24,7 @@ use crate::render::labels::{
     create_label_buffer, create_label_pipelines, draw_labels, label_vertices, LabelPipelines,
 };
 use crate::render::links::{
-    create_link_buffer, create_link_pipelines, draw_links, link_instances, LinkPipelines,
+    build_link_cache, create_link_pipelines, draw_links, link_fingerprint, LinkCache, LinkPipelines,
 };
 use crate::render::nodes::{
     create_instance_buffer, create_node_pipelines, draw_nodes, node_instances, NodePipelines,
@@ -40,7 +40,6 @@ use wgpu::{
     CommandEncoderDescriptor, LoadOp, Operations, RenderPassColorAttachment,
     RenderPassDepthStencilAttachment, RenderPassDescriptor, StoreOp, TextureFormat,
 };
-
 /// Renderer configuration.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderConfig {
@@ -58,6 +57,8 @@ pub struct RenderConfig {
     pub label_height: f32,
     /// Maximum number of labels emitted per scene.
     pub max_labels: usize,
+    /// Link curvature setting carried into the scene options.
+    pub link_curvature: f32,
 }
 
 impl Default for RenderConfig {
@@ -70,6 +71,7 @@ impl Default for RenderConfig {
             depth_format: TextureFormat::Depth32Float,
             label_height: 6.0,
             max_labels: 2048,
+            link_curvature: crate::scene::DEFAULT_LINK_CURVATURE,
         }
     }
 }
@@ -80,6 +82,7 @@ impl RenderConfig {
         SceneOptions {
             max_labels: self.max_labels,
             label_height: self.label_height,
+            link_curvature: self.link_curvature,
             ..SceneOptions::default()
         }
     }
@@ -179,6 +182,19 @@ impl Frame {
         Some([pixel[0], pixel[1], pixel[2], pixel[3]])
     }
 
+    /// Deterministic FNV-1a 64-bit hash of the tightly packed RGBA pixels.
+    ///
+    /// The golden runner prints this value so a changed frame is obvious even
+    /// when the PNG is regenerated.
+    pub fn content_hash(&self) -> String {
+        let mut hash = 0xcbf2_9ce4_8422_2325_u64;
+        for byte in self.rgba() {
+            hash ^= u64::from(byte);
+            hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+        }
+        format!("{hash:016x}")
+    }
+
     /// Encode the frame as a PNG.
     pub fn png(&self) -> PkmResult<Vec<u8>> {
         let rgba = self.rgba();
@@ -223,6 +239,7 @@ pub struct GpuRenderer {
     links: LinkPipelines,
     labels: LabelPipelines,
     atlas: GlyphAtlas,
+    link_cache: Option<Box<LinkCache>>,
 }
 
 impl GpuRenderer {
@@ -250,6 +267,7 @@ impl GpuRenderer {
             links,
             labels,
             atlas,
+            link_cache: None,
         })
     }
 
@@ -259,7 +277,7 @@ impl GpuRenderer {
     }
 
     /// Render a scene from a camera.
-    pub fn render(&self, scene: &Scene, camera: &Camera) -> PkmResult<Frame> {
+    pub fn render(&mut self, scene: &Scene, camera: &Camera) -> PkmResult<Frame> {
         let width = self.config.width.max(1);
         let height = self.config.height.max(1);
         let uniforms = Uniforms::new(camera, width, height);
@@ -268,8 +286,20 @@ impl GpuRenderer {
         let instances = node_instances(scene);
         let node_buffer =
             create_instance_buffer(&self.context.device, &self.context.queue, &instances);
-        let links = link_instances(scene);
-        let link_buffer = create_link_buffer(&self.context.device, &self.context.queue, &links);
+        let fingerprint = link_fingerprint(scene);
+        let refresh = self
+            .link_cache
+            .as_ref()
+            .map(|cache| !cache.matches(fingerprint))
+            .unwrap_or(true);
+        if refresh {
+            self.link_cache = Some(Box::new(build_link_cache(
+                &self.context.device,
+                &self.context.queue,
+                scene,
+            )));
+        }
+        let link_cache = self.link_cache.as_ref().expect("link cache");
         let labels = label_vertices(scene, &self.atlas);
         let label_buffer = create_label_buffer(&self.context.device, &self.context.queue, &labels);
         let targets = create_color_targets(
@@ -311,7 +341,12 @@ impl GpuRenderer {
                 multiview_mask: None,
             });
             pass.set_bind_group(0, &bind_group, &[]);
-            draw_links(&mut pass, &self.links, &link_buffer, links.len() as u32);
+            draw_links(
+                &mut pass,
+                &self.links,
+                link_cache.buffer(),
+                link_cache.count(),
+            );
             draw_nodes(&mut pass, &self.nodes, &node_buffer, instances.len() as u32);
             draw_labels(&mut pass, &self.labels, &label_buffer, labels.len() as u32);
         }
@@ -454,10 +489,12 @@ mod tests {
         let config = RenderConfig {
             label_height: 9.0,
             max_labels: 12,
+            link_curvature: 0.3,
             ..RenderConfig::default()
         };
         let options = config.scene_options();
         assert_eq!(options.label_height, 9.0);
         assert_eq!(options.max_labels, 12);
+        assert_eq!(options.link_curvature, 0.3);
     }
 }

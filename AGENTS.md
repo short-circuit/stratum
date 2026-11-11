@@ -75,7 +75,7 @@ stratum/
 │   ├── pkm-watcher/            # File system watcher
 │   ├── stratum-app/            # Headless service layer behind every Tauri command (no tauri deps)
 │   ├── stratum-editor/         # Headless block-editor engine: document, spans, state, undo, menus (no UI deps)
-│   ├── stratum-graph/          # Deterministic d3-force-3d graph physics + headless wgpu 3D renderer
+│   ├── stratum-graph/          # Deterministic d3-force-3d graph physics, camera fit + curved-link headless wgpu 3D renderer
 │   ├── stratum-i18n/           # Embedded locale catalogs, interpolation and parity gates (native shell)
 │   └── stratum-ui/             # Native GPUI desktop shell (E2) on top of stratum-app
 ├── src/                        # React + TypeScript frontend

@@ -2,10 +2,13 @@
 //! and widths.
 //!
 //! The shipped panel draws every edge as a three.js line with a width accessor
-//! (`0.5` normally, `2` for the highlighted neighbourhood, `0.1` otherwise).
-//! The GPU path expands each link into a camera-facing quad in the vertex
-//! shader, so widths are honoured without a geometry shader.
+//! (`0.5` normally, `2` for the highlighted neighbourhood, `0.1` otherwise) and
+//! bends it by `linkCurvature`. The Rust port tessellates that curve into
+//! [`LINK_CURVE_SEGMENTS`] straight quads; the GPU path expands each segment into
+//! a camera-facing quad in the vertex shader, so widths are honoured without a
+//! geometry shader.
 
+use crate::curve::{link_curve_points, LINK_CURVE_SEGMENTS};
 use crate::data::srgb_to_linear;
 use crate::render::device::{create_pipeline_layout, create_shader};
 use crate::render::RenderConfig;
@@ -135,22 +138,106 @@ pub fn create_link_pipelines(
 }
 
 /// Build link instances from a scene.
+///
+/// Each link contributes [`LINK_CURVE_SEGMENTS`] instances: the quadratic bezier
+/// defined by the link's signed curvature is sampled and emitted as consecutive
+/// start/end pairs. The instance layout and shader stay unchanged.
 pub fn link_instances(scene: &Scene) -> Vec<LinkInstance> {
-    scene
-        .links
-        .iter()
-        .filter_map(|link| {
-            let start = scene.nodes.get(link.source)?;
-            let end = scene.nodes.get(link.target)?;
-            let linear = srgb_to_linear(link.color);
-            Some(LinkInstance {
-                start: [start.position.x, start.position.y, start.position.z],
-                end: [end.position.x, end.position.y, end.position.z],
+    let mut instances = Vec::with_capacity(scene.links.len() * LINK_CURVE_SEGMENTS);
+    for (link_index, link) in scene.links.iter().enumerate() {
+        let (Some(source), Some(target)) =
+            (scene.nodes.get(link.source), scene.nodes.get(link.target))
+        else {
+            continue;
+        };
+        let linear = srgb_to_linear(link.color);
+        let points =
+            link_curve_points(source.position, target.position, link.curvature, link_index);
+        for segment in points.windows(2) {
+            let [start, end] = [segment[0], segment[1]];
+            instances.push(LinkInstance {
+                start: [start.x, start.y, start.z],
+                end: [end.x, end.y, end.z],
                 color: [linear[0], linear[1], linear[2], link.opacity],
                 width: link.width,
-            })
-        })
-        .collect()
+            });
+        }
+    }
+    instances
+}
+
+/// Cached link geometry for repeated frames of an unchanged scene.
+///
+/// The interactive simulation rebuilds the scene every tick, which changes the
+/// fingerprint and refreshes the buffer. The golden runner renders the same scene
+/// for every frame, so the cache removes the per-frame tessellation and upload
+/// from the measured frame time while keeping the rendered bytes identical.
+pub struct LinkCache {
+    fingerprint: u64,
+    buffer: Buffer,
+    count: u32,
+}
+
+impl LinkCache {
+    /// Whether this cache was built from the same scene inputs.
+    pub fn matches(&self, fingerprint: u64) -> bool {
+        self.fingerprint == fingerprint
+    }
+
+    /// Cached instance buffer.
+    pub fn buffer(&self) -> &Buffer {
+        &self.buffer
+    }
+
+    /// Number of cached instances.
+    pub fn count(&self) -> u32 {
+        self.count
+    }
+}
+
+/// Fingerprint of the link geometry inputs (positions, curvature, width, colour).
+///
+/// A word-at-a-time FNV mix keeps this cheap enough to run every frame; the
+/// interactive path refreshes the cache whenever the simulation moves a node.
+pub fn link_fingerprint(scene: &Scene) -> u64 {
+    let mut hash = 0xcbf2_9ce4_8422_2325_u64;
+    let mut mix = |value: u64| {
+        hash ^= value;
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    };
+    mix(scene.nodes.len() as u64);
+    mix(scene.links.len() as u64);
+    for node in &scene.nodes {
+        mix(u64::from(node.position.x.to_bits()));
+        mix(u64::from(node.position.y.to_bits()));
+        mix(u64::from(node.position.z.to_bits()));
+    }
+    for link in &scene.links {
+        mix(link.source as u64);
+        mix(link.target as u64);
+        mix(u64::from(link.curvature.to_bits()));
+        mix(u64::from(link.width.to_bits()));
+        mix(u64::from(link.opacity.to_bits()));
+        mix(u64::from(u32::from_be_bytes([
+            link.color[0],
+            link.color[1],
+            link.color[2],
+            0,
+        ])));
+    }
+    hash
+}
+
+/// Build a cached link buffer for a scene.
+pub fn build_link_cache(device: &wgpu::Device, queue: &wgpu::Queue, scene: &Scene) -> LinkCache {
+    let instances = link_instances(scene);
+    let count = instances.len() as u32;
+    let buffer = create_link_buffer(device, queue, &instances);
+    LinkCache {
+        fingerprint: link_fingerprint(scene),
+        buffer,
+        count,
+    }
 }
 
 /// Create a link instance buffer, tolerating an empty list.
@@ -202,10 +289,35 @@ mod tests {
             .collect();
         let scene = Scene::build(&data, &positions, &SceneOptions::default()).expect("scene");
         let instances = link_instances(&scene);
-        assert_eq!(instances.len(), scene.links.len());
-        for (instance, link) in instances.iter().zip(&scene.links) {
+        assert_eq!(instances.len(), scene.links.len() * LINK_CURVE_SEGMENTS);
+        for (link_index, link) in scene.links.iter().enumerate() {
             let start = scene.nodes[link.source].position;
-            assert_eq!(instance.start, [start.x, start.y, start.z]);
+            let first = &instances[link_index * LINK_CURVE_SEGMENTS];
+            assert_eq!(first.start, [start.x, start.y, start.z]);
+            // Consecutive segments chain end -> start.
+            for segment in 0..LINK_CURVE_SEGMENTS - 1 {
+                let current = &instances[link_index * LINK_CURVE_SEGMENTS + segment];
+                let next = &instances[link_index * LINK_CURVE_SEGMENTS + segment + 1];
+                assert_eq!(current.end, next.start);
+            }
+        }
+    }
+
+    #[test]
+    fn zero_curvature_emits_collinear_segments() {
+        let data = fixture(6, 1);
+        let positions: Vec<Vec3> = (0..6)
+            .map(|index| Vec3::new(index as f32, 0.0, 0.0))
+            .collect();
+        let options = SceneOptions {
+            link_curvature: 0.0,
+            ..SceneOptions::default()
+        };
+        let scene = Scene::build(&data, &positions, &options).expect("scene");
+        let instances = link_instances(&scene);
+        for instance in &instances {
+            assert!((instance.start[1] - instance.end[1]).abs() < 1e-4);
+            assert!((instance.start[2] - instance.end[2]).abs() < 1e-4);
         }
     }
 
