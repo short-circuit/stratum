@@ -530,6 +530,17 @@ frozen reference application and are never modified by shell work.
   `stratum_app::themes` + `crate::theme::apply_to_kit`. The shell toaster
   announces due reminders once per due window with a localized open action
   (`Shell::poll_reminders`, `activate_toast_action`).
+
+  | Panel | Module | Provider methods | Capture |
+  |-------|--------|------------------|---------|
+  | Search | `panels/search` | `search_blocks`, `search_by_tag`, `rebuild_search_index` | `dist/gpui-search.png`, `dist/gpui-search-tag.png` |
+  | Query | `panels/query` | `run_query`, `saved_queries`, `save_query`, `rename_query`, `delete_query` | `dist/gpui-query.png`, `dist/gpui-query-results.png`, `dist/gpui-query-datalog.png` |
+  | Ask Notes | `panels/ask` | `ask_notes` | `dist/gpui-ask.png` |
+  | Templates | `panels/templates` | `templates`, `apply_template`, `install_starter_templates` | `dist/gpui-templates.png` |
+  | Flashcards | `panels/flashcards` | `flashcards`, `review_card` | `dist/gpui-flashcards.png`, `dist/gpui-flashcards-answer.png` |
+  | Reminders | `panels/reminders` | `reminders`, `due_reminders`, `snooze_reminder`, `clear_reminder`, `set_reminder` | `dist/gpui-reminders.png`, `dist/gpui-reminders-dialog.png`, `dist/gpui-reminder-toast.png` |
+  | Plugins | `panels/plugins` | `plugins`, `set_plugin_enabled`, `reload_plugin`, `uninstall_plugin`, `install_plugin_path`, `install_plugin_url`, `plugin_note_read`, `plugin_http_request`, `plugin_catalog`, `theme_catalog`, `installed_themes`, `install_theme`, `apply_theme`, `uninstall_theme` | `dist/gpui-plugins.png`, `dist/gpui-plugins-directory.png`, `dist/gpui-plugins-themes.png` |
+
 - `stratum-editor` is the headless block-editor engine the phase-B editor view
   renders (`DecoratedRow`s from `render`). It owns document canonicalization,
   inline spans, editing/undo/IME, slash and marker menus, wiki-link helpers,
