@@ -358,9 +358,12 @@ hardware-Vulkan measurement belongs to the mobile lane).
 
 Known deviations from the shipped look: link particles
 (`linkDirectionalParticles`) are not animated because the native panel paints a
-cached frame and the golden frames must stay byte-stable, and the settings panel
+cached frame and the golden frames must stay byte-stable; the settings panel
 also shows the `use_3d` toggle that the shipped desktop panel hides (the plan
-lists it in the graph settings surface).
+lists it in the graph settings surface); and the shipped progressive-loading
+progress bar (`graph.rendering`) is not ported — the worker-backed layout keeps
+the previous frame visible while it lays the graph out, so there is no
+per-batch progress to report.
 
 
 ---
