@@ -15,6 +15,7 @@ use stratum_i18n::t_global;
 pub mod ask;
 pub mod editor;
 pub mod flashcards;
+pub mod graph;
 pub mod journal;
 pub mod page;
 pub mod plugins;
@@ -26,6 +27,7 @@ pub mod voice;
 
 use crate::panels::ask::AskView;
 use crate::panels::flashcards::FlashcardsView;
+use crate::panels::graph::GraphView;
 use crate::panels::journal::JournalView;
 use crate::panels::page::PageView;
 use crate::panels::plugins::PluginsView;
@@ -95,6 +97,7 @@ pub fn panel_owns_header(panel: Panel) -> bool {
             | Panel::Flashcards
             | Panel::Reminders
             | Panel::Plugins
+            | Panel::Graph
     )
 }
 
@@ -141,6 +144,8 @@ pub struct PanelEntities {
     pub reminders: Option<Entity<RemindersView>>,
     /// Plugins entity.
     pub plugins: Option<Entity<PluginsView>>,
+    /// Graph entity.
+    pub graph: Option<Entity<GraphView>>,
 }
 
 /// Render the active panel body.
@@ -197,6 +202,11 @@ pub fn panel_view(
     if panel == Panel::Plugins {
         if let Some(plugins) = entities.plugins {
             return div().size_full().child(plugins);
+        }
+    }
+    if panel == Panel::Graph {
+        if let Some(graph) = entities.graph {
+            return div().size_full().child(graph);
         }
     }
     let theme = cx.theme();

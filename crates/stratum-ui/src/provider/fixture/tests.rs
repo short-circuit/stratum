@@ -4,6 +4,7 @@
 //! capture harness relies on.
 
 use super::*;
+use crate::provider::{GraphSettingsRow, PanelData};
 use stratum_editor::menus::{AiCallScope, AiTransformAction};
 
 #[test]
@@ -185,5 +186,32 @@ fn fixture_ai_run_is_deterministic() {
     assert_eq!(
         provider.ai_run(mermaid),
         Ok("graph TD\n  A[Start] --> B[End]".to_string())
+    );
+}
+
+#[test]
+fn fixture_graph_settings_round_trip_through_the_panel_seam() {
+    let provider = FixtureProvider::new();
+    let initial = provider
+        .graph_settings()
+        .expect("graph settings")
+        .expect("row");
+    assert_eq!(initial, GraphSettingsRow::default());
+    let saved = GraphSettingsRow {
+        show_connected: false,
+        link_distance: 140.0,
+        alpha_decay: 0.05,
+        use_3d: true,
+        ..GraphSettingsRow::default()
+    };
+    provider
+        .save_graph_settings(saved.clone())
+        .expect("save graph settings");
+    assert_eq!(
+        provider
+            .graph_settings()
+            .expect("graph settings")
+            .expect("row"),
+        saved
     );
 }

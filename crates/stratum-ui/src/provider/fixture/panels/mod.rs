@@ -29,6 +29,8 @@ pub(super) struct PanelState {
     pub plugins: Vec<crate::provider::panels::PluginRow>,
     /// Installed themes (empty until one is installed).
     pub installed_themes: Vec<crate::provider::panels::InstalledThemeRow>,
+    /// Persisted graph settings (mutable so the save round-trip is observable).
+    pub graph_settings: crate::provider::panels::GraphSettingsRow,
 }
 
 impl PanelState {
@@ -41,6 +43,7 @@ impl PanelState {
             reminders: data::fixture_reminders(now),
             plugins: data::fixture_plugins(),
             installed_themes: Vec::new(),
+            graph_settings: crate::provider::panels::GraphSettingsRow::default(),
         }
     }
 }

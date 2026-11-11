@@ -44,10 +44,11 @@ pub use page::{
     ConnectionRow, PageInfo, ReindexSummary,
 };
 pub use panels::{
-    AskAnswer, AskSource, FlashcardRow, InstalledThemeRow, PanelData, PluginCatalogEntry,
-    PluginCatalogSnapshot, PluginRow, PluginTestResult, QueryTable, ReminderRow, SavedQueryRow,
-    SearchHit, TemplateRow, ThemeCatalogEntry, ThemeCatalogSnapshot, ThemeValuesRow,
-    PANEL_DATA_NOT_AVAILABLE,
+    AskAnswer, AskSource, FlashcardRow, GraphComponentRow, GraphEdgeRow, GraphNodeRow,
+    GraphOrphanRow, GraphPanelData, GraphSettingsRow, InstalledThemeRow, PanelData,
+    PluginCatalogEntry, PluginCatalogSnapshot, PluginRow, PluginTestResult, QueryTable,
+    ReminderRow, SavedQueryRow, SearchHit, TemplateRow, ThemeCatalogEntry, ThemeCatalogSnapshot,
+    ThemeValuesRow, PANEL_DATA_NOT_AVAILABLE,
 };
 
 pub use fixture::{

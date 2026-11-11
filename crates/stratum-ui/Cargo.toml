@@ -24,7 +24,9 @@ gpui-kit = { version = "0.9", default-features = false, features = ["component",
 stratum-i18n = { path = "../stratum-i18n" }
 stratum-app = { path = "../stratum-app" }
 stratum-editor = { path = "../stratum-editor" }
+stratum-graph = { path = "../stratum-graph" }
 pkm-core = { path = "../pkm-core" }
+image = { version = "0.25", default-features = false, features = ["png"] }
 chrono.workspace = true
 uuid.workspace = true
 base64.workspace = true

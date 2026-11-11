@@ -1,18 +1,19 @@
 //! Golden runner for the headless graph renderer.
 //!
 //! The runner generates deterministic fixture graphs, advances the ported
-//! simulation, frames the graph with [`Camera::fit_to_positions`], renders a
-//! fixed number of frames through the requested backend, writes PNG captures plus
-//! JSON/markdown reports, and optionally enforces the frame-rate and memory
-//! gates. It is intentionally dependency-free (no clap/serde) so the crate stays
-//! small and reproducible offline.
+//! simulation, places the shipped `3d-force-graph` camera with
+//! [`Camera::shipped_for_nodes`], renders a fixed number of frames through the
+//! requested backend, writes PNG captures plus JSON/markdown reports, and
+//! optionally enforces the frame-rate and memory gates. It is intentionally
+//! dependency-free (no clap/serde) so the crate stays small and reproducible
+//! offline.
 
 use pkm_core::{PkmError, PkmResult};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 use stratum_graph::{
-    fixture, peak_rss_mb, Camera, FrameTimer, RenderConfig, Renderer, Scene, Simulation,
-    MIN_GOLDEN_FPS, WORK_BUDGET_MS,
+    fixture, peak_rss_mb, Camera, FrameBucket, FrameTimer, RenderConfig, Renderer, Scene,
+    Simulation, MIN_GOLDEN_FPS, WORK_BUDGET_MS,
 };
 
 /// The card memory gate for the 20k fixture.
@@ -68,6 +69,7 @@ struct FixtureReport {
     hash: String,
     budget_ms: f64,
     passed: bool,
+    histogram: Vec<FrameBucket>,
     png: String,
     pick: Option<usize>,
 }
@@ -192,8 +194,7 @@ fn run_fixture(
         ..RenderConfig::default()
     };
     let scene = Scene::build(&data, &positions, &config.scene_options())?;
-    let mut camera = Camera::default();
-    camera.fit_to_positions(&positions);
+    let camera = Camera::shipped_for_nodes(data.nodes.len());
     let mut timer = FrameTimer::new();
     let mut last_frame = None;
     for _ in 0..options.frames.max(1) {
@@ -228,6 +229,7 @@ fn run_fixture(
         hash,
         budget_ms,
         passed: report.passed,
+        histogram: report.histogram,
         png: png_path.display().to_string(),
         pick,
     })
@@ -376,6 +378,22 @@ fn write_report(
             report.peak_rss_mb
         ));
         json.push_str(&format!("      \"hash\": \"{}\",\n", report.hash));
+        json.push_str("      \"histogram\": [");
+        for (bucket_index, bucket) in report.histogram.iter().enumerate() {
+            if bucket_index > 0 {
+                json.push(',');
+            }
+            let upper = if bucket.upper_ms.is_finite() {
+                format!("{:.2}", bucket.upper_ms)
+            } else {
+                "null".to_string()
+            };
+            json.push_str(&format!(
+                "{{\"upper_ms\": {upper}, \"count\": {}}}",
+                bucket.count
+            ));
+        }
+        json.push_str("],\n");
         json.push_str(&format!("      \"passed\": {},\n", report.passed));
         json.push_str(&format!("      \"pick\": {},\n", option_json(report.pick)));
         json.push_str(&format!(
@@ -435,6 +453,18 @@ fn write_markdown_report(
             report.hash,
             report.png
         ));
+    }
+    for report in reports {
+        markdown.push_str(&format!("\n### {} nodes frame histogram\n\n", report.nodes));
+        markdown.push_str("| <= X ms | count |\n|---:|---:|\n");
+        for bucket in &report.histogram {
+            let upper = if bucket.upper_ms.is_finite() {
+                format!("{:.2}", bucket.upper_ms)
+            } else {
+                "inf".to_string()
+            };
+            markdown.push_str(&format!("| <= {} ms | {} |\n", upper, bucket.count));
+        }
     }
     std::fs::write(path, markdown)
         .map_err(|error| PkmError::Render(format!("write golden markdown failed: {error}")))

@@ -75,7 +75,7 @@ stratum/
 │   ├── pkm-watcher/            # File system watcher
 │   ├── stratum-app/            # Headless service layer behind every Tauri command (no tauri deps)
 │   ├── stratum-editor/         # Headless block-editor engine: document, spans, state, undo, menus (no UI deps)
-│   ├── stratum-graph/          # Deterministic d3-force-3d graph physics, camera fit + curved-link headless wgpu 3D renderer
+│   ├── stratum-graph/          # Deterministic d3-force-3d physics, camera parity, headless wgpu 3D renderer + CPU fallback
 │   ├── stratum-i18n/           # Embedded locale catalogs, interpolation and parity gates (native shell)
 │   └── stratum-ui/             # Native GPUI desktop shell (E2) on top of stratum-app
 ├── src/                        # React + TypeScript frontend
@@ -532,6 +532,21 @@ frozen reference application and are never modified by shell work.
   `stratum_app::themes` + `crate::theme::apply_to_kit`. The shell toaster
   announces due reminders once per due window with a localized open action
   (`Shell::poll_reminders`, `activate_toast_action`).
+- The native graph surface lives in `crates/stratum-ui/src/panels/graph/`:
+  `mod.rs` (`GraphView` entity, render and start state), `model.rs` (canonical
+  `pkm_core::GraphConfig` force defaults plus the `GraphSettingsRow` mapping,
+  banner and stats text), `canvas.rs` (letterbox
+  geometry, orbit/pan/dolly, WASD/arrow camera steps, click-to-open and
+  right-click focus), `scene.rs` (renderer selection, deterministic layout job,
+  scene build and `RenderImage` conversion), `layout.rs` (worker polling and
+  hover-highlight rebuilds), `settings.rs` (visibility/3D toggles, force sliders,
+  node cap), `setters.rs` (settings mutators that persist through
+  `PanelData::save_graph_settings`; the node cap stays in memory) and
+  `toolbar.rs` (view modes, component selector, title/tag search
+  and stats). `stratum-graph` supplies the physics, camera parity and the
+  wgpu/software renderer; `tests/graph_contract.rs` covers the force defaults,
+  the `GRAPH_I18N_KEYS` gate, the filter/cap policy, the camera pan/zoom
+  formulas, the frame-time histogram and the deterministic worker layout.
 
   | Panel | Module | Provider methods | Capture |
   |-------|--------|------------------|---------|
@@ -542,6 +557,7 @@ frozen reference application and are never modified by shell work.
   | Flashcards | `panels/flashcards` | `flashcards`, `review_card` | `dist/gpui-flashcards.png`, `dist/gpui-flashcards-answer.png` |
   | Reminders | `panels/reminders` | `reminders`, `due_reminders`, `snooze_reminder`, `clear_reminder`, `set_reminder` | `dist/gpui-reminders.png`, `dist/gpui-reminders-dialog.png`, `dist/gpui-reminder-toast.png` |
   | Plugins | `panels/plugins` | `plugins`, `set_plugin_enabled`, `reload_plugin`, `uninstall_plugin`, `install_plugin_path`, `install_plugin_url`, `plugin_note_read`, `plugin_http_request`, `plugin_catalog`, `theme_catalog`, `installed_themes`, `install_theme`, `apply_theme`, `uninstall_theme` | `dist/gpui-plugins.png`, `dist/gpui-plugins-directory.png`, `dist/gpui-plugins-themes.png` |
+  | Graph | `panels/graph` | `graph_panel_data` | `dist/gpui-graph.png`, `dist/gpui-graph-component.png`, `dist/gpui-graph-settings.png` |
 
 - `stratum-editor` is the headless block-editor engine the phase-B editor view
   renders (`DecoratedRow`s from `render`). It owns document canonicalization,
@@ -576,12 +592,14 @@ frozen reference application and are never modified by shell work.
   the eight catalogs. Start-state flags for the capture harness are applied by
   `apply_start_state` in `main.rs`: `STRATUM_ROUTE`, `STRATUM_PAGE`,
   `STRATUM_JOURNAL_DATE`, `STRATUM_CALENDAR`, `STRATUM_READ_MODE`,
-  `STRATUM_REMINDER_DIALOG` and `STRATUM_PLUGINS_TAB`; `STRATUM_REMINDER_TOAST=1`
+  `STRATUM_REMINDER_DIALOG`, `STRATUM_PLUGINS_TAB`, `STRATUM_GRAPH_MODE`,
+  `STRATUM_GRAPH_COMPONENT`, `STRATUM_GRAPH_SETTINGS`, `STRATUM_GRAPH_SEARCH` and
+  `STRATUM_GRAPH_TICKS`; `STRATUM_REMINDER_TOAST=1`
   makes the fixture report due reminders to the shell toaster.
 - `scripts/capture-gpui-shell.sh` renders the fixture shell on a private Xvfb
   screen and writes `dist/gpui-shell.png` (224 px sidebar) plus
   `dist/gpui-shell-collapsed.png` (52 px rail, `STRATUM_COLLAPSED=1`).
-- `scripts/capture-gpui-panels.sh` performs twenty-four captures: the journal
+- `scripts/capture-gpui-panels.sh` performs twenty-seven captures: the journal
   surface in edit mode, with the calendar expanded and on a past day in read mode
   (`dist/gpui-journal.png`, `dist/gpui-journal-calendar.png`,
   `dist/gpui-journal-read.png`), the fixture page in edit/read mode with the
@@ -591,7 +609,10 @@ frozen reference application and are never modified by shell work.
   due dialog (`dist/gpui-reminders.png`, `dist/gpui-reminders-dialog.png`) and
   the due-reminder toast (`dist/gpui-reminder-toast.png`), and the Plugins
   installed/directory/themes tabs (`dist/gpui-plugins.png`,
-  `dist/gpui-plugins-directory.png`, `dist/gpui-plugins-themes.png`).
+  `dist/gpui-plugins-directory.png`, `dist/gpui-plugins-themes.png`), and the
+  Graph surface with the full fixture graph, the component view and the
+  settings panel (`dist/gpui-graph.png`, `dist/gpui-graph-component.png`,
+  `dist/gpui-graph-settings.png`).
 - `crates/stratum-ui/tests/interaction_contract.rs` opens headless gpui windows
   to cover click propagation (snippet/voice chips), journal start scroll, the
   reminder block-open request, the toast open action and the plugins

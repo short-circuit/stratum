@@ -10,9 +10,9 @@ use stratum_app::template::template_variables;
 
 use super::{data, panel_state, FixtureProvider};
 use crate::provider::panels::{
-    AskAnswer, AskSource, FlashcardRow, InstalledThemeRow, PanelData, PluginCatalogSnapshot,
-    PluginRow, QueryTable, ReminderRow, SavedQueryRow, SearchHit, TemplateRow,
-    ThemeCatalogSnapshot, ThemeValuesRow,
+    AskAnswer, AskSource, FlashcardRow, GraphPanelData, GraphSettingsRow, InstalledThemeRow,
+    PanelData, PluginCatalogSnapshot, PluginRow, QueryTable, ReminderRow, SavedQueryRow, SearchHit,
+    TemplateRow, ThemeCatalogSnapshot, ThemeValuesRow,
 };
 
 impl PanelData for FixtureProvider {
@@ -467,6 +467,19 @@ impl PanelData for FixtureProvider {
     fn uninstall_theme(&self, id: &str) -> Result<(), String> {
         let mut state = panel_state(self)?;
         state.installed_themes.retain(|theme| theme.id != id);
+        Ok(())
+    }
+
+    fn graph_panel_data(&self) -> Result<GraphPanelData, String> {
+        Ok(data::fixture_graph_panel_data())
+    }
+
+    fn graph_settings(&self) -> Result<Option<GraphSettingsRow>, String> {
+        Ok(Some(panel_state(self)?.graph_settings.clone()))
+    }
+
+    fn save_graph_settings(&self, settings: GraphSettingsRow) -> Result<(), String> {
+        panel_state(self)?.graph_settings = settings;
         Ok(())
     }
 }

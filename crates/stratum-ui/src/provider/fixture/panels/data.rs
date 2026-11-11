@@ -11,6 +11,7 @@ use chrono::{Duration, Local, Utc};
 use stratum_app::plugins::catalog::{PluginCatalogEntry, ThemeCatalogEntry};
 
 use crate::provider::panels::{
+    GraphComponentRow, GraphEdgeRow, GraphNodeRow, GraphOrphanRow, GraphPanelData,
     InstalledThemeRow, PluginRow, ReminderRow, SavedQueryRow, ThemeValuesRow,
 };
 
@@ -200,6 +201,86 @@ pub(super) fn builtin_theme_values() -> ThemeValuesRow {
         secondary_color: "#6b7280".to_string(),
         font_size: 16.0,
     }
+}
+
+/// Deterministic graph fixture: 24 notes in two components (12 and 9 nodes)
+/// plus three orphans, with tags that exercise the search filter.
+pub(super) fn fixture_graph_panel_data() -> GraphPanelData {
+    let mut nodes: Vec<GraphNodeRow> = (0..24)
+        .map(|index| {
+            let mut tags = Vec::new();
+            if index % 4 == 0 {
+                tags.push("project".to_string());
+            }
+            if index % 5 == 0 {
+                tags.push("research".to_string());
+            }
+            GraphNodeRow {
+                id: format!("pages/graph-{index:02}.md"),
+                title: format!("Graph Note {index:02}"),
+                path: format!("pages/graph-{index:02}.md"),
+                tags,
+                degree: 0,
+            }
+        })
+        .collect();
+    let mut edges = Vec::new();
+    add_ring(&mut edges, &mut nodes, 0, 12);
+    add_graph_edge(&mut edges, &mut nodes, 0, 6);
+    add_graph_edge(&mut edges, &mut nodes, 2, 8);
+    add_graph_edge(&mut edges, &mut nodes, 4, 10);
+    add_ring(&mut edges, &mut nodes, 12, 9);
+    add_graph_edge(&mut edges, &mut nodes, 12, 16);
+    add_graph_edge(&mut edges, &mut nodes, 14, 19);
+    let components = vec![
+        GraphComponentRow {
+            nodes: nodes[0..12].to_vec(),
+            size: 12,
+        },
+        GraphComponentRow {
+            nodes: nodes[12..21].to_vec(),
+            size: 9,
+        },
+    ];
+    let orphans = (21..24)
+        .map(|index| GraphOrphanRow {
+            slug: format!("graph-{index:02}"),
+            title: format!("Graph Note {index:02}"),
+            path: format!("pages/graph-{index:02}.md"),
+        })
+        .collect();
+    GraphPanelData {
+        nodes,
+        edges,
+        components,
+        orphans,
+        vault_path: "/fixture".to_string(),
+    }
+}
+
+/// Add a ring of edges over `count` nodes starting at `start`.
+fn add_ring(edges: &mut Vec<GraphEdgeRow>, nodes: &mut [GraphNodeRow], start: usize, count: usize) {
+    for offset in 0..count {
+        let source = start + offset;
+        let target = start + (offset + 1) % count;
+        add_graph_edge(edges, nodes, source, target);
+    }
+}
+
+/// Add one fixture edge and update both endpoint degrees.
+fn add_graph_edge(
+    edges: &mut Vec<GraphEdgeRow>,
+    nodes: &mut [GraphNodeRow],
+    source: usize,
+    target: usize,
+) {
+    edges.push(GraphEdgeRow {
+        source: nodes[source].id.clone(),
+        target: nodes[target].id.clone(),
+        label: None,
+    });
+    nodes[source].degree += 1;
+    nodes[target].degree += 1;
 }
 
 /// Build one installed-theme row for the fixture.

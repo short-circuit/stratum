@@ -7,12 +7,14 @@
 
 use chrono::Utc;
 use stratum_app::reminders::due::parse_due;
+use stratum_app::settings::GraphSettingsDto;
 use stratum_app::template::template_variables;
 
 use super::panels::{
-    AskAnswer, AskSource, FlashcardRow, InstalledThemeRow, PanelData, PluginCatalogSnapshot,
-    PluginRow, QueryTable, ReminderRow, SavedQueryRow, SearchHit, TemplateRow,
-    ThemeCatalogSnapshot, ThemeValuesRow, PANEL_DATA_NOT_AVAILABLE,
+    AskAnswer, AskSource, FlashcardRow, GraphComponentRow, GraphEdgeRow, GraphNodeRow,
+    GraphOrphanRow, GraphPanelData, GraphSettingsRow, InstalledThemeRow, PanelData,
+    PluginCatalogSnapshot, PluginRow, QueryTable, ReminderRow, SavedQueryRow, SearchHit,
+    TemplateRow, ThemeCatalogSnapshot, ThemeValuesRow, PANEL_DATA_NOT_AVAILABLE,
 };
 use super::AppProvider;
 
@@ -360,6 +362,87 @@ impl PanelData for AppProvider {
     fn uninstall_theme(&self, id: &str) -> Result<(), String> {
         self.runtime
             .block_on(self.service.uninstall_theme(id.to_string()))
+    }
+
+    fn graph_panel_data(&self) -> Result<GraphPanelData, String> {
+        let panel = self.runtime.block_on(self.service.get_graph_panel_data())?;
+        Ok(GraphPanelData {
+            vault_path: panel.graph.vault_path.clone(),
+            nodes: panel.graph.nodes.iter().map(graph_node_row).collect(),
+            edges: panel.graph.edges.iter().map(graph_edge_row).collect(),
+            components: panel
+                .components
+                .iter()
+                .map(|component| GraphComponentRow {
+                    nodes: component.nodes.iter().map(graph_node_row).collect(),
+                    size: component.size,
+                })
+                .collect(),
+            orphans: panel
+                .orphans
+                .iter()
+                .map(|orphan| GraphOrphanRow {
+                    slug: orphan.slug.clone(),
+                    title: orphan.title.clone(),
+                    path: orphan.path.clone(),
+                })
+                .collect(),
+        })
+    }
+
+    fn graph_settings(&self) -> Result<Option<GraphSettingsRow>, String> {
+        let settings = self.runtime.block_on(self.service.get_settings())?;
+        Ok(Some(graph_settings_row(settings.graph)))
+    }
+
+    fn save_graph_settings(&self, settings: GraphSettingsRow) -> Result<(), String> {
+        self.runtime
+            .block_on(self.service.save_graph_settings(GraphSettingsDto {
+                show_connected: settings.show_connected,
+                show_orphaned: settings.show_orphaned,
+                show_tags: settings.show_tags,
+                charge_strength: settings.charge_strength,
+                link_distance: settings.link_distance,
+                alpha_decay: settings.alpha_decay,
+                velocity_decay: settings.velocity_decay,
+                link_curvature: settings.link_curvature,
+                use_3d: settings.use_3d,
+            }))
+    }
+}
+
+/// Map a service graph settings DTO into a panel row.
+fn graph_settings_row(settings: GraphSettingsDto) -> GraphSettingsRow {
+    GraphSettingsRow {
+        show_connected: settings.show_connected,
+        show_orphaned: settings.show_orphaned,
+        show_tags: settings.show_tags,
+        charge_strength: settings.charge_strength,
+        link_distance: settings.link_distance,
+        alpha_decay: settings.alpha_decay,
+        velocity_decay: settings.velocity_decay,
+        link_curvature: settings.link_curvature,
+        use_3d: settings.use_3d,
+    }
+}
+
+/// Map a service graph node into a panel row.
+fn graph_node_row(node: &stratum_app::graph::GraphNodeDto) -> GraphNodeRow {
+    GraphNodeRow {
+        id: node.id.clone(),
+        title: node.title.clone(),
+        path: node.path.clone(),
+        tags: node.tags.clone(),
+        degree: node.degree,
+    }
+}
+
+/// Map a service graph edge into a panel row.
+fn graph_edge_row(edge: &stratum_app::graph::GraphEdgeDto) -> GraphEdgeRow {
+    GraphEdgeRow {
+        source: edge.source.clone(),
+        target: edge.target.clone(),
+        label: edge.label.clone(),
     }
 }
 

@@ -77,6 +77,17 @@ The toggle is only shown where it applies:
 
 Stratum checks hardware capability before enabling 3D. On devices that cannot render 3D (WebGL unavailable), or on very constrained hardware (≤2 GB RAM or ≤2 CPU cores), Stratum automatically falls back to the 2D layout and shows a notice explaining that 3D isn't supported on the device. Your preference is still saved — if you later open the graph on a capable device, 3D is used. The 3D view is disabled in the settings when the device can't render it.
 
+## Native desktop shell
+
+The native desktop shell renders the same graph from the headless
+`stratum-graph` engine: identical filters and cap banner, the same force
+settings, and the shipped camera feel (trackball pan/zoom, WASD/arrow camera
+steps, right-click focus). It loads and saves the same graph settings from the
+vault configuration (`PanelData::graph_settings` / `save_graph_settings`),
+matching the shipped panel's persistence. On hosts without a usable GPU adapter
+it falls back to the deterministic software renderer, switches to the 2D
+orthographic view and shows the fallback notice.
+
 ## Performance
 
 Graph loading and rendering are optimized for large vaults:

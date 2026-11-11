@@ -24,6 +24,11 @@
 //! - `STRATUM_FLASHCARD_REVEAL=1` reveals the first flashcard's answer.
 //! - `STRATUM_REMINDER_DIALOG=<block-id>` opens that reminder's due dialog.
 //! - `STRATUM_PLUGINS_TAB=installed|directory|themes` opens a plugins tab.
+//! - `STRATUM_GRAPH_MODE=full|component|orphans` selects the graph view mode.
+//! - `STRATUM_GRAPH_COMPONENT=<index>` selects a connected component.
+//! - `STRATUM_GRAPH_SETTINGS=1` opens the graph settings panel.
+//! - `STRATUM_GRAPH_SEARCH=<text>` prefills the graph node search.
+//! - `STRATUM_GRAPH_TICKS=<count>` sets the deterministic layout ticks.
 //!
 //! `STRATUM_REMINDER_TOAST=1` makes the fixture report due reminders, which the
 //! shell polls into its reminder toaster.
@@ -38,6 +43,8 @@ use gpui_kit::*;
 use stratum_i18n::{set_locale, Locale};
 use stratum_ui::panels::ask::AskStart;
 use stratum_ui::panels::flashcards::FlashcardsStart;
+use stratum_ui::panels::graph::model::{view_mode_from_env, DEFAULT_TICKS};
+use stratum_ui::panels::graph::GraphStart;
 use stratum_ui::panels::plugins::{PluginsStart, PluginsTab};
 use stratum_ui::panels::query::{QueryStart, QueryTab};
 use stratum_ui::panels::reminders::RemindersStart;
@@ -133,6 +140,23 @@ fn apply_start_state(shell: &mut Shell) {
             }
         }
     });
+    let graph_mode = std::env::var("STRATUM_GRAPH_MODE").ok().and_then(|value| {
+        let mode = view_mode_from_env(&value);
+        if mode.is_none() {
+            log::warn!("ignoring unknown STRATUM_GRAPH_MODE={value}");
+        }
+        mode
+    });
+    let graph_component = std::env::var("STRATUM_GRAPH_COMPONENT")
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok());
+    let graph_settings = env_flag("STRATUM_GRAPH_SETTINGS");
+    let graph_search = std::env::var("STRATUM_GRAPH_SEARCH")
+        .ok()
+        .filter(|value| !value.is_empty());
+    let graph_ticks = std::env::var("STRATUM_GRAPH_TICKS")
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok());
     if search.is_some()
         || query_datalog.is_some()
         || query_tab.is_some()
@@ -141,6 +165,11 @@ fn apply_start_state(shell: &mut Shell) {
         || flashcard_reveal
         || reminder_dialog.is_some()
         || plugins_tab.is_some()
+        || graph_mode.is_some()
+        || graph_component.is_some()
+        || graph_settings
+        || graph_search.is_some()
+        || graph_ticks.is_some()
     {
         shell.set_panel_start(PanelStarts {
             search: SearchStart { query: search },
@@ -159,6 +188,13 @@ fn apply_start_state(shell: &mut Shell) {
                 dialog_block: reminder_dialog,
             },
             plugins: PluginsStart { tab: plugins_tab },
+            graph: GraphStart {
+                view_mode: graph_mode,
+                component: graph_component.unwrap_or(0),
+                settings_open: graph_settings,
+                search: graph_search,
+                ticks: graph_ticks.unwrap_or(DEFAULT_TICKS),
+            },
         });
     }
     if let Ok(page) = std::env::var("STRATUM_PAGE") {

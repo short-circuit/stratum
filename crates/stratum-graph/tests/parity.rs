@@ -92,33 +92,33 @@ fn sequential_ticks_match_the_javascript_reference() {
     let mut simulation = Simulation::new(&data, 1).expect("simulation");
     simulation.advance_sequential(10);
 
-    // Captured from d3-force-3d with the shipped configuration (charge -30,
-    // link distance 50, collide radius 4, z-spring 0.08, alpha decay 0.15,
+    // Captured from d3-force-3d with the canonical configuration (charge -30,
+    // link distance 100, collide radius 4, z-spring 0.08, alpha decay 0.02,
     // velocity decay 0.4) after ten ticks.
     let expected = [
         (
             "alpha",
-            -6.992_758_825_533_778,
-            37.770_671_135_327_64,
-            -24.181_864_944_584_78,
+            -0.152_115_174_595_217,
+            58.996_253_891_838_506,
+            -22.864_434_584_905_76,
         ),
         (
             "beta",
-            -22.236_461_576_630_187,
-            -6.717_417_500_904_180_5,
-            -43.842_825_955_201_72,
+            -43.370_812_955_217_076,
+            -27.462_422_956_321_74,
+            -46.699_622_986_894_16,
         ),
         (
             "gamma",
-            28.074_021_830_180_502,
-            10.227_499_844_987_038,
-            -40.465_559_459_141_37,
+            51.969_285_715_891_246,
+            7.788_371_145_987_84,
+            -48.012_748_326_064_45,
         ),
         (
             "delta",
-            20.132_209_080_587_426,
-            37.708_827_812_128_035,
-            4.133_586_275_505_727,
+            8.325_763_169_395_039,
+            61.126_427_762_019_965,
+            22.540_000_851_705_05,
         ),
     ];
     for (index, (id, x, y, z)) in expected.iter().enumerate() {
@@ -128,5 +128,5 @@ fn sequential_ticks_match_the_javascript_reference() {
         assert!((node.y - y).abs() < 1e-6, "node {id} y {} != {y}", node.y);
         assert!((node.z - z).abs() < 1e-6, "node {id} z {} != {z}", node.z);
     }
-    assert!((simulation.alpha() - 0.196_874_404_340_722_62).abs() < 1e-12);
+    assert!((simulation.alpha() - 0.817_072_806_887_546_9).abs() < 1e-12);
 }

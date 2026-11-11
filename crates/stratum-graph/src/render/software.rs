@@ -37,6 +37,15 @@ impl SoftwareRenderer {
         self.config.height.max(1)
     }
 
+    /// Update the target dimensions.
+    ///
+    /// The rasterizer allocates its pixel buffer per render, so resizing only
+    /// updates the configuration.
+    pub fn resize(&mut self, width: u32, height: u32) {
+        self.config.width = width.max(1);
+        self.config.height = height.max(1);
+    }
+
     /// Render the scene into an RGBA frame.
     pub fn render(&mut self, scene: &Scene, camera: &Camera) -> PkmResult<Frame> {
         let width = self.config.width.max(1);

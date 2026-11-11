@@ -1,7 +1,7 @@
 //! Panel data DTOs and the [`PanelData`] provider seam.
 //!
-//! This module is the data contract for the seven non-graph native panels
-//! (Search, Query, Ask Notes, Templates, Flashcards, Reminders, Plugins).
+//! This module is the data contract for the native panels (Search, Query, Ask
+//! Notes, Templates, Flashcards, Reminders, Plugins and Graph).
 //! Every method has a safe default so existing providers and window-free tests
 //! keep compiling; the real implementation lives in [`super::app_panels`] and
 //! the deterministic fixture in [`super::fixture::panels`].
@@ -9,6 +9,10 @@
 //! The catalog entry types are re-exported from `stratum-app` so hosts never
 //! maintain a second copy of the catalog schema.
 
+pub mod graph;
+pub use graph::{
+    GraphComponentRow, GraphEdgeRow, GraphNodeRow, GraphOrphanRow, GraphPanelData, GraphSettingsRow,
+};
 pub use stratum_app::plugins::catalog::{PluginCatalogEntry, ThemeCatalogEntry};
 
 /// One full-text search hit.
@@ -431,6 +435,26 @@ pub trait PanelData: Send + Sync {
 
     /// Uninstall a theme.
     fn uninstall_theme(&self, _id: &str) -> Result<(), String> {
+        Ok(())
+    }
+
+    /// Read the graph panel data (nodes, edges, components and orphans).
+    fn graph_panel_data(&self) -> Result<GraphPanelData, String> {
+        Ok(GraphPanelData::empty())
+    }
+
+    /// Read the persisted graph settings from the vault configuration.
+    ///
+    /// Returns `Ok(None)` when the provider has no persisted graph settings, in
+    /// which case the panel falls back to its canonical defaults.
+    fn graph_settings(&self) -> Result<Option<GraphSettingsRow>, String> {
+        Ok(None)
+    }
+
+    /// Persist the graph settings to the vault configuration.
+    ///
+    /// `node_cap` is not part of [`GraphSettingsRow`]; it stays client-side.
+    fn save_graph_settings(&self, _settings: GraphSettingsRow) -> Result<(), String> {
         Ok(())
     }
 }

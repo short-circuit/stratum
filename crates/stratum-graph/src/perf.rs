@@ -69,6 +69,20 @@ impl FrameTimer {
             sorted[index.min(sorted.len() - 1)]
         };
         let max = sorted.last().copied().unwrap_or(0.0);
+        let mut histogram: Vec<FrameBucket> = HISTOGRAM_EDGES_MS
+            .iter()
+            .map(|&upper_ms| FrameBucket { upper_ms, count: 0 })
+            .collect();
+        // Each sample lands in the first bucket whose inclusive upper edge it
+        // does not exceed; the final bucket catches everything above 100 ms.
+        for sample in &sorted {
+            if let Some(bucket) = histogram
+                .iter_mut()
+                .find(|bucket| *sample <= bucket.upper_ms)
+            {
+                bucket.count += 1;
+            }
+        }
         PerfReport {
             frame_count: sorted.len(),
             mean_ms: mean,
@@ -78,6 +92,7 @@ impl FrameTimer {
             fps: if mean > 0.0 { 1000.0 / mean } else { 0.0 },
             budget_ms,
             passed: p95 <= budget_ms,
+            histogram,
         }
     }
 }
@@ -109,6 +124,28 @@ pub fn peak_rss_mb() -> f64 {
     }
 }
 
+/// One frame-time histogram bucket.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FrameBucket {
+    /// Inclusive upper bound of the bucket in milliseconds.
+    pub upper_ms: f64,
+    /// Number of frames whose duration did not exceed `upper_ms`.
+    pub count: usize,
+}
+
+/// Fixed upper edges for the frame-time histogram.
+pub const HISTOGRAM_EDGES_MS: [f64; 9] = [
+    4.0,
+    8.0,
+    11.11,
+    16.67,
+    22.22,
+    33.33,
+    50.0,
+    100.0,
+    f64::INFINITY,
+];
+
 /// A summarized frame-timing report.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PerfReport {
@@ -128,6 +165,8 @@ pub struct PerfReport {
     pub budget_ms: f64,
     /// Whether the p95 gate passed.
     pub passed: bool,
+    /// Frame-time histogram with the fixed acceptance bucket edges.
+    pub histogram: Vec<FrameBucket>,
 }
 
 impl PerfReport {
@@ -170,6 +209,20 @@ mod tests {
         assert_eq!(report.max_ms, 100.0);
         assert!(!report.passed);
         assert!(report.assert_fps(1.0).is_ok());
+    }
+
+    #[test]
+    fn histogram_buckets_cover_every_sample() {
+        let mut timer = FrameTimer::new();
+        for ms in [3.0, 5.0, 10.0, 12.0, 16.0, 20.0, 30.0, 60.0, 200.0] {
+            timer.record_ms(ms);
+        }
+        let report = timer.report(WORK_BUDGET_MS);
+        let total: usize = report.histogram.iter().map(|bucket| bucket.count).sum();
+        assert_eq!(total, report.frame_count);
+        // 16 ms falls in the 16.67 bucket and 60 ms skips the 50 ms bucket.
+        let counts: Vec<usize> = report.histogram.iter().map(|bucket| bucket.count).collect();
+        assert_eq!(counts, vec![1, 1, 1, 2, 1, 1, 0, 1, 1]);
     }
 
     #[test]

@@ -14,6 +14,8 @@ use gpui_kit::*;
 use super::Shell;
 use crate::panels::ask::{AskStart, AskView};
 use crate::panels::flashcards::{FlashcardsStart, FlashcardsView};
+use crate::panels::graph::{GraphStart, GraphView};
+use crate::panels::journal::JournalView;
 use crate::panels::plugins::{PluginsStart, PluginsView};
 use crate::panels::query::{QueryStart, QueryTab, QueryView};
 use crate::panels::reminders::{RemindersStart, RemindersView};
@@ -42,6 +44,8 @@ pub struct PanelStarts {
     pub reminders: RemindersStart,
     /// Plugins panel start state.
     pub plugins: PluginsStart,
+    /// Graph panel start state.
+    pub graph: GraphStart,
 }
 
 impl PanelStarts {
@@ -81,6 +85,7 @@ impl Shell {
         self.flashcards = None;
         self.reminders = None;
         self.plugins = None;
+        self.graph = None;
     }
 
     /// Set the search panel's start query (used by tag navigation).
@@ -124,6 +129,11 @@ impl Shell {
         self.plugins.as_ref()
     }
 
+    /// The live graph entity, if the panel has created one.
+    pub fn graph_view(&self) -> Option<&Entity<GraphView>> {
+        self.graph.as_ref()
+    }
+
     /// Create the active panel entity and drain its pending requests.
     pub(super) fn sync_panels(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         match self.active {
@@ -134,6 +144,7 @@ impl Shell {
             Panel::Flashcards => self.sync_flashcards(cx),
             Panel::Reminders => self.sync_reminders(window, cx),
             Panel::Plugins => self.sync_plugins(cx),
+            Panel::Graph => self.sync_graph(window, cx),
             _ => {}
         }
     }
@@ -230,6 +241,19 @@ impl Shell {
         self.drain_panel(&plugins, cx);
     }
 
+    /// Create or reuse the graph entity, then drain navigation requests.
+    fn sync_graph(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.graph.is_none() {
+            let provider = Arc::clone(&self.provider);
+            let start = std::mem::take(&mut self.panel_starts.graph);
+            self.graph = Some(cx.new(move |cx| GraphView::new(provider, start, window, cx)));
+        }
+        let Some(graph) = self.graph.clone() else {
+            return;
+        };
+        self.drain_panel(&graph, cx);
+    }
+
     /// Drain a hosted panel's pending navigation, block-open and toast
     /// requests into shell state.
     fn drain_panel<T: PanelRequests + 'static>(
@@ -268,6 +292,42 @@ impl Shell {
                 page_path,
                 block_id,
             } => self.open_page_with_highlight(page_path, block_id),
+        }
+    }
+    /// Create the journal entity lazily, forward shell read-mode changes and
+    /// route a child editor's pending navigation.
+    ///
+    /// The journal header owns its own read-mode toggle, so the shell only
+    /// forwards a change when its own read-mode flag differs from the last value
+    /// it pushed; otherwise the header toggle would be overwritten every frame.
+    pub(super) fn sync_journal(&mut self, cx: &mut Context<Self>) {
+        if self.journal.is_none() {
+            let provider = Arc::clone(&self.provider);
+            let start_date = self.journal_start_date.clone();
+            let calendar_open = self.journal_calendar;
+            let read_mode = self.read_mode;
+            self.journal = Some(cx.new(move |cx| {
+                JournalView::new(provider, start_date, calendar_open, read_mode, cx)
+            }));
+            self.journal_read_mode = read_mode;
+        }
+
+        let journal = self.journal.clone();
+        let Some(journal) = journal else {
+            return;
+        };
+
+        if self.read_mode != self.journal_read_mode {
+            let read_mode = self.read_mode;
+            journal.update(cx, |view, cx| view.set_read_mode(read_mode, cx));
+            self.journal_read_mode = read_mode;
+        }
+
+        let navigation =
+            journal.update(cx, |view, _| view.pending_navigation().map(str::to_string));
+        if let Some(target) = navigation {
+            journal.update(cx, |view, _| view.clear_pending_navigation());
+            self.handle_editor_navigation(&target);
         }
     }
 }

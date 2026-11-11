@@ -19,6 +19,7 @@ use stratum_i18n::{t_global, tr_global};
 use crate::panels::ask::AskView;
 use crate::panels::editor::EditorView;
 use crate::panels::flashcards::FlashcardsView;
+use crate::panels::graph::{GraphStart, GraphView};
 use crate::panels::journal::JournalView;
 use crate::panels::page::{PageStart, PageView};
 use crate::panels::plugins::PluginsView;
@@ -114,6 +115,7 @@ pub struct Shell {
     flashcards: Option<Entity<FlashcardsView>>,
     reminders: Option<Entity<RemindersView>>,
     plugins: Option<Entity<PluginsView>>,
+    graph: Option<Entity<GraphView>>,
     panel_starts: PanelStarts,
     error: Option<String>,
     /// Reminder toaster state: the current toast, the announce-once set and the
@@ -147,6 +149,7 @@ impl Shell {
             flashcards: None,
             reminders: None,
             plugins: None,
+            graph: None,
             panel_starts: PanelStarts::default(),
             error: None,
             toaster: reminder_toast::ReminderToaster::default(),
@@ -232,6 +235,10 @@ impl Shell {
             self.plugins = None;
             self.panel_starts.plugins = crate::panels::plugins::PluginsStart::default();
         }
+        if panel != Panel::Graph {
+            self.graph = None;
+            self.panel_starts.graph = GraphStart::default();
+        }
         self.active = panel;
         self.read_mode = false;
     }
@@ -289,43 +296,6 @@ impl Shell {
             Some(path) => self.open_page(path),
             None if target.ends_with(".md") => self.open_page(target.to_string()),
             None => self.navigate(Panel::Search),
-        }
-    }
-
-    /// Create the journal entity lazily, forward shell read-mode changes and
-    /// route a child editor's pending navigation.
-    ///
-    /// The journal header owns its own read-mode toggle, so the shell only
-    /// forwards a change when its own read-mode flag differs from the last value
-    /// it pushed; otherwise the header toggle would be overwritten every frame.
-    fn sync_journal(&mut self, cx: &mut Context<Self>) {
-        if self.journal.is_none() {
-            let provider = Arc::clone(&self.provider);
-            let start_date = self.journal_start_date.clone();
-            let calendar_open = self.journal_calendar;
-            let read_mode = self.read_mode;
-            self.journal = Some(cx.new(move |cx| {
-                JournalView::new(provider, start_date, calendar_open, read_mode, cx)
-            }));
-            self.journal_read_mode = read_mode;
-        }
-
-        let journal = self.journal.clone();
-        let Some(journal) = journal else {
-            return;
-        };
-
-        if self.read_mode != self.journal_read_mode {
-            let read_mode = self.read_mode;
-            journal.update(cx, |view, cx| view.set_read_mode(read_mode, cx));
-            self.journal_read_mode = read_mode;
-        }
-
-        let navigation =
-            journal.update(cx, |view, _| view.pending_navigation().map(str::to_string));
-        if let Some(target) = navigation {
-            journal.update(cx, |view, _| view.clear_pending_navigation());
-            self.handle_editor_navigation(&target);
         }
     }
 
@@ -434,6 +404,7 @@ impl Render for Shell {
                 Panel::Flashcards => self.flashcards.is_some(),
                 Panel::Reminders => self.reminders.is_some(),
                 Panel::Plugins => self.plugins.is_some(),
+                Panel::Graph => self.graph.is_some(),
                 _ => false,
             };
 
@@ -482,6 +453,7 @@ impl Render for Shell {
                             flashcards: self.flashcards.clone(),
                             reminders: self.reminders.clone(),
                             plugins: self.plugins.clone(),
+                            graph: self.graph.clone(),
                         },
                         cx,
                     ))),

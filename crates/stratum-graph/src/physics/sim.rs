@@ -2,12 +2,14 @@
 //!
 //! The tick order, alpha decay, force formulas, velocity integration and pinned
 //! node behaviour mirror the shipped `d3-force-3d` configuration used by
-//! `GraphCanvas.tsx`: charge `-30`, link distance `50`, collide radius `4`, a
-//! `0.08` z-spring toward the seeded z, alpha decay `0.15` and velocity decay
-//! `0.4`. [`Simulation::tick_sequential`] reproduces the JavaScript tick exactly
-//! (including its single LCG stream); [`Simulation::tick`] uses a deterministic
-//! per-node RNG for the Barnes-Hut apply phase so the parallel path remains
-//! reproducible.
+//! `GraphCanvas.tsx`. The default parameters are the canonical
+//! `pkm_core::GraphConfig` defaults documented in
+//! `docs/getting-started/configuration.md`: charge `-30`, link distance `100`,
+//! collide radius `4`, a `0.08` z-spring toward the seeded z, alpha decay `0.02`
+//! and velocity decay `0.4`. [`Simulation::tick_sequential`] reproduces the
+//! JavaScript tick exactly (including its single LCG stream);
+//! [`Simulation::tick`] uses a deterministic per-node RNG for the Barnes-Hut
+//! apply phase so the parallel path remains reproducible.
 
 use crate::data::GraphData;
 use crate::math::Vec3;
@@ -15,24 +17,28 @@ use crate::physics::init::Lcg;
 use pkm_core::{PkmError, PkmResult};
 use std::collections::HashMap;
 
-/// Force parameters matching the shipped graph panel defaults.
+/// Force parameters matching the canonical `pkm_core::GraphConfig` defaults.
+///
+/// These values are the documented defaults in
+/// `docs/getting-started/configuration.md`; the shipped panel initialises its
+/// settings from the persisted vault configuration.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ForceParams {
-    /// Many-body charge strength (`-30` in the shipped panel).
+    /// Many-body charge strength (`-30` in the canonical config).
     pub charge_strength: f64,
-    /// Link rest distance (`50` in the shipped panel).
+    /// Link rest distance (`100` in the canonical config).
     pub link_distance: f64,
     /// Collide radius (`4`, the shipped `nodeRelSize`).
     pub collide_radius: f64,
     /// z-spring gain toward the seeded z (`0.08`).
     pub z_spring: f64,
-    /// Alpha decay per tick (`0.15`).
+    /// Alpha decay per tick (`0.02` in the canonical config).
     pub alpha_decay: f64,
     /// Velocity decay configured by the UI (`0.4`); the integrator uses `1 - this`.
     pub velocity_decay: f64,
     /// Alpha below which the simulation is considered cooled.
     pub alpha_min: f64,
-    /// Link curvature (`0.15` in the shipped panel `DEFAULT_SETTINGS`).
+    /// Link curvature (`0.15` in the canonical config).
     ///
     /// This is a render parameter carried on the force settings struct exactly
     /// like the shipped panel stores it next to the physics settings; the
@@ -45,10 +51,10 @@ impl Default for ForceParams {
     fn default() -> Self {
         Self {
             charge_strength: -30.0,
-            link_distance: 50.0,
+            link_distance: 100.0,
             collide_radius: 4.0,
             z_spring: 0.08,
-            alpha_decay: 0.15,
+            alpha_decay: 0.02,
             velocity_decay: 0.4,
             alpha_min: 0.001,
             link_curvature: 0.15,
@@ -213,11 +219,21 @@ impl Simulation {
     }
 
     /// Replace force parameters and refresh link distances.
+    ///
+    /// Like the shipped panel, changing the force settings reheats the
+    /// simulation so the new parameters visibly settle instead of leaving a
+    /// cooled layout untouched.
     pub fn set_params(&mut self, params: ForceParams) {
         self.params = params;
         for link in &mut self.links {
             link.distance = params.link_distance;
         }
+        self.reheat();
+    }
+
+    /// Reset alpha to its hot value (the d3 `reheatSimulation` equivalent).
+    pub fn reheat(&mut self) {
+        self.alpha = 1.0;
     }
 
     /// Whether the parallel Barnes-Hut apply path is enabled.
@@ -371,6 +387,31 @@ mod tests {
         let node = sim.node(0).expect("node");
         assert_eq!((node.x, node.y, node.z), (1.0, 2.0, 3.0));
         assert_eq!(node.vx, 0.0);
+    }
+
+    #[test]
+    fn force_params_default_to_the_canonical_config() {
+        let params = ForceParams::default();
+        assert_eq!(params.charge_strength, -30.0);
+        assert_eq!(params.link_distance, 100.0);
+        assert_eq!(params.alpha_decay, 0.02);
+        assert_eq!(params.velocity_decay, 0.4);
+        assert_eq!(params.link_curvature, 0.15);
+        assert_eq!(params.collide_radius, 4.0);
+        assert_eq!(params.z_spring, 0.08);
+        assert_eq!(params.alpha_min, 0.001);
+    }
+
+    #[test]
+    fn parameter_changes_reheat_the_simulation() {
+        let mut sim = Simulation::new(&tiny(), 1).expect("simulation");
+        sim.advance(5);
+        assert!(sim.alpha() < 1.0);
+        let ticks = sim.ticks();
+        sim.set_params(ForceParams::default());
+        assert_eq!(sim.alpha(), 1.0);
+        sim.advance(1);
+        assert_eq!(sim.ticks(), ticks + 1);
     }
 
     #[test]

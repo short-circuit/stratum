@@ -13,6 +13,16 @@ use std::time::{Duration, Instant};
 pub const FOCUS_DURATION: Duration = Duration::from_millis(500);
 /// The shipped discrete camera step speed.
 pub const WASD_SPEED: f64 = 0.8;
+/// The shipped `TrackballControls.panSpeed`.
+pub const PAN_SPEED: f64 = 0.15;
+/// The shipped `TrackballControls.zoomSpeed`.
+pub const ZOOM_SPEED: f64 = 1.2;
+/// The shipped `3d-force-graph` camera distance-to-nodes factor.
+///
+/// The shipped panel places the camera at
+/// `(0, 0, cbrt(node_count) * CAMERA_DISTANCE2NODES_FACTOR)` looking at the
+/// origin (`CAMERA_DISTANCE2NODES_FACTOR = 170` in `dist/3d-force-graph.mjs`).
+pub const CAMERA_DISTANCE2NODES_FACTOR: f32 = 170.0;
 
 /// Discrete camera movement keys (arrows map to the same directions).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,6 +50,13 @@ pub struct Camera {
     pub near: f32,
     /// Far plane.
     pub far: f32,
+    /// When set, use an orthographic projection instead of perspective.
+    ///
+    /// This is a native-shell deviation from the shipped React panel: the
+    /// shipped desktop graph always renders 3D perspective and the mobile
+    /// variant switches to a separate 2D canvas. The native shell keeps one
+    /// renderer and toggles an orthographic camera for its 2D view.
+    pub orthographic: bool,
 }
 
 impl Default for Camera {
@@ -57,7 +74,45 @@ impl Camera {
             fov_y: 45f32.to_radians(),
             near: 0.1,
             far: 5000.0,
+            orthographic: false,
         }
+    }
+
+    /// Camera placement matching the shipped `3d-force-graph` panel.
+    ///
+    /// The shipped panel does not fit the graph to its bounding box: it places
+    /// the camera on the +Z axis at
+    /// `(0, 0, cbrt(node_count) * CAMERA_DISTANCE2NODES_FACTOR)` looking at the
+    /// origin, so the rendered graph keeps the shipped initial framing. An
+    /// empty graph uses the base distance [`CAMERA_DISTANCE2NODES_FACTOR`].
+    ///
+    /// The far plane is raised to at least `distance * 4.0` so the whole graph
+    /// stays inside the frustum, and the camera keeps the shipped perspective
+    /// projection (`orthographic = false`).
+    pub fn shipped_for_nodes(node_count: usize) -> Self {
+        let distance = if node_count == 0 {
+            CAMERA_DISTANCE2NODES_FACTOR
+        } else {
+            (node_count as f32).cbrt() * CAMERA_DISTANCE2NODES_FACTOR
+        };
+        let mut camera = Self::new(Vec3::new(0.0, 0.0, distance), Vec3::ZERO);
+        camera.far = camera.far.max(distance * 4.0);
+        camera.orthographic = false;
+        camera
+    }
+
+    /// Enable or disable the orthographic projection.
+    ///
+    /// The orthographic frustum is sized from the current camera distance and
+    /// the perspective field of view, so switching modes keeps the framed
+    /// content at a similar on-screen scale.
+    pub fn set_orthographic(&mut self, enabled: bool) {
+        self.orthographic = enabled;
+    }
+
+    /// Whether the camera currently uses an orthographic projection.
+    pub fn is_orthographic(&self) -> bool {
+        self.orthographic
     }
 
     /// View matrix.
@@ -67,7 +122,36 @@ impl Camera {
 
     /// Projection matrix for the given aspect ratio.
     pub fn projection_matrix(&self, aspect: f32) -> Mat4 {
-        Mat4::perspective(self.fov_y, aspect, self.near, self.far)
+        if self.orthographic {
+            let (half_width, half_height) = self.ortho_extents(aspect);
+            // The view matrix keeps the right-handed convention where points in
+            // front of the camera have negative view-space z, while
+            // `Mat4::orthographic` maps a positive near..far range. Passing the
+            // negated range keeps the WebGPU depth mapping consistent with the
+            // perspective path.
+            Mat4::orthographic(
+                -half_width,
+                half_width,
+                -half_height,
+                half_height,
+                -self.far,
+                -self.near,
+            )
+        } else {
+            Mat4::perspective(self.fov_y, aspect, self.near, self.far)
+        }
+    }
+
+    /// Orthographic half extents `(width, height)` at the current distance.
+    fn ortho_extents(&self, aspect: f32) -> (f32, f32) {
+        let distance = self.position.sub(self.target).length().max(1.0);
+        let half_height = distance * (self.fov_y * 0.5).tan();
+        let aspect = if aspect.is_finite() && aspect > f32::EPSILON {
+            aspect
+        } else {
+            1.0
+        };
+        (half_height * aspect, half_height)
     }
 
     /// Combined view-projection matrix for a viewport.
@@ -117,10 +201,54 @@ impl Camera {
         self.target = self.target.add(delta);
     }
 
+    /// Pan by screen pixels using the shipped `TrackballControls` pan math.
+    ///
+    /// `TrackballControls` converts a pixel delta into a world-space offset:
+    /// `target_distance = distance * tan(fov_y / 2)` and
+    /// `world_per_pixel = 2 * target_distance / viewport_height * PAN_SPEED`.
+    /// The camera and its target then move together along `right * dx` and
+    /// `up * -dy`, matching the shipped screen-space drag direction.
+    ///
+    /// A non-positive or non-finite `viewport_height` leaves the camera
+    /// unchanged so callers can pass an unmeasured canvas without producing a
+    /// division by zero.
+    pub fn pan_pixels(&mut self, dx: f32, dy: f32, viewport_height: f32) {
+        if !viewport_height.is_finite() || viewport_height <= 0.0 {
+            return;
+        }
+        let distance = self.position.sub(self.target).length();
+        let target_distance = distance * (self.fov_y * 0.5).tan();
+        let world_per_pixel = 2.0 * target_distance / viewport_height * PAN_SPEED as f32;
+        let (right, up, _) = self.basis();
+        let delta = right
+            .scale(dx * world_per_pixel)
+            .add(up.scale(-dy * world_per_pixel));
+        self.position = self.position.add(delta);
+        self.target = self.target.add(delta);
+    }
+
     /// Dolly toward or away from the target.
     pub fn zoom(&mut self, delta: f32) {
         let offset = self.position.sub(self.target);
         let distance = (offset.length() + delta).clamp(1.0, 100_000.0);
+        self.position = self.target.add(offset.normalized().scale(distance));
+    }
+
+    /// Dolly by discrete wheel steps using the shipped `TrackballControls`
+    /// dolly factor `0.95^ZOOM_SPEED`.
+    ///
+    /// Positive steps zoom in (the distance shrinks), negative steps zoom out.
+    /// Only the camera position changes; the look-at target stays fixed like
+    /// the shipped controls. The distance stays inside the same
+    /// `1.0..=100_000.0` range used by [`Camera::zoom`].
+    pub fn zoom_steps(&mut self, steps: f32) {
+        let offset = self.position.sub(self.target);
+        let distance = offset.length();
+        if !distance.is_finite() || distance <= f32::EPSILON {
+            return;
+        }
+        let factor = 0.95_f32.powf(ZOOM_SPEED as f32 * steps);
+        let distance = (distance * factor).clamp(1.0, 100_000.0);
         self.position = self.target.add(offset.normalized().scale(distance));
     }
 
@@ -172,9 +300,11 @@ impl Camera {
     ///
     /// Centres the target on the bounding-box centre and places the camera on
     /// the +Z axis at the distance where the bounding sphere fits the vertical
-    /// field of view with a 1.2 safety factor. This mirrors the shipped
-    /// `3d-force-graph` behaviour of framing the graph when it loads instead of
-    /// leaving the fixed default camera clipping large graphs.
+    /// field of view with a 1.2 safety factor.
+    ///
+    /// The shipped `3d-force-graph` panel uses [`Camera::shipped_for_nodes`]
+    /// instead, which keeps the shipped initial camera placement. This helper
+    /// remains available for callers that want to frame an arbitrary point set.
     ///
     /// An empty slice leaves the camera unchanged. The far plane is extended
     /// when the fitted distance would otherwise clip the sphere.
@@ -237,9 +367,19 @@ impl Camera {
         let aspect = width as f32 / height.max(1) as f32;
         let ndc_x = (x / width.max(1) as f32) * 2.0 - 1.0;
         let ndc_y = 1.0 - (y / height.max(1) as f32) * 2.0;
-        let tan = (self.fov_y * 0.5).tan();
         let (right, up, back) = self.basis();
         let forward = back.scale(-1.0);
+        if self.orthographic {
+            // Orthographic rays share the view direction and start on the
+            // camera plane, offset by the frustum extents.
+            let (half_width, half_height) = self.ortho_extents(aspect);
+            let origin = self
+                .position
+                .add(right.scale(ndc_x * half_width))
+                .add(up.scale(ndc_y * half_height));
+            return (origin, forward);
+        }
+        let tan = (self.fov_y * 0.5).tan();
         let direction = forward
             .add(right.scale(ndc_x * tan * aspect))
             .add(up.scale(ndc_y * tan))
@@ -289,103 +429,4 @@ impl FocusTween {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn focus_tween_reaches_the_node_at_500ms() {
-        let camera = Camera::new(Vec3::new(0.0, 0.0, 200.0), Vec3::ZERO);
-        let now = Instant::now();
-        let mut tween = camera.focus_tween(Vec3::new(10.0, 20.0, -30.0), now);
-        let mut camera = camera;
-        assert!(tween.apply_at(now, &mut camera));
-        assert!(tween.apply_at(now + Duration::from_millis(250), &mut camera));
-        assert!(!tween.apply_at(now + FOCUS_DURATION, &mut camera));
-        assert_eq!(camera.target, Vec3::new(10.0, 20.0, -30.0));
-        assert_eq!(camera.position, Vec3::new(10.0, 20.0, 170.0));
-    }
-
-    #[test]
-    fn canceled_tween_does_not_move_the_camera() {
-        let camera = Camera::new(Vec3::new(0.0, 0.0, 200.0), Vec3::ZERO);
-        let now = Instant::now();
-        let mut tween = camera.focus_tween(Vec3::new(100.0, 0.0, 0.0), now);
-        tween.cancel();
-        let mut camera = camera;
-        assert!(!tween.apply_at(now + FOCUS_DURATION, &mut camera));
-        assert_eq!(camera.position, Vec3::new(0.0, 0.0, 200.0));
-    }
-
-    #[test]
-    fn wasd_step_matches_the_shipped_horizontal_normalization() {
-        let mut camera = Camera::new(Vec3::new(0.0, 0.0, 10.0), Vec3::ZERO);
-        camera.step(MoveKey::Forward);
-        assert_eq!(camera.position, Vec3::new(0.0, 0.0, 9.2));
-        assert_eq!(camera.target, Vec3::new(0.0, 0.0, -0.8));
-        camera.step(MoveKey::Right);
-        assert!((camera.position.x - 0.8).abs() < 1e-6);
-        assert!((camera.target.x - 0.8).abs() < 1e-6);
-    }
-
-    #[test]
-    fn orbit_preserves_distance_and_pan_moves_both() {
-        let mut camera = Camera::new(Vec3::new(0.0, 0.0, 10.0), Vec3::ZERO);
-        let before = camera.position.sub(camera.target).length();
-        camera.orbit(0.5, 0.2);
-        let after = camera.position.sub(camera.target).length();
-        assert!((before - after).abs() < 1e-4);
-        let position = camera.position;
-        let target = camera.target;
-        camera.pan(1.0, 2.0);
-        assert!((camera.position.x - position.x).abs() > 1e-6);
-        assert!((camera.target.y - target.y).abs() > 1e-6);
-    }
-
-    #[test]
-    fn fit_to_positions_frames_every_input_position() {
-        let positions: Vec<Vec3> = (0..64)
-            .map(|index| {
-                let column = (index % 8) as f32;
-                let row = (index / 8) as f32;
-                Vec3::new(column * 24.0 - 84.0, row * 18.0 - 63.0, column * 3.0 - 9.0)
-            })
-            .collect();
-        let mut camera = Camera::default();
-        camera.fit_to_positions(&positions);
-        for position in &positions {
-            let (x, y, _) = camera
-                .project(*position, 1280, 720)
-                .unwrap_or_else(|| panic!("position {position:?} was clipped"));
-            assert!(
-                (0.0..1280.0).contains(&x) && (0.0..720.0).contains(&y),
-                "position {position:?} projected to ({x}, {y})"
-            );
-        }
-        let centre = positions
-            .iter()
-            .fold(Vec3::ZERO, |sum, position| sum.add(*position))
-            .scale(1.0 / positions.len() as f32);
-        assert!((camera.target.sub(centre).length() - 0.0).abs() < 1e-2);
-    }
-
-    #[test]
-    fn fit_to_positions_ignores_an_empty_slice() {
-        let mut camera = Camera::default();
-        let before = camera;
-        camera.fit_to_positions(&[]);
-        assert_eq!(camera, before);
-    }
-
-    #[test]
-    fn projection_and_rays_agree() {
-        let camera = Camera::default();
-        let (x, y, _) = camera
-            .project(Vec3::ZERO, 1280, 720)
-            .expect("origin visible");
-        assert!((x - 640.0).abs() < 1e-3);
-        assert!((y - 360.0).abs() < 1e-3);
-        let (_, direction) = camera.ray_from_screen(640.0, 360.0, 1280, 720);
-        let forward = camera.target.sub(camera.position).normalized();
-        assert!(direction.dot(forward) > 0.99);
-    }
-}
+mod tests;

@@ -84,7 +84,7 @@ logic: data comes from an `AppProvider` implementation.
 | `assets` | `StratumAssets` (icons + fonts), `register_fonts` |
 | `provider` | `ShellData`, `ShellSnapshot`, `FixtureProvider`, `provider_from_env`, asset seam (`provider/assets.rs`), journal seam (`provider/journal.rs`), page seam (`provider/page.rs`), voice seam (`provider/voice.rs`) and the panel data seam (`provider/panels.rs`, `provider/app_panels.rs`, `provider/fixture/panels`) |
 | `shell` | header, sidebar, footer, error bar, toaster (`shell/reminder_toast.rs`: due-reminder polling, announce-once state and the toast open action), journal/page view wiring (`shell/page.rs`), search/query/ask/templates/flashcards/reminders/plugins panel wiring (`shell/panels.rs`) and start-state setters |
-| `panels` | panel body rendering and icon mapping; `panels/journal` (entity, state, navigation, reload, calendar/stack/read-mode surface), `panels/page` (entity, header, Note menu, move/delete dialogs, backlinks, suggestions, actions), `panels/search` (model, entity, result rows), `panels/query` (model, entity, builder rows, toolbar, dialogs, saved list, results), `panels/ask` (entity, answer card), `panels/templates` (entity, variable model, cards), `panels/flashcards` (session model, entity), `panels/reminders` (grouping/humanize model, entity, dialog) and `panels/plugins` (entity, installed/directory/themes tabs, actions) and `panels/voice` (capture stage machine and entity) |
+| `panels` | panel body rendering and icon mapping; `panels/journal` (entity, state, navigation, reload, calendar/stack/read-mode surface), `panels/page` (entity, header, Note menu, move/delete dialogs, backlinks, suggestions, actions), `panels/search` (model, entity, result rows), `panels/query` (model, entity, builder rows, toolbar, dialogs, saved list, results), `panels/ask` (entity, answer card), `panels/templates` (entity, variable model, cards), `panels/flashcards` (session model, entity), `panels/reminders` (grouping/humanize model, entity, dialog), `panels/plugins` (entity, installed/directory/themes tabs, actions), `panels/graph` (entity, model, canvas input/letterbox, layout job, scene build, settings, toolbar) and `panels/voice` (capture stage machine and entity) |
 
 The provider seam is the only place the shell touches the service layer. The
 real provider drives `stratum_app::StratumService`; `FixtureProvider` returns a
@@ -306,6 +306,63 @@ selects a tab on construction. Captures: `dist/gpui-plugins.png` (installed
 tab), `dist/gpui-plugins-directory.png` (catalog) and
 `dist/gpui-plugins-themes.png` (theme hub).
 
+### Graph
+
+`stratum-graph` is the headless graph engine; `panels/graph` is the native
+surface. The crate ports the shipped `d3-force-3d` pipeline: seeded
+deterministic positions, the Barnes-Hut octree, charge/link/collide forces, the
+per-node z-spring (`vz += (tz - z) * 0.08`), alpha/velocity decay and the
+shipped `cooldownTicks` settle window. `ForceParams` carries the canonical
+`pkm_core::GraphConfig` defaults documented in
+`docs/getting-started/configuration.md` (charge `-30`, link distance `100`,
+alpha decay `0.02`, velocity decay `0.4`, curvature `0.15`) and `set_params`
+reheats alpha like `d3ReheatSimulation()`. `SimWorker` advances the layout off
+the UI thread and its tick/snapshot sequence is byte-identical to a direct
+`Simulation`.
+
+`camera` reproduces the shipped `TrackballControls` semantics: `PAN_SPEED = 0.15`
+with the TrackballControls pan formula (`2 * distance * tan(fov/2) / height *
+panSpeed`), `ZOOM_SPEED = 1.2` with the `0.95^zoomSpeed` dolly step, the 0.8
+normalized WASD/arrow step that moves camera and target together, the 500 ms
+cubic focus tween cancelled by any control interaction, and `fit_to_positions`
+for the initial framing.
+
+`render` builds wgpu pipelines for instanced nodes, curved links (the shipped
+curvature setting), SDF billboard labels from the embedded Inter face and a GPU
+picking pass, plus a deterministic CPU rasterizer for hosts without an adapter.
+`Renderer::auto` selects the GPU backend when one exists and reports which
+backend it chose.
+
+`panels/graph` wires the shipped `GraphPanel`: provider graph load, toolbar
+filters (full/component/orphans and title/tag search), visibility toggles, force
+sliders, the node-cap selector with the shipped cap banner, click-to-open,
+right-click focus tween, hover highlight, orbit/pan/dolly and WASD/arrow keys.
+The panel loads and saves the persisted force/visibility settings through
+`PanelData::graph_settings` / `save_graph_settings`; the node cap stays
+in-memory exactly like the shipped panel. Layouts above 512 nodes run on the
+worker so the UI thread keeps painting while the cached frame re-renders on
+camera input; smaller graphs build synchronously so the fixture captures stay
+deterministic. When no GPU adapter is available the panel switches to the
+deterministic software rasterizer, uses the orthographic 2D camera and shows the
+shipped `graph.fallback_notice_webgl` banner.
+
+The golden runner (`cargo run --release -p stratum-graph --bin graph_golden --
+--assert-fps`) writes deterministic PNG frames, the frame-time histogram, the
+FPS/RSS table and the verdict to `.hermes/e6/`. On the RTX 4090 host the release
+run measured the 10k-node fixture at 490 fps (p95 2.07 ms) and the uncapped
+20k-node fixture at 193 fps (p95 7.55 ms), with peak RSS at 311 MB inside the
+800 MB gate; the golden frame hashes are byte-identical across runs (seed `1`,
+120 ticks, 120 frames). The 5k fixture renders at 543 fps (p95 2.22 ms); the
+Android 30 fps-at-5k target is a projection from this renderer path (the
+hardware-Vulkan measurement belongs to the mobile lane).
+
+Known deviations from the shipped look: link particles
+(`linkDirectionalParticles`) are not animated because the native panel paints a
+cached frame and the golden frames must stay byte-stable, and the settings panel
+also shows the `use_3d` toggle that the shipped desktop panel hides (the plan
+lists it in the graph settings surface).
+
+
 ---
 
 ## Building and Running
@@ -358,6 +415,11 @@ the sidebar and `Escape` dismisses the topmost overlay.
 | `STRATUM_REMINDER_DIALOG=<block-id>` | Open that reminder's due dialog |
 | `STRATUM_REMINDER_TOAST=1` | Make the fixture report due reminders for the toaster |
 | `STRATUM_PLUGINS_TAB=installed\|directory\|themes` | Select the plugins panel tab |
+| `STRATUM_GRAPH_MODE=full\|component\|orphans` | Select the graph toolbar view mode |
+| `STRATUM_GRAPH_COMPONENT=<index>` | Select a connected component for component mode |
+| `STRATUM_GRAPH_SETTINGS=1` | Open the graph settings panel |
+| `STRATUM_GRAPH_SEARCH=<text>` | Prefill the graph title/tag filter |
+| `STRATUM_GRAPH_TICKS=<count>` | Set the deterministic layout tick count |
 
 The start-state flags are applied by `apply_start_state` in `main.rs` and exist
 for the capture harness; they do not change the interactive behaviour of the
@@ -396,6 +458,11 @@ The suites cover:
   `REMINDERS_I18N_KEYS` and `PLUGINS_I18N_KEYS` release gates in all eight
   catalogs, the urgency grouping/humanize/dialog model, the status-chip mapping
   and the fixture reminder, plugin, catalog and theme flows.
+- The graph surface (`tests/graph_contract.rs`): the shipped force defaults,
+  the `GRAPH_I18N_KEYS` release gate in all eight catalogs, the filter/cap policy
+  (full/component/orphan/tag modes, explicit caps and the banner inputs), the
+  fixture graph shape, the capture start-state parsing, the camera pan/zoom
+  parity formulas, the frame-time histogram and the deterministic worker layout.
 - Headless interaction (`tests/interaction_contract.rs`): nested controls stop
   click propagation into the parent handler (the backlink snippet chip must not
   navigate, the voice dismiss chip must not restart recording), starting the
@@ -438,7 +505,7 @@ used by the GPUI CI workflow to publish a screenshot artifact, and is safe to
 run locally without a desktop session.
 
 `scripts/capture-gpui-panels.sh` captures the journal, page, search, query, Ask
-Notes, Templates, Flashcards, Reminders and Plugins surfaces using the
+Notes, Templates, Flashcards, Reminders, Plugins and Graph surfaces using the
 start-state flags:
 
 ```bash
@@ -467,6 +534,9 @@ start-state flags:
 # → dist/gpui-plugins.png           (installed tab)
 # → dist/gpui-plugins-directory.png (STRATUM_PLUGINS_TAB=directory)
 # → dist/gpui-plugins-themes.png    (STRATUM_PLUGINS_TAB=themes)
+# → dist/gpui-graph.png             (STRATUM_ROUTE=/graph)
+# → dist/gpui-graph-component.png   (STRATUM_GRAPH_MODE=component)
+# → dist/gpui-graph-settings.png    (STRATUM_GRAPH_SETTINGS=1)
 ```
 
 The journal edit-mode capture is the parity reference for the shipped
@@ -536,7 +606,7 @@ crates, the capture scripts or the CI wiring:
 1. `gpui-shell` — formatting, build, tests and clippy on **Linux, Windows and
    macOS** (fail-fast disabled, one job per OS).
 2. `gpui-capture` — Linux only: shell, journal, page, search, query, Ask Notes,
-   Templates, Flashcards, Reminders, Plugins and editor-perf captures, plus
+   Templates, Flashcards, Reminders, Plugins, Graph and editor-perf captures, plus
    artifact upload.
 
 Both jobs install the Tauri Linux dependencies through
@@ -597,8 +667,9 @@ captions and catalog installs, and the theme hub with install/apply/uninstall
 and the built-in fallback. The routed
 search, query, Ask Notes, Templates, Flashcards, Reminders and Plugins panels own
 their header, like the page and journal panels.
-The remaining panel bodies (graph, kanban, whiteboards and settings) are the next
-layer; the route/navigation/i18n contracts are already in place for them.
+The graph view covers the shipped `GraphPanel` surface listed above; the
+remaining panel bodies (kanban, whiteboards and settings) are the next layer;
+the route/navigation/i18n contracts are already in place for them.
 
 The toaster dismisses manually or through `Escape`; there is no timer-based
 auto-dismiss yet. This is intentional for the E2 shell and is documented in

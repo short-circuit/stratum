@@ -31,6 +31,21 @@ enum WorkerCommand {
     Stop,
 }
 
+/// A non-blocking snapshot request returned by [`SimWorker::snapshot_async`].
+pub struct SnapshotRequest {
+    receiver: Receiver<WorkerSnapshot>,
+}
+
+impl SnapshotRequest {
+    /// Take the snapshot if the worker has already replied.
+    ///
+    /// Returns `None` while the worker is still processing earlier commands, so
+    /// hosts can poll this from a render frame without blocking the UI thread.
+    pub fn try_take(&self) -> Option<WorkerSnapshot> {
+        self.receiver.try_recv().ok()
+    }
+}
+
 /// Handle to a running simulation worker thread.
 pub struct SimWorker {
     sender: Sender<WorkerCommand>,
@@ -72,6 +87,18 @@ impl SimWorker {
         receiver
             .recv()
             .map_err(|error| PkmError::Internal(format!("graph worker snapshot failed: {error}")))
+    }
+
+    /// Queue a snapshot and return a non-blocking request for it.
+    ///
+    /// The reply is produced after the worker has drained earlier commands, so
+    /// poll [`SnapshotRequest::try_take`] instead of waiting on the UI thread.
+    pub fn snapshot_async(&self) -> PkmResult<SnapshotRequest> {
+        let (reply, receiver) = mpsc::channel();
+        self.sender
+            .send(WorkerCommand::Snapshot(reply))
+            .map_err(|error| PkmError::Internal(format!("graph worker unavailable: {error}")))?;
+        Ok(SnapshotRequest { receiver })
     }
 
     /// Replace the force parameters.
@@ -146,6 +173,30 @@ mod tests {
         worker.stop().expect("stop");
         assert_eq!(snapshot.positions, expected);
         assert_eq!(snapshot.ticks, 12);
+    }
+
+    #[test]
+    fn async_snapshot_matches_a_direct_simulation() {
+        let data = fixture(24, 1);
+        let mut direct = Simulation::new(&data, 11).expect("simulation");
+        direct.advance(9);
+        let expected = direct.positions();
+
+        let worker = SimWorker::spawn(data, 11).expect("worker");
+        worker.tick(9).expect("tick");
+        let request = worker.snapshot_async().expect("snapshot request");
+        let mut snapshot = None;
+        for _ in 0..500 {
+            if let Some(value) = request.try_take() {
+                snapshot = Some(value);
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(2));
+        }
+        worker.stop().expect("stop");
+        let snapshot = snapshot.expect("snapshot arrived");
+        assert_eq!(snapshot.positions, expected);
+        assert_eq!(snapshot.ticks, 9);
     }
 
     #[test]

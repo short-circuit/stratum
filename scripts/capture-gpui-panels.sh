@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Capture screenshots of the native Stratum journal, page, search, query, Ask
-# Notes, Templates, Flashcards, Reminders and Plugins surfaces.
+# Notes, Templates, Flashcards, Reminders, Plugins and Graph surfaces.
 #
 # The shell is started with STRATUM_FIXTURE=1 so the capture is deterministic
 # and needs no vault. When no DISPLAY is set the script starts a private Xvfb
 # screen, waits for the window to map, and captures the root window with
-# ImageMagick. Twenty-four states are captured:
+# ImageMagick. Twenty-seven states are captured:
 #
 #   1. the journal route in edit mode
 #   2. the journal route with the calendar popup expanded (STRATUM_CALENDAR=1)
@@ -46,6 +46,11 @@
 #      (STRATUM_ROUTE=/plugins STRATUM_PLUGINS_TAB=directory)
 #  24. the Plugins route on the theme hub tab
 #      (STRATUM_ROUTE=/plugins STRATUM_PLUGINS_TAB=themes)
+#  25. the Graph route with the full fixture graph (STRATUM_ROUTE=/graph)
+#  26. the Graph route filtered to a connected component
+#      (STRATUM_ROUTE=/graph STRATUM_GRAPH_MODE=component)
+#  27. the Graph route with the settings panel expanded
+#      (STRATUM_ROUTE=/graph STRATUM_GRAPH_SETTINGS=1)
 #
 # The journal PNGs are written to dist/gpui-journal.png,
 # dist/gpui-journal-calendar.png and dist/gpui-journal-read.png; the page PNGs to
@@ -58,7 +63,9 @@
 # Flashcards PNGs to dist/gpui-flashcards.png and dist/gpui-flashcards-answer.png;
 # the Reminders PNGs to dist/gpui-reminders.png, dist/gpui-reminders-dialog.png
 # and dist/gpui-reminder-toast.png; the Plugins PNGs to dist/gpui-plugins.png,
-# dist/gpui-plugins-directory.png and dist/gpui-plugins-themes.png.
+# dist/gpui-plugins-directory.png and dist/gpui-plugins-themes.png; the Graph PNGs
+# to dist/gpui-graph.png, dist/gpui-graph-component.png and
+# dist/gpui-graph-settings.png.
 # Pass a path as the first argument or set OUTPUT to override the journal
 # edit-mode capture (the other captures derive from its directory).
 #
@@ -92,6 +99,9 @@ REMINDER_TOAST_OUT="$OUT_DIR/gpui-reminder-toast.png"
 PLUGINS_OUT="$OUT_DIR/gpui-plugins.png"
 PLUGINS_DIRECTORY_OUT="$OUT_DIR/gpui-plugins-directory.png"
 PLUGINS_THEMES_OUT="$OUT_DIR/gpui-plugins-themes.png"
+GRAPH_OUT="$OUT_DIR/gpui-graph.png"
+GRAPH_COMPONENT_OUT="$OUT_DIR/gpui-graph-component.png"
+GRAPH_SETTINGS_OUT="$OUT_DIR/gpui-graph-settings.png"
 # Deterministic block on pages/fixture.md (provider::FIXTURE_HIGHLIGHT_BLOCK).
 FIXTURE_HIGHLIGHT="413cf12c-969f-54ef-bf75-40ffd89e8618"
 # The fixture's first overdue reminder (`overdue-1`): the provider builds block
@@ -272,3 +282,11 @@ capture_state \
 capture_state \
     "$PLUGINS_THEMES_OUT" \
     STRATUM_ROUTE=/plugins STRATUM_PLUGINS_TAB=themes
+
+capture_state "$GRAPH_OUT" STRATUM_ROUTE=/graph
+capture_state \
+    "$GRAPH_COMPONENT_OUT" \
+    STRATUM_ROUTE=/graph STRATUM_GRAPH_MODE=component STRATUM_GRAPH_COMPONENT=0
+capture_state \
+    "$GRAPH_SETTINGS_OUT" \
+    STRATUM_ROUTE=/graph STRATUM_GRAPH_SETTINGS=1
