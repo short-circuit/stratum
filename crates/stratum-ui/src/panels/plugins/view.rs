@@ -8,7 +8,7 @@
 use gpui_kit::component::ActiveTheme;
 use gpui_kit::prelude::*;
 use gpui_kit::*;
-use stratum_i18n::{t_global, tr_global};
+use stratum_i18n::t_global;
 
 use super::{directory, installed, themes, PluginsTab, PluginsView};
 
@@ -232,13 +232,28 @@ pub(super) fn permission_chips(
         .into_any_element()
 }
 
+/// Normalize the shipped `plugins.by_author` template and interpolate `author`.
+///
+/// The shipped catalogs store this key as a single-brace label (`"By
+/// {author}"`) because the React panel renders it as
+/// `{t('plugins.by_author')} {entry.author}`, appending the author itself.
+/// `stratum_i18n` only interpolates the double-brace `{{name}}` form, so the
+/// native path rewrites the shipped placeholder before interpolating; without
+/// this step the literal `{author}` would be shown and the author would never
+/// appear.
+pub(super) fn author_label(template: &str, author: &str) -> String {
+    let normalized = template.replace("{author}", "{{author}}");
+    stratum_i18n::interpolate(&normalized, &[("author", author)])
+}
+
 /// A localized author line using the existing `plugins.by_author` key.
 pub(super) fn author_line(author: &str, cx: &mut Context<PluginsView>) -> AnyElement {
     let theme = cx.theme();
+    let label = author_label(&t_global("plugins.by_author"), author);
     div()
         .text_size(px(10.0))
         .text_color(theme.colors.muted_foreground)
-        .child(tr_global("plugins.by_author", &[("author", author)]))
+        .child(label)
         .into_any_element()
 }
 
@@ -297,4 +312,29 @@ pub(super) fn action_button(
         .child(label)
         .on_click(cx.listener(move |view, _, window, cx| action(view, window, cx)))
         .into_any_element()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ::core::prelude::v1::test;
+    use stratum_i18n::{t, Locale};
+
+    #[test]
+    fn author_label_interpolates_every_catalog() {
+        for locale in Locale::ALL {
+            let template = t(locale, "plugins.by_author");
+            let label = author_label(&template, "Stratum");
+            assert!(
+                label.contains("Stratum"),
+                "{} did not interpolate the author: {label}",
+                locale.code()
+            );
+            assert!(
+                !label.contains('{'),
+                "{} kept a literal placeholder: {label}",
+                locale.code()
+            );
+        }
+    }
 }
