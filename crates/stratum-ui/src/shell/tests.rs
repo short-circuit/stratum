@@ -252,7 +252,7 @@ fn reminder_toast_announces_once_and_rearms_after_snooze() {
 #[test]
 fn toast_action_opens_the_reminder_page_and_dismisses_the_toast() {
     let mut shell = fixture_shell();
-    shell.toast = Some(Toast::with_action(
+    shell.toaster.toast = Some(Toast::with_action(
         "Reminder due",
         "Open",
         ToastAction::ReminderOpen {
@@ -265,11 +265,4 @@ fn toast_action_opens_the_reminder_page_and_dismisses_the_toast() {
     assert_eq!(shell.active_panel(), Panel::Page);
     assert_eq!(shell.toast_message(), None);
     assert!(!shell.activate_toast_action(), "no action left to run");
-}
-
-#[test]
-fn message_only_toasts_have_no_action() {
-    let toast = Toast::message("Saved");
-    assert_eq!(toast.action_label, None);
-    assert_eq!(toast.action, None);
 }

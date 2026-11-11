@@ -179,7 +179,7 @@ pub(crate) fn toast_overlay(shell: &Shell, cx: &mut Context<Shell>) -> impl Into
                 .rounded(px(4.0))
                 .cursor_pointer()
                 .on_click(cx.listener(|this, _, _, cx| {
-                    this.toast = None;
+                    this.toaster.toast = None;
                     cx.notify();
                 }))
                 .child(Icon::new(IconName::X).with_size(px(16.0)).text_color(muted)),

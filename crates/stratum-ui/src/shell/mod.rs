@@ -6,14 +6,10 @@
 //! at a time: panel bodies are the next milestone, while this crate is the
 //! chrome that hosts them.
 //!
-//! The toaster is manual-dismiss only. The React shell auto-dismisses success
-//! messages after a timeout; wiring a GPUI timer is possible but the task
-//! allows the simpler behaviour, and the dismiss button keeps the toast from
-//! blocking the window.
+//! The toaster state, due-reminder polling and toast actions live in
+//! [`reminder_toast`]; the shell only wires the overlay into the layout.
 
-use std::collections::HashSet;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
 
 use gpui_kit::component::ActiveTheme;
 use gpui_kit::prelude::*;
@@ -31,7 +27,7 @@ use crate::panels::reminders::RemindersView;
 use crate::panels::search::SearchView;
 use crate::panels::templates::TemplatesView;
 use crate::panels::{panel_owns_header, panel_view, PanelEntities};
-use crate::provider::{ReminderRow, ShellData};
+use crate::provider::ShellData;
 use crate::router::{path_for, Panel, ShortcutAction};
 
 use chrome::{error_bar, header, toast_overlay};
@@ -40,9 +36,11 @@ mod chrome;
 mod footer;
 mod page;
 mod panels;
+mod reminder_toast;
 mod sidebar;
 
 pub use panels::PanelStarts;
+pub use reminder_toast::{Toast, ToastAction};
 pub use sidebar::{COLLAPSED_WIDTH, EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH};
 
 /// Shell-level alias for the expanded sidebar width.
@@ -93,53 +91,6 @@ pub const SHELL_I18N_KEYS: [&str; 32] = [
     "sidebar.refresh",
 ];
 
-/// A toaster action that navigates into the shell.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ToastAction {
-    /// Open a page and reveal a block (the reminder "open" action).
-    ReminderOpen {
-        /// Vault-relative page path.
-        page_path: String,
-        /// Block id to reveal.
-        block_id: String,
-    },
-}
-
-/// A transient message shown in the toaster.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Toast {
-    /// Localized message body.
-    pub message: String,
-    /// Optional action label (for example `reminders.toast.open`).
-    pub action_label: Option<String>,
-    /// Optional action performed when the label is clicked.
-    pub action: Option<ToastAction>,
-}
-
-impl Toast {
-    /// Build a message-only toast.
-    pub fn message(message: impl Into<String>) -> Self {
-        Self {
-            message: message.into(),
-            action_label: None,
-            action: None,
-        }
-    }
-
-    /// Build a toast with an action chip.
-    pub fn with_action(
-        message: impl Into<String>,
-        action_label: impl Into<String>,
-        action: ToastAction,
-    ) -> Self {
-        Self {
-            message: message.into(),
-            action_label: Some(action_label.into()),
-            action: Some(action),
-        }
-    }
-}
-
 /// The Stratum gpui shell.
 pub struct Shell {
     provider: Arc<dyn ShellData>,
@@ -165,15 +116,9 @@ pub struct Shell {
     plugins: Option<Entity<PluginsView>>,
     panel_starts: PanelStarts,
     error: Option<String>,
-    toast: Option<Toast>,
-    /// Block ids already surfaced in a reminder toast, so a due reminder is
-    /// announced once. Snoozing a reminder drops it from the due set and the
-    /// id is pruned, so it can be announced again when it becomes due.
-    toasted_reminders: HashSet<String>,
-    /// Last provider poll for due reminders; gates the 30 s render check.
-    last_reminder_poll: Option<Instant>,
-    /// Whether the 30 s background reminder poll has been spawned.
-    reminder_watch_started: bool,
+    /// Reminder toaster state: the current toast, the announce-once set and the
+    /// 30 s poll gate.
+    toaster: reminder_toast::ReminderToaster,
 }
 
 impl Shell {
@@ -204,10 +149,7 @@ impl Shell {
             plugins: None,
             panel_starts: PanelStarts::default(),
             error: None,
-            toast: None,
-            toasted_reminders: HashSet::new(),
-            last_reminder_poll: None,
-            reminder_watch_started: false,
+            toaster: reminder_toast::ReminderToaster::default(),
         }
     }
 
@@ -239,116 +181,6 @@ impl Shell {
     /// The current error-bar message, if any.
     pub fn error(&self) -> Option<&str> {
         self.error.as_deref()
-    }
-
-    /// The current toast message, if any.
-    pub fn toast_message(&self) -> Option<&str> {
-        self.toast.as_ref().map(|toast| toast.message.as_str())
-    }
-
-    /// The current toast action label, if any.
-    pub fn toast_action_label(&self) -> Option<&str> {
-        self.toast
-            .as_ref()
-            .and_then(|toast| toast.action_label.as_deref())
-    }
-
-    /// The current toast action, if any.
-    pub fn toast_action(&self) -> Option<&ToastAction> {
-        self.toast.as_ref().and_then(|toast| toast.action.as_ref())
-    }
-
-    /// Run the pending toast action and dismiss the toast.
-    ///
-    /// Returns `true` when an action was present and consumed. The reminder
-    /// "open" action routes to the page panel and reveals the block, matching
-    /// the shipped `ReminderToaster`.
-    pub fn activate_toast_action(&mut self) -> bool {
-        let Some(action) = self.toast.as_ref().and_then(|toast| toast.action.clone()) else {
-            return false;
-        };
-        self.toast = None;
-        match action {
-            ToastAction::ReminderOpen {
-                page_path,
-                block_id,
-            } => self.open_page_with_highlight(page_path, block_id),
-        }
-        true
-    }
-
-    /// Poll the provider for due reminders and announce a fresh one.
-    ///
-    /// A reminder is announced once per due window: the block id is remembered
-    /// while it stays due, and pruned once it is snoozed or cleared so the next
-    /// due window toasts again. The message mirrors the shipped toaster
-    /// (`reminders.toast.due_title` — block content) with the localized
-    /// `reminders.toast.open` action.
-    pub fn poll_reminders(&mut self, cx: &mut Context<Self>) {
-        let due = self.provider.due_reminders();
-        if let Some(toast) = self.next_due_toast(&due) {
-            self.toast = Some(toast);
-            cx.notify();
-        }
-    }
-
-    /// Select the next reminder to announce and remember its block id.
-    ///
-    /// Split out of [`Self::poll_reminders`] so the announce-once/prune rule is
-    /// testable without a GPUI context.
-    fn next_due_toast(&mut self, due: &[ReminderRow]) -> Option<Toast> {
-        let due_ids: HashSet<&str> = due.iter().map(|row| row.block_id.as_str()).collect();
-        self.toasted_reminders
-            .retain(|block_id| due_ids.contains(block_id.as_str()));
-        let reminder = due
-            .iter()
-            .find(|row| !self.toasted_reminders.contains(&row.block_id))?;
-        self.toasted_reminders.insert(reminder.block_id.clone());
-        let title = t_global("reminders.toast.due_title");
-        Some(Toast::with_action(
-            format!("{title} — {}", reminder.content),
-            t_global("reminders.toast.open"),
-            ToastAction::ReminderOpen {
-                page_path: reminder.page_path.clone(),
-                block_id: reminder.block_id.clone(),
-            },
-        ))
-    }
-
-    /// Run a due-reminder poll at most once every 30 seconds.
-    fn maybe_poll_reminders(&mut self, cx: &mut Context<Self>) {
-        let now = Instant::now();
-        let ready = self
-            .last_reminder_poll
-            .is_none_or(|last| now.duration_since(last) >= Duration::from_secs(30));
-        if !ready {
-            return;
-        }
-        self.last_reminder_poll = Some(now);
-        self.poll_reminders(cx);
-    }
-
-    /// Spawn the background reminder poll once.
-    ///
-    /// Render is only driven by notifications, so a timer wakes the shell every
-    /// 30 s to re-check the provider; the render gate above keeps both paths
-    /// from polling faster than that.
-    fn ensure_reminder_watch(&mut self, cx: &mut Context<Self>) {
-        if self.reminder_watch_started {
-            return;
-        }
-        self.reminder_watch_started = true;
-        cx.spawn(
-            async move |this: WeakEntity<Shell>, cx: &mut AsyncApp| loop {
-                cx.background_executor()
-                    .timer(Duration::from_secs(30))
-                    .await;
-                let Ok(()) = this.update(cx, |shell, cx| shell.maybe_poll_reminders(cx)) else {
-                    break;
-                };
-            },
-        )
-        .detach();
     }
 
     /// The current route path, derived from the active panel and page.
@@ -515,7 +347,7 @@ impl Shell {
         if self.error.take().is_some() {
             return true;
         }
-        self.toast.take().is_some()
+        self.toaster.toast.take().is_some()
     }
 
     /// Refresh the snapshot from the provider.
@@ -530,7 +362,7 @@ impl Shell {
         match self.provider.export_html() {
             Ok(count) => {
                 let count = count.to_string();
-                self.toast = Some(Toast::message(tr_global(
+                self.toaster.toast = Some(Toast::message(tr_global(
                     "export.success_html",
                     &[("count", count.as_str()), ("path", "/tmp/stratum-export")],
                 )));
@@ -549,12 +381,7 @@ impl Shell {
     /// shows the localized action name in the toaster so the button is not
     /// silently inert.
     pub fn request_new_page(&mut self) {
-        self.toast = Some(Toast::message(t_global("sidebar.new_page")));
-    }
-
-    /// Push a success toast.
-    pub fn push_toast(&mut self, message: impl Into<String>) {
-        self.toast = Some(Toast::message(message));
+        self.toaster.toast = Some(Toast::message(t_global("sidebar.new_page")));
     }
 
     /// Show an error in the error bar.
@@ -659,7 +486,7 @@ impl Render for Shell {
                         cx,
                     ))),
             )
-            .when(self.toast.is_some(), |element| {
+            .when(self.toaster.toast.is_some(), |element| {
                 element.child(toast_overlay(self, cx))
             })
     }

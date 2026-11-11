@@ -37,7 +37,7 @@ crates/
     │   │   └── tests.rs    # provider contract tests
     │   ├── router.rs       # routes, navigation, shortcuts, path codec
     │   ├── theme.rs        # shipped palette derivation mapped to gpui-kit
-    │   ├── shell/          # sidebar, footer, error/toaster chrome, journal/page wiring
+    │   ├── shell/          # sidebar, footer, error/toaster chrome, reminder toaster, journal/page wiring
     │   └── panels/         # panel bodies (journal, page, voice) and icon mapping
     │       ├── journal/    # JournalView: state, navigation, reload, dates, stack, header, calendar, rows, error
     │       ├── page/       # PageView: header, Note menu, move/delete dialogs, backlinks, suggestions, actions, state
@@ -83,7 +83,7 @@ logic: data comes from an `AppProvider` implementation.
 | `theme` | `ThemeConfig`, `derive_palette`, `apply_to_kit`, golden palette formulas |
 | `assets` | `StratumAssets` (icons + fonts), `register_fonts` |
 | `provider` | `ShellData`, `ShellSnapshot`, `FixtureProvider`, `provider_from_env`, asset seam (`provider/assets.rs`), journal seam (`provider/journal.rs`), page seam (`provider/page.rs`), voice seam (`provider/voice.rs`) and the panel data seam (`provider/panels.rs`, `provider/app_panels.rs`, `provider/fixture/panels`) |
-| `shell` | header, sidebar, footer, error bar, toaster (including the due-reminder toast and its open action), journal/page view wiring (`shell/page.rs`), search/query/ask/templates/flashcards/reminders/plugins panel wiring (`shell/panels.rs`) and start-state setters |
+| `shell` | header, sidebar, footer, error bar, toaster (`shell/reminder_toast.rs`: due-reminder polling, announce-once state and the toast open action), journal/page view wiring (`shell/page.rs`), search/query/ask/templates/flashcards/reminders/plugins panel wiring (`shell/panels.rs`) and start-state setters |
 | `panels` | panel body rendering and icon mapping; `panels/journal` (entity, state, navigation, reload, calendar/stack/read-mode surface), `panels/page` (entity, header, Note menu, move/delete dialogs, backlinks, suggestions, actions), `panels/search` (model, entity, result rows), `panels/query` (model, entity, builder rows, toolbar, dialogs, saved list, results), `panels/ask` (entity, answer card), `panels/templates` (entity, variable model, cards), `panels/flashcards` (session model, entity), `panels/reminders` (grouping/humanize model, entity, dialog) and `panels/plugins` (entity, installed/directory/themes tabs, actions) and `panels/voice` (capture stage machine and entity) |
 
 The provider seam is the only place the shell touches the service layer. The
