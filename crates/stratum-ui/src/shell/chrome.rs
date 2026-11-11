@@ -147,6 +147,28 @@ pub(crate) fn toast_overlay(shell: &Shell, cx: &mut Context<Shell>) -> impl Into
                 .text_color(foreground)
                 .child(shell.toast_message().unwrap_or_default().to_string()),
         )
+        .when_some(
+            shell.toast_action_label().map(str::to_string),
+            |element, label| {
+                element.child(
+                    div()
+                        .id("toast-action")
+                        .debug_selector(|| "toast-action".to_string())
+                        .px(px(10.0))
+                        .py(px(4.0))
+                        .rounded(px(5.0))
+                        .bg(theme.colors.accent)
+                        .text_color(theme.colors.accent_foreground)
+                        .text_size(px(12.0))
+                        .cursor_pointer()
+                        .child(label)
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.activate_toast_action();
+                            cx.notify();
+                        })),
+                )
+            },
+        )
         .child(
             div()
                 .id("toast-dismiss")

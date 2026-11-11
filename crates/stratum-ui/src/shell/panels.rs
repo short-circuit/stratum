@@ -1,5 +1,5 @@
-//! Search, query, Ask Notes, Templates and Flashcards panel lifecycle for the
-//! shell.
+//! Search, query, Ask Notes, Templates, Flashcards, Reminders and Plugins panel
+//! lifecycle for the shell.
 //!
 //! Creating the panel entities, applying deterministic start states and
 //! draining their navigation/toast requests live here so [`super::mod`] stays
@@ -14,7 +14,9 @@ use gpui_kit::*;
 use super::Shell;
 use crate::panels::ask::{AskStart, AskView};
 use crate::panels::flashcards::{FlashcardsStart, FlashcardsView};
+use crate::panels::plugins::{PluginsStart, PluginsView};
 use crate::panels::query::{QueryStart, QueryTab, QueryView};
+use crate::panels::reminders::{RemindersStart, RemindersView};
 use crate::panels::search::{SearchStart, SearchView};
 use crate::panels::templates::TemplatesView;
 use crate::panels::{PanelRequest, PanelRequests};
@@ -36,6 +38,10 @@ pub struct PanelStarts {
     pub ask: AskStart,
     /// Flashcards panel start state.
     pub flashcards: FlashcardsStart,
+    /// Reminders panel start state.
+    pub reminders: RemindersStart,
+    /// Plugins panel start state.
+    pub plugins: PluginsStart,
 }
 
 impl PanelStarts {
@@ -73,6 +79,8 @@ impl Shell {
         self.query = None;
         self.ask = None;
         self.flashcards = None;
+        self.reminders = None;
+        self.plugins = None;
     }
 
     /// Set the search panel's start query (used by tag navigation).
@@ -106,6 +114,16 @@ impl Shell {
         self.flashcards.as_ref()
     }
 
+    /// The live Reminders entity, if the panel has created one.
+    pub fn reminders_view(&self) -> Option<&Entity<RemindersView>> {
+        self.reminders.as_ref()
+    }
+
+    /// The live Plugins entity, if the panel has created one.
+    pub fn plugins_view(&self) -> Option<&Entity<PluginsView>> {
+        self.plugins.as_ref()
+    }
+
     /// Create the active panel entity and drain its pending requests.
     pub(super) fn sync_panels(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         match self.active {
@@ -114,6 +132,8 @@ impl Shell {
             Panel::AskNotes => self.sync_ask(window, cx),
             Panel::Templates => self.sync_templates(window, cx),
             Panel::Flashcards => self.sync_flashcards(cx),
+            Panel::Reminders => self.sync_reminders(window, cx),
+            Panel::Plugins => self.sync_plugins(cx),
             _ => {}
         }
     }
@@ -180,6 +200,34 @@ impl Shell {
             return;
         };
         self.drain_panel(&flashcards, cx);
+    }
+
+    /// Create or reuse the Reminders entity, then drain navigation, block-open
+    /// and toast requests.
+    fn sync_reminders(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.reminders.is_none() {
+            let provider = Arc::clone(&self.provider);
+            let start = std::mem::take(&mut self.panel_starts.reminders);
+            self.reminders =
+                Some(cx.new(move |cx| RemindersView::new(provider, start, window, cx)));
+        }
+        let Some(reminders) = self.reminders.clone() else {
+            return;
+        };
+        self.drain_panel(&reminders, cx);
+    }
+
+    /// Create or reuse the Plugins entity, then drain navigation and toasts.
+    fn sync_plugins(&mut self, cx: &mut Context<Self>) {
+        if self.plugins.is_none() {
+            let provider = Arc::clone(&self.provider);
+            let start = std::mem::take(&mut self.panel_starts.plugins);
+            self.plugins = Some(cx.new(move |cx| PluginsView::new(provider, start, cx)));
+        }
+        let Some(plugins) = self.plugins.clone() else {
+            return;
+        };
+        self.drain_panel(&plugins, cx);
     }
 
     /// Drain a hosted panel's pending navigation, block-open and toast

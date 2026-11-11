@@ -83,8 +83,8 @@ logic: data comes from an `AppProvider` implementation.
 | `theme` | `ThemeConfig`, `derive_palette`, `apply_to_kit`, golden palette formulas |
 | `assets` | `StratumAssets` (icons + fonts), `register_fonts` |
 | `provider` | `ShellData`, `ShellSnapshot`, `FixtureProvider`, `provider_from_env`, asset seam (`provider/assets.rs`), journal seam (`provider/journal.rs`), page seam (`provider/page.rs`), voice seam (`provider/voice.rs`) and the panel data seam (`provider/panels.rs`, `provider/app_panels.rs`, `provider/fixture/panels`) |
-| `shell` | header, sidebar, footer, error bar, toaster, journal/page view wiring (`shell/page.rs`), search/query panel wiring (`shell/panels.rs`) and start-state setters |
-| `panels` | panel body rendering and icon mapping; `panels/journal` (entity, state, navigation, reload, calendar/stack/read-mode surface), `panels/page` (entity, header, Note menu, move/delete dialogs, backlinks, suggestions, actions), `panels/search` (model, entity, result rows), `panels/query` (model, entity, builder rows, toolbar, dialogs, saved list, results), `panels/ask` (entity, answer card), `panels/templates` (entity, variable model, cards), `panels/flashcards` (session model, entity) and `panels/voice` (capture stage machine and entity) |
+| `shell` | header, sidebar, footer, error bar, toaster (including the due-reminder toast and its open action), journal/page view wiring (`shell/page.rs`), search/query/ask/templates/flashcards/reminders/plugins panel wiring (`shell/panels.rs`) and start-state setters |
+| `panels` | panel body rendering and icon mapping; `panels/journal` (entity, state, navigation, reload, calendar/stack/read-mode surface), `panels/page` (entity, header, Note menu, move/delete dialogs, backlinks, suggestions, actions), `panels/search` (model, entity, result rows), `panels/query` (model, entity, builder rows, toolbar, dialogs, saved list, results), `panels/ask` (entity, answer card), `panels/templates` (entity, variable model, cards), `panels/flashcards` (session model, entity), `panels/reminders` (grouping/humanize model, entity, dialog) and `panels/plugins` (entity, installed/directory/themes tabs, actions) and `panels/voice` (capture stage machine and entity) |
 
 The provider seam is the only place the shell touches the service layer. The
 real provider drives `stratum_app::StratumService`; `FixtureProvider` returns a
@@ -245,6 +245,64 @@ another block is revealed. The shell exposes
 `Shell::open_page_with_highlight(path, block_id)` for navigation that carries a
 block anchor.
 
+### Reminders
+
+`panels/reminders` ports the shipped desktop `RemindersPanel`. `model.rs` owns
+the window-free urgency grouping (overdue / today / upcoming), the humanized due
+captions and the set/change/clear dialog state; parsing, bucketing and the
+`datetime-local` conversion reuse `stratum_app::reminders::due`
+(`parse_due`, `bucket`, `humanize`, `due_to_local_input`, `local_input_to_utc_iso`)
+so the native panel and the React reminder utilities agree on the same rules.
+`mod.rs` renders the header with the `reminders.panel.due` refresh action, the
+three sections with per-row snooze/complete/open/change chips, the empty state
+and the provider failure line; `dialog.rs` renders the due dialog (input, the
+`reminders.dialog.in_1_hour` / `_tomorrow_0900` / `_evening_1800` quick choices,
+the invalid hint, the clear/cancel/save actions and the provider error).
+
+Provider calls stay on `PanelData`: `reminders()`, `snooze_reminder`,
+`clear_reminder` and `set_reminder`. "Open" records a pending block-open request
+that the shell drains into `open_page_with_highlight`, matching the shipped
+`RemindersPanel`. The fixture serves five reminders around the local clock and
+mutates the list in place. The start flag
+`STRATUM_REMINDER_DIALOG=<block-id>` opens the due dialog on construction.
+Captures: `dist/gpui-reminders.png` (grouped list) and
+`dist/gpui-reminders-dialog.png` (dialog for the first overdue row).
+
+The shell also owns the reminder toaster: `Shell::poll_reminders` asks the
+provider for due reminders, announces each block once while it stays due, and
+prunes the id when the reminder is snoozed or cleared so the next due window
+toasts again. The 30 s background poll wakes the shell because render is only
+driven by notifications; `maybe_poll_reminders` gates both the timer and the
+render path to one poll per 30 s. The toast reuses the shipped
+`reminders.toast.due_title` / `reminders.toast.open` keys and its action routes
+to the reminder's page with the block revealed. `STRATUM_REMINDER_TOAST=1` makes
+the fixture report due reminders. Capture: `dist/gpui-reminder-toast.png`.
+
+### Plugins
+
+`panels/plugins` ports the shipped desktop `PluginsPanel`. `mod.rs` owns the
+`PluginsTab` state, the accessors and the status-chip mapping; `actions.rs` owns
+every provider mutation and catalog refresh; `installed.rs` renders the plugin
+cards (manifest metadata, status chip with expandable error detail,
+enable/disable/reload/uninstall and the note-read/HTTP smoke-test row);
+`directory.rs` renders the community catalog with the offline badge, fetched-at
+and verified-sha256 captions and install/uninstall per entry; `themes.rs`
+renders installed themes plus catalog entries and applies an installed theme
+through `stratum_app::themes` and `crate::theme::apply_to_kit`, with the
+built-in fallback when the active theme is uninstalled.
+
+Provider calls stay on `PanelData`: `plugins`, `set_plugin_enabled`,
+`reload_plugin`, `uninstall_plugin`, `install_plugin_path`,
+`install_plugin_url`, `plugin_note_read`, `plugin_http_request`,
+`plugin_catalog`, `theme_catalog`, `installed_themes`, `install_theme`,
+`apply_theme` and `uninstall_theme`. Install-from-file opens the platform path
+picker off the UI thread, matching the editor's attachment picker. The fixture
+ships two plugins, a three-entry catalog, a two-entry theme catalog and an empty
+installed-theme list. The start flag `STRATUM_PLUGINS_TAB=installed|directory|themes`
+selects a tab on construction. Captures: `dist/gpui-plugins.png` (installed
+tab), `dist/gpui-plugins-directory.png` (catalog) and
+`dist/gpui-plugins-themes.png` (theme hub).
+
 ---
 
 ## Building and Running
@@ -294,6 +352,9 @@ the sidebar and `Escape` dismisses the topmost overlay.
 | `STRATUM_QUERY_RUN=1` | Run the query after construction |
 | `STRATUM_ASK=<question>` | Submit a question on the Ask Notes panel |
 | `STRATUM_FLASHCARD_REVEAL=1` | Reveal the first flashcard's answer |
+| `STRATUM_REMINDER_DIALOG=<block-id>` | Open that reminder's due dialog |
+| `STRATUM_REMINDER_TOAST=1` | Make the fixture report due reminders for the toaster |
+| `STRATUM_PLUGINS_TAB=installed\|directory\|themes` | Select the plugins panel tab |
 
 The start-state flags are applied by `apply_start_state` in `main.rs` and exist
 for the capture harness; they do not change the interactive behaviour of the
@@ -328,10 +389,16 @@ The suites cover:
   clamping, the suggestion state machine, the fixture page seam and the
   `PAGE_I18N_KEYS` release gate in all eight catalogs. Unit tests also cover the
   highlight reveal model and the delete-confirmation message.
+- The Reminders and Plugins surfaces (`tests/panel_contract.rs`): the
+  `REMINDERS_I18N_KEYS` and `PLUGINS_I18N_KEYS` release gates in all eight
+  catalogs, the urgency grouping/humanize/dialog model, the status-chip mapping
+  and the fixture reminder, plugin, catalog and theme flows.
 - Headless interaction (`tests/interaction_contract.rs`): nested controls stop
   click propagation into the parent handler (the backlink snippet chip must not
-  navigate, the voice dismiss chip must not restart recording) and starting the
-  journal on a past day scrolls that section into view.
+  navigate, the voice dismiss chip must not restart recording), starting the
+  journal on a past day scrolls that section into view, a reminder row records
+  the block-open request, the toast open action navigates to the reminder's
+  page, and the plugins tabs/smoke tests/theme apply drive the provider.
 
 `stratum_ui` unit tests use the built-in `#[test]` attribute. `gpui_kit::*`
 re-exports GPUI's own `test` attribute macro, so test modules that glob-import
@@ -368,7 +435,8 @@ used by the GPUI CI workflow to publish a screenshot artifact, and is safe to
 run locally without a desktop session.
 
 `scripts/capture-gpui-panels.sh` captures the journal, page, search, query, Ask
-Notes, Templates and Flashcards surfaces using the start-state flags:
+Notes, Templates, Flashcards, Reminders and Plugins surfaces using the
+start-state flags:
 
 ```bash
 ./scripts/capture-gpui-panels.sh
@@ -390,6 +458,12 @@ Notes, Templates and Flashcards surfaces using the start-state flags:
 # → dist/gpui-templates.png         (STRATUM_ROUTE=/templates)
 # → dist/gpui-flashcards.png        (STRATUM_ROUTE=/flashcards)
 # → dist/gpui-flashcards-answer.png (STRATUM_FLASHCARD_REVEAL=1)
+# → dist/gpui-reminders.png         (STRATUM_ROUTE=/reminders)
+# → dist/gpui-reminders-dialog.png  (STRATUM_REMINDER_DIALOG=<block id>)
+# → dist/gpui-reminder-toast.png    (STRATUM_REMINDER_TOAST=1)
+# → dist/gpui-plugins.png           (installed tab)
+# → dist/gpui-plugins-directory.png (STRATUM_PLUGINS_TAB=directory)
+# → dist/gpui-plugins-themes.png    (STRATUM_PLUGINS_TAB=themes)
 ```
 
 The journal edit-mode capture is the parity reference for the shipped
@@ -419,7 +493,14 @@ shows the answered question, the two cited source rows and the read-aloud
 control; the Templates capture shows the target field, the variables editor and
 the three template cards with their placeholder chips; the Flashcards captures
 show the first question and, in the revealed capture, the answer with the four
-SM-2 rating buttons. The first
+SM-2 rating buttons. The Reminders captures pin the `RemindersPanel` surface: the
+grouped overdue/today/upcoming rows with their snooze/complete/open/change chips,
+the empty/failure states and the due dialog with its quick choices; the toast
+capture shows the due-reminder toaster with its localized open action on the
+journal route. The Plugins captures pin the `PluginsPanel` surface: the installed
+tab with the two fixture plugin cards, status chips and smoke-test rows, the
+community directory with its offline/fetched-at/verified-sha256 captions, and the
+theme hub with its catalog entries. The first
 argument or `OUTPUT` overrides the journal edit-mode path and every other capture
 derives from its directory. Requirements are the same as the shell capture.
 
@@ -428,10 +509,19 @@ instead of the React `DictationPanel` option toggles (diarize/summarize/identify
 the attachment card is rendered by the editor view rather than duplicated in the
 page panel, and a backlink row opens its bounded snippet through an explicit
 `backlinks.backlinked_snippet` control instead of the React Ctrl+hover timer
-(hover timers are unreliable in a compositor-driven window). The routed page and
-journal panels own their header; the shell chrome header is only rendered for the
-panels that are still placeholders, matching the shipped app where the route
-fills the whole content column.
+(hover timers are unreliable in a compositor-driven window). The plugins status
+chip reuses `plugins.installed`, `plugins.disable` and `plugins.failed_on`
+because no catalog carries a `plugins.ready` or `plugins.error` key (the shipped
+React chip renders literal `Ready`/`Disabled`/`Error`), and the reminder row
+actions use `reminders.panel.snooze_10min`, `reminders.panel.snooze_1h`,
+`reminders.panel.complete` and `reminders.panel.open` instead of the shipped
+literal `10m`/`1h`/`Done`/`Open` labels; no new catalog keys were added. The
+reminder toaster polls on a 30 s timer gated per frame rather than the React
+interval, and install-from-file uses the platform path picker instead of the
+shipped file-input element. The routed page, journal, search, query, Ask Notes,
+Templates, Flashcards, Reminders and Plugins panels own their header; the shell
+chrome header is only rendered for the panels that are still placeholders,
+matching the shipped app where the route fills the whole content column.
 
 ---
 
@@ -443,7 +533,8 @@ crates, the capture scripts or the CI wiring:
 1. `gpui-shell` — formatting, build, tests and clippy on **Linux, Windows and
    macOS** (fail-fast disabled, one job per OS).
 2. `gpui-capture` — Linux only: shell, journal, page, search, query, Ask Notes,
-   Templates, Flashcards and editor-perf captures, plus artifact upload.
+   Templates, Flashcards, Reminders, Plugins and editor-perf captures, plus
+   artifact upload.
 
 Both jobs install the Tauri Linux dependencies through
 `.github/actions/install-linux-deps`, which now also carries the native shell
@@ -493,11 +584,18 @@ installer: target-page input, blank-key filtering, template apply with
 created/error toasts and list refresh. The Flashcards view covers the shipped
 `FlashcardsPanel`: the reveal/rate/restart session machine, SM-2 ratings backed
 by the shared `stratum-app` table, source/ease/interval captions, empty and
-completion states. The routed
-search, query, Ask Notes, Templates and Flashcards panels own their header, like
-the page and journal panels.
-Other panel bodies (graph, kanban, etc.) are the next layer; the
-route/navigation/i18n contracts are already in place for them.
+completion states. The Reminders view covers the shipped `RemindersPanel`:
+overdue/today/upcoming grouping, humanized due captions, snooze/complete/open
+row actions, the set/change/clear dialog with quick choices, and the shell
+due-reminder toast with its open action. The Plugins view covers the shipped
+`PluginsPanel`: installed plugin cards with enable/disable/reload/uninstall and
+the note-read/HTTP smoke tests, the community directory with offline/sha256
+captions and catalog installs, and the theme hub with install/apply/uninstall
+and the built-in fallback. The routed
+search, query, Ask Notes, Templates, Flashcards, Reminders and Plugins panels own
+their header, like the page and journal panels.
+The remaining panel bodies (graph, kanban, whiteboards and settings) are the next
+layer; the route/navigation/i18n contracts are already in place for them.
 
 The toaster dismisses manually or through `Escape`; there is no timer-based
 auto-dismiss yet. This is intentional for the E2 shell and is documented in

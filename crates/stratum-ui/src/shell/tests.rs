@@ -9,7 +9,7 @@ use std::sync::Arc;
 use stratum_i18n::{t, Locale};
 
 use super::*;
-use crate::provider::{FixtureProvider, PanelData, ShellData, ShellSnapshot};
+use crate::provider::{FixtureProvider, PanelData, ReminderRow, ShellData, ShellSnapshot};
 // `gpui_kit::*` (re-exported through `super`) brings gpui's `test` attribute
 // macro into scope, shadowing the built-in attribute. Import the built-in
 // explicitly so these unit tests run without a GPUI app context.
@@ -199,4 +199,77 @@ fn every_visible_panel_and_nav_label_has_a_catalog_key() {
             item.label_key
         );
     }
+}
+
+/// A fixture reminder row used by the toaster tests.
+fn due_reminder() -> ReminderRow {
+    ReminderRow {
+        block_id: "reminder-1".to_string(),
+        page_path: "pages/fixture.md".to_string(),
+        page_title: Some("Fixture Note".to_string()),
+        content: "Review the fixture outline".to_string(),
+        due: "2026-11-10T09:00:00Z".to_string(),
+    }
+}
+
+#[test]
+fn reminder_toast_announces_once_and_rearms_after_snooze() {
+    let mut shell = fixture_shell();
+    let reminder = due_reminder();
+    let toast = shell
+        .next_due_toast(std::slice::from_ref(&reminder))
+        .expect("the first due reminder toasts");
+    assert!(toast
+        .message
+        .contains(&t(Locale::En, "reminders.toast.due_title")));
+    assert!(toast.message.contains("Review the fixture outline"));
+    assert_eq!(
+        toast.action_label.as_deref(),
+        Some(t(Locale::En, "reminders.toast.open").as_str())
+    );
+    assert_eq!(
+        toast.action,
+        Some(ToastAction::ReminderOpen {
+            page_path: "pages/fixture.md".to_string(),
+            block_id: "reminder-1".to_string(),
+        })
+    );
+
+    assert_eq!(
+        shell.next_due_toast(std::slice::from_ref(&reminder)),
+        None,
+        "the same reminder must not toast twice"
+    );
+
+    // Snoozing/clearing drops the reminder from the due set, which prunes the
+    // remembered id so the next due window announces it again.
+    assert_eq!(shell.next_due_toast(&[]), None);
+    assert!(shell
+        .next_due_toast(std::slice::from_ref(&reminder))
+        .is_some());
+}
+
+#[test]
+fn toast_action_opens_the_reminder_page_and_dismisses_the_toast() {
+    let mut shell = fixture_shell();
+    shell.toast = Some(Toast::with_action(
+        "Reminder due",
+        "Open",
+        ToastAction::ReminderOpen {
+            page_path: "pages/fixture.md".to_string(),
+            block_id: "reminder-1".to_string(),
+        },
+    ));
+    assert!(shell.activate_toast_action());
+    assert_eq!(shell.current_page(), Some("pages/fixture.md"));
+    assert_eq!(shell.active_panel(), Panel::Page);
+    assert_eq!(shell.toast_message(), None);
+    assert!(!shell.activate_toast_action(), "no action left to run");
+}
+
+#[test]
+fn message_only_toasts_have_no_action() {
+    let toast = Toast::message("Saved");
+    assert_eq!(toast.action_label, None);
+    assert_eq!(toast.action, None);
 }

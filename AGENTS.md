@@ -485,9 +485,12 @@ frozen reference application and are never modified by shell work.
 - `stratum-ui` owns the route/navigation/shortcut tables (`router`), the theme
   derivation (`theme`), the embedded asset source and Inter faces (`assets`),
   the `ShellData` provider seam (`provider`, with `provider/assets.rs`,
-  `provider/journal.rs`, `provider/page.rs`, `provider/voice.rs` and the
-  `provider/fixture/` deterministic provider), the chrome (`shell`, including
-  the page lifecycle in `shell/page.rs`) and the panel bodies (`panels`).
+  `provider/journal.rs`, `provider/page.rs`, `provider/voice.rs`,
+  `provider/panels.rs` for the panel DTOs/seam, `provider/app_panels.rs` for the
+  service-backed panel data and the `provider/fixture/` deterministic provider),
+  the chrome (`shell`, including the page lifecycle in `shell/page.rs`, the panel
+  lifecycle in `shell/panels.rs` and the due-reminder toaster in `shell/mod.rs`)
+  and the panel bodies (`panels`).
 - The native journal surface lives in `crates/stratum-ui/src/panels/journal/`:
   `mod.rs` (`JournalView` entity and render), `state.rs` (accessors and
   read-mode switch), `navigation.rs` (day/month selection), `reload.rs`
@@ -515,6 +518,18 @@ frozen reference application and are never modified by shell work.
   `PAGE_I18N_KEYS` catalog gate without opening a window.
   `tests/interaction_contract.rs` adds headless-window coverage for nested
   click propagation and journal start scroll.
+- The native search, query, Ask Notes, Templates, Flashcards, Reminders and
+  Plugins surfaces live under `crates/stratum-ui/src/panels/{search,query,ask,
+  templates,flashcards,reminders,plugins}/`. Every panel renders only catalog
+  keys declared in its `*_I18N_KEYS` gate list (verified in all eight catalogs)
+  and routes provider calls through `PanelData`. The Reminders panel
+  (`reminders/model.rs` grouping/humanize/dialog, `reminders/view.rs`,
+  `reminders/dialog.rs`) reuses `stratum_app::reminders::due`; the Plugins panel
+  (`plugins/actions.rs`, `plugins/{installed,directory,themes}.rs`) covers the
+  installed/directory/themes tabs and applies themes through
+  `stratum_app::themes` + `crate::theme::apply_to_kit`. The shell toaster
+  announces due reminders once per due window with a localized open action
+  (`Shell::poll_reminders`, `activate_toast_action`).
 - `stratum-editor` is the headless block-editor engine the phase-B editor view
   renders (`DecoratedRow`s from `render`). It owns document canonicalization,
   inline spans, editing/undo/IME, slash and marker menus, wiki-link helpers,
@@ -547,18 +562,27 @@ frozen reference application and are never modified by shell work.
   size). `STRATUM_VAULT` selects a real vault and `STRATUM_LOCALE` selects one of
   the eight catalogs. Start-state flags for the capture harness are applied by
   `apply_start_state` in `main.rs`: `STRATUM_ROUTE`, `STRATUM_PAGE`,
-  `STRATUM_JOURNAL_DATE`, `STRATUM_CALENDAR` and `STRATUM_READ_MODE`.
+  `STRATUM_JOURNAL_DATE`, `STRATUM_CALENDAR`, `STRATUM_READ_MODE`,
+  `STRATUM_REMINDER_DIALOG` and `STRATUM_PLUGINS_TAB`; `STRATUM_REMINDER_TOAST=1`
+  makes the fixture report due reminders to the shell toaster.
 - `scripts/capture-gpui-shell.sh` renders the fixture shell on a private Xvfb
   screen and writes `dist/gpui-shell.png` (224 px sidebar) plus
   `dist/gpui-shell-collapsed.png` (52 px rail, `STRATUM_COLLAPSED=1`).
-- `scripts/capture-gpui-panels.sh` performs nine captures: the journal surface
-  in edit mode, with the calendar expanded and on a past day in read mode
+- `scripts/capture-gpui-panels.sh` performs twenty-four captures: the journal
+  surface in edit mode, with the calendar expanded and on a past day in read mode
   (`dist/gpui-journal.png`, `dist/gpui-journal-calendar.png`,
   `dist/gpui-journal-read.png`), the fixture page in edit/read mode with the
   Note menu, expanded cards, a revealed block and a preloaded backlink snippet
-  (`STRATUM_SNIPPET=1` → `dist/gpui-page-snippet.png`).
+  (`STRATUM_SNIPPET=1` → `dist/gpui-page-snippet.png`), the search, query,
+  Ask Notes, Templates and Flashcards surfaces, the Reminders surface with the
+  due dialog (`dist/gpui-reminders.png`, `dist/gpui-reminders-dialog.png`) and
+  the due-reminder toast (`dist/gpui-reminder-toast.png`), and the Plugins
+  installed/directory/themes tabs (`dist/gpui-plugins.png`,
+  `dist/gpui-plugins-directory.png`, `dist/gpui-plugins-themes.png`).
 - `crates/stratum-ui/tests/interaction_contract.rs` opens headless gpui windows
-  to cover click propagation (snippet/voice chips) and journal start scroll.
+  to cover click propagation (snippet/voice chips), journal start scroll, the
+  reminder block-open request, the toast open action and the plugins
+  tab/smoke-test/theme flows.
 - `scripts/capture-gpui-editor-perf.sh` runs `stratum-editor-perf` on the 10k
   fixture, prints frame/render timings and gates only on `render_p95_ms >
   18.18` (55 fps work budget); the JSON report lands in

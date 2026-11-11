@@ -214,6 +214,26 @@ jobs:
             dist/gpui-flashcards-answer.png
           if-no-files-found: error
 
+      - name: Upload reminders screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-reminders-screenshots
+          path: |
+            dist/gpui-reminders.png
+            dist/gpui-reminders-dialog.png
+            dist/gpui-reminder-toast.png
+          if-no-files-found: error
+
+      - name: Upload plugins screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-plugins-screenshots
+          path: |
+            dist/gpui-plugins.png
+            dist/gpui-plugins-directory.png
+            dist/gpui-plugins-themes.png
+          if-no-files-found: error
+
       - name: Upload editor performance report
         uses: actions/upload-artifact@v4
         with:

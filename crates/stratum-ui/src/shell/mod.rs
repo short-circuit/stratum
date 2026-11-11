@@ -11,7 +11,9 @@
 //! allows the simpler behaviour, and the dismiss button keeps the toast from
 //! blocking the window.
 
+use std::collections::HashSet;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use gpui_kit::component::ActiveTheme;
 use gpui_kit::prelude::*;
@@ -23,11 +25,13 @@ use crate::panels::editor::EditorView;
 use crate::panels::flashcards::FlashcardsView;
 use crate::panels::journal::JournalView;
 use crate::panels::page::{PageStart, PageView};
+use crate::panels::plugins::PluginsView;
 use crate::panels::query::QueryView;
+use crate::panels::reminders::RemindersView;
 use crate::panels::search::SearchView;
 use crate::panels::templates::TemplatesView;
 use crate::panels::{panel_owns_header, panel_view, PanelEntities};
-use crate::provider::ShellData;
+use crate::provider::{ReminderRow, ShellData};
 use crate::router::{path_for, Panel, ShortcutAction};
 
 use chrome::{error_bar, header, toast_overlay};
@@ -54,7 +58,7 @@ mod tests;
 /// The release gate walks this list against all eight catalogs, so adding a
 /// visible string without a catalog entry fails the build instead of leaking a
 /// raw key into the UI.
-pub const SHELL_I18N_KEYS: [&str; 30] = [
+pub const SHELL_I18N_KEYS: [&str; 32] = [
     "common.refresh",
     "export.success_html",
     "mobile_nav.ask_notes",
@@ -74,6 +78,8 @@ pub const SHELL_I18N_KEYS: [&str; 30] = [
     "page.read_mode",
     "page.select_a_page_from_the_sidebar_or_create_a_new_one",
     "page.stratum_pkm",
+    "reminders.toast.due_title",
+    "reminders.toast.open",
     "sidebar.b",
     "sidebar.collapse_sidebar",
     "sidebar.expand_sidebar",
@@ -87,11 +93,51 @@ pub const SHELL_I18N_KEYS: [&str; 30] = [
     "sidebar.refresh",
 ];
 
-/// A transient success message shown in the toaster.
+/// A toaster action that navigates into the shell.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ToastAction {
+    /// Open a page and reveal a block (the reminder "open" action).
+    ReminderOpen {
+        /// Vault-relative page path.
+        page_path: String,
+        /// Block id to reveal.
+        block_id: String,
+    },
+}
+
+/// A transient message shown in the toaster.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Toast {
     /// Localized message body.
     pub message: String,
+    /// Optional action label (for example `reminders.toast.open`).
+    pub action_label: Option<String>,
+    /// Optional action performed when the label is clicked.
+    pub action: Option<ToastAction>,
+}
+
+impl Toast {
+    /// Build a message-only toast.
+    pub fn message(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            action_label: None,
+            action: None,
+        }
+    }
+
+    /// Build a toast with an action chip.
+    pub fn with_action(
+        message: impl Into<String>,
+        action_label: impl Into<String>,
+        action: ToastAction,
+    ) -> Self {
+        Self {
+            message: message.into(),
+            action_label: Some(action_label.into()),
+            action: Some(action),
+        }
+    }
 }
 
 /// The Stratum gpui shell.
@@ -115,9 +161,19 @@ pub struct Shell {
     ask: Option<Entity<AskView>>,
     templates: Option<Entity<TemplatesView>>,
     flashcards: Option<Entity<FlashcardsView>>,
+    reminders: Option<Entity<RemindersView>>,
+    plugins: Option<Entity<PluginsView>>,
     panel_starts: PanelStarts,
     error: Option<String>,
     toast: Option<Toast>,
+    /// Block ids already surfaced in a reminder toast, so a due reminder is
+    /// announced once. Snoozing a reminder drops it from the due set and the
+    /// id is pruned, so it can be announced again when it becomes due.
+    toasted_reminders: HashSet<String>,
+    /// Last provider poll for due reminders; gates the 30 s render check.
+    last_reminder_poll: Option<Instant>,
+    /// Whether the 30 s background reminder poll has been spawned.
+    reminder_watch_started: bool,
 }
 
 impl Shell {
@@ -144,9 +200,14 @@ impl Shell {
             ask: None,
             templates: None,
             flashcards: None,
+            reminders: None,
+            plugins: None,
             panel_starts: PanelStarts::default(),
             error: None,
             toast: None,
+            toasted_reminders: HashSet::new(),
+            last_reminder_poll: None,
+            reminder_watch_started: false,
         }
     }
 
@@ -183,6 +244,111 @@ impl Shell {
     /// The current toast message, if any.
     pub fn toast_message(&self) -> Option<&str> {
         self.toast.as_ref().map(|toast| toast.message.as_str())
+    }
+
+    /// The current toast action label, if any.
+    pub fn toast_action_label(&self) -> Option<&str> {
+        self.toast
+            .as_ref()
+            .and_then(|toast| toast.action_label.as_deref())
+    }
+
+    /// The current toast action, if any.
+    pub fn toast_action(&self) -> Option<&ToastAction> {
+        self.toast.as_ref().and_then(|toast| toast.action.as_ref())
+    }
+
+    /// Run the pending toast action and dismiss the toast.
+    ///
+    /// Returns `true` when an action was present and consumed. The reminder
+    /// "open" action routes to the page panel and reveals the block, matching
+    /// the shipped `ReminderToaster`.
+    pub fn activate_toast_action(&mut self) -> bool {
+        let Some(action) = self.toast.as_ref().and_then(|toast| toast.action.clone()) else {
+            return false;
+        };
+        self.toast = None;
+        match action {
+            ToastAction::ReminderOpen {
+                page_path,
+                block_id,
+            } => self.open_page_with_highlight(page_path, block_id),
+        }
+        true
+    }
+
+    /// Poll the provider for due reminders and announce a fresh one.
+    ///
+    /// A reminder is announced once per due window: the block id is remembered
+    /// while it stays due, and pruned once it is snoozed or cleared so the next
+    /// due window toasts again. The message mirrors the shipped toaster
+    /// (`reminders.toast.due_title` — block content) with the localized
+    /// `reminders.toast.open` action.
+    pub fn poll_reminders(&mut self, cx: &mut Context<Self>) {
+        let due = self.provider.due_reminders();
+        if let Some(toast) = self.next_due_toast(&due) {
+            self.toast = Some(toast);
+            cx.notify();
+        }
+    }
+
+    /// Select the next reminder to announce and remember its block id.
+    ///
+    /// Split out of [`Self::poll_reminders`] so the announce-once/prune rule is
+    /// testable without a GPUI context.
+    fn next_due_toast(&mut self, due: &[ReminderRow]) -> Option<Toast> {
+        let due_ids: HashSet<&str> = due.iter().map(|row| row.block_id.as_str()).collect();
+        self.toasted_reminders
+            .retain(|block_id| due_ids.contains(block_id.as_str()));
+        let reminder = due
+            .iter()
+            .find(|row| !self.toasted_reminders.contains(&row.block_id))?;
+        self.toasted_reminders.insert(reminder.block_id.clone());
+        let title = t_global("reminders.toast.due_title");
+        Some(Toast::with_action(
+            format!("{title} — {}", reminder.content),
+            t_global("reminders.toast.open"),
+            ToastAction::ReminderOpen {
+                page_path: reminder.page_path.clone(),
+                block_id: reminder.block_id.clone(),
+            },
+        ))
+    }
+
+    /// Run a due-reminder poll at most once every 30 seconds.
+    fn maybe_poll_reminders(&mut self, cx: &mut Context<Self>) {
+        let now = Instant::now();
+        let ready = self
+            .last_reminder_poll
+            .is_none_or(|last| now.duration_since(last) >= Duration::from_secs(30));
+        if !ready {
+            return;
+        }
+        self.last_reminder_poll = Some(now);
+        self.poll_reminders(cx);
+    }
+
+    /// Spawn the background reminder poll once.
+    ///
+    /// Render is only driven by notifications, so a timer wakes the shell every
+    /// 30 s to re-check the provider; the render gate above keeps both paths
+    /// from polling faster than that.
+    fn ensure_reminder_watch(&mut self, cx: &mut Context<Self>) {
+        if self.reminder_watch_started {
+            return;
+        }
+        self.reminder_watch_started = true;
+        cx.spawn(
+            async move |this: WeakEntity<Shell>, cx: &mut AsyncApp| loop {
+                cx.background_executor()
+                    .timer(Duration::from_secs(30))
+                    .await;
+                let Ok(()) = this.update(cx, |shell, cx| shell.maybe_poll_reminders(cx)) else {
+                    break;
+                };
+            },
+        )
+        .detach();
     }
 
     /// The current route path, derived from the active panel and page.
@@ -225,6 +391,14 @@ impl Shell {
         if panel != Panel::Flashcards {
             self.flashcards = None;
             self.panel_starts.flashcards = crate::panels::flashcards::FlashcardsStart::default();
+        }
+        if panel != Panel::Reminders {
+            self.reminders = None;
+            self.panel_starts.reminders = crate::panels::reminders::RemindersStart::default();
+        }
+        if panel != Panel::Plugins {
+            self.plugins = None;
+            self.panel_starts.plugins = crate::panels::plugins::PluginsStart::default();
         }
         self.active = panel;
         self.read_mode = false;
@@ -356,12 +530,10 @@ impl Shell {
         match self.provider.export_html() {
             Ok(count) => {
                 let count = count.to_string();
-                self.toast = Some(Toast {
-                    message: tr_global(
-                        "export.success_html",
-                        &[("count", count.as_str()), ("path", "/tmp/stratum-export")],
-                    ),
-                });
+                self.toast = Some(Toast::message(tr_global(
+                    "export.success_html",
+                    &[("count", count.as_str()), ("path", "/tmp/stratum-export")],
+                )));
                 true
             }
             Err(error) => {
@@ -377,16 +549,12 @@ impl Shell {
     /// shows the localized action name in the toaster so the button is not
     /// silently inert.
     pub fn request_new_page(&mut self) {
-        self.toast = Some(Toast {
-            message: t_global("sidebar.new_page"),
-        });
+        self.toast = Some(Toast::message(t_global("sidebar.new_page")));
     }
 
     /// Push a success toast.
     pub fn push_toast(&mut self, message: impl Into<String>) {
-        self.toast = Some(Toast {
-            message: message.into(),
-        });
+        self.toast = Some(Toast::message(message));
     }
 
     /// Show an error in the error bar.
@@ -419,6 +587,8 @@ impl Render for Shell {
             self.sync_journal(cx);
         }
         self.sync_panels(window, cx);
+        self.ensure_reminder_watch(cx);
+        self.maybe_poll_reminders(cx);
         let theme = cx.theme();
         let background = theme.colors.background;
         let foreground = theme.colors.foreground;
@@ -435,6 +605,8 @@ impl Render for Shell {
                 Panel::AskNotes => self.ask.is_some(),
                 Panel::Templates => self.templates.is_some(),
                 Panel::Flashcards => self.flashcards.is_some(),
+                Panel::Reminders => self.reminders.is_some(),
+                Panel::Plugins => self.plugins.is_some(),
                 _ => false,
             };
 
@@ -481,6 +653,8 @@ impl Render for Shell {
                             ask: self.ask.clone(),
                             templates: self.templates.clone(),
                             flashcards: self.flashcards.clone(),
+                            reminders: self.reminders.clone(),
+                            plugins: self.plugins.clone(),
                         },
                         cx,
                     ))),

@@ -10,18 +10,58 @@ use std::sync::Arc;
 // `#[gpui_kit::test]` emits and recurse forever.
 use gpui_kit::test::TestWindowExt;
 use gpui_kit::{px, size, Modifiers, TestAppContext, VisualTestContext};
+use stratum_app::reminders::due::local_input_to_utc_iso;
 use stratum_ui::panels::ask::{AskStart, AskView};
 use stratum_ui::panels::flashcards::{FlashcardsStart, FlashcardsView};
 use stratum_ui::panels::journal::JournalView;
 use stratum_ui::panels::page::{PageStart, PageView};
+use stratum_ui::panels::plugins::{PluginsStart, PluginsTab, PluginsView};
 use stratum_ui::panels::query::{QueryStart, QueryView};
+use stratum_ui::panels::reminders::{RemindersStart, RemindersView};
 use stratum_ui::panels::search::model::SearchStatus;
 use stratum_ui::panels::search::{SearchStart, SearchView};
 use stratum_ui::panels::templates::TemplatesView;
 use stratum_ui::panels::voice::{VoiceCapture, VoiceStage};
 use stratum_ui::panels::PanelRequests;
-use stratum_ui::provider::{journal_path, FixtureProvider, ShellData, FIXTURE_PAGE, FIXTURE_TODAY};
-use stratum_ui::ThemeConfig;
+use stratum_ui::provider::{
+    journal_path, FixtureProvider, PanelData, ReminderRow, ShellData, ShellSnapshot,
+    FIXTURE_JOURNAL_DATES, FIXTURE_PAGE, FIXTURE_TODAY,
+};
+use stratum_ui::router::Panel;
+use stratum_ui::{Shell, ThemeConfig};
+
+/// A provider that reports one due reminder, so the shell toaster runs without
+/// depending on the fixture's `STRATUM_REMINDER_TOAST` environment flag.
+struct DueProvider;
+
+impl ShellData for DueProvider {
+    fn snapshot(&self) -> ShellSnapshot {
+        ShellSnapshot {
+            vault: None,
+            recents: Vec::new(),
+        }
+    }
+
+    fn refresh(&self) -> ShellSnapshot {
+        self.snapshot()
+    }
+
+    fn export_html(&self) -> Result<u64, String> {
+        Ok(0)
+    }
+}
+
+impl PanelData for DueProvider {
+    fn due_reminders(&self) -> Vec<ReminderRow> {
+        vec![ReminderRow {
+            block_id: "reminder-1".to_string(),
+            page_path: FIXTURE_PAGE.to_string(),
+            page_title: Some("Fixture Note".to_string()),
+            content: "Review the fixture outline".to_string(),
+            due: "2026-11-10T09:00:00Z".to_string(),
+        }]
+    }
+}
 
 fn init(cx: &mut TestAppContext) {
     cx.update(|cx| {
@@ -84,12 +124,17 @@ fn voice_dismiss_chip_does_not_restart_recording(cx: &mut TestAppContext) {
 fn journal_start_scrolls_to_the_selected_day(cx: &mut TestAppContext) {
     init(cx);
     let provider: Arc<dyn ShellData> = Arc::new(FixtureProvider::new());
-    // Use a past fixture day that is never the real "today", so the plan always
-    // contains it as the first stacked section.
+    // The fixture seeds 2026-11-09..2026-10-31 and creates its fixed
+    // `FIXTURE_TODAY` page on demand, so on a clock later than 2026-11-10 that
+    // page is the newest past day. Derive the target from the fixture dates
+    // strictly before the real today so it is always the first stacked past
+    // section instead of a hard-coded date that drifts with the calendar.
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-    let target = ["2026-11-09", "2026-11-08", "2026-11-07"]
-        .iter()
-        .find(|date| **date != today)
+    let mut candidates = vec![FIXTURE_TODAY];
+    candidates.extend(FIXTURE_JOURNAL_DATES);
+    let target = candidates
+        .into_iter()
+        .find(|date| *date < today.as_str())
         .expect("a past fixture day")
         .to_string();
     let start = target.clone();
@@ -316,4 +361,152 @@ fn flashcard_reveal_and_rate(cx: &mut TestAppContext) {
     });
     assert_eq!(reviewed, vec![("card-1".to_string(), 3)]);
     assert_eq!(index, Some(1), "the session must advance after a rating");
+}
+
+#[gpui_kit::test]
+fn reminder_row_open_requests_the_block(cx: &mut TestAppContext) {
+    init(cx);
+    let provider: Arc<dyn ShellData> = Arc::new(FixtureProvider::new());
+    let (reminders, cx) = cx.add_window_view(move |window, cx| {
+        RemindersView::new(provider, RemindersStart::default(), window, cx)
+    });
+    cx.update(|window, cx| window.render_frame(cx));
+    let bounds = cx
+        .debug_bounds("reminder-row-0-open")
+        .expect("the first overdue row renders its open chip");
+    cx.simulate_click(bounds.center(), Modifiers::default());
+    let pending =
+        cx.update(|_window, cx| reminders.update(cx, |view, _| view.take_pending_open_block()));
+    let (page_path, block_id) = pending.expect("open must request the block");
+    assert_eq!(page_path, "pages/fixture.md");
+    assert!(
+        block_id.ends_with("overdue-1"),
+        "the fixture's first reminder must be opened, got {block_id}"
+    );
+}
+
+#[gpui_kit::test]
+fn reminder_dialog_opens_with_the_quick_choices(cx: &mut TestAppContext) {
+    init(cx);
+    let provider: Arc<dyn ShellData> = Arc::new(FixtureProvider::new());
+    let start = RemindersStart {
+        dialog_block: Some("00000000-0000-5000-8000-000overdue-1".to_string()),
+    };
+    let (reminders, cx) =
+        cx.add_window_view(move |window, cx| RemindersView::new(provider, start, window, cx));
+    cx.update(|window, cx| window.render_frame(cx));
+    assert!(
+        cx.debug_bounds("reminder-dialog").is_some(),
+        "the start flag must open the due dialog"
+    );
+    assert!(cx.debug_bounds("reminder-dialog-input").is_some());
+    let quick = cx
+        .debug_bounds("reminder-dialog-quick-0")
+        .expect("the quick choices render");
+    cx.simulate_click(quick.center(), Modifiers::default());
+    let value = cx
+        .update(|_window, cx| {
+            reminders
+                .read(cx)
+                .dialog()
+                .map(|dialog| dialog.value.clone())
+        })
+        .expect("the dialog stays open");
+    assert!(
+        !local_input_to_utc_iso(&value).is_empty(),
+        "the quick choice must fill a valid datetime-local value, got {value}"
+    );
+}
+
+#[gpui_kit::test]
+fn reminder_toast_action_opens_the_page(cx: &mut TestAppContext) {
+    init(cx);
+    let provider: Arc<dyn ShellData> = Arc::new(DueProvider);
+    let (shell, cx) = cx.add_window_view(move |_, _cx| Shell::new(provider));
+    cx.update(|window, cx| window.render_frame(cx));
+    let bounds = cx
+        .debug_bounds("toast-action")
+        .expect("the due-reminder toast renders its open action");
+    cx.simulate_click(bounds.center(), Modifiers::default());
+    let (page, panel, toast) = cx.update(|_window, cx| {
+        let view = shell.read(cx);
+        (
+            view.current_page().map(str::to_string),
+            view.active_panel(),
+            view.toast_message().map(str::to_string),
+        )
+    });
+    assert_eq!(page.as_deref(), Some(FIXTURE_PAGE));
+    assert_eq!(panel, Panel::Page);
+    assert_eq!(toast, None, "the open action must dismiss the toast");
+}
+
+#[gpui_kit::test]
+fn plugins_tab_switch_loads_the_directory(cx: &mut TestAppContext) {
+    init(cx);
+    let provider: Arc<dyn ShellData> = Arc::new(FixtureProvider::new());
+    let (plugins, cx) = cx.add_window_view(move |_window, cx| {
+        PluginsView::new(provider, PluginsStart::default(), cx)
+    });
+    cx.update(|window, cx| window.render_frame(cx));
+    assert!(cx.debug_bounds("plugins-installed").is_some());
+    let tab = cx
+        .debug_bounds("plugins-tab-plugins.tab_directory")
+        .expect("the directory tab renders");
+    cx.simulate_click(tab.center(), Modifiers::default());
+    cx.update(|window, cx| window.render_frame(cx));
+    let (tab, entries) = cx.update(|_window, cx| {
+        let view = plugins.read(cx);
+        (
+            view.tab(),
+            view.catalog()
+                .map(|catalog| catalog.entries.len())
+                .unwrap_or(0),
+        )
+    });
+    assert_eq!(tab, PluginsTab::Directory);
+    assert_eq!(entries, 3);
+    assert!(cx.debug_bounds("plugin-catalog-graph-export").is_some());
+}
+
+#[gpui_kit::test]
+fn plugin_smoke_test_records_an_inline_result(cx: &mut TestAppContext) {
+    init(cx);
+    let provider: Arc<dyn ShellData> = Arc::new(FixtureProvider::new());
+    let (plugins, cx) = cx.add_window_view(move |_window, cx| {
+        PluginsView::new(provider, PluginsStart::default(), cx)
+    });
+    cx.update(|window, cx| window.render_frame(cx));
+    let note = cx
+        .debug_bounds("plugin-test-note-word-count")
+        .expect("the note-read control renders");
+    cx.simulate_click(note.center(), Modifiers::default());
+    cx.update(|window, cx| window.render_frame(cx));
+    let outcome = cx
+        .update(|_window, cx| plugins.read(cx).test_result("word-count").cloned())
+        .expect("the smoke test must record a result");
+    assert!(outcome.result.ok);
+    assert!(cx.debug_bounds("plugin-test-result-word-count").is_some());
+}
+
+#[gpui_kit::test]
+fn theme_install_applies_the_catalog_entry(cx: &mut TestAppContext) {
+    init(cx);
+    let provider: Arc<dyn ShellData> = Arc::new(FixtureProvider::new());
+    let start = PluginsStart {
+        tab: Some(PluginsTab::Themes),
+    };
+    let (plugins, cx) =
+        cx.add_window_view(move |_window, cx| PluginsView::new(provider, start, cx));
+    cx.update(|window, cx| window.render_frame(cx));
+    let install = cx
+        .debug_bounds("theme-install-midnight")
+        .expect("the catalog theme renders");
+    cx.simulate_click(install.center(), Modifiers::default());
+    cx.update(|window, cx| window.render_frame(cx));
+    let installed = cx.update(|_window, cx| plugins.read(cx).installed_themes().to_vec());
+    assert_eq!(installed.len(), 1);
+    assert_eq!(installed[0].id, "midnight");
+    assert!(installed[0].active);
+    assert!(cx.debug_bounds("theme-installed-midnight").is_some());
 }

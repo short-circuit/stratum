@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Capture screenshots of the native Stratum journal, page, search, query, Ask
-# Notes, Templates and Flashcards surfaces.
+# Notes, Templates, Flashcards, Reminders and Plugins surfaces.
 #
 # The shell is started with STRATUM_FIXTURE=1 so the capture is deterministic
 # and needs no vault. When no DISPLAY is set the script starts a private Xvfb
 # screen, waits for the window to map, and captures the root window with
-# ImageMagick. Eighteen states are captured:
+# ImageMagick. Twenty-four states are captured:
 #
 #   1. the journal route in edit mode
 #   2. the journal route with the calendar popup expanded (STRATUM_CALENDAR=1)
@@ -35,6 +35,17 @@
 #      (STRATUM_ROUTE=/flashcards)
 #  18. the Flashcards route with the first answer revealed
 #      (STRATUM_ROUTE=/flashcards STRATUM_FLASHCARD_REVEAL=1)
+#  19. the Reminders route with the grouped fixture rows
+#      (STRATUM_ROUTE=/reminders)
+#  20. the Reminders route with the due dialog open for the first overdue row
+#      (STRATUM_ROUTE=/reminders STRATUM_REMINDER_DIALOG=<block id>)
+#  21. the journal route with a due-reminder toast and its open action
+#      (STRATUM_ROUTE=/journal STRATUM_REMINDER_TOAST=1)
+#  22. the Plugins route on the installed tab (STRATUM_ROUTE=/plugins)
+#  23. the Plugins route on the community directory tab
+#      (STRATUM_ROUTE=/plugins STRATUM_PLUGINS_TAB=directory)
+#  24. the Plugins route on the theme hub tab
+#      (STRATUM_ROUTE=/plugins STRATUM_PLUGINS_TAB=themes)
 #
 # The journal PNGs are written to dist/gpui-journal.png,
 # dist/gpui-journal-calendar.png and dist/gpui-journal-read.png; the page PNGs to
@@ -44,7 +55,10 @@
 # dist/gpui-search-tag.png; the query PNGs to dist/gpui-query.png,
 # dist/gpui-query-results.png and dist/gpui-query-datalog.png; the Ask Notes PNG
 # to dist/gpui-ask.png; the Templates PNG to dist/gpui-templates.png; the
-# Flashcards PNGs to dist/gpui-flashcards.png and dist/gpui-flashcards-answer.png.
+# Flashcards PNGs to dist/gpui-flashcards.png and dist/gpui-flashcards-answer.png;
+# the Reminders PNGs to dist/gpui-reminders.png, dist/gpui-reminders-dialog.png
+# and dist/gpui-reminder-toast.png; the Plugins PNGs to dist/gpui-plugins.png,
+# dist/gpui-plugins-directory.png and dist/gpui-plugins-themes.png.
 # Pass a path as the first argument or set OUTPUT to override the journal
 # edit-mode capture (the other captures derive from its directory).
 #
@@ -72,8 +86,17 @@ ASK_OUT="$OUT_DIR/gpui-ask.png"
 TEMPLATES_OUT="$OUT_DIR/gpui-templates.png"
 FLASHCARDS_OUT="$OUT_DIR/gpui-flashcards.png"
 FLASHCARDS_ANSWER_OUT="$OUT_DIR/gpui-flashcards-answer.png"
+REMINDERS_OUT="$OUT_DIR/gpui-reminders.png"
+REMINDERS_DIALOG_OUT="$OUT_DIR/gpui-reminders-dialog.png"
+REMINDER_TOAST_OUT="$OUT_DIR/gpui-reminder-toast.png"
+PLUGINS_OUT="$OUT_DIR/gpui-plugins.png"
+PLUGINS_DIRECTORY_OUT="$OUT_DIR/gpui-plugins-directory.png"
+PLUGINS_THEMES_OUT="$OUT_DIR/gpui-plugins-themes.png"
 # Deterministic block on pages/fixture.md (provider::FIXTURE_HIGHLIGHT_BLOCK).
 FIXTURE_HIGHLIGHT="413cf12c-969f-54ef-bf75-40ffd89e8618"
+# The fixture's first overdue reminder (`overdue-1`): the provider builds block
+# ids as `00000000-0000-5000-8000-{slug:0>12}`, so this id targets its dialog.
+FIXTURE_REMINDER_BLOCK="00000000-0000-5000-8000-000overdue-1"
 LOG="${CAPTURE_LOG:-$OUT_DIR/gpui-journal.log}"
 WIDTH="${CAPTURE_WIDTH:-1280}"
 HEIGHT="${CAPTURE_HEIGHT:-720}"
@@ -233,3 +256,19 @@ capture_state "$FLASHCARDS_OUT" STRATUM_ROUTE=/flashcards
 capture_state \
     "$FLASHCARDS_ANSWER_OUT" \
     STRATUM_ROUTE=/flashcards STRATUM_FLASHCARD_REVEAL=1
+
+capture_state "$REMINDERS_OUT" STRATUM_ROUTE=/reminders
+capture_state \
+    "$REMINDERS_DIALOG_OUT" \
+    STRATUM_ROUTE=/reminders "STRATUM_REMINDER_DIALOG=$FIXTURE_REMINDER_BLOCK"
+capture_state \
+    "$REMINDER_TOAST_OUT" \
+    STRATUM_ROUTE=/journal STRATUM_REMINDER_TOAST=1
+
+capture_state "$PLUGINS_OUT" STRATUM_ROUTE=/plugins
+capture_state \
+    "$PLUGINS_DIRECTORY_OUT" \
+    STRATUM_ROUTE=/plugins STRATUM_PLUGINS_TAB=directory
+capture_state \
+    "$PLUGINS_THEMES_OUT" \
+    STRATUM_ROUTE=/plugins STRATUM_PLUGINS_TAB=themes

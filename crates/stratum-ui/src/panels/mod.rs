@@ -17,7 +17,9 @@ pub mod editor;
 pub mod flashcards;
 pub mod journal;
 pub mod page;
+pub mod plugins;
 pub mod query;
+pub mod reminders;
 pub mod search;
 pub mod templates;
 pub mod voice;
@@ -26,7 +28,9 @@ use crate::panels::ask::AskView;
 use crate::panels::flashcards::FlashcardsView;
 use crate::panels::journal::JournalView;
 use crate::panels::page::PageView;
+use crate::panels::plugins::PluginsView;
 use crate::panels::query::QueryView;
+use crate::panels::reminders::RemindersView;
 use crate::panels::search::SearchView;
 use crate::panels::templates::TemplatesView;
 use crate::router::Panel;
@@ -75,10 +79,10 @@ pub trait PanelRequests {
 /// Whether a panel type renders its own header instead of the shell chrome
 /// header.
 ///
-/// Page, Journal, Search, Query, Ask Notes, Templates and Flashcards own the
-/// full content column (title and controls), matching the shipped routed
-/// panels. The shell additionally gates on the live entity existing, so the
-/// placeholder fallback keeps a title.
+/// Page, Journal, Search, Query, Ask Notes, Templates, Flashcards, Reminders
+/// and Plugins own the full content column (title and controls), matching the
+/// shipped routed panels. The shell additionally gates on the live entity
+/// existing, so the placeholder fallback keeps a title.
 pub fn panel_owns_header(panel: Panel) -> bool {
     matches!(
         panel,
@@ -89,6 +93,8 @@ pub fn panel_owns_header(panel: Panel) -> bool {
             | Panel::AskNotes
             | Panel::Templates
             | Panel::Flashcards
+            | Panel::Reminders
+            | Panel::Plugins
     )
 }
 
@@ -131,6 +137,10 @@ pub struct PanelEntities {
     pub templates: Option<Entity<TemplatesView>>,
     /// Flashcards entity.
     pub flashcards: Option<Entity<FlashcardsView>>,
+    /// Reminders entity.
+    pub reminders: Option<Entity<RemindersView>>,
+    /// Plugins entity.
+    pub plugins: Option<Entity<PluginsView>>,
 }
 
 /// Render the active panel body.
@@ -177,6 +187,16 @@ pub fn panel_view(
     if panel == Panel::Flashcards {
         if let Some(flashcards) = entities.flashcards {
             return div().size_full().child(flashcards);
+        }
+    }
+    if panel == Panel::Reminders {
+        if let Some(reminders) = entities.reminders {
+            return div().size_full().child(reminders);
+        }
+    }
+    if panel == Panel::Plugins {
+        if let Some(plugins) = entities.plugins {
+            return div().size_full().child(plugins);
         }
     }
     let theme = cx.theme();

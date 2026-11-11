@@ -22,6 +22,11 @@
 //! - `STRATUM_QUERY_RUN=1` runs the query after construction.
 //! - `STRATUM_ASK=<question>` asks the question on the Ask Notes panel.
 //! - `STRATUM_FLASHCARD_REVEAL=1` reveals the first flashcard's answer.
+//! - `STRATUM_REMINDER_DIALOG=<block-id>` opens that reminder's due dialog.
+//! - `STRATUM_PLUGINS_TAB=installed|directory|themes` opens a plugins tab.
+//!
+//! `STRATUM_REMINDER_TOAST=1` makes the fixture report due reminders, which the
+//! shell polls into its reminder toaster.
 //!
 //! Shortcuts are installed from the shared [`stratum_ui::router::SHORTCUTS`]
 //! table, with `Modifier::Ctrl` mapped to GPUI's `secondary` modifier.
@@ -33,7 +38,9 @@ use gpui_kit::*;
 use stratum_i18n::{set_locale, Locale};
 use stratum_ui::panels::ask::AskStart;
 use stratum_ui::panels::flashcards::FlashcardsStart;
+use stratum_ui::panels::plugins::{PluginsStart, PluginsTab};
 use stratum_ui::panels::query::{QueryStart, QueryTab};
+use stratum_ui::panels::reminders::RemindersStart;
 use stratum_ui::panels::search::SearchStart;
 use stratum_ui::provider::provider_from_env;
 use stratum_ui::router::{keystroke_string, parse_path, ShortcutAction, SHORTCUTS};
@@ -114,12 +121,26 @@ fn apply_start_state(shell: &mut Shell) {
         .ok()
         .filter(|value| !value.is_empty());
     let flashcard_reveal = env_flag("STRATUM_FLASHCARD_REVEAL");
+    let reminder_dialog = std::env::var("STRATUM_REMINDER_DIALOG")
+        .ok()
+        .filter(|value| !value.is_empty());
+    let plugins_tab = std::env::var("STRATUM_PLUGINS_TAB").ok().and_then(|value| {
+        match PluginsTab::from_env(&value) {
+            Some(tab) => Some(tab),
+            None => {
+                log::warn!("ignoring unknown STRATUM_PLUGINS_TAB={value}");
+                None
+            }
+        }
+    });
     if search.is_some()
         || query_datalog.is_some()
         || query_tab.is_some()
         || query_run
         || ask_question.is_some()
         || flashcard_reveal
+        || reminder_dialog.is_some()
+        || plugins_tab.is_some()
     {
         shell.set_panel_start(PanelStarts {
             search: SearchStart { query: search },
@@ -134,6 +155,10 @@ fn apply_start_state(shell: &mut Shell) {
             flashcards: FlashcardsStart {
                 reveal: flashcard_reveal,
             },
+            reminders: RemindersStart {
+                dialog_block: reminder_dialog,
+            },
+            plugins: PluginsStart { tab: plugins_tab },
         });
     }
     if let Ok(page) = std::env::var("STRATUM_PAGE") {

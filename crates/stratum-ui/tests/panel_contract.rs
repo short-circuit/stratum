@@ -1,18 +1,24 @@
-//! Window-free contracts for the native Search and Query panels.
+//! Window-free contracts for the native panel surfaces.
 //!
-//! The i18n gate walks every key the two surfaces render against all eight
+//! The i18n gates walk every key the Search, Query, Ask Notes, Templates,
+//! Flashcards, Reminders and Plugins surfaces render against all eight
 //! catalogs. The model tests pin the shared `stratum-app` classification,
-//! builder emission/parsing and saved-query formatting. The fixture flows
-//! exercise the provider mutations the panels drive.
+//! builder emission/parsing, saved-query formatting and reminder grouping. The
+//! fixture flows exercise the provider mutations the panels drive.
 
+use chrono::Duration;
 use stratum_app::query::builder::{build_datalog, parse_datalog_to_rows, Combiner, FieldId, OpId};
+use stratum_app::reminders::due::parse_due;
 use stratum_app::template::template_variables;
 use stratum_i18n::{t, Locale};
 use stratum_ui::panels::ask::ASK_I18N_KEYS;
 use stratum_ui::panels::flashcards::model::{Session, SessionState};
 use stratum_ui::panels::flashcards::FLASHCARDS_I18N_KEYS;
+use stratum_ui::panels::plugins::PLUGINS_I18N_KEYS;
 use stratum_ui::panels::query::model::{PanelState, DEFAULT_QUERY};
 use stratum_ui::panels::query::QUERY_I18N_KEYS;
+use stratum_ui::panels::reminders::model::group;
+use stratum_ui::panels::reminders::REMINDERS_I18N_KEYS;
 use stratum_ui::panels::search::model::{classify_query, score_label, SearchMode};
 use stratum_ui::panels::search::SEARCH_I18N_KEYS;
 use stratum_ui::panels::templates::model::{filter_variables, VariableRow};
@@ -45,6 +51,15 @@ fn every_ask_templates_and_flashcards_key_resolves_in_all_catalogs() {
             .chain(TEMPLATES_I18N_KEYS)
             .chain(FLASHCARDS_I18N_KEYS)
         {
+            assert_ne!(t(locale, key), *key, "{key} missing in {}", locale.code());
+        }
+    }
+}
+
+#[test]
+fn every_reminders_and_plugins_key_resolves_in_all_catalogs() {
+    for locale in Locale::ALL {
+        for key in REMINDERS_I18N_KEYS.iter().chain(PLUGINS_I18N_KEYS) {
             assert_ne!(t(locale, key), *key, "{key} missing in {}", locale.code());
         }
     }
@@ -253,4 +268,163 @@ fn fixture_run_query_returns_the_table() {
     assert_eq!(table.columns, vec!["?b", "?content"]);
     assert_eq!(table.rows.len(), 3);
     assert_eq!(table.rows[0][1], "Fixture TODO row");
+}
+
+#[test]
+fn fixture_reminders_group_around_the_local_clock() {
+    let provider = FixtureProvider::new();
+    let rows = provider.reminders().expect("fixture reminders");
+    assert_eq!(rows.len(), 5);
+    let groups = group(&rows, chrono::Local::now());
+    assert_eq!(groups.overdue.len(), 2);
+    assert_eq!(groups.today.len(), 1);
+    assert_eq!(groups.upcoming.len(), 2);
+    assert_eq!(groups.total(), 5);
+    assert!(rows.iter().all(|row| parse_due(&row.due).is_some()));
+}
+
+#[test]
+fn fixture_reminder_flows_snooze_set_and_clear() {
+    let provider = FixtureProvider::new();
+    let target = provider.reminders().expect("fixture reminders")[0].clone();
+
+    provider
+        .snooze_reminder(&target.page_path, &target.block_id, 15)
+        .expect("snooze succeeds");
+    let snoozed = provider
+        .reminders()
+        .expect("fixture reminders")
+        .into_iter()
+        .find(|row| row.block_id == target.block_id)
+        .expect("the snoozed row stays in the list");
+    assert_eq!(
+        parse_due(&snoozed.due).expect("due parses") - parse_due(&target.due).expect("due parses"),
+        Duration::minutes(15)
+    );
+
+    provider
+        .set_reminder(
+            &target.page_path,
+            &target.block_id,
+            Some("2026-12-01T08:00:00Z".to_string()),
+        )
+        .expect("set succeeds");
+    let updated = provider
+        .reminders()
+        .expect("fixture reminders")
+        .into_iter()
+        .find(|row| row.block_id == target.block_id)
+        .expect("the row is updated");
+    assert_eq!(updated.due, "2026-12-01T08:00:00Z");
+
+    provider
+        .set_reminder(
+            &target.page_path,
+            &target.block_id,
+            Some("nope".to_string()),
+        )
+        .expect_err("an invalid due is rejected");
+    provider
+        .set_reminder(&target.page_path, &target.block_id, None)
+        .expect("clearing succeeds");
+    assert_eq!(provider.reminders().expect("fixture reminders").len(), 4);
+    assert!(
+        provider
+            .set_reminder(
+                &target.page_path,
+                &target.block_id,
+                Some("2026-12-01T08:00:00Z".to_string())
+            )
+            .is_err(),
+        "a cleared reminder cannot be re-dated without being present"
+    );
+}
+
+#[test]
+fn fixture_plugin_flows_enable_disable_install_and_uninstall() {
+    let provider = FixtureProvider::new();
+    let plugins = provider.plugins().expect("fixture plugins");
+    assert_eq!(plugins.len(), 2);
+    assert_eq!(plugins[0].status, "ready");
+    assert_eq!(plugins[1].status, "disabled");
+
+    let disabled = provider
+        .set_plugin_enabled("word-count", false)
+        .expect("disable succeeds");
+    assert!(!disabled.enabled);
+    assert_eq!(disabled.status, "disabled");
+    let enabled = provider
+        .set_plugin_enabled("auto-link", true)
+        .expect("enable succeeds");
+    assert!(enabled.enabled);
+    assert_eq!(enabled.status, "ready");
+
+    let installed = provider
+        .install_plugin_url(
+            "https://example.test/plugins/graph-export.wasm",
+            Some("0123"),
+            "graph-export",
+        )
+        .expect("catalog install succeeds");
+    assert_eq!(installed.id, "graph-export");
+    assert_eq!(provider.plugins().expect("fixture plugins").len(), 3);
+
+    // Installing the same id again is idempotent.
+    provider
+        .install_plugin_path("/tmp/graph-export.wasm")
+        .expect("path install succeeds");
+    assert_eq!(provider.plugins().expect("fixture plugins").len(), 3);
+
+    provider
+        .uninstall_plugin("graph-export")
+        .expect("uninstall succeeds");
+    assert_eq!(provider.plugins().expect("fixture plugins").len(), 2);
+    assert!(provider.uninstall_plugin("missing").is_err());
+}
+
+#[test]
+fn fixture_plugin_smoke_tests_return_deterministic_results() {
+    let provider = FixtureProvider::new();
+    let note = provider
+        .plugin_note_read("test-plugin.md")
+        .expect("note read succeeds");
+    assert!(note.contains("test-plugin.md"));
+    assert!(provider.plugin_note_read("").is_err());
+    let http = provider
+        .plugin_http_request("https://example.com/data.json", "GET")
+        .expect("http request succeeds");
+    assert!(http.contains("status=200"));
+    assert!(http.contains("method=GET"));
+}
+
+#[test]
+fn fixture_plugin_and_theme_catalogs_install_and_apply() {
+    let provider = FixtureProvider::new();
+    let catalog = provider.plugin_catalog().expect("plugin catalog");
+    assert_eq!(catalog.entries.len(), 3);
+    assert!(!catalog.offline);
+    assert!(catalog.entries.iter().all(|entry| entry.sha256.len() == 64));
+
+    let themes = provider.theme_catalog().expect("theme catalog");
+    assert_eq!(themes.entries.len(), 2);
+    assert!(provider.installed_themes().is_empty());
+
+    let installed = provider.install_theme("midnight").expect("theme install");
+    assert_eq!(installed.id, "midnight");
+    assert!(installed.active);
+    assert_eq!(provider.installed_themes().len(), 1);
+
+    let values = provider.apply_theme("paper").expect("theme apply");
+    assert!(!values.dark_mode);
+    assert_eq!(values.primary_color, "#f97316");
+    let builtin = provider
+        .apply_theme("__builtin__")
+        .expect("built-in theme values");
+    assert!(builtin.dark_mode);
+
+    provider
+        .uninstall_theme("midnight")
+        .expect("theme uninstall");
+    assert!(provider.installed_themes().is_empty());
+    assert!(provider.apply_theme("missing").is_err());
 }

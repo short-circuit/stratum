@@ -131,6 +131,48 @@ pub fn humanize(due: DateTime<Utc>, now: DateTime<Local>) -> HumanizedDue {
     }
 }
 
+/// Format a due timestamp as a local `datetime-local` input value.
+///
+/// Mirrors `dueToLocalInput` from the shipped reminder utilities: the value is
+/// rendered in the system local timezone as `YYYY-MM-DDTHH:MM`. Empty or
+/// malformed input returns an empty string so the dialog can show a blank
+/// field instead of leaking a raw timestamp.
+pub fn due_to_local_input(raw: &str) -> String {
+    match parse_due(raw) {
+        Some(due) => due
+            .with_timezone(&Local)
+            .format("%Y-%m-%dT%H:%M")
+            .to_string(),
+        None => String::new(),
+    }
+}
+
+/// Convert a local `datetime-local` input value into an RFC 3339 UTC string.
+///
+/// Mirrors `localInputToUtcIso`. A full RFC 3339 value is accepted and
+/// normalized to UTC; a naive `YYYY-MM-DDTHH:MM` value is interpreted in the
+/// system local timezone. Invalid or empty input returns an empty string so
+/// the caller can decide whether to default to "now".
+pub fn local_input_to_utc_iso(input: &str) -> String {
+    let input = input.trim();
+    if input.is_empty() {
+        return String::new();
+    }
+
+    if let Ok(due) = DateTime::parse_from_rfc3339(input) {
+        return due.with_timezone(&Utc).to_rfc3339();
+    }
+
+    let Ok(naive) = NaiveDateTime::parse_from_str(input, "%Y-%m-%dT%H:%M") else {
+        return String::new();
+    };
+    match Local.from_local_datetime(&naive) {
+        LocalResult::Single(due) => due.with_timezone(&Utc).to_rfc3339(),
+        LocalResult::Ambiguous(earliest, _) => earliest.with_timezone(&Utc).to_rfc3339(),
+        LocalResult::None => String::new(),
+    }
+}
+
 /// A fixed local clock used by the tests.
 #[cfg(test)]
 fn local_at(year: i32, month: u32, day: u32, hour: u32, minute: u32) -> DateTime<Local> {
@@ -233,5 +275,31 @@ mod tests {
             humanized.args,
             vec![arg("date", "2026-11-15 09:30".to_string())]
         );
+    }
+
+    #[test]
+    fn due_to_local_input_renders_the_local_wall_clock() {
+        let due = local_at(2026, 11, 15, 9, 30).with_timezone(&Utc);
+        assert_eq!(
+            due_to_local_input(&due.to_rfc3339()),
+            "2026-11-15T09:30".to_string()
+        );
+        assert_eq!(
+            due_to_local_input("2026-11-15T09:30"),
+            "2026-11-15T09:30".to_string()
+        );
+        assert_eq!(due_to_local_input(""), "");
+        assert_eq!(due_to_local_input("not-a-date"), "");
+    }
+
+    #[test]
+    fn local_input_round_trips_through_utc() {
+        let iso = local_input_to_utc_iso("2026-11-15T09:30");
+        let parsed = parse_due(&iso).expect("converted value parses");
+        assert_eq!(parsed, local_at(2026, 11, 15, 9, 30).with_timezone(&Utc));
+        assert_eq!(local_input_to_utc_iso(&iso), iso);
+        assert_eq!(local_input_to_utc_iso(""), "");
+        assert_eq!(local_input_to_utc_iso("   "), "");
+        assert_eq!(local_input_to_utc_iso("2026-11-15"), "");
     }
 }
