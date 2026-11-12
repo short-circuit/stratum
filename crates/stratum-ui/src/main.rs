@@ -29,6 +29,8 @@
 //! - `STRATUM_GRAPH_SETTINGS=1` opens the graph settings panel.
 //! - `STRATUM_GRAPH_SEARCH=<text>` prefills the graph node search.
 //! - `STRATUM_GRAPH_TICKS=<count>` sets the deterministic layout ticks.
+//! - `STRATUM_SETTINGS_TAB=vault|theme|ai|research|developer|sync|tray|notifications`
+//!   opens a Settings tab.
 //!
 //! `STRATUM_REMINDER_TOAST=1` makes the fixture report due reminders, which the
 //! shell polls into its reminder toaster.
@@ -50,6 +52,7 @@ use stratum_ui::panels::plugins::{PluginsStart, PluginsTab};
 use stratum_ui::panels::query::{QueryStart, QueryTab};
 use stratum_ui::panels::reminders::RemindersStart;
 use stratum_ui::panels::search::SearchStart;
+use stratum_ui::panels::settings::{SettingsStart, SettingsTab};
 use stratum_ui::provider::provider_from_env;
 use stratum_ui::router::{keystroke_string, parse_target, ShortcutAction, SHORTCUTS};
 use stratum_ui::{init, PanelStarts, Shell, StratumAssets, ThemeConfig};
@@ -60,9 +63,7 @@ fn main() {
         .with_assets(StratumAssets::new())
         .run(|cx| {
             gpui_kit::init(cx);
-            init(cx, &ThemeConfig::default());
             install_locale();
-            install_shortcuts(cx);
 
             let fixture = std::env::var("STRATUM_FIXTURE")
                 .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
@@ -71,6 +72,15 @@ fn main() {
                 .map(PathBuf::from)
                 .unwrap_or_else(|_| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
             let provider = provider_from_env(vault, fixture);
+            // The shipped page applies the persisted palette on load; doing it
+            // before the first window means the shell never flashes the default
+            // theme. Invalid hex values fall back inside `from_settings`.
+            let theme = provider
+                .settings()
+                .map(|settings| ThemeConfig::from_settings(&settings.theme))
+                .unwrap_or_default();
+            init(cx, &theme);
+            install_shortcuts(cx);
 
             let bounds = Bounds::new(point(px(0.0), px(0.0)), size(px(1280.0), px(720.0)));
             let options = WindowOptions {
@@ -190,6 +200,15 @@ fn apply_start_state(shell: &mut Shell) {
         .ok()
         .filter(|value| !value.is_empty());
     let whiteboard_text = env_flag("STRATUM_WHITEBOARD_TEXT");
+    let settings_tab = std::env::var("STRATUM_SETTINGS_TAB")
+        .ok()
+        .and_then(|value| match SettingsTab::from_env(&value) {
+            Some(tab) => Some(tab),
+            None => {
+                log::warn!("ignoring unknown STRATUM_SETTINGS_TAB={value}");
+                None
+            }
+        });
     let canvas = CanvasStart {
         board: whiteboard_board,
         tool: whiteboard_tool,
@@ -214,6 +233,7 @@ fn apply_start_state(shell: &mut Shell) {
         || graph_search.is_some()
         || graph_ticks.is_some()
         || canvas_started
+        || settings_tab.is_some()
     {
         shell.set_panel_start(PanelStarts {
             search: SearchStart { query: search },
@@ -240,6 +260,7 @@ fn apply_start_state(shell: &mut Shell) {
                 ticks: graph_ticks.unwrap_or(DEFAULT_TICKS),
             },
             canvas,
+            settings: SettingsStart { tab: settings_tab },
         });
     }
     if let Ok(page) = std::env::var("STRATUM_PAGE") {

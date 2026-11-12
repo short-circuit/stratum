@@ -21,6 +21,7 @@ use crate::panels::plugins::{PluginsStart, PluginsView};
 use crate::panels::query::{QueryStart, QueryTab, QueryView};
 use crate::panels::reminders::{RemindersStart, RemindersView};
 use crate::panels::search::{SearchStart, SearchView};
+use crate::panels::settings::{SettingsStart, SettingsView};
 use crate::panels::templates::TemplatesView;
 use crate::panels::{PanelRequest, PanelRequests};
 use crate::router::Panel;
@@ -49,6 +50,8 @@ pub struct PanelStarts {
     pub graph: GraphStart,
     /// Whiteboards panel start state.
     pub canvas: CanvasStart,
+    /// Settings panel start state.
+    pub settings: SettingsStart,
 }
 
 impl PanelStarts {
@@ -90,6 +93,7 @@ impl Shell {
         self.plugins = None;
         self.graph = None;
         self.whiteboards = None;
+        self.settings = None;
     }
 
     /// Set the Whiteboards start state and recreate its entity.
@@ -152,6 +156,19 @@ impl Shell {
         self.whiteboards.as_ref()
     }
 
+    /// The live Settings entity, if the panel has created one.
+    pub fn settings_view(&self) -> Option<&Entity<SettingsView>> {
+        self.settings.as_ref()
+    }
+
+    /// Set the Settings tab start state and recreate its entity.
+    ///
+    /// Used by the `STRATUM_SETTINGS_TAB` capture flag.
+    pub fn set_settings_start(&mut self, start: SettingsStart) {
+        self.panel_starts.settings = start;
+        self.settings = None;
+    }
+
     /// Create the active panel entity and drain its pending requests.
     pub(super) fn sync_panels(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         match self.active {
@@ -164,6 +181,7 @@ impl Shell {
             Panel::Plugins => self.sync_plugins(cx),
             Panel::Graph => self.sync_graph(window, cx),
             Panel::Whiteboards => self.sync_canvas(window, cx),
+            Panel::Settings => self.sync_settings(window, cx),
             _ => {}
         }
     }
@@ -284,6 +302,19 @@ impl Shell {
             return;
         };
         self.drain_panel(&canvas, cx);
+    }
+
+    /// Create or reuse the Settings entity, then drain its requests.
+    fn sync_settings(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.settings.is_none() {
+            let provider = Arc::clone(&self.provider);
+            let start = std::mem::take(&mut self.panel_starts.settings);
+            self.settings = Some(cx.new(move |cx| SettingsView::new(provider, start, window, cx)));
+        }
+        let Some(settings) = self.settings.clone() else {
+            return;
+        };
+        self.drain_panel(&settings, cx);
     }
 
     /// Drain a hosted panel's pending navigation, block-open and toast

@@ -27,6 +27,7 @@ use crate::panels::plugins::PluginsView;
 use crate::panels::query::QueryView;
 use crate::panels::reminders::RemindersView;
 use crate::panels::search::SearchView;
+use crate::panels::settings::SettingsView;
 use crate::panels::templates::TemplatesView;
 use crate::panels::{panel_owns_header, panel_view, PanelEntities};
 use crate::provider::ShellData;
@@ -118,6 +119,7 @@ pub struct Shell {
     plugins: Option<Entity<PluginsView>>,
     graph: Option<Entity<GraphView>>,
     whiteboards: Option<Entity<CanvasView>>,
+    settings: Option<Entity<SettingsView>>,
     panel_starts: PanelStarts,
     error: Option<String>,
     /// Reminder toaster state: the current toast, the announce-once set and the
@@ -153,6 +155,7 @@ impl Shell {
             plugins: None,
             graph: None,
             whiteboards: None,
+            settings: None,
             panel_starts: PanelStarts::default(),
             error: None,
             toaster: reminder_toast::ReminderToaster::default(),
@@ -245,6 +248,10 @@ impl Shell {
         if panel != Panel::Whiteboards {
             self.whiteboards = None;
             self.panel_starts.canvas = crate::panels::canvas::CanvasStart::default();
+        }
+        if panel != Panel::Settings {
+            self.settings = None;
+            self.panel_starts.settings = crate::panels::settings::SettingsStart::default();
         }
         self.active = panel;
         self.read_mode = false;
@@ -463,6 +470,7 @@ impl Render for Shell {
                             plugins: self.plugins.clone(),
                             graph: self.graph.clone(),
                             whiteboards: self.whiteboards.clone(),
+                            settings: self.settings.clone(),
                         },
                         cx,
                     ))),

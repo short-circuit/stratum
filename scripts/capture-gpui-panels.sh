@@ -5,7 +5,7 @@
 # The shell is started with STRATUM_FIXTURE=1 so the capture is deterministic
 # and needs no vault. When no DISPLAY is set the script starts a private Xvfb
 # screen, waits for the window to map, and captures the root window with
-# ImageMagick. Thirty-two states are captured:
+# ImageMagick. Forty states are captured:
 #
 #   1. the journal route in edit mode
 #   2. the journal route with the calendar popup expanded (STRATUM_CALENDAR=1)
@@ -61,6 +61,21 @@
 #      (… STRATUM_WHITEBOARD_STYLE=1)
 #  32. the whiteboard editor with an inline text edit overlay open
 #      (… STRATUM_WHITEBOARD_TEXT=1)
+#  33. the Settings route on the vault tab (STRATUM_ROUTE=/settings)
+#  34. the Settings route on the theme tab
+#      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=theme)
+#  35. the Settings route on the AI tab
+#      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=ai)
+#  36. the Settings route on the research tab
+#      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=research)
+#  37. the Settings route on the developer tab
+#      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=developer)
+#  38. the Settings route on the sync tab
+#      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=sync)
+#  39. the Settings route on the tray tab
+#      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=tray)
+#  40. the Settings route on the notifications tab
+#      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=notifications)
 #
 # The journal PNGs are written to dist/gpui-journal.png,
 # dist/gpui-journal-calendar.png and dist/gpui-journal-read.png; the page PNGs to
@@ -77,7 +92,11 @@
 # to dist/gpui-graph.png, dist/gpui-graph-component.png and
 # dist/gpui-graph-settings.png; the Whiteboards PNGs to dist/gpui-whiteboards.png,
 # dist/gpui-whiteboard-editor.png, dist/gpui-whiteboard-library.png,
-# dist/gpui-whiteboard-style.png and dist/gpui-whiteboard-text.png.
+# dist/gpui-whiteboard-style.png and dist/gpui-whiteboard-text.png; the Settings
+# PNGs to dist/gpui-settings-vault.png, dist/gpui-settings-theme.png,
+# dist/gpui-settings-ai.png, dist/gpui-settings-research.png,
+# dist/gpui-settings-developer.png, dist/gpui-settings-sync.png,
+# dist/gpui-settings-tray.png and dist/gpui-settings-notifications.png.
 # Pass a path as the first argument or set OUTPUT to override the journal
 # edit-mode capture (the other captures derive from its directory).
 #
@@ -119,6 +138,14 @@ WHITEBOARD_EDITOR_OUT="$OUT_DIR/gpui-whiteboard-editor.png"
 WHITEBOARD_LIBRARY_OUT="$OUT_DIR/gpui-whiteboard-library.png"
 WHITEBOARD_STYLE_OUT="$OUT_DIR/gpui-whiteboard-style.png"
 WHITEBOARD_TEXT_OUT="$OUT_DIR/gpui-whiteboard-text.png"
+SETTINGS_VAULT_OUT="$OUT_DIR/gpui-settings-vault.png"
+SETTINGS_THEME_OUT="$OUT_DIR/gpui-settings-theme.png"
+SETTINGS_AI_OUT="$OUT_DIR/gpui-settings-ai.png"
+SETTINGS_RESEARCH_OUT="$OUT_DIR/gpui-settings-research.png"
+SETTINGS_DEVELOPER_OUT="$OUT_DIR/gpui-settings-developer.png"
+SETTINGS_SYNC_OUT="$OUT_DIR/gpui-settings-sync.png"
+SETTINGS_TRAY_OUT="$OUT_DIR/gpui-settings-tray.png"
+SETTINGS_NOTIFICATIONS_OUT="$OUT_DIR/gpui-settings-notifications.png"
 # Deterministic block on pages/fixture.md (provider::FIXTURE_HIGHLIGHT_BLOCK).
 FIXTURE_HIGHLIGHT="413cf12c-969f-54ef-bf75-40ffd89e8618"
 # The fixture's first overdue reminder (`overdue-1`): the provider builds block
@@ -324,3 +351,26 @@ capture_state \
     "$WHITEBOARD_TEXT_OUT" \
     STRATUM_ROUTE=/whiteboards "STRATUM_WHITEBOARD=Architecture sketch" \
     STRATUM_WHITEBOARD_TEXT=1
+
+capture_state "$SETTINGS_VAULT_OUT" STRATUM_ROUTE=/settings
+capture_state \
+    "$SETTINGS_THEME_OUT" \
+    STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=theme
+capture_state \
+    "$SETTINGS_AI_OUT" \
+    STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=ai
+capture_state \
+    "$SETTINGS_RESEARCH_OUT" \
+    STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=research
+capture_state \
+    "$SETTINGS_DEVELOPER_OUT" \
+    STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=developer
+capture_state \
+    "$SETTINGS_SYNC_OUT" \
+    STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=sync
+capture_state \
+    "$SETTINGS_TRAY_OUT" \
+    STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=tray
+capture_state \
+    "$SETTINGS_NOTIFICATIONS_OUT" \
+    STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=notifications
