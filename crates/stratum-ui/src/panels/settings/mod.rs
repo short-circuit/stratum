@@ -301,3 +301,6 @@ impl Render for SettingsView {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod tests_acceptance;

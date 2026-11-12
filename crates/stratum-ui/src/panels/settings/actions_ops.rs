@@ -156,6 +156,47 @@ impl SettingsView {
         }
     }
 
+    /// Accept one conflicted file, then refresh the conflict list.
+    pub fn resolve_conflict(&mut self, path: &str, cx: &mut Context<Self>) {
+        self.passphrase_prompt = false;
+        match self.provider.resolve_conflict(path) {
+            Ok(()) => {
+                self.sync_status = self.provider.sync_status().ok();
+                cx.notify();
+            }
+            Err(error) => {
+                self.set_error(format!("{} {error}", t_global("settings.sync_failed")), cx)
+            }
+        }
+    }
+
+    /// Accept every conflicted file in the current list.
+    pub fn resolve_all_conflicts(&mut self, paths: &[String], cx: &mut Context<Self>) {
+        self.passphrase_prompt = false;
+        for path in paths {
+            if let Err(error) = self.provider.resolve_conflict(path) {
+                self.set_error(format!("{} {error}", t_global("settings.sync_failed")), cx);
+                return;
+            }
+        }
+        self.sync_status = self.provider.sync_status().ok();
+        cx.notify();
+    }
+
+    /// Abort the in-progress merge and refresh the sync status.
+    pub fn abort_merge(&mut self, cx: &mut Context<Self>) {
+        self.passphrase_prompt = false;
+        match self.provider.abort_merge() {
+            Ok(()) => {
+                self.sync_status = self.provider.sync_status().ok();
+                self.set_message(t_global("settings.sync_completed"), cx);
+            }
+            Err(error) => {
+                self.set_error(format!("{} {error}", t_global("settings.sync_failed")), cx)
+            }
+        }
+    }
+
     /// Expand or collapse the commit log, loading it on first open.
     pub fn toggle_commits(&mut self, cx: &mut Context<Self>) {
         if !self.commits_open {

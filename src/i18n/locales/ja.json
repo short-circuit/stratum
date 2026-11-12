@@ -92,6 +92,7 @@
   },
   "common": {
     "abort_merge": "Abort Merge",
+    "accept": "Accept",
     "ai_is_thinking": "AI is thinking...",
     "back": "Back",
     "cancel": "Cancel",
@@ -853,6 +854,7 @@
     "uses_the_ai_endpoint_when_empty": "Uses the AI endpoint when empty",
     "vault": "Vault",
     "vault_path": "Vault Path",
+    "vault_switched": "Vault switched.",
     "voice": "Voice",
     "voice_dictation_stt": "Voice Dictation (STT)",
     "web_research_searxng": "Web Research (SearXNG)",

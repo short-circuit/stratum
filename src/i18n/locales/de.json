@@ -92,6 +92,7 @@
   },
   "common": {
     "abort_merge": "Merge abbrechen",
+    "accept": "Akzeptieren",
     "ai_is_thinking": "KI denkt nach ...",
     "back": "Zurück",
     "cancel": "Abbrechen",
@@ -853,6 +854,7 @@
     "uses_the_ai_endpoint_when_empty": "Verwendet bei Leere den KI-Endpunkt",
     "vault": "Vault",
     "vault_path": "Vault-Pfad",
+    "vault_switched": "Vault gewechselt.",
     "voice": "Stimme",
     "voice_dictation_stt": "Sprachdiktat (STT)",
     "web_research_searxng": "Web-Recherche (SearXNG)",

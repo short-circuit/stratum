@@ -411,7 +411,7 @@ impl SettingsForm {
             .trim()
             .parse::<u32>()
             .ok()
-            .filter(|size| (8..=48).contains(size))
+            .filter(|size| (12..=28).contains(size))
             .or_else(|| {
                 (self.settings.theme.font_size > 0).then_some(self.settings.theme.font_size)
             });

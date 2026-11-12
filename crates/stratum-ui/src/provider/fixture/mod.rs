@@ -90,6 +90,18 @@ impl FixtureProvider {
         Self::with_welcome_blocks(welcome_blocks)
     }
 
+    /// Create a fixture with a seeded merge-conflict list.
+    ///
+    /// Used by tests so the conflict-resolution flow is deterministic without
+    /// relying on the process-global `STRATUM_SETTINGS_CONFLICTS` variable.
+    pub fn with_conflicts(conflicts: Vec<String>) -> Self {
+        let provider = Self::new();
+        if let Ok(mut state) = provider.panels.lock() {
+            state.conflicts = conflicts;
+        }
+        provider
+    }
+
     /// Create a fixture whose Welcome page has exactly `welcome_blocks` rows.
     pub fn with_welcome_blocks(welcome_blocks: usize) -> Self {
         let welcome_blocks = welcome_blocks.max(1);

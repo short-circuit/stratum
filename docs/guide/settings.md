@@ -17,7 +17,9 @@ hand edit of the config converge on the same values.
 
 ## Vault
 
-- **Vault path** — the directory Stratum treats as your knowledge base.
+- **Vault path** — the directory Stratum treats as your knowledge base. Using
+  **Browse** switches the active vault to the picked directory immediately and
+  reloads the settings for that vault.
 - **Pages layout** — flat list or folder tree in the sidebar.
 - **Import** — pick an Obsidian, Logseq or generic Markdown source folder,
   preview the detected pages/assets, then import into
@@ -32,7 +34,7 @@ hand edit of the config converge on the same values.
   you edit, so you can preview a palette before saving.
 - Preset swatches cover the shipped accent pairs; the hex field accepts
   `#rgb` and `#rrggbb` values.
-- **Font size** accepts 8–48 px.
+- **Font size** accepts 12–28 px.
 - **Interface language** switches the UI catalog immediately and persists the
   choice.
 
@@ -75,6 +77,8 @@ the panel explains which variable supplies the key.
   re-serialize it.
 - **Reset onboarding** — show the first-run wizard again on next launch.
 - **Install starter templates** — add the bundled template set to this vault.
+- **Recent commits** — the expandable commit log lives under Developer; expand it
+  to inspect hashes, authors, messages and timestamps.
 
 ## Sync
 
@@ -87,7 +91,9 @@ the panel explains which variable supplies the key.
   edited/new/deleted files and the total count are offered inline.
 - **Sync now** — manual sync with an inline SSH passphrase prompt when the key
   needs one.
-- **Recent commits** — the commit log is expandable from this tab.
+- **Conflicts** — when a merge leaves conflicted files, the tab lists each path
+  with **Accept** (stage and commit that file), **Resolve All** (accept every
+  listed file) and **Abort Merge** (restore the index to HEAD).
 - **Cloud/folder backup** — enable a mirror copy, choose WebDAV, folder or both,
   set the interval (at least 1 minute), exclude list, WebDAV credentials or
   backup folder, test the connection and run a backup on demand. Backup is a
@@ -112,7 +118,7 @@ the panel explains which variable supplies the key.
 | Colours | `#rgb` or `#rrggbb` |
 | Endpoints | full `http://` or `https://` URL |
 | Required fields | vault path, branch, shortcut, inbox path (when the target is the inbox), TTS voice/format, voice target |
-| Ranges | RAG chunks 1–20, embedding dimensions ≤ 4096, research results 1–10, depth 1–5, TTS speed 0.25–4.0, font size 8–48 |
+| Ranges | RAG chunks 1–20, embedding dimensions ≤ 4096, research results 1–10, depth 1–5, TTS speed 0.25–4.0, font size 12–28 |
 | Intervals | commit ≥ 30 s, sync ≥ 60 s, backup ≥ 1 min |
 | Commit template | must contain `{datetime}` |
 | Export paths | non-empty |

@@ -29,6 +29,11 @@ impl SettingsData for AppProvider {
         self.runtime.block_on(self.service.get_settings())
     }
 
+    fn set_vault_path(&self, path: &str) -> Result<(), String> {
+        self.runtime
+            .block_on(self.service.set_vault_path(path.to_string()))
+    }
+
     fn fetch_models(&self) -> Result<Vec<String>, String> {
         self.runtime.block_on(self.service.fetch_models())
     }
@@ -65,6 +70,15 @@ impl SettingsData for AppProvider {
             self.service
                 .sync_vault_with_passphrase(passphrase.to_string()),
         )
+    }
+
+    fn resolve_conflict(&self, path: &str) -> Result<(), String> {
+        self.runtime
+            .block_on(self.service.resolve_conflict_file(path.to_string()))
+    }
+
+    fn abort_merge(&self) -> Result<(), String> {
+        self.runtime.block_on(self.service.abort_merge())
     }
 
     fn start_sync_scheduler(&self) -> Result<(), String> {

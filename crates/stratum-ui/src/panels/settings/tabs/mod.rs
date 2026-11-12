@@ -1,8 +1,9 @@
 //! Tab bodies for the native Settings panel.
 //!
 //! [`render`] dispatches to the shipped eight tabs. The AI tab is split across
-//! [`ai`], [`ai_discovery`] and [`ai_voice`], and the sync tab across [`sync`]
-//! and [`backup`], so every file stays well under the repository length limit.
+//! [`ai`], [`ai_discovery`] and [`ai_voice`], the sync tab across [`sync`] and
+//! [`backup`], and the Developer tab reuses [`commit_log`], so every file stays
+//! well under the repository length limit.
 //!
 //! Each body receives a [`Palette`] snapshot instead of borrowing the context
 //! for colours, which keeps listener construction and rendering independent.
@@ -16,6 +17,7 @@ pub(super) mod ai;
 pub(super) mod ai_discovery;
 pub(super) mod ai_voice;
 pub(super) mod backup;
+pub(super) mod commit_log;
 pub(super) mod developer;
 pub(super) mod notifications;
 pub(super) mod research;

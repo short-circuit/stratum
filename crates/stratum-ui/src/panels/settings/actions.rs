@@ -86,6 +86,11 @@ impl SettingsView {
     }
 
     /// Open the platform folder picker for the vault path.
+    ///
+    /// The shipped Settings page switches the active vault as soon as the
+    /// picker returns. Mirroring that here means the picked directory is passed
+    /// through [`SettingsData::set_vault_path`] and the form is reloaded from
+    /// the newly active vault instead of only updating the text field.
     pub fn browse_vault(&mut self, cx: &mut Context<Self>) {
         let receiver = cx.prompt_for_paths(PathPromptOptions {
             files: false,
@@ -99,8 +104,21 @@ impl SettingsView {
                     if let Some(path) = paths.into_iter().next() {
                         let value = path.to_string_lossy().to_string();
                         let _ = this.update(cx, |view, cx| {
-                            view.form.apply_input("vault_path", value);
-                            cx.notify();
+                            match view.provider.set_vault_path(&value) {
+                                Ok(()) => {
+                                    view.reload(cx);
+                                    view.set_message(t_global("settings.vault_switched"), cx);
+                                }
+                                Err(error) => {
+                                    // Keep the picked path visible so the user
+                                    // can correct or retry it.
+                                    view.form.apply_input("vault_path", value);
+                                    view.set_error(
+                                        format!("{} {error}", t_global("settings.save_failed")),
+                                        cx,
+                                    );
+                                }
+                            }
                         });
                     }
                 }

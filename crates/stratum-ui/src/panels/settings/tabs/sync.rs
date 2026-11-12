@@ -1,6 +1,7 @@
 //! Sync tab: sync mode, remote/branch, SSH key, auto-commit/sync schedules,
-//! manual sync with inline passphrase, the commit log and the backup panel.
+//! manual sync with inline passphrase, conflict resolution and the backup panel.
 
+use gpui_kit::component::ActiveTheme;
 use gpui_kit::prelude::*;
 use gpui_kit::*;
 use stratum_i18n::t_global;
@@ -33,6 +34,10 @@ pub(super) fn render(
 ) -> impl IntoElement {
     let mode = view.form.settings.sync.mode.clone();
     let scheduled = matches!(mode.as_str(), "auto_commit" | "auto_sync" | "background");
+    let has_conflicts = view
+        .sync_status()
+        .map(|status| !status.conflicts.is_empty())
+        .unwrap_or(false);
     let body = controls::section(t_global("settings.sync"), palette)
         .child(mode_section(view, palette, cx))
         .child(remote_section(view, palette))
@@ -45,7 +50,9 @@ pub(super) fn render(
             |element| element.child(sync_interval_section(view, palette)),
         )
         .child(controls_section(view, palette, cx))
-        .child(commit_log_section(view, palette, cx))
+        .when(has_conflicts, |element| {
+            element.child(conflict_section(view, palette, cx))
+        })
         .child(super::backup::render(view, palette, cx));
     body
 }
@@ -321,98 +328,76 @@ fn sync_status_label(status: &crate::provider::SyncStatusDto) -> (String, ChipTo
     }
 }
 
-/// Collapsible recent-commit table.
-fn commit_log_section(
+/// Inline conflict resolution: per-file Accept, Resolve All and Abort Merge.
+fn conflict_section(
     view: &SettingsView,
     palette: &Palette,
     cx: &mut Context<SettingsView>,
 ) -> impl IntoElement {
-    let open = view.commits_open();
-    let mut section = div().flex().flex_col().gap(px(4.0)).child(
-        div()
-            .id("settings-toggle-commits")
-            .debug_selector(|| "settings-toggle-commits".to_string())
-            .flex()
-            .items_center()
-            .gap(px(4.0))
-            .cursor_pointer()
-            .text_size(px(11.0))
-            .font_weight(FontWeight::MEDIUM)
-            .text_color(palette.muted)
-            .child(format!(
-                "{} {}",
-                if open { "▼" } else { "▶" },
-                t_global("settings.recent_commits")
-            ))
-            .on_click(cx.listener(|view, _, _, cx| view.toggle_commits(cx))),
+    let conflicts = view
+        .sync_status()
+        .map(|status| status.conflicts.clone())
+        .unwrap_or_default();
+    let mono_font = cx.theme().mono_font_family.clone();
+    let mut section = controls::section(t_global("common.sync_conflicts_detected"), palette).child(
+        controls::hint(
+            t_global("common.the_following_files_have_merge_conflicts_resolve_each_file_o"),
+            palette,
+        ),
     );
-    if !open {
-        return section;
-    }
-    if view.commits().is_empty() {
-        return section.child(
-            div()
-                .text_size(px(10.0))
-                .text_color(palette.muted)
-                .child(t_global("settings.no_commits_yet")),
-        );
-    }
-    let mut table = div().flex().flex_col().gap(px(2.0)).child(
-        div()
-            .flex()
-            .gap(px(6.0))
-            .border_b_1()
-            .border_color(palette.border)
-            .pb(px(2.0))
-            .child(column_header("Hash", 70.0, palette))
-            .child(column_header("Author", 110.0, palette))
-            .child(column_header("Message", 0.0, palette))
-            .child(column_header("Date", 150.0, palette)),
-    );
-    for entry in view.commits() {
-        let hash = entry.hash.chars().take(7).collect::<String>();
-        table = table.child(
+    for path in &conflicts {
+        let path_value = path.clone();
+        section = section.child(
             div()
                 .flex()
+                .items_center()
                 .gap(px(6.0))
-                .text_size(px(9.0))
-                .child(div().w(px(70.0)).text_color(palette.accent).child(hash))
-                .child(
-                    div()
-                        .w(px(110.0))
-                        .text_color(palette.foreground)
-                        .child(entry.author.clone()),
-                )
                 .child(
                     div()
                         .flex_1()
+                        .font_family(mono_font.clone())
+                        .text_size(px(10.0))
                         .text_color(palette.foreground)
-                        .child(entry.message.clone()),
+                        .child(path.clone()),
                 )
-                .child(
-                    div()
-                        .w(px(150.0))
-                        .text_color(palette.muted)
-                        .child(entry.timestamp.clone()),
-                ),
+                .child(controls::button(
+                    format!("settings-conflict-accept-{path}"),
+                    t_global("common.accept"),
+                    false,
+                    false,
+                    palette,
+                    cx.listener(move |view, _, _, cx| {
+                        view.resolve_conflict(&path_value, cx);
+                    }),
+                )),
         );
     }
-    section = section.child(table);
-    section
-}
-
-/// One commit-table column header.
-fn column_header(label: &str, width: f32, palette: &Palette) -> impl IntoElement {
-    let mut header = div()
-        .text_size(px(9.0))
-        .font_weight(FontWeight::SEMIBOLD)
-        .text_color(palette.muted);
-    header = if width > 0.0 {
-        header.w(px(width))
-    } else {
-        header.flex_1()
-    };
-    header.child(label.to_string())
+    let paths = conflicts;
+    section.child(
+        div()
+            .flex()
+            .items_center()
+            .gap(px(6.0))
+            .justify_end()
+            .child(controls::toned_button(
+                "settings-conflict-abort",
+                t_global("common.abort_merge"),
+                false,
+                palette.danger,
+                palette,
+                cx.listener(|view, _, _, cx| view.abort_merge(cx)),
+            ))
+            .child(controls::button(
+                "settings-conflict-resolve-all",
+                t_global("common.resolve_all"),
+                false,
+                true,
+                palette,
+                cx.listener(move |view, _, _, cx| {
+                    view.resolve_all_conflicts(&paths, cx);
+                }),
+            )),
+    )
 }
 
 /// Render the shipped commit-template preview sample.

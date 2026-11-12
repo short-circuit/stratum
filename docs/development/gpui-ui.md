@@ -439,7 +439,8 @@ render), `state.rs` (accessors and status mutators), `keys.rs` (the
 `inputs.rs` (input entities and subscriptions), `actions.rs` plus
 `actions_ai.rs`/`actions_ops.rs` (provider mutations, probes and exports),
 `controls.rs` (palette snapshot and styled widgets) and `tabs/` (the vault,
-theme, AI, research, developer, sync/backup, tray and notifications bodies).
+theme, AI, research, developer, sync/backup, tray and notifications bodies plus
+the shared `tabs/commit_log.rs` commit-log body rendered in the developer tab).
 
 | Concern | Module |
 |---------|--------|
@@ -448,6 +449,7 @@ theme, AI, research, developer, sync/backup, tray and notifications bodies).
 | Save blocking and per-field messages | `panels/settings::validate` |
 | Provider calls, probes, exports and navigation requests | `panels/settings::{actions, actions_ai, actions_ops}` |
 | Live palette application and catalog switch | `panels/settings::{actions, tabs::theme}`, `stratum_ui::theme` |
+| Commit log (developer tab) | `panels/settings::tabs::commit_log` |
 | Settings persistence seam | `provider/settings.rs`, `provider/app_settings.rs`, fixture `provider/fixture/panels/settings.rs` |
 
 Behaviour notes:
@@ -463,17 +465,31 @@ Behaviour notes:
 - Numeric fields keep their raw text and are parsed only at save time, so a bad
   value is reported instead of being coerced. Enum fields use chip/radio rows;
   path fields use the platform path picker.
+- The vault picker switches the active vault through
+  `SettingsData::set_vault_path` before reloading the form, and reports
+  `settings.vault_switched` on success; a failed switch keeps the picked path
+  and prefixes the error with `settings.save_failed`.
+- The commit log is rendered in the developer tab through
+  `panels/settings/tabs/commit_log.rs`; the sync tab keeps Git/backup
+  configuration only.
+- The sync tab resolves merge conflicts inline: each conflict row has Accept
+  (`resolve_conflict`), the section has Resolve All (`resolve_all_conflicts`)
+  and Abort Merge (`abort_merge`). Successes refresh `sync_status`; failures
+  report `settings.sync_failed` and abort success reports
+  `settings.sync_completed`.
 - `STRATUM_SETTINGS_TAB=vault|theme|ai|research|developer|sync|tray|notifications`
-  selects the initial tab. Captures: `dist/gpui-settings-vault.png`,
+  selects the initial tab, and `STRATUM_SETTINGS_CONFLICTS=1` seeds fixture
+  conflicts for the sync tab. Captures: `dist/gpui-settings-vault.png`,
   `dist/gpui-settings-theme.png`, `dist/gpui-settings-ai.png`,
   `dist/gpui-settings-research.png`, `dist/gpui-settings-developer.png`,
-  `dist/gpui-settings-sync.png`, `dist/gpui-settings-tray.png` and
-  `dist/gpui-settings-notifications.png`.
+  `dist/gpui-settings-sync.png`, `dist/gpui-settings-sync-conflicts.png`,
+  `dist/gpui-settings-tray.png` and `dist/gpui-settings-notifications.png`.
 - Deliberate deviations from the shipped page: conflict resolution and the SSH
-  passphrase prompt render inline in the Sync tab instead of as modals, reindex
-  reports an indeterminate progress state because the native service call is
-  synchronous, import preview/run render inline in the Vault tab instead of a
-  dialog, and the per-page PDF export row is disabled with
+  passphrase prompt render inline in the Sync tab instead of as modals (the
+  shipped conflict dialog's per-file Accept, Resolve All and Abort Merge are
+  inlined), reindex reports an indeterminate progress state because the native
+  service call is synchronous, import preview/run render inline in the Vault tab
+  instead of a dialog, and the per-page PDF export row is disabled with
   `export.no_current_page` because entering Settings clears the shell's current
   page.
 
@@ -540,6 +556,7 @@ the sidebar and `Escape` dismisses the topmost overlay.
 | `STRATUM_WHITEBOARD_TEXT=1` | Open an inline text edit on the framed fixture board |
 | `STRATUM_WHITEBOARD_EXPORT=svg\|png` | Write an export when the board opens |
 | `STRATUM_SETTINGS_TAB=vault\|theme\|ai\|research\|developer\|sync\|tray\|notifications` | Select the settings tab |
+| `STRATUM_SETTINGS_CONFLICTS=1` | Seed merge conflicts for the settings sync tab |
 
 The start-state flags are applied by `apply_start_state` in `main.rs` and exist
 for the capture harness; they do not change the interactive behaviour of the
@@ -583,6 +600,11 @@ The suites cover:
   (full/component/orphan/tag modes, explicit caps and the banner inputs), the
   fixture graph shape, the capture start-state parsing, the camera pan/zoom
   parity formulas, the frame-time histogram and the deterministic worker layout.
+- The Settings surface (`panels/settings/tests.rs`,
+  `panels/settings/tests_acceptance.rs`): the field round-trip, the validation
+  matrix, the live-theme fallback, a full save/reload of every editable field,
+  the fixture conflict Accept/Abort flows, tab env parsing and the
+  `SETTINGS_I18N_KEYS` release gate in all eight catalogs.
 - Headless interaction (`tests/interaction_contract.rs`): nested controls stop
   click propagation into the parent handler (the backlink snippet chip must not
   navigate, the voice dismiss chip must not restart recording), starting the
@@ -624,8 +646,8 @@ test. The script requires `Xvfb`, `xdotool` and ImageMagick's `import`. It is
 used by the GPUI CI workflow to publish a screenshot artifact, and is safe to
 run locally without a desktop session.
 
-`scripts/capture-gpui-panels.sh` captures forty states across the journal, page,
-search, query, Ask Notes, Templates, Flashcards, Reminders, Plugins, Graph,
+`scripts/capture-gpui-panels.sh` captures forty-one states across the journal,
+page, search, query, Ask Notes, Templates, Flashcards, Reminders, Plugins, Graph,
 Whiteboards and Settings surfaces using the start-state flags:
 
 ```bash
@@ -668,6 +690,7 @@ Whiteboards and Settings surfaces using the start-state flags:
 # → dist/gpui-settings-research.png (STRATUM_SETTINGS_TAB=research)
 # → dist/gpui-settings-developer.png (STRATUM_SETTINGS_TAB=developer)
 # → dist/gpui-settings-sync.png     (STRATUM_SETTINGS_TAB=sync)
+# → dist/gpui-settings-sync-conflicts.png (STRATUM_SETTINGS_TAB=sync STRATUM_SETTINGS_CONFLICTS=1)
 # → dist/gpui-settings-tray.png     (STRATUM_SETTINGS_TAB=tray)
 # → dist/gpui-settings-notifications.png (STRATUM_SETTINGS_TAB=notifications)
 ```
@@ -711,8 +734,10 @@ surface: the fixture gallery, the framed board in the editor, the library drawer
 the style panel and the inline text-edit overlay. The Settings captures pin the
 eight-tab page: the vault tab with import/export rows, the theme tab with live
 palette controls, the AI tab with provider/RAG/STT/TTS sections, the research tab
-with the SearXNG presets, the developer tools, the sync tab with Git and backup
-configuration, the tray controls and the notification toggles. The first
+with the SearXNG presets, the developer tools with the commit log, the sync tab
+with Git and backup configuration, the sync-conflicts capture with the seeded
+merge-conflict rows and Accept/Resolve All/Abort Merge actions, the tray controls
+and the notification toggles. The first
 argument or `OUTPUT` overrides the journal edit-mode path and every other capture
 derives from its directory. Requirements are the same as the shell capture.
 

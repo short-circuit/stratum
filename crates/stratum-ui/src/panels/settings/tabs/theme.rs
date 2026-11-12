@@ -87,7 +87,7 @@ pub(super) fn render(
                     palette,
                 )))
                 .child(controls::hint(
-                    format!("{} 8–48", t_global("settings.font_size")),
+                    format!("{} 12–28", t_global("settings.font_size")),
                     palette,
                 )),
         )

@@ -391,8 +391,11 @@ pub(super) fn chip_row(
 }
 
 /// A styled action button.
+///
+/// `id` accepts an owned string so conflict rows can give each Accept button a
+/// unique debug selector while the rest of the panel keeps static ids.
 pub(super) fn button(
-    id: &'static str,
+    id: impl Into<String>,
     label: String,
     disabled: bool,
     primary: bool,
@@ -409,12 +412,12 @@ pub(super) fn button(
     } else {
         (palette.accent.opacity(0.12), palette.accent_foreground)
     };
-    button_with_colors(id, label, disabled, bg, fg, on_click)
+    button_with_colors(id.into(), label, disabled, bg, fg, on_click)
 }
 
 /// A styled action button using a semantic tone (danger/warning/etc.).
 pub(super) fn toned_button(
-    id: &'static str,
+    id: impl Into<String>,
     label: String,
     disabled: bool,
     color: Hsla,
@@ -422,21 +425,29 @@ pub(super) fn toned_button(
     on_click: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
 ) -> impl IntoElement {
     let bg = if disabled { color.opacity(0.35) } else { color };
-    button_with_colors(id, label, disabled, bg, palette.accent_foreground, on_click)
+    button_with_colors(
+        id.into(),
+        label,
+        disabled,
+        bg,
+        palette.accent_foreground,
+        on_click,
+    )
 }
 
 /// Shared button body.
 fn button_with_colors(
-    id: &'static str,
+    id: String,
     label: String,
     disabled: bool,
     bg: Hsla,
     fg: Hsla,
     on_click: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
 ) -> impl IntoElement {
+    let debug_id = id.clone();
     div()
         .id(id)
-        .debug_selector(move || id.to_string())
+        .debug_selector(move || debug_id)
         .px(px(12.0))
         .py(px(5.0))
         .rounded(px(6.0))

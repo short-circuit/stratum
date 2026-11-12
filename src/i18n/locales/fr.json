@@ -92,6 +92,7 @@
   },
   "common": {
     "abort_merge": "Abandonner la fusion",
+    "accept": "Accepter",
     "ai_is_thinking": "L'IA réfléchit...",
     "back": "Retour",
     "cancel": "Annuler",
@@ -853,6 +854,7 @@
     "uses_the_ai_endpoint_when_empty": "Utilise le point de terminaison IA quand il est vide",
     "vault": "Coffre",
     "vault_path": "Chemin du coffre",
+    "vault_switched": "Coffre changé.",
     "voice": "Voix",
     "voice_dictation_stt": "Dictée vocale (STT)",
     "web_research_searxng": "Recherche web (SearXNG)",

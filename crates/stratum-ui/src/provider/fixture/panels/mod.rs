@@ -43,6 +43,8 @@ pub(super) struct PanelState {
     pub whiteboard_exports: BTreeMap<String, Vec<u8>>,
     /// Persisted settings (mutable so the save round-trip is observable).
     pub settings: crate::provider::settings::SettingsDto,
+    /// Seeded merge conflicts, empty unless `STRATUM_SETTINGS_CONFLICTS=1`.
+    pub conflicts: Vec<String>,
     /// Number of backup runs, used to vary the reported copied-file count.
     pub backup_runs: usize,
 }
@@ -51,6 +53,16 @@ impl PanelState {
     /// Build the deterministic panel state.
     pub(super) fn new() -> Self {
         let now = chrono::Local::now();
+        // The capture harness sets `STRATUM_SETTINGS_CONFLICTS=1` to render the
+        // inline conflict-resolution section; tests seed their own lists.
+        let conflicts = if std::env::var("STRATUM_SETTINGS_CONFLICTS").as_deref() == Ok("1") {
+            vec![
+                "pages/Conflict One.md".to_string(),
+                "pages/Conflict Two.md".to_string(),
+            ]
+        } else {
+            Vec::new()
+        };
         Self {
             saved_queries: data::fixture_saved_queries(),
             reviewed: Vec::new(),
@@ -62,6 +74,7 @@ impl PanelState {
             whiteboard_library: whiteboards::fixture_whiteboard_library(),
             whiteboard_exports: BTreeMap::new(),
             settings: settings::fixture_settings(),
+            conflicts,
             backup_runs: 0,
         }
     }

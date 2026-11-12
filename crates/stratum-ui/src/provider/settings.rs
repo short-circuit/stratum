@@ -76,6 +76,14 @@ pub trait SettingsData: Send + Sync {
         Err(SETTINGS_DATA_NOT_AVAILABLE.to_string())
     }
 
+    /// Switch the active vault to `path`.
+    ///
+    /// The shipped Settings page calls the store's `pickVaultDirectory`, which
+    /// switches the active vault immediately after the folder picker returns.
+    fn set_vault_path(&self, _path: &str) -> Result<(), String> {
+        Ok(())
+    }
+
     /// Fetch the models available from the configured AI endpoint.
     fn fetch_models(&self) -> Result<Vec<String>, String> {
         Ok(Vec::new())
@@ -114,6 +122,16 @@ pub trait SettingsData: Send + Sync {
     /// Run a manual sync with an SSH key passphrase.
     fn sync_with_passphrase(&self, _passphrase: &str) -> Result<SyncStatusDto, String> {
         Err(SETTINGS_DATA_NOT_AVAILABLE.to_string())
+    }
+
+    /// Mark one conflicted file resolved by staging and committing it.
+    fn resolve_conflict(&self, _path: &str) -> Result<(), String> {
+        Ok(())
+    }
+
+    /// Abort an in-progress merge and restore the index to HEAD.
+    fn abort_merge(&self) -> Result<(), String> {
+        Ok(())
     }
 
     /// Start the periodic sync scheduler.

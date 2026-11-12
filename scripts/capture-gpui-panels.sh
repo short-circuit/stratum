@@ -5,7 +5,7 @@
 # The shell is started with STRATUM_FIXTURE=1 so the capture is deterministic
 # and needs no vault. When no DISPLAY is set the script starts a private Xvfb
 # screen, waits for the window to map, and captures the root window with
-# ImageMagick. Forty states are captured:
+# ImageMagick. Forty-one states are captured:
 #
 #   1. the journal route in edit mode
 #   2. the journal route with the calendar popup expanded (STRATUM_CALENDAR=1)
@@ -72,9 +72,11 @@
 #      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=developer)
 #  38. the Settings route on the sync tab
 #      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=sync)
-#  39. the Settings route on the tray tab
+#  39. the Settings route on the sync tab with seeded merge conflicts
+#      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=sync STRATUM_SETTINGS_CONFLICTS=1)
+#  40. the Settings route on the tray tab
 #      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=tray)
-#  40. the Settings route on the notifications tab
+#  41. the Settings route on the notifications tab
 #      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=notifications)
 #
 # The journal PNGs are written to dist/gpui-journal.png,
@@ -96,7 +98,8 @@
 # PNGs to dist/gpui-settings-vault.png, dist/gpui-settings-theme.png,
 # dist/gpui-settings-ai.png, dist/gpui-settings-research.png,
 # dist/gpui-settings-developer.png, dist/gpui-settings-sync.png,
-# dist/gpui-settings-tray.png and dist/gpui-settings-notifications.png.
+# dist/gpui-settings-sync-conflicts.png, dist/gpui-settings-tray.png and
+# dist/gpui-settings-notifications.png.
 # Pass a path as the first argument or set OUTPUT to override the journal
 # edit-mode capture (the other captures derive from its directory).
 #
@@ -144,6 +147,7 @@ SETTINGS_AI_OUT="$OUT_DIR/gpui-settings-ai.png"
 SETTINGS_RESEARCH_OUT="$OUT_DIR/gpui-settings-research.png"
 SETTINGS_DEVELOPER_OUT="$OUT_DIR/gpui-settings-developer.png"
 SETTINGS_SYNC_OUT="$OUT_DIR/gpui-settings-sync.png"
+SETTINGS_SYNC_CONFLICTS_OUT="$OUT_DIR/gpui-settings-sync-conflicts.png"
 SETTINGS_TRAY_OUT="$OUT_DIR/gpui-settings-tray.png"
 SETTINGS_NOTIFICATIONS_OUT="$OUT_DIR/gpui-settings-notifications.png"
 # Deterministic block on pages/fixture.md (provider::FIXTURE_HIGHLIGHT_BLOCK).
@@ -368,6 +372,9 @@ capture_state \
 capture_state \
     "$SETTINGS_SYNC_OUT" \
     STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=sync
+capture_state \
+    "$SETTINGS_SYNC_CONFLICTS_OUT" \
+    STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=sync STRATUM_SETTINGS_CONFLICTS=1
 capture_state \
     "$SETTINGS_TRAY_OUT" \
     STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=tray

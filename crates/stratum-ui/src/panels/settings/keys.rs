@@ -6,9 +6,14 @@
 /// visible string without a catalog entry fails the build instead of leaking a
 /// raw key into the UI.
 pub const SETTINGS_I18N_KEYS: &[&str] = &[
+    "common.abort_merge",
+    "common.accept",
     "common.cancel",
     "common.refresh",
+    "common.resolve_all",
     "common.submit",
+    "common.sync_conflicts_detected",
+    "common.the_following_files_have_merge_conflicts_resolve_each_file_o",
     "dictation.diarize_speakers",
     "export.browse",
     "export.exporting",
@@ -253,6 +258,7 @@ pub const SETTINGS_I18N_KEYS: &[&str] = &[
     "settings.validation.url",
     "settings.vault",
     "settings.vault_path",
+    "settings.vault_switched",
     "settings.voice",
     "settings.voice_dictation_stt",
     "settings.web_research_searxng",

@@ -92,6 +92,7 @@
   },
   "common": {
     "abort_merge": "Abortar fusión",
+    "accept": "Aceptar",
     "ai_is_thinking": "La IA está pensando...",
     "back": "Atrás",
     "cancel": "Cancelar",
@@ -853,6 +854,7 @@
     "uses_the_ai_endpoint_when_empty": "Usa el punto de conexión de IA cuando está vacío",
     "vault": "Bóveda",
     "vault_path": "Ruta de la bóveda",
+    "vault_switched": "Bóveda cambiada.",
     "voice": "Voz",
     "voice_dictation_stt": "Dictado por voz (STT)",
     "web_research_searxng": "Investigación web (SearXNG)",

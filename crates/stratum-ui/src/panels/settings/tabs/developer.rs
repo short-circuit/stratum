@@ -116,4 +116,5 @@ pub(super) fn render(
             palette,
             cx.listener(|view, _, _, cx| view.install_templates(cx)),
         )))
+        .child(super::commit_log::render(view, palette, cx))
 }

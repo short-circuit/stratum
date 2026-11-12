@@ -115,6 +115,11 @@ impl SettingsData for FixtureProvider {
         Ok(state.settings.clone())
     }
 
+    fn set_vault_path(&self, path: &str) -> Result<(), String> {
+        panel_state(self)?.settings.vault_path = path.to_string();
+        Ok(())
+    }
+
     fn fetch_models(&self) -> Result<Vec<String>, String> {
         Ok(vec!["llama3".to_string(), "nomic-embed-text".to_string()])
     }
@@ -165,16 +170,30 @@ impl SettingsData for FixtureProvider {
     }
 
     fn sync_status(&self) -> Result<SyncStatusDto, String> {
-        Ok(SyncStatusDto {
-            status: "ok".to_string(),
-            branch: Some("main".to_string()),
-            ahead: 1,
-            behind: 0,
-            conflicts: Vec::new(),
-            last_sync_time: Some("2026-11-10T08:00:00Z".to_string()),
-            last_sync_success: Some(true),
-            pending_commits: 0,
-        })
+        let conflicts = panel_state(self)?.conflicts.clone();
+        if conflicts.is_empty() {
+            Ok(SyncStatusDto {
+                status: "ok".to_string(),
+                branch: Some("main".to_string()),
+                ahead: 1,
+                behind: 0,
+                conflicts,
+                last_sync_time: Some("2026-11-10T08:00:00Z".to_string()),
+                last_sync_success: Some(true),
+                pending_commits: 0,
+            })
+        } else {
+            Ok(SyncStatusDto {
+                status: "conflicts".to_string(),
+                branch: Some("main".to_string()),
+                ahead: 1,
+                behind: 2,
+                conflicts,
+                last_sync_time: Some("2026-11-10T08:00:00Z".to_string()),
+                last_sync_success: Some(false),
+                pending_commits: 0,
+            })
+        }
     }
 
     fn sync_now(&self) -> Result<SyncStatusDto, String> {
@@ -183,6 +202,18 @@ impl SettingsData for FixtureProvider {
 
     fn sync_with_passphrase(&self, _passphrase: &str) -> Result<SyncStatusDto, String> {
         self.sync_status()
+    }
+
+    fn resolve_conflict(&self, path: &str) -> Result<(), String> {
+        panel_state(self)?
+            .conflicts
+            .retain(|candidate| candidate != path);
+        Ok(())
+    }
+
+    fn abort_merge(&self) -> Result<(), String> {
+        panel_state(self)?.conflicts.clear();
+        Ok(())
     }
 
     fn start_sync_scheduler(&self) -> Result<(), String> {

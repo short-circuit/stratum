@@ -92,6 +92,7 @@
   },
   "common": {
     "abort_merge": "Interrompi merge",
+    "accept": "Accetta",
     "ai_is_thinking": "L'IA sta pensando...",
     "back": "Indietro",
     "cancel": "Annulla",
@@ -853,6 +854,7 @@
     "uses_the_ai_endpoint_when_empty": "Usa l'endpoint IA quando vuoto",
     "vault": "Vault",
     "vault_path": "Percorso del vault",
+    "vault_switched": "Vault cambiato.",
     "voice": "Voce",
     "voice_dictation_stt": "Dettatura vocale (STT)",
     "web_research_searxng": "Ricerca web (SearXNG)",

@@ -28,7 +28,7 @@ pub fn validate(settings: &SettingsDto) -> BTreeMap<&'static str, &'static str> 
     if !is_hex_color(&settings.theme.secondary_color) {
         errors.insert("theme_secondary", "settings.validation.hex_color");
     }
-    if !(8..=48).contains(&settings.theme.font_size) {
+    if !(12..=28).contains(&settings.theme.font_size) {
         errors.insert("theme_font_size", "settings.validation.range");
     }
 
