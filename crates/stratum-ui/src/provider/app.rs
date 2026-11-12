@@ -49,6 +49,16 @@ impl ShellData for AppProvider {
             .map(|page| page.path)
     }
 
+    fn quick_capture_save(&self, text: String) -> Result<super::QuickCaptureResult, String> {
+        let saved = self
+            .runtime
+            .block_on(self.service.quick_capture_save(text))?;
+        Ok(super::QuickCaptureResult {
+            page_path: saved.page_path,
+            block_id: saved.block_id,
+        })
+    }
+
     fn speak(&self, text: String) -> Result<(), String> {
         self.speak_text(text)
     }

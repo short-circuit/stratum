@@ -23,8 +23,8 @@ use uuid::Uuid;
 use super::journal::{journal_dates_from_paths, journal_path};
 use super::{
     attachment_row_with_mime, derive_recents, file_extension, file_stem, mime_for_extension,
-    BacklinkRow, BacklinkSnippet, ConnectionRow, PageInfo, RecentPage, ReindexSummary, ShellData,
-    ShellSnapshot, VaultStats,
+    BacklinkRow, BacklinkSnippet, ConnectionRow, PageInfo, QuickCaptureResult, RecentPage,
+    ReindexSummary, ShellData, ShellSnapshot, VaultStats,
 };
 use panels::PanelState;
 
@@ -305,6 +305,35 @@ impl ShellData for FixtureProvider {
         }
         pages.insert(path.clone(), Vec::new());
         Ok(path)
+    }
+
+    fn quick_capture_save(&self, text: String) -> Result<QuickCaptureResult, String> {
+        // Mirror `StratumService::quick_capture_save`: append the capture to the
+        // configured target page (today's journal in the fixture) and return the
+        // new block id.
+        let page_path = self.ensure_journal_page(FIXTURE_TODAY)?;
+        let block_id = Uuid::new_v4().to_string();
+        let block = BlockDto {
+            id: block_id.clone(),
+            content: text,
+            parent_id: None,
+            left_id: None,
+            properties: Vec::new(),
+            marker: None,
+            priority: None,
+            collapsed: false,
+            heading_level: None,
+        };
+        self.pages
+            .lock()
+            .map_err(|_| "fixture provider lock poisoned".to_string())?
+            .entry(page_path.clone())
+            .or_default()
+            .push(block);
+        Ok(QuickCaptureResult {
+            page_path,
+            block_id,
+        })
     }
 
     fn journal_dates(&self) -> Vec<String> {

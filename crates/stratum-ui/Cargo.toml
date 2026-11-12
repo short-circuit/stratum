@@ -26,6 +26,7 @@ stratum-app = { path = "../stratum-app" }
 stratum-editor = { path = "../stratum-editor" }
 stratum-graph = { path = "../stratum-graph" }
 stratum-canvas = { path = "../stratum-canvas" }
+stratum-platform = { path = "../stratum-platform" }
 pkm-core = { path = "../pkm-core" }
 image = { version = "0.25", default-features = false, features = ["png"] }
 chrono.workspace = true

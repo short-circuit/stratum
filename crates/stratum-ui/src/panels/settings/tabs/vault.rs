@@ -343,6 +343,14 @@ fn export_section(
                 true,
                 palette,
                 cx.listener(move |view, _, _, cx| view.run_export(kind, cx)),
+            ))
+            .child(controls::button(
+                export_reveal_id(kind),
+                t_global("export.open_folder"),
+                path.trim().is_empty(),
+                false,
+                palette,
+                cx.listener(move |view, _, _, cx| view.reveal_export(kind, cx)),
             ));
         if pdf_disabled {
             row = row.child(controls::hint(t_global("export.no_current_page"), palette));
@@ -359,6 +367,16 @@ fn export_browse_id(kind: ExportKind) -> &'static str {
         ExportKind::Json => "settings-export-browse-json",
         ExportKind::Pdf => "settings-export-browse-pdf",
         ExportKind::Zip => "settings-export-browse-zip",
+    }
+}
+
+/// Stable debug id for an export reveal button.
+fn export_reveal_id(kind: ExportKind) -> &'static str {
+    match kind {
+        ExportKind::Html => "settings-export-reveal-html",
+        ExportKind::Json => "settings-export-reveal-json",
+        ExportKind::Pdf => "settings-export-reveal-pdf",
+        ExportKind::Zip => "settings-export-reveal-zip",
     }
 }
 

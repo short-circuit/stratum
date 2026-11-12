@@ -171,6 +171,12 @@ impl Shell {
             .iter()
             .find(|row| !self.toaster.toasted.contains(&row.block_id))?;
         self.toaster.toasted.insert(reminder.block_id.clone());
+        // Mirror the shipped scheduler: every reminder that becomes due also
+        // posts an OS notification (the in-app toast is not enough when the
+        // window is behind other apps or minimized in the tray).
+        if let Some(bridge) = &self.platform {
+            bridge.notify_reminder(reminder);
+        }
         let title = t_global("reminders.toast.due_title");
         Some(Toast::with_action(
             format!("{title} — {}", reminder.content),

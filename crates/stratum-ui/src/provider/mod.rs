@@ -76,6 +76,18 @@ pub struct VaultStats {
     pub page_count: u64,
 }
 
+/// Result of a Quick Capture save.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct QuickCaptureResult {
+    /// The page the block was written to.
+    pub page_path: String,
+    /// The id of the captured block.
+    pub block_id: String,
+}
+
+/// Stable error for providers that cannot persist a capture.
+pub const QUICK_CAPTURE_NOT_AVAILABLE: &str = "quick_capture_not_available";
+
 /// A recent page row.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RecentPage {
@@ -127,6 +139,15 @@ pub trait ShellData: PanelData + SettingsData {
     /// the path unchanged.
     fn create_page(&self, _path: &str, _title: Option<&str>) -> Result<String, String> {
         Ok(_path.to_string())
+    }
+    /// Capture `text` into today's journal (or the configured inbox) and
+    /// return the page it landed on.
+    ///
+    /// Mirrors `StratumService::quick_capture_save`: the capture is persisted to
+    /// disk and indexed by the backend. Providers that cannot persist a capture
+    /// return [`QUICK_CAPTURE_NOT_AVAILABLE`].
+    fn quick_capture_save(&self, _text: String) -> Result<QuickCaptureResult, String> {
+        Err(QUICK_CAPTURE_NOT_AVAILABLE.to_string())
     }
     /// Speak `text` aloud. Providers without audio support return `Ok(())`.
     fn speak(&self, _text: String) -> Result<(), String> {

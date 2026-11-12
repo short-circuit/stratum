@@ -10,6 +10,7 @@
 //! [`reminder_toast`]; the shell only wires the overlay into the layout.
 
 use std::sync::Arc;
+use std::time::Instant;
 
 use gpui_kit::component::ActiveTheme;
 use gpui_kit::prelude::*;
@@ -39,10 +40,14 @@ mod chrome;
 mod footer;
 mod page;
 mod panels;
+mod platform;
+mod quick_capture;
 mod reminder_toast;
 mod sidebar;
 
 pub use panels::PanelStarts;
+pub use platform::settings_fingerprint;
+pub use quick_capture::QuickCapture;
 pub use reminder_toast::{Toast, ToastAction};
 pub use sidebar::{COLLAPSED_WIDTH, EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH};
 
@@ -125,6 +130,24 @@ pub struct Shell {
     /// Reminder toaster state: the current toast, the announce-once set and the
     /// 30 s poll gate.
     toaster: reminder_toast::ReminderToaster,
+    /// The OS glue bridge. Absent in tests and headless captures, where the
+    /// shell behaves exactly as it did before the platform layer existed.
+    platform: Option<crate::platform::PlatformBridge>,
+    /// Quick Capture dialog state.
+    quick_capture: quick_capture::QuickCapture,
+    /// A pending Quick Capture request, opened on the next render.
+    pending_quick_capture: Option<bool>,
+    /// The applied Settings generation, used to re-apply platform preferences.
+    platform_generation: u64,
+    /// The last platform-relevant settings fingerprint we applied.
+    platform_fingerprint: Option<String>,
+    /// When the platform preferences were last re-read from the settings.
+    platform_settings_check: Option<Instant>,
+    /// Whether the close-to-tray hook and the platform wake-up tick are live.
+    platform_watch_started: bool,
+    /// OS events drained by the wake-up tick, applied on the next render (the
+    /// tick has no window, and `activate_window` needs one).
+    pending_platform: Vec<stratum_platform::PlatformEvent>,
 }
 
 impl Shell {
@@ -159,7 +182,28 @@ impl Shell {
             panel_starts: PanelStarts::default(),
             error: None,
             toaster: reminder_toast::ReminderToaster::default(),
+            platform: None,
+            quick_capture: quick_capture::QuickCapture::default(),
+            pending_quick_capture: None,
+            platform_generation: 0,
+            platform_fingerprint: None,
+            platform_settings_check: None,
+            platform_watch_started: false,
+            pending_platform: Vec::new(),
         }
+    }
+
+    /// Create a shell with the OS glue bridge.
+    ///
+    /// Production uses this constructor; [`Shell::new`] stays the plain shell
+    /// for tests and the capture harness.
+    pub fn with_platform(
+        provider: Arc<dyn ShellData>,
+        platform: crate::platform::PlatformBridge,
+    ) -> Self {
+        let mut shell = Self::new(provider);
+        shell.platform = Some(platform);
+        shell
     }
 
     /// The active panel.
@@ -325,9 +369,12 @@ impl Shell {
         self.read_mode
     }
 
-    /// Dismiss the error bar first, then the toast. Returns whether anything
-    /// was dismissed.
+    /// Dismiss the topmost overlay: the Quick Capture dialog, then the error
+    /// bar, then the toast. Returns whether anything was dismissed.
     pub fn dismiss_overlay(&mut self) -> bool {
+        if self.dismiss_quick_capture() {
+            return true;
+        }
         if self.error.take().is_some() {
             return true;
         }
@@ -391,6 +438,14 @@ impl Shell {
 
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if self.platform.is_some() {
+            self.install_platform_watch(window, cx);
+            self.poll_platform(window, cx);
+            self.sync_platform_settings(cx);
+        }
+        if let Some(voice) = self.pending_quick_capture.take() {
+            self.open_quick_capture(voice, window, cx);
+        }
         if self.active == Panel::Page {
             self.sync_page(cx);
         }
@@ -441,6 +496,11 @@ impl Render for Shell {
                 this.toggle_sidebar();
                 cx.notify();
             }))
+            .on_drop::<ExternalPaths>(cx.listener(|this, paths: &ExternalPaths, _window, cx| {
+                // A note dropped anywhere outside a block opens that note;
+                // drops on a block stay with the editor's attachment import.
+                this.handle_drop(&paths.0, cx);
+            }))
             .child(sidebar::sidebar(self, cx))
             .child(
                 div()
@@ -477,6 +537,9 @@ impl Render for Shell {
             )
             .when(self.toaster.toast.is_some(), |element| {
                 element.child(toast_overlay(self, cx))
+            })
+            .when(self.quick_capture.is_open(), |element| {
+                element.child(self.render_quick_capture(cx))
             })
     }
 }

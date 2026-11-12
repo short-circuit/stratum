@@ -59,6 +59,9 @@ impl SettingsView {
                 apply_to_kit(cx, &config);
                 self.passphrase_prompt = false;
                 self.busy = None;
+                // Signal the shell that the effective settings moved so it can
+                // re-apply the tray, shortcut and notification preferences.
+                self.saved_generation = self.saved_generation.wrapping_add(1);
                 self.set_message(t_global("settings.saved"), cx);
             }
             Err(error) => {
@@ -77,6 +80,9 @@ impl SettingsView {
                 let config = ThemeConfig::from_settings(&self.form.settings.theme);
                 self.form.last_valid_theme = config.clone();
                 apply_to_kit(cx, &config);
+                // A reload can change the tray/shortcut preferences too (for
+                // example after a vault switch), so signal the shell as well.
+                self.saved_generation = self.saved_generation.wrapping_add(1);
             }
             Err(error) => {
                 self.load_error = Some(format!("{} {error}", t_global("settings.load_failed")));
@@ -327,6 +333,23 @@ impl SettingsView {
                 self.set_error(format!("{} {error}", t_global("export.failed")), cx);
             }
         }
+    }
+
+    /// Reveal an export output path in the OS file manager.
+    ///
+    /// Mirrors the shipped export success action (`opener.revealItemInDir`): the
+    /// containing folder opens on the configured path. Best effort — a headless
+    /// host or a desktop without a file manager only logs a warning, exactly like
+    /// the webview's `catch {}` around the same call.
+    pub fn reveal_export(&mut self, kind: ExportKind, cx: &mut Context<Self>) {
+        let path = self.form.exports.get(&kind).cloned().unwrap_or_default();
+        if path.trim().is_empty() {
+            return;
+        }
+        if let Err(error) = stratum_platform::opener::reveal_in_dir(std::path::Path::new(&path)) {
+            log::warn!("reveal {path}: {error}");
+        }
+        cx.notify();
     }
 
     /// Apply the locale immediately and persist it best-effort.

@@ -178,6 +178,12 @@ pub struct SettingsView {
     pdf_page: Option<String>,
     pending_navigation: Option<String>,
     pending_toast: Option<String>,
+    /// Incremented every time the effective settings change (save or reload).
+    ///
+    /// The shell watches this counter to re-apply the tray, shortcut and
+    /// notification preferences without the settings panel having to know about
+    /// the platform layer.
+    saved_generation: u64,
 }
 
 impl SettingsView {
@@ -239,9 +245,21 @@ impl SettingsView {
             pdf_page: None,
             pending_navigation: None,
             pending_toast: None,
+            saved_generation: 0,
         };
         view.sync_inputs(window, cx);
         view
+    }
+}
+
+impl SettingsView {
+    /// Monotonic counter of applied settings changes.
+    ///
+    /// The shell compares it with its own copy and re-applies the platform
+    /// preferences when it moves, so a tray/shortcut change saved in this panel
+    /// takes effect without restarting the app.
+    pub fn saved_generation(&self) -> u64 {
+        self.saved_generation
     }
 }
 

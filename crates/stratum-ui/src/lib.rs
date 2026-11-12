@@ -42,6 +42,8 @@
 pub mod assets;
 /// Panel stubs hosted by the shell.
 pub mod panels;
+/// OS glue bridge: tray, global shortcut, notifications, single instance, deep links.
+pub mod platform;
 /// Data provider seam between the shell and the headless service layer.
 pub mod provider;
 /// Route, navigation and shortcut tables.

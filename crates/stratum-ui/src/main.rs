@@ -33,6 +33,15 @@
 //!   opens a Settings tab.
 //! - `STRATUM_SETTINGS_CONFLICTS=1` seeds the fixture sync status with conflicts.
 //! - `STRATUM_SETTINGS_COMMITS=1` expands the Developer tab commit log.
+//! - `STRATUM_QUICK_CAPTURE=1` opens the Quick Capture dialog on start.
+//! - `STRATUM_QUICK_CAPTURE_VOICE=1` opens it in voice mode.
+//! - `STRATUM_DEEP_LINK=stratum://board/Name#element` routes a deep link on
+//!   start, exercising the same path a `stratum://` URL takes.
+//!
+//! The OS glue (tray, global shortcut, notifications, single instance) is
+//! started before the window: a second launch forwards its argv to the running
+//! instance and exits. Fixture runs use a per-process instance name so a capture
+//! never contends with a developer's running app.
 //!
 //! `STRATUM_REMINDER_TOAST=1` makes the fixture report due reminders, which the
 //! shell polls into its reminder toaster.
@@ -74,6 +83,27 @@ fn main() {
                 .map(PathBuf::from)
                 .unwrap_or_else(|_| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
             let provider = provider_from_env(vault, fixture);
+            // Claim the single-instance slot before the window exists: a second
+            // launch hands its argv (usually a `stratum://` deep link) to the
+            // running instance and exits without opening a second window.
+            let instance = if fixture {
+                format!(
+                    "{}-fixture-{}",
+                    stratum_ui::platform::instance_name(),
+                    std::process::id()
+                )
+            } else {
+                stratum_ui::platform::instance_name()
+            };
+            let args: Vec<String> = std::env::args().skip(1).collect();
+            let Some(platform) =
+                stratum_ui::platform::PlatformBridge::bootstrap_named(&provider, &instance, args)
+            else {
+                log::info!("another Stratum instance is running; launch arguments forwarded");
+                // The forwarded launch must not keep a gpui event loop alive with
+                // no window: exit as soon as the argv is handed over.
+                std::process::exit(0);
+            };
             // The shipped page applies the persisted palette on load; doing it
             // before the first window means the shell never flashes the default
             // theme. Invalid hex values fall back inside `from_settings`.
@@ -94,8 +124,8 @@ fn main() {
                 ..Default::default()
             };
 
-            match gpui_kit::open_window(options, cx, |_window, cx| {
-                let mut shell = Shell::new(Arc::clone(&provider));
+            match gpui_kit::open_window(options, cx, move |_window, cx| {
+                let mut shell = Shell::with_platform(Arc::clone(&provider), platform);
                 apply_start_state(&mut shell);
                 cx.new(|_| shell)
             }) {
@@ -291,6 +321,18 @@ fn apply_start_state(shell: &mut Shell) {
         .ok()
         .filter(|value| !value.is_empty());
     shell.set_journal_start(journal_date, env_flag("STRATUM_CALENDAR"));
+    // Either flag opens the dialog; the voice flag selects the mode, so
+    // `STRATUM_QUICK_CAPTURE_VOICE=1` alone is enough for the capture harness.
+    let voice_capture = env_flag("STRATUM_QUICK_CAPTURE_VOICE");
+    if voice_capture || env_flag("STRATUM_QUICK_CAPTURE") {
+        shell.request_quick_capture(voice_capture);
+    }
+    if let Ok(link) = std::env::var("STRATUM_DEEP_LINK") {
+        match stratum_platform::deep_link::parse(&link) {
+            Some(link) => shell.apply_deep_link(&link),
+            None => log::warn!("ignoring unknown STRATUM_DEEP_LINK={link}"),
+        }
+    }
 }
 
 /// Read a boolean environment flag.

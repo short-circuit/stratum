@@ -6,11 +6,12 @@
 
 use std::sync::Arc;
 
-use stratum_i18n::{t, Locale};
+use stratum_i18n::{t, t_global, Locale};
 
 use super::*;
 use crate::provider::{
-    FixtureProvider, PanelData, ReminderRow, SettingsData, ShellData, ShellSnapshot,
+    journal_path, FixtureProvider, PanelData, QuickCaptureResult, ReminderRow, SettingsData,
+    ShellData, ShellSnapshot, FIXTURE_TODAY,
 };
 // `gpui_kit::*` (re-exported through `super`) brings gpui's `test` attribute
 // macro into scope, shadowing the built-in attribute. Import the built-in
@@ -269,4 +270,118 @@ fn toast_action_opens_the_reminder_page_and_dismisses_the_toast() {
     assert_eq!(shell.active_panel(), Panel::Page);
     assert_eq!(shell.toast_message(), None);
     assert!(!shell.activate_toast_action(), "no action left to run");
+}
+
+#[test]
+fn quick_capture_request_is_pending_until_the_next_render() {
+    let mut shell = fixture_shell();
+    shell.request_quick_capture(true);
+    assert_eq!(shell.pending_quick_capture, Some(true));
+    assert!(!shell.quick_capture.is_open(), "opening needs a window");
+    shell.request_quick_capture(false);
+    assert_eq!(shell.pending_quick_capture, Some(false));
+}
+
+#[test]
+fn quick_capture_empty_text_closes_without_writing() {
+    let mut shell = fixture_shell();
+    shell.quick_capture.open = true;
+    shell.quick_capture.text = "   ".to_string();
+    shell.save_quick_capture();
+    assert!(!shell.quick_capture.is_open());
+    assert_eq!(shell.toast_message(), None);
+    assert!(shell.quick_capture.error().is_none());
+}
+
+#[test]
+fn quick_capture_saves_into_the_journal_and_confirms() {
+    let mut shell = fixture_shell();
+    shell.quick_capture.open = true;
+    shell.quick_capture.text = "capture this thought".to_string();
+    shell.save_quick_capture();
+    assert!(!shell.quick_capture.is_open());
+    let toast = shell.toast_message().unwrap_or_default();
+    assert!(
+        toast.contains("journals/"),
+        "the confirmation names the captured page: {toast}"
+    );
+
+    // The capture landed as a new block on the journal page.
+    let page = journal_path(FIXTURE_TODAY);
+    let blocks = shell.provider.load_blocks(&page).unwrap_or_default();
+    assert!(blocks
+        .iter()
+        .any(|block| block.content == "capture this thought"));
+}
+
+#[test]
+fn quick_capture_reports_a_provider_failure_and_stays_open() {
+    struct FailingCapture;
+
+    // Every `PanelData` and `SettingsData` method has a default, so the failing
+    // provider only has to answer the shell's own calls.
+    impl PanelData for FailingCapture {}
+    impl SettingsData for FailingCapture {}
+
+    impl ShellData for FailingCapture {
+        fn snapshot(&self) -> ShellSnapshot {
+            ShellSnapshot {
+                vault: None,
+                recents: Vec::new(),
+            }
+        }
+
+        fn refresh(&self) -> ShellSnapshot {
+            self.snapshot()
+        }
+
+        fn export_html(&self) -> Result<u64, String> {
+            Ok(0)
+        }
+
+        fn quick_capture_save(&self, _text: String) -> Result<QuickCaptureResult, String> {
+            Err("disk full".to_string())
+        }
+    }
+
+    let mut shell = Shell::new(Arc::new(FailingCapture));
+    shell.quick_capture.open = true;
+    shell.quick_capture.text = "note".to_string();
+    shell.save_quick_capture();
+    assert!(
+        shell.quick_capture.is_open(),
+        "a failure keeps the dialog open"
+    );
+    assert_eq!(shell.quick_capture.error(), Some("disk full"));
+}
+
+#[test]
+fn quick_capture_voice_flow_records_transcribes_and_closes() {
+    let mut shell = fixture_shell();
+    shell.quick_capture.open = true;
+    shell.quick_capture.voice = true;
+    shell.start_voice_capture();
+    assert!(shell.quick_capture.is_recording());
+    shell.stop_voice_capture();
+    assert!(!shell.quick_capture.is_recording());
+    assert!(!shell.quick_capture.is_open());
+    assert_eq!(
+        shell.toast_message(),
+        Some(t_global("quickcapture.voice_done").as_str())
+    );
+}
+
+#[test]
+fn dismiss_overlay_closes_the_quick_capture_first() {
+    let mut shell = fixture_shell();
+    shell.quick_capture.open = true;
+    shell.toaster.toast = Some(Toast::message("older toast"));
+    assert!(shell.dismiss_overlay());
+    assert!(
+        !shell.quick_capture.is_open(),
+        "the dialog is dismissed first"
+    );
+    assert_eq!(shell.toast_message(), Some("older toast"));
+    assert!(shell.dismiss_overlay(), "then the toast");
+    assert_eq!(shell.toast_message(), None);
 }
