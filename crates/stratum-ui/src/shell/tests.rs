@@ -9,7 +9,9 @@ use std::sync::Arc;
 use stratum_i18n::{t, Locale};
 
 use super::*;
-use crate::provider::{FixtureProvider, PanelData, ReminderRow, ShellData, ShellSnapshot};
+use crate::provider::{
+    FixtureProvider, PanelData, ReminderRow, SettingsData, ShellData, ShellSnapshot,
+};
 // `gpui_kit::*` (re-exported through `super`) brings gpui's `test` attribute
 // macro into scope, shadowing the built-in attribute. Import the built-in
 // explicitly so these unit tests run without a GPUI app context.
@@ -41,6 +43,8 @@ impl ShellData for FailingProvider {
 }
 
 impl PanelData for FailingProvider {}
+
+impl SettingsData for FailingProvider {}
 
 #[test]
 fn shell_starts_on_the_journal_route() {

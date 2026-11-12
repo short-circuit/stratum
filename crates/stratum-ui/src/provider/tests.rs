@@ -93,6 +93,8 @@ impl ShellData for BareProvider {
 
 impl PanelData for BareProvider {}
 
+impl SettingsData for BareProvider {}
+
 #[test]
 fn default_asset_methods_keep_window_free_providers_compiling() {
     let provider = BareProvider;

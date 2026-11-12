@@ -8,12 +8,17 @@
 use chrono::Local;
 use stratum_app::query::builder::{build_datalog, Combiner, FieldId, FilterSpec, OpId};
 use stratum_app::reminders::due::{bucket, parse_due};
-use stratum_ui::provider::{FixtureProvider, PanelData, SavedQueryRow, PANEL_DATA_NOT_AVAILABLE};
+use stratum_ui::provider::{
+    FixtureProvider, PanelData, SavedQueryRow, SettingsData, PANEL_DATA_NOT_AVAILABLE,
+    SETTINGS_DATA_NOT_AVAILABLE,
+};
 
 /// A provider that only implements the trait defaults.
 struct DefaultProvider;
 
 impl PanelData for DefaultProvider {}
+
+impl SettingsData for DefaultProvider {}
 
 #[test]
 fn default_provider_returns_the_documented_defaults() {
@@ -94,6 +99,48 @@ fn default_provider_returns_the_documented_defaults() {
         Err(PANEL_DATA_NOT_AVAILABLE.to_string())
     );
     assert_eq!(provider.uninstall_theme("midnight"), Ok(()));
+
+    assert_eq!(
+        provider.settings(),
+        Err(SETTINGS_DATA_NOT_AVAILABLE.to_string())
+    );
+    assert_eq!(
+        provider.save_settings(FixtureProvider::new().settings().unwrap()),
+        Err(SETTINGS_DATA_NOT_AVAILABLE.to_string())
+    );
+    assert!(provider.fetch_models().unwrap().is_empty());
+    assert!(provider.discover_local_ai().unwrap().is_empty());
+    assert_eq!(
+        provider.reindex_vault().unwrap_err(),
+        SETTINGS_DATA_NOT_AVAILABLE.to_string()
+    );
+    assert_eq!(
+        provider.repair_db_from_disk().unwrap_err(),
+        SETTINGS_DATA_NOT_AVAILABLE.to_string()
+    );
+    assert_eq!(provider.normalize_all_files(), Ok(0));
+    assert_eq!(
+        provider.sync_status().unwrap_err(),
+        SETTINGS_DATA_NOT_AVAILABLE.to_string()
+    );
+    assert_eq!(
+        provider.sync_now().unwrap_err(),
+        SETTINGS_DATA_NOT_AVAILABLE.to_string()
+    );
+    assert_eq!(
+        provider.sync_with_passphrase("secret").unwrap_err(),
+        SETTINGS_DATA_NOT_AVAILABLE.to_string()
+    );
+    assert_eq!(provider.start_sync_scheduler(), Ok(()));
+    assert!(provider.commit_log().unwrap().is_empty());
+    assert_eq!(
+        provider.backup_status().unwrap_err(),
+        SETTINGS_DATA_NOT_AVAILABLE.to_string()
+    );
+    assert_eq!(
+        provider.run_backup().unwrap_err(),
+        SETTINGS_DATA_NOT_AVAILABLE.to_string()
+    );
 }
 
 #[test]
@@ -294,6 +341,78 @@ fn fixture_plugins_and_catalogs_are_mutable() {
     assert_eq!(values.primary_color, "#0f172a");
     provider.uninstall_theme("midnight").unwrap();
     assert!(provider.installed_themes().is_empty());
+}
+
+#[test]
+fn fixture_settings_round_trip_and_mutating_probes() {
+    let provider = FixtureProvider::new();
+    let settings = provider.settings().unwrap();
+    assert_eq!(settings.vault_path, "/vaults/fixture");
+    assert_eq!(settings.theme.primary_color, "#f97316");
+    assert_eq!(settings.ai.rag_chunk_count, 4);
+    assert_eq!(settings.sync.branch, "main");
+    assert_eq!(settings.stt.model, "whisper-1");
+    assert_eq!(settings.tray.capture_target, "journal");
+    assert_eq!(settings.voice.target, "journal:today");
+    assert!(settings.reminders.enabled);
+
+    let mut edited = settings.clone();
+    edited.theme.primary_color = "#22c55e".to_string();
+    edited.research.max_depth = 4;
+    edited.tray.capture_target = "inbox".to_string();
+    assert_eq!(provider.save_settings(edited.clone()).unwrap(), edited);
+    assert_eq!(provider.settings().unwrap(), edited);
+
+    assert_eq!(provider.fetch_models().unwrap().len(), 2);
+    assert_eq!(provider.discover_local_ai().unwrap().len(), 2);
+    assert_eq!(provider.reindex_vault().unwrap().succeeded, 4);
+    assert_eq!(provider.repair_db_from_disk().unwrap().processed, 4);
+    assert_eq!(provider.normalize_all_files(), Ok(4));
+    assert_eq!(provider.sync_status().unwrap().status, "ok");
+    assert_eq!(provider.commit_log().unwrap().len(), 2);
+    let backup = provider.run_backup().unwrap();
+    assert_eq!(backup.files_copied, Some(13));
+    assert_eq!(
+        provider.test_webdav("https://dav.test", None, None),
+        Ok("ok".to_string())
+    );
+    assert!(provider.stt_test().unwrap().ok);
+    assert_eq!(provider.tts_test("hello").unwrap().byte_len, 2048);
+    assert_eq!(
+        provider
+            .ping_search_instance("https://searx.test")
+            .unwrap()
+            .latency_ms,
+        42
+    );
+    assert_eq!(provider.set_onboarding_pending(true), Ok(()));
+    assert_eq!(
+        provider
+            .preview_import(
+                "/imports/source",
+                stratum_app::import::ImportOptions::default()
+            )
+            .unwrap()
+            .total_pages,
+        2
+    );
+    let report = provider
+        .run_import(
+            "/imports/source",
+            stratum_app::import::ImportOptions::default(),
+        )
+        .unwrap();
+    assert_eq!(report.pages_imported, 0);
+    assert_eq!(provider.export_html_to("/out/html").unwrap().pages, 4);
+    assert_eq!(provider.export_json_to("/out/json").unwrap().pages, 4);
+    assert_eq!(
+        provider
+            .export_pdf_to("pages/Welcome.md", "/out/page.pdf")
+            .unwrap()
+            .count,
+        1
+    );
+    assert_eq!(provider.export_zip_to("/out/vault.zip").unwrap().pages, 4);
 }
 
 #[test]

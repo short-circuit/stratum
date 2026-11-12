@@ -13,6 +13,7 @@
 
 mod data;
 mod impls;
+mod settings;
 mod whiteboards;
 
 use std::collections::BTreeMap;
@@ -40,6 +41,10 @@ pub(super) struct PanelState {
     pub whiteboard_library: Vec<crate::provider::panels::LibraryItemRow>,
     /// Exported whiteboard bytes keyed by vault-relative path.
     pub whiteboard_exports: BTreeMap<String, Vec<u8>>,
+    /// Persisted settings (mutable so the save round-trip is observable).
+    pub settings: crate::provider::settings::SettingsDto,
+    /// Number of backup runs, used to vary the reported copied-file count.
+    pub backup_runs: usize,
 }
 
 impl PanelState {
@@ -56,6 +61,8 @@ impl PanelState {
             whiteboards: whiteboards::fixture_whiteboards(),
             whiteboard_library: whiteboards::fixture_whiteboard_library(),
             whiteboard_exports: BTreeMap::new(),
+            settings: settings::fixture_settings(),
+            backup_runs: 0,
         }
     }
 }

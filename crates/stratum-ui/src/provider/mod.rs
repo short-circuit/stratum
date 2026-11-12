@@ -24,6 +24,7 @@ use convert::{app_block_to_editor, editor_block_to_app};
 
 mod app;
 mod app_panels;
+mod app_settings;
 mod assets;
 mod audio;
 mod convert;
@@ -31,6 +32,7 @@ mod fixture;
 mod journal;
 mod page;
 pub mod panels;
+pub mod settings;
 mod voice;
 
 pub use assets::attachment_row;
@@ -49,6 +51,14 @@ pub use panels::{
     PluginCatalogEntry, PluginCatalogSnapshot, PluginRow, PluginTestResult, QueryTable,
     ReminderRow, SavedQueryRow, SearchHit, TemplateRow, ThemeCatalogEntry, ThemeCatalogSnapshot,
     ThemeValuesRow, PANEL_DATA_NOT_AVAILABLE,
+};
+pub use settings::{
+    AiModelDto, AiSettingsDto, BackupSettingsDto, BackupStatusDto, CommitLogEntry,
+    DiscoveredEndpoint, ExportOutcome, GraphSettingsDto, ImportAsset, ImportFormat, ImportOptions,
+    ImportPreview, ImportPreviewItem, ImportReport, LayoutSettingsDto, ReindexResult,
+    ReminderSettingsDto, ResearchSettingsDto, SearchPingResult, SettingsData, SettingsDto,
+    SttSettingsDto, SttTestOutcome, SyncSettingsDto, SyncStatusDto, ThemeSettingsDto,
+    TraySettingsDto, TtsSettingsDto, TtsTestOutcome, VoiceSettingsDto, SETTINGS_DATA_NOT_AVAILABLE,
 };
 
 pub use fixture::{
@@ -93,7 +103,7 @@ pub struct ShellSnapshot {
 /// Panel data is a supertrait: every shell provider also answers the
 /// [`PanelData`] contract, whose methods carry safe defaults so existing
 /// providers and window-free tests keep compiling.
-pub trait ShellData: PanelData {
+pub trait ShellData: PanelData + SettingsData {
     /// Read the current snapshot.
     fn snapshot(&self) -> ShellSnapshot;
     /// Refresh and return a new snapshot.

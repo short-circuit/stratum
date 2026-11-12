@@ -149,7 +149,7 @@ pub const PANEL_DATA_NOT_AVAILABLE: &str = "panel_data_not_available";
 /// shell surface still compiles. Methods whose empty result would mislead the
 /// UI (`run_query`, `ask_notes`, `plugin_catalog`, `theme_catalog`,
 /// `apply_theme`) return [`PANEL_DATA_NOT_AVAILABLE`] instead.
-pub trait PanelData: Send + Sync {
+pub trait PanelData: super::settings::SettingsData + Send + Sync {
     /// Full-text search with a result limit.
     fn search_blocks(&self, _query: &str, _limit: usize) -> Result<Vec<SearchHit>, String> {
         Ok(Vec::new())

@@ -24,7 +24,7 @@ use stratum_ui::panels::templates::TemplatesView;
 use stratum_ui::panels::voice::{VoiceCapture, VoiceStage};
 use stratum_ui::panels::PanelRequests;
 use stratum_ui::provider::{
-    journal_path, FixtureProvider, PanelData, ReminderRow, ShellData, ShellSnapshot,
+    journal_path, FixtureProvider, PanelData, ReminderRow, SettingsData, ShellData, ShellSnapshot,
     FIXTURE_JOURNAL_DATES, FIXTURE_PAGE, FIXTURE_TODAY,
 };
 use stratum_ui::router::Panel;
@@ -50,6 +50,8 @@ impl ShellData for DueProvider {
         Ok(0)
     }
 }
+
+impl SettingsData for DueProvider {}
 
 impl PanelData for DueProvider {
     fn due_reminders(&self) -> Vec<ReminderRow> {

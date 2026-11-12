@@ -27,6 +27,19 @@ impl AppProvider {
     }
 }
 
+/// Play one synthesized audio buffer on a detached thread.
+///
+/// Shared by read-aloud and the Settings TTS test button. Playback failures are
+/// logged only: the probe already succeeded once the endpoint answered, so a
+/// missing audio device must not fail the test.
+pub(super) fn play_tts_bytes(bytes: Vec<u8>) {
+    std::thread::spawn(move || {
+        if let Err(error) = play_audio(bytes) {
+            log::warn!("TTS playback failed: {error}");
+        }
+    });
+}
+
 /// Decode and play one synthesized audio buffer.
 ///
 /// The `OutputStream` is kept alive on the stack for the duration of playback:
