@@ -1105,5 +1105,10 @@
       "overdue_hours": "Überfällig um {{hours}} Std.",
       "due_date": "Fällig am {{date}}"
     }
+  },
+  "tray": {
+    "open": "Stratum öffnen",
+    "sync_now": "Jetzt synchronisieren",
+    "quit": "Beenden"
   }
 }

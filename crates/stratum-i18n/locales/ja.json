@@ -1105,5 +1105,10 @@
       "overdue_hours": "Overdue by {{hours}} h",
       "due_date": "Due {{date}}"
     }
+  },
+  "tray": {
+    "open": "Open Stratum",
+    "sync_now": "Sync Now",
+    "quit": "Quit"
   }
 }

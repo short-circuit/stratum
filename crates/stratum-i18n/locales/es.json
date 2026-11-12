@@ -1105,5 +1105,10 @@
       "overdue_hours": "Atrasado {{hours}} h",
       "due_date": "Vence {{date}}"
     }
+  },
+  "tray": {
+    "open": "Abrir Stratum",
+    "sync_now": "Sincronizar ahora",
+    "quit": "Salir"
   }
 }
