@@ -858,7 +858,19 @@
     "web_research_searxng": "Web Research (SearXNG)",
     "z_ai": "Z.AI",
     "hex_color": "Hex color",
-    "pick_color": "Pick color"
+    "pick_color": "Pick color",
+    "validation": {
+      "commit_interval": "Commit interval must be at least 30 seconds.",
+      "commit_template": "Template must include {datetime}.",
+      "export_path": "Enter an export path.",
+      "hex_color": "Enter a hex colour like #f97316.",
+      "positive": "Enter a positive number.",
+      "range": "Value is outside the allowed range.",
+      "required": "This field is required.",
+      "save_blocked": "Fix the highlighted fields before saving.",
+      "sync_interval": "Sync interval must be at least 60 seconds.",
+      "url": "Enter a full http:// or https:// URL."
+    }
   },
   "sidebar": {
     "ask_notes": "Ask Notes",

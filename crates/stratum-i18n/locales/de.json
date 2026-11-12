@@ -858,7 +858,19 @@
     "web_research_searxng": "Web-Recherche (SearXNG)",
     "z_ai": "Z.AI",
     "hex_color": "Hex-Farbe",
-    "pick_color": "Farbe wählen"
+    "pick_color": "Farbe wählen",
+    "validation": {
+      "commit_interval": "Das Commit-Intervall muss mindestens 30 Sekunden betragen.",
+      "commit_template": "Die Vorlage muss {datetime} enthalten.",
+      "export_path": "Geben Sie einen Exportpfad ein.",
+      "hex_color": "Geben Sie eine Hex-Farbe wie #f97316 ein.",
+      "positive": "Geben Sie eine positive Zahl ein.",
+      "range": "Der Wert liegt außerhalb des zulässigen Bereichs.",
+      "required": "Dieses Feld ist erforderlich.",
+      "save_blocked": "Korrigieren Sie die markierten Felder vor dem Speichern.",
+      "sync_interval": "Das Synchronisierungsintervall muss mindestens 60 Sekunden betragen.",
+      "url": "Geben Sie eine vollständige http://- oder https://-URL ein."
+    }
   },
   "sidebar": {
     "ask_notes": "Notizen fragen",
