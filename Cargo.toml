@@ -1,5 +1,6 @@
 [workspace]
 resolver = "2"
+exclude = ["vendor/gpui-mobile"]
 members = [
     "crates/pkm-core",
     "crates/pkm-markdown",
