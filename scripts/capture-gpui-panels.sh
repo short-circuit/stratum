@@ -68,8 +68,8 @@
 #      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=ai)
 #  36. the Settings route on the research tab
 #      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=research)
-#  37. the Settings route on the developer tab
-#      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=developer)
+#  37. the Settings route on the developer tab with the commit log expanded
+#      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=developer STRATUM_SETTINGS_COMMITS=1)
 #  38. the Settings route on the sync tab
 #      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=sync)
 #  39. the Settings route on the sync tab with seeded merge conflicts
@@ -368,7 +368,7 @@ capture_state \
     STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=research
 capture_state \
     "$SETTINGS_DEVELOPER_OUT" \
-    STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=developer
+    STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=developer STRATUM_SETTINGS_COMMITS=1
 capture_state \
     "$SETTINGS_SYNC_OUT" \
     STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=sync

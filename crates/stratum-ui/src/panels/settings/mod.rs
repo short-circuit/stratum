@@ -216,7 +216,11 @@ impl SettingsView {
             discovery_error: None,
             sync_status,
             commits,
-            commits_open: false,
+            // The capture harness expands the commit log so the Developer tab
+            // shows the table without a synthetic click.
+            commits_open: std::env::var("STRATUM_SETTINGS_COMMITS")
+                .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+                .unwrap_or(false),
             backup_status,
             webdav_result: None,
             stt_outcome: None,

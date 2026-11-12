@@ -478,8 +478,9 @@ Behaviour notes:
   report `settings.sync_failed` and abort success reports
   `settings.sync_completed`.
 - `STRATUM_SETTINGS_TAB=vault|theme|ai|research|developer|sync|tray|notifications`
-  selects the initial tab, and `STRATUM_SETTINGS_CONFLICTS=1` seeds fixture
-  conflicts for the sync tab. Captures: `dist/gpui-settings-vault.png`,
+  selects the initial tab, `STRATUM_SETTINGS_CONFLICTS=1` seeds fixture
+  conflicts for the sync tab and `STRATUM_SETTINGS_COMMITS=1` expands the
+  Developer commit log. Captures: `dist/gpui-settings-vault.png`,
   `dist/gpui-settings-theme.png`, `dist/gpui-settings-ai.png`,
   `dist/gpui-settings-research.png`, `dist/gpui-settings-developer.png`,
   `dist/gpui-settings-sync.png`, `dist/gpui-settings-sync-conflicts.png`,
@@ -557,6 +558,7 @@ the sidebar and `Escape` dismisses the topmost overlay.
 | `STRATUM_WHITEBOARD_EXPORT=svg\|png` | Write an export when the board opens |
 | `STRATUM_SETTINGS_TAB=vault\|theme\|ai\|research\|developer\|sync\|tray\|notifications` | Select the settings tab |
 | `STRATUM_SETTINGS_CONFLICTS=1` | Seed merge conflicts for the settings sync tab |
+| `STRATUM_SETTINGS_COMMITS=1` | Expand the Developer tab commit log |
 
 The start-state flags are applied by `apply_start_state` in `main.rs` and exist
 for the capture harness; they do not change the interactive behaviour of the
@@ -688,7 +690,7 @@ Whiteboards and Settings surfaces using the start-state flags:
 # → dist/gpui-settings-theme.png    (STRATUM_SETTINGS_TAB=theme)
 # → dist/gpui-settings-ai.png       (STRATUM_SETTINGS_TAB=ai)
 # → dist/gpui-settings-research.png (STRATUM_SETTINGS_TAB=research)
-# → dist/gpui-settings-developer.png (STRATUM_SETTINGS_TAB=developer)
+# → dist/gpui-settings-developer.png (STRATUM_SETTINGS_TAB=developer STRATUM_SETTINGS_COMMITS=1)
 # → dist/gpui-settings-sync.png     (STRATUM_SETTINGS_TAB=sync)
 # → dist/gpui-settings-sync-conflicts.png (STRATUM_SETTINGS_TAB=sync STRATUM_SETTINGS_CONFLICTS=1)
 # → dist/gpui-settings-tray.png     (STRATUM_SETTINGS_TAB=tray)

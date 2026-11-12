@@ -31,6 +31,8 @@
 //! - `STRATUM_GRAPH_TICKS=<count>` sets the deterministic layout ticks.
 //! - `STRATUM_SETTINGS_TAB=vault|theme|ai|research|developer|sync|tray|notifications`
 //!   opens a Settings tab.
+//! - `STRATUM_SETTINGS_CONFLICTS=1` seeds the fixture sync status with conflicts.
+//! - `STRATUM_SETTINGS_COMMITS=1` expands the Developer tab commit log.
 //!
 //! `STRATUM_REMINDER_TOAST=1` makes the fixture report due reminders, which the
 //! shell polls into its reminder toaster.

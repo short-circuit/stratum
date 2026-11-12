@@ -425,14 +425,14 @@ pub(super) fn toned_button(
     on_click: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
 ) -> impl IntoElement {
     let bg = if disabled { color.opacity(0.35) } else { color };
-    button_with_colors(
-        id.into(),
-        label,
-        disabled,
-        bg,
-        palette.accent_foreground,
-        on_click,
-    )
+    // Light tones (warning/success) need a dark label; the accent foreground is
+    // tuned for the primary fill and washes out on a yellow warning button.
+    let fg = if color.l > 0.55 {
+        palette.background
+    } else {
+        palette.accent_foreground
+    };
+    button_with_colors(id.into(), label, disabled, bg, fg, on_click)
 }
 
 /// Shared button body.
