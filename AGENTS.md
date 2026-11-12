@@ -78,6 +78,7 @@ stratum/
 │   ├── stratum-editor/         # Headless block-editor engine: document, spans, state, undo, menus (no UI deps)
 │   ├── stratum-graph/          # Deterministic d3-force-3d physics, camera parity, headless wgpu 3D renderer + CPU fallback
 │   ├── stratum-i18n/           # Embedded locale catalogs, interpolation and parity gates (native shell)
+│   ├── stratum-platform/       # OS glue: tray, global shortcut, notifications, single instance, deep links, opener, drop classification
 │   └── stratum-ui/             # Native GPUI desktop shell (E2) on top of stratum-app
 ├── src/                        # React + TypeScript frontend
 │   ├── main.tsx                # App bootstrap, settings load
@@ -208,7 +209,7 @@ stratum/
 │   │   ├── installation.md
 │   │   ├── quickstart.md
 │   │   └── configuration.md
-│   ├── guide/                  # 21 user guides (one per feature)
+│   ├── guide/                  # 29 user guides (one per feature)
 │   │   ├── vault-management.md
 │   │   ├── block-editor.md
 │   │   ├── linking-and-backlinks.md
@@ -229,6 +230,7 @@ stratum/
 │   │   ├── git-sync.md
 │   │   ├── voice-dictation.md
 │   │   ├── export.md
+│   │   ├── platform-integration.md # OS glue: tray, shortcut, notifications, deep links
 │   │   └── localization.md     # UI language + i18n gates
 │   ├── cli/
 │   │   └── command-reference.md
@@ -273,7 +275,8 @@ stratum-editor →  pkm-core, pkm-block, pkm-markdown
 stratum-canvas →  pkm-core
 stratum-graph  →  pkm-core
 stratum-i18n   →  pkm-core
-stratum-ui     →  gpui-kit (external), rodio (external), stratum-i18n, stratum-app, stratum-editor, stratum-graph, stratum-canvas, pkm-core
+stratum-platform →  pkm-core (desktop-only OS crates behind target cfgs: tray-icon, global-hotkey, notify-rust, interprocess)
+stratum-ui     →  gpui-kit (external), rodio (external), stratum-i18n, stratum-platform, stratum-app, stratum-editor, stratum-graph, stratum-canvas, pkm-core
 src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-dictation, pkm-plugin, stratum-app
 ```
 
@@ -494,8 +497,19 @@ frozen reference application and are never modified by shell work.
   `provider/panels.rs` for the panel DTOs/seam, `provider/app_panels.rs` for the
   service-backed panel data and the `provider/fixture/` deterministic provider),
   the chrome (`shell`, including the page lifecycle in `shell/page.rs`, the panel
-  lifecycle in `shell/panels.rs` and the due-reminder toaster in `shell/mod.rs`)
-  and the panel bodies (`panels`).
+  lifecycle in `shell/panels.rs`, the due-reminder toaster in `shell/mod.rs`, the
+  platform bridge watch in `shell/platform.rs` and the Quick Capture dialog in
+  `shell/quick_capture.rs`) and the panel bodies (`panels`).
+- `stratum-platform` is the OS glue crate the shell drives through
+  `stratum_ui::platform::PlatformBridge`: tray menu + close-to-tray (`tray.rs`,
+  KSNI on Linux), global Quick Capture shortcut (`hotkey.rs`, `global-hotkey`),
+  reminder notifications (`notify.rs`, `notify-rust`), single instance and argv
+  forwarding (`instance.rs`), `stratum://` deep links (`deep_link.rs`, scheme
+  registration), reveal/open (`opener.rs`) and drop classification
+  (`dragdrop.rs`), with `runtime.rs` owning the event channel. It replaces the
+  seven Tauri plugins; `docs/guide/platform-integration.md` is the capability
+  matrix. The pure models build on every target (Android reuses them) and only
+  the OS halves sit behind `cfg(desktop)`.
 - The native journal surface lives in `crates/stratum-ui/src/panels/journal/`:
   `mod.rs` (`JournalView` entity and render), `state.rs` (accessors and
   read-mode switch), `navigation.rs` (day/month selection), `reload.rs`
@@ -636,12 +650,13 @@ frozen reference application and are never modified by shell work.
   `STRATUM_GRAPH_TICKS`, `STRATUM_WHITEBOARD`, `STRATUM_WHITEBOARD_ELEMENT`,
   `STRATUM_WHITEBOARD_TOOL`, `STRATUM_WHITEBOARD_LIBRARY`,
   `STRATUM_WHITEBOARD_STYLE`, `STRATUM_WHITEBOARD_TEXT`,
-  `STRATUM_WHITEBOARD_EXPORT` and `STRATUM_SETTINGS_TAB`; `STRATUM_REMINDER_TOAST=1`
+  `STRATUM_WHITEBOARD_EXPORT`, `STRATUM_SETTINGS_TAB`, `STRATUM_QUICK_CAPTURE`,
+  `STRATUM_QUICK_CAPTURE_VOICE` and `STRATUM_DEEP_LINK`; `STRATUM_REMINDER_TOAST=1`
   makes the fixture report due reminders to the shell toaster.
 - `scripts/capture-gpui-shell.sh` renders the fixture shell on a private Xvfb
   screen and writes `dist/gpui-shell.png` (224 px sidebar) plus
   `dist/gpui-shell-collapsed.png` (52 px rail, `STRATUM_COLLAPSED=1`).
-- `scripts/capture-gpui-panels.sh` performs forty-one captures: the journal
+- `scripts/capture-gpui-panels.sh` performs forty-three captures: the journal
   surface in edit mode, with the calendar expanded and on a past day in read mode
   (`dist/gpui-journal.png`, `dist/gpui-journal-calendar.png`,
   `dist/gpui-journal-read.png`), the fixture page in edit/read mode with the
@@ -663,7 +678,9 @@ frozen reference application and are never modified by shell work.
   `dist/gpui-settings-theme.png`, `dist/gpui-settings-ai.png`,
   `dist/gpui-settings-research.png`, `dist/gpui-settings-developer.png`,
   `dist/gpui-settings-sync.png`, `dist/gpui-settings-sync-conflicts.png`,
-  `dist/gpui-settings-tray.png` and `dist/gpui-settings-notifications.png`).
+  `dist/gpui-settings-tray.png` and `dist/gpui-settings-notifications.png`), and
+  the Quick Capture dialog in text and voice mode (`dist/gpui-quick-capture.png`,
+  `dist/gpui-quick-capture-voice.png`).
 - `crates/stratum-ui/tests/interaction_contract.rs` opens headless gpui windows
   to cover click propagation (snippet/voice chips), journal start scroll, the
   reminder block-open request, the toast open action and the plugins
@@ -766,8 +783,8 @@ cargo build -p stratum-ui
 STRATUM_FIXTURE=1 cargo run -p stratum-ui
 
 # GPUI crate tests + capture
-cargo test -p stratum-i18n -p stratum-ui -p stratum-editor
-cargo clippy -p stratum-i18n -p stratum-ui -p stratum-editor --all-targets -- -D warnings
+cargo test -p stratum-i18n -p stratum-platform -p stratum-ui -p stratum-editor
+cargo clippy -p stratum-i18n -p stratum-platform -p stratum-ui -p stratum-editor --all-targets -- -D warnings
 ./scripts/capture-gpui-shell.sh  # writes dist/gpui-shell.png
 
 # Tauri desktop app

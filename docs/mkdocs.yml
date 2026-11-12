@@ -109,6 +109,7 @@ nav:
     - guide/plugins.md
     - guide/localization.md
     - guide/settings.md
+    - guide/platform-integration.md
     - guide/quick-capture.md
     - guide/mcp-server.md
   - CLI Reference:

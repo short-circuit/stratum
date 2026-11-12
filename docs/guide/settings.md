@@ -26,7 +26,8 @@ hand edit of the config converge on the same values.
   `imported/<source-name>/`. Nothing in the source folder is modified.
 - **Export** — HTML, JSON, per-page PDF and portable vault ZIP rows. Each row
   writes to the path shown in the field; the PDF row is disabled when no page
-  is open.
+  is open. **Open folder** reveals the written file in your file manager (see
+  [Platform integration](platform-integration.md)).
 
 ## Theme
 

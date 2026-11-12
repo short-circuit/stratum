@@ -5,7 +5,7 @@
 # The shell is started with STRATUM_FIXTURE=1 so the capture is deterministic
 # and needs no vault. When no DISPLAY is set the script starts a private Xvfb
 # screen, waits for the window to map, and captures the root window with
-# ImageMagick. Forty-one states are captured:
+# ImageMagick. Forty-three states are captured:
 #
 #   1. the journal route in edit mode
 #   2. the journal route with the calendar popup expanded (STRATUM_CALENDAR=1)
@@ -78,6 +78,10 @@
 #      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=tray)
 #  41. the Settings route on the notifications tab
 #      (STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=notifications)
+#  42. the Quick Capture dialog in text mode over the journal
+#      (STRATUM_ROUTE=/journal STRATUM_QUICK_CAPTURE=1)
+#  43. the Quick Capture dialog in voice mode
+#      (STRATUM_ROUTE=/journal STRATUM_QUICK_CAPTURE_VOICE=1)
 #
 # The journal PNGs are written to dist/gpui-journal.png,
 # dist/gpui-journal-calendar.png and dist/gpui-journal-read.png; the page PNGs to
@@ -150,6 +154,8 @@ SETTINGS_SYNC_OUT="$OUT_DIR/gpui-settings-sync.png"
 SETTINGS_SYNC_CONFLICTS_OUT="$OUT_DIR/gpui-settings-sync-conflicts.png"
 SETTINGS_TRAY_OUT="$OUT_DIR/gpui-settings-tray.png"
 SETTINGS_NOTIFICATIONS_OUT="$OUT_DIR/gpui-settings-notifications.png"
+QUICK_CAPTURE_OUT="$OUT_DIR/gpui-quick-capture.png"
+QUICK_CAPTURE_VOICE_OUT="$OUT_DIR/gpui-quick-capture-voice.png"
 # Deterministic block on pages/fixture.md (provider::FIXTURE_HIGHLIGHT_BLOCK).
 FIXTURE_HIGHLIGHT="413cf12c-969f-54ef-bf75-40ffd89e8618"
 # The fixture's first overdue reminder (`overdue-1`): the provider builds block
@@ -381,3 +387,8 @@ capture_state \
 capture_state \
     "$SETTINGS_NOTIFICATIONS_OUT" \
     STRATUM_ROUTE=/settings STRATUM_SETTINGS_TAB=notifications
+
+capture_state "$QUICK_CAPTURE_OUT" STRATUM_ROUTE=/journal STRATUM_QUICK_CAPTURE=1
+capture_state \
+    "$QUICK_CAPTURE_VOICE_OUT" \
+    STRATUM_ROUTE=/journal STRATUM_QUICK_CAPTURE_VOICE=1

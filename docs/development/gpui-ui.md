@@ -21,12 +21,23 @@ crates/
 │   ├── locales/            # byte-identical copies of src/i18n/locales/*.json
 │   ├── src/lib.rs          # catalogs, interpolation, parity helpers
 │   └── tests/              # catalog + parity gates
+├── stratum-platform/
+│   ├── assets/             # tray icon PNG
+│   ├── src/tray.rs         # tray menu model + tray-icon/KSNI glue, close-to-tray rule
+│   ├── src/hotkey.rs       # shortcut grammar, global-hotkey registration
+│   ├── src/notify.rs       # reminder notification text/id + notify-rust glue
+│   ├── src/instance.rs     # single instance socket and argv forwarding
+│   ├── src/deep_link.rs    # stratum:// parsing, route mapping, scheme registration
+│   ├── src/opener.rs       # reveal/open argv builders and process spawn
+│   ├── src/dragdrop.rs     # drop classification (page/asset/ignored)
+│   └── src/runtime.rs      # PlatformRuntime: backends, event channel, preference apply
 └── stratum-ui/
     ├── assets/             # embedded SVG icons, Inter faces, OFL notice
     ├── src/
     │   ├── lib.rs          # crate root, actions, init
     │   ├── main.rs         # binary entry point (1280×720 window), start-state flags
     │   ├── assets.rs       # embedded asset source + font registration
+    │   ├── platform/       # PlatformBridge: tray/shortcut/notification preferences, event drain
     │   ├── provider/
     │   │   ├── mod.rs      # ShellData seam and provider selection
     │   │   ├── assets.rs   # attachment/thumbnail seam
@@ -37,7 +48,8 @@ crates/
     │   │   └── tests.rs    # provider contract tests
     │   ├── router.rs       # routes, navigation, shortcuts, path codec
     │   ├── theme.rs        # shipped palette derivation mapped to gpui-kit
-    │   ├── shell/          # sidebar, footer, error/toaster chrome, reminder toaster, journal/page wiring
+    │   ├── shell/          # sidebar, footer, error/toaster chrome, reminder toaster, journal/page wiring,
+    │   │                   # platform bridge watch (shell/platform.rs), quick capture dialog (shell/quick_capture.rs)
     │   └── panels/         # panel bodies (journal, page, voice) and icon mapping
     │       ├── journal/    # JournalView: state, navigation, reload, dates, stack, header, calendar, rows, error
     │       ├── page/       # PageView: header, Note menu, move/delete dialogs, backlinks, suggestions, actions, state
@@ -83,7 +95,8 @@ logic: data comes from an `AppProvider` implementation.
 | `theme` | `ThemeConfig`, `derive_palette`, `apply_to_kit`, golden palette formulas |
 | `assets` | `StratumAssets` (icons + fonts), `register_fonts` |
 | `provider` | `ShellData`, `ShellSnapshot`, `FixtureProvider`, `provider_from_env`, asset seam (`provider/assets.rs`), journal seam (`provider/journal.rs`), page seam (`provider/page.rs`), voice seam (`provider/voice.rs`), settings seam (`provider/settings.rs`, `provider/app_settings.rs`, `provider/fixture/panels/settings.rs`) and the panel data seam (`provider/panels.rs`, `provider/app_panels.rs`, `provider/fixture/panels`) |
-| `shell` | header, sidebar, footer, error bar, toaster (`shell/reminder_toast.rs`: due-reminder polling, announce-once state and the toast open action), journal/page view wiring (`shell/page.rs`), search/query/ask/templates/flashcards/reminders/plugins/graph/whiteboards/settings panel wiring (`shell/panels.rs`) and start-state setters |
+| `shell` | header, sidebar, footer, error bar, toaster (`shell/reminder_toast.rs`: due-reminder polling, announce-once state and the toast open action), journal/page view wiring (`shell/page.rs`), search/query/ask/templates/flashcards/reminders/plugins/graph/whiteboards/settings panel wiring (`shell/panels.rs`), the platform bridge watch (`shell/platform.rs`: tray/shortcut/notification preferences, OS event drain, close hook, drop-to-open), the quick capture dialog (`shell/quick_capture.rs`) and start-state setters |
+| `platform` | `PlatformBridge` over `stratum_platform::PlatformRuntime`: localized tray labels, settings→preference mapping, reminder notification posting, capability reporting, inert bridge for tests/captures |
 | `panels` | panel body rendering and icon mapping; `panels/journal` (entity, state, navigation, reload, calendar/stack/read-mode surface), `panels/page` (entity, header, Note menu, move/delete dialogs, backlinks, suggestions, actions), `panels/search` (model, entity, result rows), `panels/query` (model, entity, builder rows, toolbar, dialogs, saved list, results), `panels/ask` (entity, answer card), `panels/templates` (entity, variable model, cards), `panels/flashcards` (session model, entity), `panels/reminders` (grouping/humanize model, entity, dialog), `panels/plugins` (entity, installed/directory/themes tabs, actions), `panels/graph` (entity, model, canvas input/letterbox, layout job, scene build, settings, toolbar), `panels/canvas` (gallery, editor, canvas, toolbar, library, actions, edit, model), `panels/settings` (entity, form/validation, inputs, actions, controls and the eight tab bodies) and `panels/voice` (capture stage machine and entity) |
 
 The provider seam is the only place the shell touches the service layer. The
@@ -126,6 +139,37 @@ metadata, two linked + one unlinked backlink, one snippet and two suggestions fo
 `pages/fixture.md`. The pure helpers (`normalize_move_path`, `group_backlinks`,
 `clamp_relevance`) live in `provider/page.rs` and are covered by window-free
 tests.
+
+### `stratum-platform`
+
+`stratum_platform` is the OS glue crate the shell drives through
+`stratum_ui::platform::PlatformBridge`. It replaces the seven Tauri plugins and
+the webview capabilities; `docs/guide/platform-integration.md` is the user-facing
+matrix.
+
+| Module | Responsibility |
+|--------|----------------|
+| `tray` | tray menu model (`open`, `quick_capture`, `voice_capture`, `sync_now`, `quit`, byte-identical to the shipped ids), close-to-tray rule, `tray-icon` glue (KSNI on Linux, Win32/macOS on the other desktops) |
+| `hotkey` | shortcut grammar and validation, `global-hotkey` registration and press polling |
+| `notify` | reminder notification text/id (`hash_block_id` matches the shipped `reminder_hash_to_i32`), `notify-rust` posting and activation |
+| `instance` | single-instance local socket, argv decoding and forwarding |
+| `deep_link` | `stratum://` parsing (`board`, `page`, `journal`), route mapping and scheme registration (`stratum.desktop` + `xdg-mime` on Linux, `HKCU\Software\Classes` on Windows) |
+| `opener` | reveal/open argv builders per OS family and the process spawn |
+| `dragdrop` | drop classification (`Page`/`Asset`/`Ignored`) against the vault root |
+| `runtime` | `PlatformRuntime`: backend construction, the event channel, preference application and `poll()` |
+
+The pure halves (menu layout, shortcut grammar, notification text, deep-link
+parsing, drop classification) build on every target so the Android host reuses
+them; only the OS halves sit behind `cfg(desktop)`. `stratum_ui::platform`
+localizes the tray labels from the catalogs, maps `SettingsDto` onto the runtime
+preferences, and exposes the event stream the shell drains once per render.
+
+The shell owns the behaviour: `shell/platform.rs` installs the close hook, drains
+the events (`ShowWindow`, `QuickCapture`, `SyncNow`, `Quit`, `ReminderOpen`,
+`DeepLink`), re-applies the preferences when the Settings panel's
+`saved_generation` moves, posts a notification per due reminder and opens a note
+dropped from the file manager. The Quick Capture dialog lives in
+`shell/quick_capture.rs` and writes through `ShellData::quick_capture_save`.
 
 ### Search
 
@@ -559,6 +603,9 @@ the sidebar and `Escape` dismisses the topmost overlay.
 | `STRATUM_SETTINGS_TAB=vault\|theme\|ai\|research\|developer\|sync\|tray\|notifications` | Select the settings tab |
 | `STRATUM_SETTINGS_CONFLICTS=1` | Seed merge conflicts for the settings sync tab |
 | `STRATUM_SETTINGS_COMMITS=1` | Expand the Developer tab commit log |
+| `STRATUM_QUICK_CAPTURE=1` | Open the Quick Capture dialog in text mode |
+| `STRATUM_QUICK_CAPTURE_VOICE=1` | Open the Quick Capture dialog in voice mode |
+| `STRATUM_DEEP_LINK=stratum://…` | Route a `stratum://` link on start-up |
 
 The start-state flags are applied by `apply_start_state` in `main.rs` and exist
 for the capture harness; they do not change the interactive behaviour of the
@@ -648,9 +695,9 @@ test. The script requires `Xvfb`, `xdotool` and ImageMagick's `import`. It is
 used by the GPUI CI workflow to publish a screenshot artifact, and is safe to
 run locally without a desktop session.
 
-`scripts/capture-gpui-panels.sh` captures forty-one states across the journal,
+`scripts/capture-gpui-panels.sh` captures forty-three states across the journal,
 page, search, query, Ask Notes, Templates, Flashcards, Reminders, Plugins, Graph,
-Whiteboards and Settings surfaces using the start-state flags:
+Whiteboards, Settings and Quick Capture surfaces using the start-state flags:
 
 ```bash
 ./scripts/capture-gpui-panels.sh
@@ -695,6 +742,8 @@ Whiteboards and Settings surfaces using the start-state flags:
 # → dist/gpui-settings-sync-conflicts.png (STRATUM_SETTINGS_TAB=sync STRATUM_SETTINGS_CONFLICTS=1)
 # → dist/gpui-settings-tray.png     (STRATUM_SETTINGS_TAB=tray)
 # → dist/gpui-settings-notifications.png (STRATUM_SETTINGS_TAB=notifications)
+# → dist/gpui-quick-capture.png     (STRATUM_ROUTE=/journal STRATUM_QUICK_CAPTURE=1)
+# → dist/gpui-quick-capture-voice.png (STRATUM_QUICK_CAPTURE_VOICE=1)
 ```
 
 The journal edit-mode capture is the parity reference for the shipped
