@@ -37,6 +37,11 @@
 //! - `STRATUM_QUICK_CAPTURE_VOICE=1` opens it in voice mode.
 //! - `STRATUM_DEEP_LINK=stratum://board/Name#element` routes a deep link on
 //!   start, exercising the same path a `stratum://` URL takes.
+//! - `STRATUM_MOBILE=1` opens the mobile shell (1080×2400) instead of the
+//!   desktop shell.
+//! - `STRATUM_MOBILE_MORE=1` opens the More sheet on start.
+//! - `STRATUM_INSETS=top,right,bottom,left,ime` overrides the platform
+//!   safe-area/IME insets for headless mobile captures.
 //!
 //! The OS glue (tray, global shortcut, notifications, single instance) is
 //! started before the window: a second launch forwards its argv to the running
@@ -114,7 +119,15 @@ fn main() {
             init(cx, &theme);
             install_shortcuts(cx);
 
-            let bounds = Bounds::new(point(px(0.0), px(0.0)), size(px(1280.0), px(720.0)));
+            // The mobile shell opens at the shipped Android capture size; the
+            // desktop shell keeps its 1280×720 default.
+            let mobile = env_flag("STRATUM_MOBILE");
+            let (width, height) = if mobile {
+                (1080.0, 2400.0)
+            } else {
+                (1280.0, 720.0)
+            };
+            let bounds = Bounds::new(point(px(0.0), px(0.0)), size(px(width), px(height)));
             let options = WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(bounds)),
                 titlebar: Some(TitlebarOptions {
@@ -125,7 +138,11 @@ fn main() {
             };
 
             match gpui_kit::open_window(options, cx, move |_window, cx| {
-                let mut shell = Shell::with_platform(Arc::clone(&provider), platform);
+                let mut shell = if mobile {
+                    Shell::with_platform_mobile(Arc::clone(&provider), platform)
+                } else {
+                    Shell::with_platform(Arc::clone(&provider), platform)
+                };
                 apply_start_state(&mut shell);
                 cx.new(|_| shell)
             }) {
@@ -290,6 +307,9 @@ fn apply_start_state(shell: &mut Shell) {
                 settings_open: graph_settings,
                 search: graph_search,
                 ticks: graph_ticks.unwrap_or(DEFAULT_TICKS),
+                // The mobile shell forces 2D when it creates the graph; the
+                // desktop shell keeps its 3D default.
+                use_3d: None,
             },
             canvas,
             settings: SettingsStart { tab: settings_tab },
@@ -332,6 +352,10 @@ fn apply_start_state(shell: &mut Shell) {
             Some(link) => shell.apply_deep_link(&link),
             None => log::warn!("ignoring unknown STRATUM_DEEP_LINK={link}"),
         }
+    }
+    // Applied last so the capture sees the sheet over the routed panel.
+    if shell.mobile() && env_flag("STRATUM_MOBILE_MORE") {
+        shell.mobile_set_more(true);
     }
 }
 

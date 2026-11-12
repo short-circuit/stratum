@@ -40,6 +40,8 @@
 
 /// Embedded shell assets, icon catalog and font registration.
 pub mod assets;
+/// Mobile shell layout: safe-area insets, bottom navigation and panel variants.
+pub mod mobile;
 /// Panel stubs hosted by the shell.
 pub mod panels;
 /// OS glue bridge: tray, global shortcut, notifications, single instance, deep links.
@@ -54,6 +56,7 @@ pub mod shell;
 pub mod theme;
 
 pub use assets::StratumAssets;
+pub use mobile::{MobileServices, NoopServices, MOBILE_I18N_KEYS};
 pub use panels::panel_view;
 pub use provider::{
     derive_recents, provider_from_env, AppProvider, FixtureProvider, RecentPage, ShellData,
@@ -68,7 +71,10 @@ pub use theme::{apply_to_kit, ThemeConfig};
 
 use gpui_kit::*;
 
-actions!(stratum, [ToggleReadMode, DismissOverlay, ToggleSidebar]);
+actions!(
+    stratum,
+    [ToggleReadMode, DismissOverlay, ToggleSidebar, MobileBack]
+);
 
 /// Install the shell theme and font faces.
 ///

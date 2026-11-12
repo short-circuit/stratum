@@ -22,17 +22,8 @@ use super::JournalView;
 /// Render the calendar popup.
 pub fn calendar_popup(view: &JournalView, cx: &mut Context<JournalView>) -> impl IntoElement {
     let theme = cx.theme();
-    let background = theme.colors.background;
     let panel = theme.colors.secondary;
     let border = theme.colors.border;
-    let foreground = theme.colors.foreground;
-    let muted = theme.colors.muted_foreground;
-    let accent = theme.colors.accent;
-    let accent_foreground = theme.colors.accent_foreground;
-
-    let (year, month) = view.view_month();
-    let grid = calendar_grid(year, month, view.journal_dates(), view.today());
-    let weeks = grid.as_ref().map(week_rows).unwrap_or_default();
 
     // Anchor under the header's calendar control on the right, matching the
     // shipped Popover's `anchorOrigin` (bottom-left of the trigger).
@@ -46,6 +37,28 @@ pub fn calendar_popup(view: &JournalView, cx: &mut Context<JournalView>) -> impl
         .bg(panel)
         .border_1()
         .border_color(border)
+        .child(calendar_body(view, cx))
+}
+
+/// Render the calendar content without the desktop popup positioning.
+///
+/// The mobile shell uses this inside a full-width bottom sheet, while
+/// [`calendar_popup`] wraps it in the desktop popover. Keeping the content
+/// separate means both surfaces share the month navigation, weekday header and
+/// day-cell behaviour.
+pub fn calendar_body(view: &JournalView, cx: &mut Context<JournalView>) -> impl IntoElement {
+    let theme = cx.theme();
+    let background = theme.colors.background;
+    let foreground = theme.colors.foreground;
+    let muted = theme.colors.muted_foreground;
+    let accent = theme.colors.accent;
+    let accent_foreground = theme.colors.accent_foreground;
+
+    let (year, month) = view.view_month();
+    let grid = calendar_grid(year, month, view.journal_dates(), view.today());
+    let weeks = grid.as_ref().map(week_rows).unwrap_or_default();
+
+    div()
         .flex()
         .flex_col()
         .gap(px(8.0))

@@ -128,6 +128,10 @@ pub struct JournalView {
     scroll: ScrollHandle,
     pending_scroll: Option<usize>,
     pending_navigation: Option<String>,
+    /// Whether the panel is hosted by the mobile shell. The mobile variant
+    /// renders the calendar as a full-width bottom sheet, so the desktop
+    /// popover must stay hidden.
+    mobile: bool,
 }
 
 impl JournalView {
@@ -192,12 +196,23 @@ impl JournalView {
             scroll: ScrollHandle::new(),
             pending_scroll: None,
             pending_navigation: None,
+            mobile: false,
         };
         view.rebuild_sections(HashMap::new());
         view.sync_stack(0.0, cx);
         let target = view.target_date.clone();
         view.focus_date(&target, cx);
         view
+    }
+}
+
+impl JournalView {
+    /// Mark the panel as hosted by the mobile shell.
+    ///
+    /// The mobile variant renders the calendar as a bottom sheet, so this hides
+    /// the desktop popover and keeps a single calendar on screen.
+    pub fn set_mobile(&mut self, mobile: bool) {
+        self.mobile = mobile;
     }
 }
 
@@ -251,7 +266,7 @@ impl Render for JournalView {
             )
             // Rendered last so the popup paints above the stacked sections,
             // mirroring the shipped MUI portal rather than sitting behind them.
-            .when(self.calendar_open, |element| {
+            .when(self.calendar_open && !self.mobile, |element| {
                 element.child(calendar::calendar_popup(self, cx))
             })
     }

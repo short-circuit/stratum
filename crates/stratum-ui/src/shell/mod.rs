@@ -12,7 +12,6 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use gpui_kit::component::ActiveTheme;
 use gpui_kit::prelude::*;
 use gpui_kit::*;
 use stratum_i18n::{t_global, tr_global};
@@ -30,14 +29,16 @@ use crate::panels::reminders::RemindersView;
 use crate::panels::search::SearchView;
 use crate::panels::settings::SettingsView;
 use crate::panels::templates::TemplatesView;
-use crate::panels::{panel_owns_header, panel_view, PanelEntities};
 use crate::provider::ShellData;
-use crate::router::{path_for, Panel, ShortcutAction};
+use crate::router::{Panel, ShortcutAction};
 
-use chrome::{error_bar, header, toast_overlay};
+use chrome::error_bar;
 
+mod accessors;
 mod chrome;
+mod desktop;
 mod footer;
+mod mobile;
 mod page;
 mod panels;
 mod platform;
@@ -148,6 +149,15 @@ pub struct Shell {
     /// OS events drained by the wake-up tick, applied on the next render (the
     /// tick has no window, and `activate_window` needs one).
     pending_platform: Vec<stratum_platform::PlatformEvent>,
+    /// Whether the mobile layout is active.
+    mobile: bool,
+    /// Host capabilities the mobile shell can request (mic, picker, notify,
+    /// clipboard, external links). Defaults to [`crate::mobile::NoopServices`].
+    mobile_services: Arc<dyn crate::mobile::MobileServices>,
+    /// Mobile navigation state: the back stack and the More sheet.
+    mobile_nav: crate::mobile::MobileNav,
+    /// Whether the mobile Settings tab accordion is expanded.
+    mobile_settings_open: bool,
 }
 
 impl Shell {
@@ -190,6 +200,10 @@ impl Shell {
             platform_settings_check: None,
             platform_watch_started: false,
             pending_platform: Vec::new(),
+            mobile: false,
+            mobile_services: Arc::new(crate::mobile::NoopServices),
+            mobile_nav: crate::mobile::MobileNav::default(),
+            mobile_settings_open: false,
         }
     }
 
@@ -206,48 +220,9 @@ impl Shell {
         shell
     }
 
-    /// The active panel.
-    pub fn active_panel(&self) -> Panel {
-        self.active
-    }
-
-    /// The vault-relative path of the page open in the editor stub.
-    pub fn current_page(&self) -> Option<&str> {
-        self.current_page.as_deref()
-    }
-
-    /// Whether the sidebar is collapsed to its icon rail.
-    pub fn sidebar_collapsed(&self) -> bool {
-        self.sidebar_collapsed
-    }
-
-    /// The current snapshot.
-    pub fn snapshot(&self) -> &crate::provider::ShellSnapshot {
-        &self.snapshot
-    }
-
-    /// Whether the page stub is in read mode.
-    pub fn read_mode(&self) -> bool {
-        self.read_mode
-    }
-
-    /// The current error-bar message, if any.
-    pub fn error(&self) -> Option<&str> {
-        self.error.as_deref()
-    }
-
-    /// The current route path, derived from the active panel and page.
-    pub fn route(&self) -> String {
-        path_for(self.active, self.current_page.as_deref())
-    }
-
-    /// The sidebar width for the current collapsed state.
-    pub fn sidebar_width(&self) -> f32 {
-        if self.sidebar_collapsed {
-            sidebar::COLLAPSED_WIDTH
-        } else {
-            sidebar::EXPANDED_WIDTH
-        }
+    /// Whether the Quick Capture dialog is open.
+    pub fn quick_capture_open(&self) -> bool {
+        self.quick_capture.is_open()
     }
 
     /// Navigate to a panel, clearing the page entity when leaving it.
@@ -436,8 +411,14 @@ impl Shell {
     }
 }
 
-impl Render for Shell {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+impl Shell {
+    /// Run the per-frame lifecycle shared by the desktop and mobile shells.
+    ///
+    /// This drains the platform event queue, opens a pending Quick Capture
+    /// dialog, creates the active panel entities and polls due reminders. Both
+    /// shells call it before laying out their chrome so the panel contract stays
+    /// identical.
+    pub(crate) fn begin_frame(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.platform.is_some() {
             self.install_platform_watch(window, cx);
             self.poll_platform(window, cx);
@@ -455,91 +436,31 @@ impl Render for Shell {
         self.sync_panels(window, cx);
         self.ensure_reminder_watch(cx);
         self.maybe_poll_reminders(cx);
-        let theme = cx.theme();
-        let background = theme.colors.background;
-        let foreground = theme.colors.foreground;
-        // The page, journal, search and query panels render their own header
-        // (title, path chip, mode controls), matching the shipped app where the
-        // routed panel owns the whole content column. The chrome header stays
-        // for panels that are still placeholders so navigation remains legible.
-        let panel_owns_header = panel_owns_header(self.active)
-            && match self.active {
-                Panel::Page => self.page.is_some(),
-                Panel::Journal => self.journal.is_some(),
-                Panel::Search => self.search.is_some(),
-                Panel::Query => self.query.is_some(),
-                Panel::AskNotes => self.ask.is_some(),
-                Panel::Templates => self.templates.is_some(),
-                Panel::Flashcards => self.flashcards.is_some(),
-                Panel::Reminders => self.reminders.is_some(),
-                Panel::Plugins => self.plugins.is_some(),
-                Panel::Graph => self.graph.is_some(),
-                Panel::Whiteboards => self.whiteboards.is_some(),
-                _ => false,
-            };
+    }
 
-        div()
-            .relative()
-            .flex()
-            .size_full()
-            .bg(background)
-            .text_color(foreground)
-            .on_action(cx.listener(|this, _: &crate::ToggleReadMode, _window, cx| {
-                this.toggle_read_mode();
-                cx.notify();
-            }))
-            .on_action(cx.listener(|this, _: &crate::DismissOverlay, _window, cx| {
-                this.dismiss_overlay();
-                cx.notify();
-            }))
-            .on_action(cx.listener(|this, _: &crate::ToggleSidebar, _window, cx| {
-                this.toggle_sidebar();
-                cx.notify();
-            }))
-            .on_drop::<ExternalPaths>(cx.listener(|this, paths: &ExternalPaths, _window, cx| {
-                // A note dropped anywhere outside a block opens that note;
-                // drops on a block stay with the editor's attachment import.
-                this.handle_drop(&paths.0, cx);
-            }))
-            .child(sidebar::sidebar(self, cx))
-            .child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .flex_1()
-                    .h_full()
-                    .overflow_hidden()
-                    .when(!panel_owns_header, |element| {
-                        element.child(header(self, cx))
-                    })
-                    .when(self.error.is_some(), |element| {
-                        element.child(error_bar(self, cx))
-                    })
-                    .child(div().flex_1().overflow_hidden().child(panel_view(
-                        self.active,
-                        self.current_page.as_deref(),
-                        PanelEntities {
-                            page: self.page.clone(),
-                            journal: self.journal.clone(),
-                            search: self.search.clone(),
-                            query: self.query.clone(),
-                            ask: self.ask.clone(),
-                            templates: self.templates.clone(),
-                            flashcards: self.flashcards.clone(),
-                            reminders: self.reminders.clone(),
-                            plugins: self.plugins.clone(),
-                            graph: self.graph.clone(),
-                            whiteboards: self.whiteboards.clone(),
-                            settings: self.settings.clone(),
-                        },
-                        cx,
-                    ))),
-            )
-            .when(self.toaster.toast.is_some(), |element| {
-                element.child(toast_overlay(self, cx))
-            })
-            .when(self.quick_capture.is_open(), |element| {
-                element.child(self.render_quick_capture(cx))
-            })
+    /// Render the error bar (shared by the desktop and mobile shells).
+    pub(crate) fn render_error_bar(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        error_bar(self, cx)
+    }
+
+    /// Render the success toaster at `bottom` logical pixels from the viewport
+    /// bottom (shared by the desktop and mobile shells).
+    pub(crate) fn render_toast_at(&self, cx: &mut Context<Self>, bottom: f32) -> impl IntoElement {
+        chrome::toast_overlay_at(self, cx, bottom)
+    }
+
+    /// Render the Quick Capture overlay (shared by both shells).
+    pub(crate) fn render_quick_capture_overlay(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        self.render_quick_capture(cx)
+    }
+}
+
+impl Render for Shell {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.begin_frame(window, cx);
+        if self.mobile {
+            return crate::mobile::render(self, window, cx).into_any_element();
+        }
+        self.render_desktop(cx)
     }
 }

@@ -145,12 +145,19 @@ impl GraphView {
             Ok(Some(row)) => {
                 let mut settings = GraphSettings::from_row(row);
                 // The shipped desktop panel always renders 3D and ignores the
-                // persisted flag (it is only consumed by the mobile variant), so
-                // keep the native 3D default when loading persisted settings.
-                settings.use_3d = true;
+                // persisted flag (it is only consumed by the mobile variant). A
+                // mobile start passes `Some(false)` so the graph opens in 2D;
+                // otherwise keep the native 3D default.
+                settings.use_3d = start.use_3d.unwrap_or(true);
                 settings
             }
-            _ => GraphSettings::default(),
+            _ => {
+                let mut settings = GraphSettings::default();
+                if let Some(use_3d) = start.use_3d {
+                    settings.use_3d = use_3d;
+                }
+                settings
+            }
         };
         let controls = settings::SettingsControls::new(&settings, cx);
         let view_mode = start.view_mode.unwrap_or(ViewMode::Full);

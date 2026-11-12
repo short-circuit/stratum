@@ -184,6 +184,9 @@ pub struct SettingsView {
     /// notification preferences without the settings panel having to know about
     /// the platform layer.
     saved_generation: u64,
+    /// Whether the panel is hosted by the mobile shell. The mobile variant
+    /// renders its own tab accordion, so the desktop tab rail is suppressed.
+    mobile: bool,
 }
 
 impl SettingsView {
@@ -246,6 +249,7 @@ impl SettingsView {
             pending_navigation: None,
             pending_toast: None,
             saved_generation: 0,
+            mobile: false,
         };
         view.sync_inputs(window, cx);
         view
@@ -253,6 +257,14 @@ impl SettingsView {
 }
 
 impl SettingsView {
+    /// Mark the panel as hosted by the mobile shell.
+    ///
+    /// The mobile variant renders its own tab accordion, so this hides the
+    /// desktop tab rail and keeps a single tab selector on screen.
+    pub fn set_mobile(&mut self, mobile: bool) {
+        self.mobile = mobile;
+    }
+
     /// Monotonic counter of applied settings changes.
     ///
     /// The shell compares it with its own copy and re-applies the platform
@@ -304,7 +316,9 @@ impl Render for SettingsView {
                     .overflow_y_scroll()
                     .p(px(24.0))
                     .gap(px(12.0))
-                    .child(controls::tab_bar(self, &palette, cx))
+                    .when(!self.mobile, |element| {
+                        element.child(controls::tab_bar(self, &palette, cx))
+                    })
                     .when_some(self.message.clone(), |element, message| {
                         element.child(controls::message_banner(
                             message,

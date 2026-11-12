@@ -103,7 +103,7 @@ mod tests {
 
     /// Every icon the shell embeds. Kept outside the test body so the test
     /// macro expansion stays shallow.
-    const SHELL_ICONS: [gpui_kit::assets::IconName; 22] = [
+    const SHELL_ICONS: [gpui_kit::assets::IconName; 24] = [
         gpui_kit::assets::IconName::Calendar,
         gpui_kit::assets::IconName::Network,
         gpui_kit::assets::IconName::ListChecks,
@@ -119,6 +119,8 @@ mod tests {
         gpui_kit::assets::IconName::Library,
         gpui_kit::assets::IconName::ChevronLeft,
         gpui_kit::assets::IconName::ChevronRight,
+        gpui_kit::assets::IconName::ChevronDown,
+        gpui_kit::assets::IconName::ChevronUp,
         gpui_kit::assets::IconName::RefreshCw,
         gpui_kit::assets::IconName::Upload,
         gpui_kit::assets::IconName::Plus,

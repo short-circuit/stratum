@@ -175,6 +175,9 @@ pub struct GraphStart {
     pub search: Option<String>,
     /// Simulation ticks before the first frame (`STRATUM_GRAPH_TICKS`).
     pub ticks: usize,
+    /// Force the 2D/3D camera mode. `None` keeps the desktop default (3D); the
+    /// mobile shell passes `Some(false)` so the graph starts in 2D.
+    pub use_3d: Option<bool>,
 }
 
 impl Default for GraphStart {
@@ -185,6 +188,7 @@ impl Default for GraphStart {
             settings_open: false,
             search: None,
             ticks: DEFAULT_TICKS,
+            use_3d: None,
         }
     }
 }

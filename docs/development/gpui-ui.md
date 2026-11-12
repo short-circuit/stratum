@@ -35,8 +35,9 @@ crates/
     ├── assets/             # embedded SVG icons, Inter faces, OFL notice
     ├── src/
     │   ├── lib.rs          # crate root, actions, init
-    │   ├── main.rs         # binary entry point (1280×720 window), start-state flags
+    │   ├── main.rs         # binary entry point (1280×720 desktop, 1080×2400 mobile), start-state flags
     │   ├── assets.rs       # embedded asset source + font registration
+    │   ├── mobile/         # mobile shell: safe-area frame, bottom nav, panel variants, MobileServices seam
     │   ├── platform/       # PlatformBridge: tray/shortcut/notification preferences, event drain
     │   ├── provider/
     │   │   ├── mod.rs      # ShellData seam and provider selection
@@ -49,7 +50,12 @@ crates/
     │   ├── router.rs       # routes, navigation, shortcuts, path codec
     │   ├── theme.rs        # shipped palette derivation mapped to gpui-kit
     │   ├── shell/          # sidebar, footer, error/toaster chrome, reminder toaster, journal/page wiring,
-    │   │                   # platform bridge watch (shell/platform.rs), quick capture dialog (shell/quick_capture.rs)
+    │   │                   # platform bridge watch (shell/platform.rs), quick capture dialog (shell/quick_capture.rs),
+    │   │                   # accessors (shell/accessors.rs), desktop layout (shell/desktop.rs),
+    │   │                   # mobile shell state (shell/mobile.rs)
+    │   ├── mobile/         # mobile layout: safe-area frame (mobile/insets.rs), bottom nav + More sheet + back
+    │   │                   # stack (mobile/nav.rs), host services seam (mobile/services.rs), one variant per
+    │   │                   # router::Panel (mobile/variants/)
     │   └── panels/         # panel bodies (journal, page, voice) and icon mapping
     │       ├── journal/    # JournalView: state, navigation, reload, dates, stack, header, calendar, rows, error
     │       ├── page/       # PageView: header, Note menu, move/delete dialogs, backlinks, suggestions, actions, state
@@ -95,7 +101,8 @@ logic: data comes from an `AppProvider` implementation.
 | `theme` | `ThemeConfig`, `derive_palette`, `apply_to_kit`, golden palette formulas |
 | `assets` | `StratumAssets` (icons + fonts), `register_fonts` |
 | `provider` | `ShellData`, `ShellSnapshot`, `FixtureProvider`, `provider_from_env`, asset seam (`provider/assets.rs`), journal seam (`provider/journal.rs`), page seam (`provider/page.rs`), voice seam (`provider/voice.rs`), settings seam (`provider/settings.rs`, `provider/app_settings.rs`, `provider/fixture/panels/settings.rs`) and the panel data seam (`provider/panels.rs`, `provider/app_panels.rs`, `provider/fixture/panels`) |
-| `shell` | header, sidebar, footer, error bar, toaster (`shell/reminder_toast.rs`: due-reminder polling, announce-once state and the toast open action), journal/page view wiring (`shell/page.rs`), search/query/ask/templates/flashcards/reminders/plugins/graph/whiteboards/settings panel wiring (`shell/panels.rs`), the platform bridge watch (`shell/platform.rs`: tray/shortcut/notification preferences, OS event drain, close hook, drop-to-open), the quick capture dialog (`shell/quick_capture.rs`) and start-state setters |
+| `shell` | header, sidebar, footer, error bar, toaster (`shell/reminder_toast.rs`: due-reminder polling, announce-once state and the toast open action), journal/page view wiring (`shell/page.rs`), search/query/ask/templates/flashcards/reminders/plugins/graph/whiteboards/settings panel wiring (`shell/panels.rs`), the platform bridge watch (`shell/platform.rs`: tray/shortcut/notification preferences, OS event drain, close hook, drop-to-open), the quick capture dialog (`shell/quick_capture.rs`), shared read-only accessors (`shell/accessors.rs`), the desktop layout (`shell/desktop.rs`) and the mobile shell state transitions (`shell/mobile.rs`: mobile constructors, host services, tab/More activation and the back stack) |
+| `mobile` | mobile layout: `MobileFrame`/`frame_for_window`/`STRATUM_INSETS` override (`mobile/insets.rs`), bottom nav + More sheet + back stack + touch-target contract (`mobile/nav.rs`), `MobileServices`/`NoopServices` host seam (`mobile/services.rs`) and one thin variant per `router::Panel` (`mobile/variants/`) |
 | `platform` | `PlatformBridge` over `stratum_platform::PlatformRuntime`: localized tray labels, settings→preference mapping, reminder notification posting, capability reporting, inert bridge for tests/captures |
 | `panels` | panel body rendering and icon mapping; `panels/journal` (entity, state, navigation, reload, calendar/stack/read-mode surface), `panels/page` (entity, header, Note menu, move/delete dialogs, backlinks, suggestions, actions), `panels/search` (model, entity, result rows), `panels/query` (model, entity, builder rows, toolbar, dialogs, saved list, results), `panels/ask` (entity, answer card), `panels/templates` (entity, variable model, cards), `panels/flashcards` (session model, entity), `panels/reminders` (grouping/humanize model, entity, dialog), `panels/plugins` (entity, installed/directory/themes tabs, actions), `panels/graph` (entity, model, canvas input/letterbox, layout job, scene build, settings, toolbar), `panels/canvas` (gallery, editor, canvas, toolbar, library, actions, edit, model), `panels/settings` (entity, form/validation, inputs, actions, controls and the eight tab bodies) and `panels/voice` (capture stage machine and entity) |
 
@@ -538,6 +545,107 @@ Behaviour notes:
   `export.no_current_page` because entering Settings clears the shell's current
   page.
 
+## Android host
+
+The mobile build is the same shell on a different platform layer. It is a
+workspace member plus a vendored dependency:
+
+```
+crates/stratum-mobile/
+├── src/lib.rs              # cfg(target_os = "android") module gate; empty stub for host builds
+├── src/android/mod.rs      # android_main entry: logger, panic hook, platform init, window bootstrap
+├── src/android/vault.rs    # vault location under the app documents dir + first-run creation
+├── src/android/services.rs # MobileServices impl over gpui-mobile packages (mic, picker, notify, clipboard, links)
+└── android/                # Gradle project: NativeActivity host, manifest, resources, jniLibs output
+vendor/gpui-mobile/         # patched gpui-mobile fork (see vendor/gpui-mobile/VENDOR.md)
+```
+
+`vendor/gpui-mobile` is excluded from the workspace. Upstream tracks
+`gpui-pre 0.3.6`; the fork pins `0.3.12` and `wgpu 30.0.1`, ports the API
+changes, and adds the mobile platform surface the host needs. Every patch is
+listed in its `VENDOR.md`; treat it as third-party code and keep the diff there
+documented.
+
+**Host activity.** `dev.gpui.mobile.GpuiActivity` (from the vendored example
+project, copied into `crates/stratum-mobile/android/app/src/main/java/`) is a
+`NativeActivity` subclass. It loads `libstratum_mobile.so` from the
+`android.app.lib_name` manifest placeholder, keeps a splash screen up until the
+first frame, and installs an invisible `EditText` input proxy so multistage IMEs
+(CJK composition, autocorrect) deliver text through an `InputConnection`
+instead of raw key events.
+
+**Safe areas.** The activity installs a `WindowInsets` listener and reports
+`safe_area` (`systemBars() | displayCutout()`) and `ime()` to Rust through
+`Java_dev_gpui_mobile_GpuiInputActivity_nativeInsets`. The fork converts the
+physical pixels to GPUI logical pixels and exposes them through
+`PlatformWindow::insets()`, which GPUI already routes into the window; the
+mobile shell lays out inside the platform safe-area edges and keeps the IME
+height separate (`mobile::insets::MobileFrame`). There are no hardcoded
+status-bar or gesture-bar paddings anywhere in the shell. `STRATUM_INSETS`
+overrides the values for headless captures only.
+
+**Lifecycle and back.** `nativeLifecycle` reports `Active`/`Inactive`/
+`Background`/`Foreground` to `Platform::on_app_lifecycle`; the shell flushes the
+open editor on `Background`. `nativeBack` invokes the window's back handler, so
+the Android back gesture pops sheets and returns to the previous destination.
+The host dispatches `stratum_ui::MobileBack`; `Shell::mobile_back` closes the
+More sheet or the Settings accordion first, then pops the navigation stack.
+
+**Mobile shell.** `crates/stratum-ui/src/mobile/` owns the layout:
+
+- `insets.rs` — `MobileFrame` (`top/right/bottom/left/ime`),
+  `frame_from_insets`, `frame_for_window` and the `STRATUM_INSETS` parser. The
+  safe-area edges and the keyboard height stay separate so the bottom bar sits
+  above the home indicator while the Ask composer raises above the IME.
+- `nav.rs` — the four bottom tabs (Journal / Search / Graph / More), the ten
+  More-sheet rows, the ≥44 px touch-target contract and the back stack.
+- `services.rs` — the `MobileServices` host seam (microphone permission,
+  dictation start/stop, file picker, notification, clipboard, external link)
+  with `NoopServices` for desktop and headless captures.
+- `variants/` — one wrapper per `router::Panel` that reuses the live desktop
+  entity (`sync_panels`, `sync_journal`, `sync_page`) and adds only the
+  mobile-specific chrome (journal calendar sheet, Ask IME padding, Query sticky
+  run action, Kanban placeholder, Settings tab accordion).
+
+`Shell::new_mobile` and `Shell::with_platform_mobile` select the layout;
+`Shell::set_mobile_services` installs the Android implementation; `Shell::new`
+keeps the desktop sidebar. The mobile render order is top inset → panel
+variant → error bar → toaster → bottom navigation → More sheet/Quick Capture
+overlays. `MOBILE_I18N_KEYS` is a release gate over all eight catalogs.
+
+**Building.**
+
+```bash
+export ANDROID_HOME="$HOME/Android/Sdk"
+export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.1.12297006"
+./scripts/build-android.sh            # arm64-v8a + x86_64, then assembleDebug
+./scripts/build-android.sh --install  # also adb install the APK
+```
+
+`cargo ndk` must target API 26 (`CARGO_NDK_PLATFORM=26`, which the script
+sets) so the ELF tag matches `minSdk = 26`; `vendor/gpui-mobile/build.rs`
+resolves the NDK sysroot per ABI. The Gradle project builds `com.stratum.app`
+with `minSdk = 26`, `targetSdk = 34` and `abiFilters = ["arm64-v8a", "x86_64"]`.
+
+**On-device verification.** The emulator path needs the GL backend because
+SwiftShader's Vulkan rejects the SPIR-V module:
+
+```bash
+adb shell setprop debug.stratum.gpu gl
+adb install -r crates/stratum-mobile/android/app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n com.stratum.app/dev.gpui.mobile.GpuiActivity
+adb logcat -s stratum        # platform init, vault path, window open
+adb exec-out screencap -p > mobile.png
+```
+
+The mobile surfaces are also reviewable without a device:
+`scripts/capture-gpui-mobile.sh` owns a private 1080×2400 Xvfb screen and
+renders the fixture with `STRATUM_MOBILE=1` and `STRATUM_INSETS=48,0,72,0,0`.
+It writes fifteen `dist/gpui-mobile-*.png` captures (journal, calendar, page,
+search, graph, More sheet, Ask Notes, Query, Templates, Flashcards, Kanban,
+Reminders, Whiteboards, Plugins and Settings) and fails unless every file is
+exactly 1080×2400. `STRATUM_MOBILE_MORE=1` opens the More sheet on start.
+
 ## Building and Running
 
 On Linux the shell links against xkbcommon and X11, so the development host
@@ -893,7 +1001,10 @@ The toaster dismisses manually or through `Escape`; there is no timer-based
 auto-dismiss yet. This is intentional for the E2 shell and is documented in
 `crates/stratum-ui/src/shell/mod.rs`.
 
-The shell is desktop-only. Mobile remains the React/Tauri application.
+The desktop shell remains the shipped React/Tauri reference; the native shell
+now ships both the desktop layout and the Android mobile layout described
+above. The mobile Kanban surface is still the empty-state placeholder until a
+live Kanban entity lands.
 
 ---
 
