@@ -38,6 +38,22 @@ mod tests {
     }
 
     #[test]
+    fn text_edit_exposes_the_edited_element_id() {
+        let mut canvas = CanvasState::new(BoardDocument::empty());
+        canvas.set_tool(Tool::Text);
+        let action = canvas.pointer_down(point(10.0, 10.0));
+        let CanvasAction::TextEditing(id) = action else {
+            panic!("text tool starts an edit");
+        };
+        assert_eq!(canvas.text_editing_id(), Some(id.as_str()));
+        assert!(canvas.text_editing().is_some());
+
+        canvas.cancel();
+        assert_eq!(canvas.text_editing_id(), None);
+        assert_eq!(canvas.text_editing(), None);
+    }
+
+    #[test]
     fn eraser_soft_deletes() {
         let mut canvas = CanvasState::new(BoardDocument::empty());
         canvas.set_tool(Tool::Rectangle);

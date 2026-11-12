@@ -10,6 +10,7 @@
 
 use std::sync::Arc;
 
+use gpui_kit::component::input::Input;
 use gpui_kit::prelude::*;
 use gpui_kit::*;
 use stratum_canvas::{
@@ -72,8 +73,8 @@ pub(super) fn canvas_element(view: &CanvasView, cx: &mut Context<CanvasView>) ->
         .overflow_hidden()
         .bg(background)
         .track_focus(view.focus())
-        .on_key_down(cx.listener(|view, event: &KeyDownEvent, _, cx| {
-            if view.key_down(event, cx) {
+        .on_key_down(cx.listener(|view, event: &KeyDownEvent, window, cx| {
+            if view.key_down(event, window, cx) {
                 cx.stop_propagation();
             }
         }))
@@ -117,6 +118,9 @@ pub(super) fn canvas_element(view: &CanvasView, cx: &mut Context<CanvasView>) ->
             .absolute()
             .inset_0(),
         )
+        .when_some(text_overlay_bounds(view), |element, bounds| {
+            element.child(text_overlay(view, bounds))
+        })
         .on_mouse_down(
             MouseButton::Left,
             cx.listener(|view, event: &MouseDownEvent, window, cx| {
@@ -137,9 +141,69 @@ pub(super) fn canvas_element(view: &CanvasView, cx: &mut Context<CanvasView>) ->
         }))
 }
 
+/// Compute the inline text input rect over the edited element, relative to the
+/// canvas element.
+///
+/// The world element rect is transformed through the same viewport transform
+/// the pointer handler uses, then mapped into window space through the
+/// letterbox geometry. The overlay is clamped to a usable minimum size.
+fn text_overlay_bounds(view: &CanvasView) -> Option<[f32; 4]> {
+    let session = view.session()?;
+    let state = session.state();
+    let id = state.text_editing_id()?;
+    let element = state.document().element(id)?;
+    let geometry = view.geometry().get();
+    let [_, _, image_width, image_height] = geometry.image;
+    if image_width <= f32::EPSILON || image_height <= f32::EPSILON {
+        return None;
+    }
+    let viewport = state.viewport();
+    let zoom = viewport.zoom as f32;
+    let scale_x = image_width / FRAME_WIDTH as f32;
+    let scale_y = image_height / FRAME_HEIGHT as f32;
+    let frame_x = element.x() as f32 * zoom + viewport.x as f32;
+    let frame_y = element.y() as f32 * zoom + viewport.y as f32;
+    let frame_width = element.width() as f32 * zoom;
+    let frame_height = element.height() as f32 * zoom;
+    let window_x = geometry.image[0] + frame_x * scale_x;
+    let window_y = geometry.image[1] + frame_y * scale_y;
+    Some([
+        window_x - geometry.window[0],
+        window_y - geometry.window[1],
+        (frame_width * scale_x).max(120.0),
+        (frame_height * scale_y).max(24.0),
+    ])
+}
+
+/// Build the absolutely positioned inline text input over the edited element.
+fn text_overlay(view: &CanvasView, bounds: [f32; 4]) -> impl IntoElement {
+    div()
+        .id("whiteboard-text-input")
+        .debug_selector(|| "whiteboard-text-input".to_string())
+        .absolute()
+        .left(px(bounds[0]))
+        .top(px(bounds[1]))
+        .w(px(bounds[2]))
+        .h(px(bounds[3]))
+        .bg(rgb(0xf8f9fa))
+        .rounded(px(2.0))
+        .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+        .child(Input::new(view.text_input()).appearance(false))
+}
+
 impl CanvasView {
     /// Handle a canvas press.
     fn mouse_down(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        // A canvas press ends any active inline edit before the canvas state
+        // machine runs, so a new text edit cannot replace the previous one
+        // before its blur commit arrives.
+        if self
+            .session
+            .as_ref()
+            .is_some_and(|session| session.state().text_editing().is_some())
+        {
+            self.commit_text_edit(Some(&mut *window), cx);
+        }
         window.focus(&self.focus, cx);
         let Some(pointer) = self.pointer_event(event.position, &event.modifiers) else {
             return;
@@ -152,7 +216,11 @@ impl CanvasView {
         } else {
             session.state_mut().pointer_down(pointer)
         };
+        let editing = matches!(action, CanvasAction::TextEditing(_));
         self.finish_pointer(action, cx);
+        if editing {
+            self.begin_text_input(window, cx);
+        }
     }
 
     /// Handle a canvas drag.
@@ -211,7 +279,12 @@ impl CanvasView {
     ///
     /// Returns whether the key was consumed so the shell shortcut handler does
     /// not see it.
-    fn key_down(&mut self, event: &KeyDownEvent, cx: &mut Context<Self>) -> bool {
+    fn key_down(
+        &mut self,
+        event: &KeyDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
         let key = event.keystroke.key.to_ascii_lowercase();
         let control = event.keystroke.modifiers.control || event.keystroke.modifiers.platform;
         if control {
@@ -248,10 +321,7 @@ impl CanvasView {
         }
         match key.as_str() {
             "escape" => {
-                if let Some(session) = self.session.as_mut() {
-                    session.state_mut().cancel();
-                }
-                self.rebuild_frame(cx);
+                self.cancel_text_edit(window, cx);
                 true
             }
             "delete" | "backspace" => {

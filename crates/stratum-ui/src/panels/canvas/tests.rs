@@ -12,8 +12,8 @@ use std::time::{Duration, Instant};
 
 use stratum_canvas::render::perf::stress_board;
 use stratum_canvas::{
-    Align, Axis, BoardDocument, BoardLink, Element, ElementKind, FillStyle, PreviewTheme, Style,
-    StylePatch, Tool,
+    Align, Axis, BoardDocument, BoardLink, CanvasAction, CanvasState, Element, ElementKind,
+    FillStyle, Modifiers, Point, PointerEvent, PreviewTheme, Style, StylePatch, Tool,
 };
 use stratum_i18n::{t, Locale};
 
@@ -27,6 +27,45 @@ fn provider() -> FixtureProvider {
 
 fn open(provider: &FixtureProvider, name: &str) -> EditorSession {
     GalleryModel::open(provider, name, PreviewTheme::Light).expect("fixture board opens")
+}
+
+#[test]
+fn text_tool_edits_inline_and_commits_or_cancels() {
+    let mut canvas = CanvasState::new(BoardDocument::empty());
+    canvas.set_tool(Tool::Text);
+    let point = Point::new(40.0, 40.0);
+    let action = canvas.pointer_down(PointerEvent {
+        point,
+        screen: point,
+        modifiers: Modifiers::default(),
+    });
+    assert!(matches!(action, CanvasAction::TextEditing(_)));
+    assert!(canvas.text_editing().is_some());
+    let id = canvas.text_editing_id().expect("edit id").to_string();
+
+    let action = canvas.update_text("Inline note");
+    assert_eq!(action, CanvasAction::TextEditing(id.clone()));
+    assert_eq!(canvas.text_editing(), Some("Inline note"));
+    let action = canvas.commit_text();
+    assert_eq!(action, CanvasAction::DocumentChanged);
+    assert!(canvas.text_editing().is_none());
+    let element = canvas.document().element(&id).expect("text element");
+    assert_eq!(element.kind(), ElementKind::Text);
+    assert_eq!(element.text().as_deref(), Some("Inline note"));
+
+    canvas.set_tool(Tool::Text);
+    let point = Point::new(200.0, 120.0);
+    canvas.pointer_down(PointerEvent {
+        point,
+        screen: point,
+        modifiers: Modifiers::default(),
+    });
+    let id = canvas.text_editing_id().expect("edit id").to_string();
+    canvas.update_text("Discard me");
+    let action = canvas.cancel();
+    assert_eq!(action, CanvasAction::DocumentChanged);
+    assert!(canvas.text_editing().is_none());
+    assert!(canvas.document().element(&id).is_none());
 }
 
 #[test]

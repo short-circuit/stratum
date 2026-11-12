@@ -394,6 +394,9 @@ Behaviour notes:
   (`preview` + `previewTheme`) and never writes a board that is not dirty.
 - Pan/zoom repaints from the cached `SceneCache::visible` set; the rough scene is rebuilt
   only when the document revision changes.
+- Text editing is inline through the gpui input overlay (IME-capable), positioned over the
+  edited element. Enter or blur commits the text, Escape cancels the edit and returns focus
+  to the canvas.
 - Exports use the document's raw colours and `viewBackgroundColor`; only the gallery
   thumbnail applies the shipped preview theme adaptation.
 - `canvas_perf --elements 5000 --frames 600` reports p95 0.063 ms for the per-frame

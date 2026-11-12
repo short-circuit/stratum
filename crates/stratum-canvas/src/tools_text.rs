@@ -16,6 +16,15 @@ impl CanvasState {
         self.text_edit.as_ref().map(|_| self.text_buffer.as_str())
     }
 
+    /// The id of the element currently being edited, if a text edit is active.
+    ///
+    /// The native panel uses this to position its inline text input over the
+    /// element's on-screen rect. Returns `None` when no text edit is in
+    /// progress.
+    pub fn text_editing_id(&self) -> Option<&str> {
+        self.text_edit.as_ref().map(|edit| edit.id.as_str())
+    }
+
     /// Update the live text buffer and the element's text.
     pub fn update_text(&mut self, text: &str) -> CanvasAction {
         let Some(edit) = self.text_edit.clone() else {

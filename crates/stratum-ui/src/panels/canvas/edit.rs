@@ -6,7 +6,7 @@ use std::time::Instant;
 
 use gpui_kit::prelude::*;
 use gpui_kit::*;
-use stratum_canvas::{Align, Axis, StylePatch, Tool};
+use stratum_canvas::{Align, Axis, CanvasAction, StylePatch, Tool};
 use stratum_i18n::t_global;
 
 use crate::provider::panels::LibraryItemRow;
@@ -14,12 +14,136 @@ use crate::provider::panels::LibraryItemRow;
 use super::{model, CanvasView, ExportFormat};
 
 impl CanvasView {
-    /// Select a tool.
+    /// Select a tool. An active inline text edit is committed first, matching
+    /// the canvas state's own `set_tool` contract.
     pub fn set_tool(&mut self, tool: Tool, cx: &mut Context<Self>) {
+        let editing = self
+            .session
+            .as_ref()
+            .is_some_and(|session| session.state().text_editing().is_some());
+        if editing {
+            self.commit_text_edit(None, cx);
+            // The tool buttons are not focusable, so the inline field would
+            // keep keyboard focus after its overlay disappears.
+            self.focus_canvas_later(cx);
+        }
         if let Some(session) = self.session.as_mut() {
             session.state_mut().set_tool(tool);
         }
+        self.rebuild_frame(cx);
         cx.notify();
+    }
+
+    /// Stream the inline text field into the active canvas text edit.
+    pub(crate) fn update_text_edit(&mut self, value: &str, cx: &mut Context<Self>) {
+        let Some(session) = self.session.as_mut() else {
+            return;
+        };
+        if session.state().text_editing().is_none() {
+            return;
+        }
+        let action = session.state_mut().update_text(value);
+        if matches!(action, CanvasAction::TextEditing(_)) {
+            session.note_edit(Instant::now());
+        }
+        self.rebuild_frame(cx);
+    }
+
+    /// Seed and focus the inline text field when a canvas text edit begins.
+    pub(crate) fn begin_text_input(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let value = self
+            .session
+            .as_ref()
+            .and_then(|session| session.state().text_editing())
+            .unwrap_or_default()
+            .to_string();
+        let input = self.text_input.clone();
+        input.update(cx, |input, cx| {
+            input.set_value(value, window, cx);
+            input.focus(window, cx);
+        });
+        cx.notify();
+    }
+
+    /// Commit the active inline text edit and schedule autosave.
+    ///
+    /// `window` is available from pointer/key handlers; input subscriptions
+    /// pass `None` because gpui has the window borrowed while dispatching the
+    /// event, so the field clear is deferred to the end of the effect cycle.
+    pub(crate) fn commit_text_edit(&mut self, window: Option<&mut Window>, cx: &mut Context<Self>) {
+        let action = {
+            let Some(session) = self.session.as_mut() else {
+                return;
+            };
+            let action = session.state_mut().commit_text();
+            if action == CanvasAction::DocumentChanged {
+                session.note_edit(Instant::now());
+            }
+            action
+        };
+        self.clear_text_input(window, cx);
+        self.rebuild_frame(cx);
+        if action == CanvasAction::DocumentChanged {
+            self.schedule_save(cx);
+        }
+        cx.notify();
+    }
+
+    /// Cancel the active inline text edit (Escape) and return focus to the
+    /// canvas.
+    pub(crate) fn cancel_text_edit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let action = {
+            let Some(session) = self.session.as_mut() else {
+                return;
+            };
+            let action = session.state_mut().cancel();
+            if action == CanvasAction::DocumentChanged {
+                session.note_edit(Instant::now());
+            }
+            action
+        };
+        self.clear_text_input(Some(&mut *window), cx);
+        window.focus(&self.focus, cx);
+        self.rebuild_frame(cx);
+        if action == CanvasAction::DocumentChanged {
+            self.schedule_save(cx);
+        }
+        cx.notify();
+    }
+
+    /// Return keyboard focus to the canvas after a committed edit.
+    ///
+    /// Input subscriptions run while gpui has the window borrowed, so this is
+    /// deferred to the end of the effect cycle.
+    pub(crate) fn focus_canvas_later(&self, cx: &mut Context<Self>) {
+        let focus = self.focus.clone();
+        cx.defer(move |cx| {
+            let Some(handle) = cx.active_window() else {
+                return;
+            };
+            let _ = cx.update_window(handle, move |_, window, cx| {
+                window.focus(&focus, cx);
+            });
+        });
+    }
+
+    /// Clear the inline text field without emitting another `Change` event.
+    fn clear_text_input(&mut self, window: Option<&mut Window>, cx: &mut Context<Self>) {
+        let input = self.text_input.clone();
+        if let Some(window) = window {
+            input.update(cx, |input, cx| input.set_value(String::new(), window, cx));
+            return;
+        }
+        // Subscriptions run while the window is borrowed out for dispatch;
+        // defer the clear until the effect cycle completes.
+        cx.defer(move |cx| {
+            let Some(handle) = cx.active_window() else {
+                return;
+            };
+            let _ = cx.update_window(handle, move |_, window, cx| {
+                input.update(cx, |input, cx| input.set_value(String::new(), window, cx));
+            });
+        });
     }
 
     /// Undo the last document mutation.

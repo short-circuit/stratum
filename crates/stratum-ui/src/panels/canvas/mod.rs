@@ -167,6 +167,8 @@ pub struct CanvasView {
     library_input: Entity<InputState>,
     library_value: String,
     _library_subscription: Subscription,
+    text_input: Entity<InputState>,
+    _text_subscription: Subscription,
     style_open: bool,
     focus: FocusHandle,
     save_generation: u64,
@@ -216,6 +218,28 @@ impl CanvasView {
                     cx.notify();
                 }
             });
+        // The inline text editor: Change streams the buffer into the active
+        // `CanvasState` text edit, Enter/Blur commits it, and Escape is handled
+        // by the canvas key listener so it can cancel through the canvas state.
+        let text_input = cx.new(|cx| InputState::new(window, cx));
+        let text_subscription =
+            cx.subscribe(
+                &text_input,
+                |this: &mut Self, input, event, cx| match event {
+                    InputEvent::Change => {
+                        let value = input.read(cx).value().to_string();
+                        this.update_text_edit(&value, cx);
+                    }
+                    InputEvent::PressEnter { .. } => {
+                        this.commit_text_edit(None, cx);
+                        this.focus_canvas_later(cx);
+                    }
+                    InputEvent::Blur => {
+                        this.commit_text_edit(None, cx);
+                    }
+                    InputEvent::Focus => {}
+                },
+            );
         let mut view = Self {
             provider,
             mode: WhiteboardMode::Gallery,
@@ -238,6 +262,8 @@ impl CanvasView {
             library_input,
             library_value: String::new(),
             _library_subscription: library_subscription,
+            text_input,
+            _text_subscription: text_subscription,
             style_open: start.style_open,
             focus: cx.focus_handle(),
             save_generation: 0,
@@ -318,6 +344,11 @@ impl CanvasView {
     /// The library item-name input.
     pub fn library_name_input(&self) -> &Entity<InputState> {
         &self.library_input
+    }
+
+    /// The inline canvas text input.
+    pub fn text_input(&self) -> &Entity<InputState> {
+        &self.text_input
     }
 
     /// The canvas letterbox geometry.

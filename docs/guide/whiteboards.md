@@ -18,7 +18,7 @@ last-saved state.
 2. Enter a name in the field at the top.
 3. Click **Create** — the board opens for editing.
 4. Boards auto-save about a second after you stop editing; the header shows
-   **Saving…** and then **Saved**.
+   **Unsaved** and then **Saved**.
 
 Boards live at:
 
@@ -44,23 +44,22 @@ your-vault/
 | Eraser | Delete elements under the stroke |
 | Frame | Draw a named frame that groups and clips its children |
 
-Snapping to the grid and to other elements' edges can be toggled in the toolbar; hold
-`Alt` to place an element freely. Zoom with the wheel (0.1×–30×) and use the toolbar
-zoom controls to fit the board.
+Snapping to the grid and to other elements' edges is on by default; hold `Alt` to place
+an element freely. Zoom with the wheel (0.1×–30×) and use the toolbar zoom controls to
+fit the board. The panel binds the tool keys (`v`, `h`, `r`, `d`, `o`, `a`, `l`, `p`,
+`t`, `e`, `f`), `Ctrl`/`Cmd` + `Z`/`Y`, copy/paste, select-all, `Delete` and `Esc`; the
+engine also implements group/ungroup, lock and z-order, which the crate tests cover.
 
 ### Editing shortcuts
 
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl`/`Cmd` + `Z` / `Shift` + `Ctrl`/`Cmd` + `Z` | Undo / redo |
+| `Ctrl`/`Cmd` + `Y` | Redo |
 | `Ctrl`/`Cmd` + `A` | Select all |
 | `Ctrl`/`Cmd` + `C` / `V` | Copy / paste the selection |
-| `Ctrl`/`Cmd` + `D` | Duplicate the selection |
-| `Ctrl`/`Cmd` + `G` / `Shift` + `G` | Group / ungroup |
 | `Delete` / `Backspace` | Delete the selection |
-| Arrow keys | Nudge the selection |
-| `Ctrl`/`Cmd` + `]` / `[` | Bring to front / send to back |
-| `Esc` | Cancel the current action or deselect |
+| `Esc` | Cancel the current action, commit-less text edit or deselect |
 
 The style panel edits stroke colour, background colour, fill style, stroke width and
 style, roughness, opacity and font size for the selection, and aligns or distributes
