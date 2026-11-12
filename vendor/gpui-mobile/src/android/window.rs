@@ -355,6 +355,14 @@ pub struct AndroidWindow {
     /// present an empty image (a black screen). One `force_render` frame
     /// repopulates it.
     force_render_once: Arc<std::sync::atomic::AtomicBool>,
+    /// The input callback installed through `PlatformWindow::on_input`.
+    ///
+    /// The platform window stores it here so gestures that originate on the
+    /// Java UI thread (`nativeBack` → [`AndroidWindow::request_back`]) can be
+    /// delivered to GPUI as platform input without a reference to the
+    /// `AndroidPlatformWindow`.
+    ime_input_callback:
+        Arc<Mutex<Box<dyn FnMut(gpui::PlatformInput) -> DispatchEventResult + Send>>>,
 }
 
 // SAFETY: `WindowState` is protected by a `Mutex`.
@@ -438,6 +446,7 @@ impl AndroidWindow {
             id,
             active: Arc::new(std::sync::atomic::AtomicBool::new(true)),
             force_render_once: Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            ime_input_callback: Arc::new(Mutex::new(Box::new(|_| DispatchEventResult::default()))),
         }))
     }
 
@@ -476,6 +485,7 @@ impl AndroidWindow {
             id: ((width as u64) << 32) | (height as u64),
             active: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             force_render_once: Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            ime_input_callback: Arc::new(Mutex::new(Box::new(|_| DispatchEventResult::default()))),
         })
     }
 
@@ -1100,17 +1110,36 @@ impl AndroidWindow {
         self.state.lock().display_changed_callback = Some(callback);
     }
 
-    /// Invoke the registered system back handler, if any.
+    /// Invoke the system back handler or deliver a committed back gesture.
     ///
     /// Called from `Java_dev_gpui_mobile_GpuiInputActivity_nativeBack`.
+    ///
+    /// A handler registered through `PlatformWindow::set_back_handler` wins.
+    /// When none is registered — the normal case, because gpui-pre drives back
+    /// navigation through `PlatformInput::BackGesture` rather than the handler
+    /// — a committed back gesture is delivered through the window input
+    /// callback, so elements that installed `on_back_gesture` receive it
+    /// exactly like an iOS edge swipe. The callback is `Send` and marshals onto
+    /// the gpui main thread internally, so calling it from the Java UI thread
+    /// is safe.
     pub fn request_back(&self) {
         let mut handler = self.state.lock().back_handler.take();
+        let handled = handler.is_some();
         if let Some(cb) = handler.as_mut() {
             cb();
         }
         if let Some(cb) = handler {
             self.state.lock().back_handler = Some(cb);
         }
+        if handled {
+            return;
+        }
+        let event = gpui::PlatformInput::BackGesture(gpui::BackGestureEvent {
+            phase: gpui::BackGesturePhase::Committed,
+            start_position: gpui::point(gpui::px(0.0), gpui::px(0.0)),
+            progress: 1.0,
+        });
+        (*self.ime_input_callback.lock())(event);
     }
 
     /// Fire the display-change callback after a configuration change.
@@ -1300,8 +1329,6 @@ pub struct AndroidPlatformWindow {
     window: Arc<AndroidWindow>,
     display: Option<Rc<dyn PlatformDisplay>>,
     input_handler: Rc<RefCell<Option<PlatformInputHandler>>>,
-    ime_input_callback:
-        Arc<Mutex<Box<dyn FnMut(gpui::PlatformInput) -> DispatchEventResult + Send>>>,
     title: String,
 }
 
@@ -1312,7 +1339,6 @@ impl AndroidPlatformWindow {
             window,
             display,
             input_handler: Rc::new(RefCell::new(None)),
-            ime_input_callback: Arc::new(Mutex::new(Box::new(|_| DispatchEventResult::default()))),
             title: String::new(),
         }
     }
@@ -1501,7 +1527,7 @@ impl PlatformWindow for AndroidPlatformWindow {
 
     fn on_request_frame(&self, callback: Box<dyn FnMut(RequestFrameOptions)>) {
         let input_handler = Rc::clone(&self.input_handler);
-        let input_callback = Arc::clone(&self.ime_input_callback);
+        let input_callback = Arc::clone(&self.window.ime_input_callback);
         let mut callback = callback;
         let callback: Box<dyn FnMut(RequestFrameOptions)> = Box::new(move |options| {
             super::text_input::drain(&input_handler, &mut **input_callback.lock());
@@ -1557,8 +1583,8 @@ impl PlatformWindow for AndroidPlatformWindow {
         // transmute is safe in practice.
         let send_callback: Box<dyn FnMut(gpui::PlatformInput) -> DispatchEventResult + Send> =
             unsafe { std::mem::transmute(callback) };
-        *self.ime_input_callback.lock() = send_callback;
-        let input_cb = Arc::clone(&self.ime_input_callback);
+        *self.window.ime_input_callback.lock() = send_callback;
+        let input_cb = Arc::clone(&self.window.ime_input_callback);
 
         // Preserve raw contacts so GPUI can arbitrate long presses, claimed
         // control drags and ordinary pans, including hover suppression and inertia.

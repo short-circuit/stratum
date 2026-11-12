@@ -61,7 +61,12 @@ and adds the callbacks the Android host needs.
    entry point divides by the window scale factor before building
    `gpui::WindowInsets` (safe area = `systemBars() | displayCutout()`, IME =
    `ime()`, zero corner radii). All three are safe no-ops before the platform
-   or primary window exists and are covered by unit tests.
+   or primary window exists and are covered by unit tests. `nativeBack` calls
+   `AndroidWindow::request_back`, which prefers a handler registered through
+   `PlatformWindow::set_back_handler` and otherwise delivers a committed
+   `gpui::PlatformInput::BackGesture` through the window input callback
+   (`gpui-pre` routes back navigation through element `on_back_gesture`
+   listeners, not the handler).
 10. **Java host activity.** `GpuiInputActivity` installs an
     `OnApplyWindowInsetsListener` (API 30+ `getInsets(systemBars() |
     displayCutout())` / `getInsets(ime())`; API 26-29 falls back to

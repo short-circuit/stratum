@@ -1522,7 +1522,6 @@ pub unsafe extern "C" fn Java_dev_gpui_mobile_GpuiInputActivity_nativeLifecycle(
     platform.notify_lifecycle(phase);
 }
 
-
 // ── JNI export for GpuiActivity splash screen ────────────────────────────────
 
 /// Called from `GpuiActivity.nativeIsInitialized()` to check whether the

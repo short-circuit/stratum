@@ -431,17 +431,19 @@ mod tests {
     fn refresh_interval_converts_reported_hertz() {
         let d = AndroidDisplay::headless(1080, 1920).with_refresh_hz(120.0);
         assert_eq!(d.refresh_hz(), Some(120.0));
+        assert_eq!(d.refresh_interval(), gpui::refresh_interval_from_hz(120.0));
         assert_eq!(
             d.refresh_interval(),
-            gpui::refresh_interval_from_hz(120.0)
+            Some(Duration::from_secs_f64(1.0 / 120.0))
         );
-        assert_eq!(d.refresh_interval(), Some(Duration::from_secs_f64(1.0 / 120.0)));
     }
 
     #[test]
     fn refresh_interval_rejects_invalid_rates() {
         assert_eq!(
-            AndroidDisplay::headless(0, 0).with_refresh_hz(0.0).refresh_interval(),
+            AndroidDisplay::headless(0, 0)
+                .with_refresh_hz(0.0)
+                .refresh_interval(),
             None
         );
         assert_eq!(
