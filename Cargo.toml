@@ -21,6 +21,7 @@ members = [
     "crates/stratum-app",
     "crates/stratum-i18n",
     "crates/stratum-ui",
+    "crates/stratum-platform",
     "crates/stratum-editor",
     "crates/stratum-graph",
     "crates/stratum-canvas",
