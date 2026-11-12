@@ -11,14 +11,26 @@
 //! app keeps running — the tray and the shortcut are conveniences, not
 //! requirements.
 
-use std::sync::mpsc::{channel, Receiver, Sender};
+#[cfg(desktop)]
+use std::sync::mpsc::Sender;
+use std::sync::mpsc::{channel, Receiver};
+#[cfg(desktop)]
 use std::time::Duration;
 
-use crate::hotkey::{HotkeyManager, DEFAULT_SHORTCUT};
+#[cfg(desktop)]
+use crate::hotkey::HotkeyManager;
+use crate::hotkey::DEFAULT_SHORTCUT;
+#[cfg(desktop)]
 use crate::instance::InstanceGuard;
-use crate::notify::{Notifier, ReminderNotice};
-use crate::tray::{TrayHandle, TrayIconImage, TrayLabels};
-use crate::{PlatformEvent, EVENT_POLL_INTERVAL_MS};
+#[cfg(desktop)]
+use crate::notify::Notifier;
+use crate::notify::ReminderNotice;
+#[cfg(desktop)]
+use crate::tray::TrayHandle;
+use crate::tray::{TrayIconImage, TrayLabels};
+use crate::PlatformEvent;
+#[cfg(desktop)]
+use crate::EVENT_POLL_INTERVAL_MS;
 
 /// The tray, shortcut and notification preferences the shell applies.
 ///

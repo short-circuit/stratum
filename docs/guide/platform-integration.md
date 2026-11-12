@@ -12,10 +12,23 @@ the webview-provided clipboard and drag-and-drop. The React app in `src/` and
 `src-tauri/` remains the frozen reference; both front ends behave the same way.
 
 > [!note]
-> Everything on this page is desktop-only. The Android host wires the same
-> capabilities through its own platform layer in the mobile phase; the shared
-> models (tray menu, shortcut validation, notification text, deep-link parsing,
-> drop classification) are already target-independent.
+> The desktop capabilities are documented here. The Android host wires the same
+> capability set through its own platform layer (`vendor/gpui-mobile` +
+> `crates/stratum-mobile`); see [Android app](android.md) and the
+> [Android host](../development/gpui-ui.md#android-host) developer notes. The
+> shared models (tray menu, shortcut validation, notification text, deep-link
+> parsing, drop classification) are target-independent.
+
+## Android capabilities
+
+| Capability | Implementation |
+|---|---|
+| Microphone (dictation, voice capture) | runtime `RECORD_AUDIO` request via the platform layer, then `AudioRecord` capture |
+| Reminder notifications | `NotificationManager` channel created on first use |
+| File picker (attachments, import) | Storage Access Framework picker, no storage permission |
+| `stratum://` deep links | intent filter on the host activity; the link routes through the shared parser |
+| Clipboard | Android clipboard service |
+| Safe areas, IME, lifecycle, back gesture | `WindowInsets` listener, `InputConnection` proxy, lifecycle callbacks (see the developer notes) |
 
 ## Capability matrix
 

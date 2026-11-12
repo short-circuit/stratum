@@ -14,6 +14,7 @@
 //! the process exits, which is exactly when the guard's job is over. Tests use
 //! unique instance names so they never contend.
 
+#[cfg(desktop)]
 use std::io::{Read, Write};
 use std::sync::mpsc::Sender;
 use std::thread::JoinHandle;

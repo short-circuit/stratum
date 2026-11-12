@@ -14,9 +14,13 @@ on:
       - 'crates/stratum-i18n/**'
       - 'crates/stratum-ui/**'
       - 'crates/stratum-editor/**'
+      - 'crates/stratum-mobile/**'
+      - 'vendor/gpui-mobile/**'
       - 'scripts/capture-gpui-shell.sh'
       - 'scripts/capture-gpui-panels.sh'
       - 'scripts/capture-gpui-editor-perf.sh'
+      - 'scripts/build-android.sh'
+      - 'scripts/capture-gpui-mobile.sh'
       - '.github/workflows/gpui-ci.yml'
       - '.github/actions/install-linux-deps/**'
       - 'Cargo.toml'
@@ -27,6 +31,10 @@ on:
       - 'crates/stratum-i18n/**'
       - 'crates/stratum-ui/**'
       - 'crates/stratum-editor/**'
+      - 'crates/stratum-mobile/**'
+      - 'vendor/gpui-mobile/**'
+      - 'scripts/build-android.sh'
+      - 'scripts/capture-gpui-mobile.sh'
       - 'scripts/capture-gpui-shell.sh'
       - 'scripts/capture-gpui-panels.sh'
       - 'scripts/capture-gpui-editor-perf.sh'
@@ -138,6 +146,9 @@ jobs:
       - name: Capture journal, page, search, query, ask, templates and flashcards panels
         run: ./scripts/capture-gpui-panels.sh
 
+      - name: Capture the mobile layout at 1080x2400
+        run: ./scripts/capture-gpui-mobile.sh
+
       - name: Upload screenshot artifact
         uses: actions/upload-artifact@v4
         with:
@@ -239,4 +250,91 @@ jobs:
         with:
           name: gpui-editor-perf
           path: .hermes/perf/editor-10k-frames.json
+          if-no-files-found: error
+
+      - name: Upload mobile screenshots artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-mobile-screenshots
+          path: dist/gpui-mobile-*.png
+          if-no-files-found: error
+
+  gpui-android:
+    name: gpui android host (ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy, rustfmt
+          cache: false
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Add Android targets
+        run: rustup target add aarch64-linux-android x86_64-linux-android
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        shell: bash
+        run: |
+          if [ -d /usr/local/lib/android/sdk ]; then
+            echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+            echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          fi
+          SDKMANAGER=$(find /usr/local/lib/android/sdk/cmdline-tools -name sdkmanager -type f 2>/dev/null | head -1 || true)
+          if [ -z "$SDKMANAGER" ]; then SDKMANAGER=$(command -v sdkmanager || true); fi
+          if [ -n "$SDKMANAGER" ]; then
+            echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+            yes | "$SDKMANAGER" --licenses >/dev/null || true
+          fi
+
+      - name: Install NDK
+        run: |
+          for NDK_VER in "27.1.12297006" "27.0.12077973"; do
+            if sdkmanager --install "ndk;${NDK_VER}" 2>/dev/null; then
+              NDK_PATH="$ANDROID_HOME/ndk/${NDK_VER}"
+              break
+            fi
+          done
+          : "${NDK_PATH:=$ANDROID_HOME/ndk/27.1.12297006}"
+          if [ ! -d "$NDK_PATH" ]; then
+            NDK_PATH=$(ls -d $ANDROID_HOME/ndk/* 2>/dev/null | sort -V | tail -1)
+          fi
+          echo "ANDROID_NDK_HOME=$NDK_PATH" >> "$GITHUB_ENV"
+
+      - name: Install cargo-ndk
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-ndk@4.1.2
+
+      - name: Install Linux dependencies
+        uses: ./.github/actions/install-linux-deps
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build the Android APK
+        run: ./scripts/build-android.sh
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stratum-android-apk
+          path: crates/stratum-mobile/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  AndroidManifest.xml for the Stratum Android host.
+
+  GpuiActivity extends NativeActivity and installs the vendored
+  GpuiInputActivity input proxy: safe-area/IME insets, the system back action
+  and lifecycle phases are reported to the Rust platform layer through JNI.
+
+  The `android.app.lib_name` meta-data tells NativeActivity which .so to
+  dlopen. It is injected from the `nativeLibraryName` manifest placeholder
+  (stratum_mobile) so the Java loader and the Gradle packaging stay in sync.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
+    <!-- Vulkan is preferred but optional: devices without it fall back to
+         OpenGL ES through wgpu's adapter probe. -->
+    <uses-feature
+        android:name="android.hardware.vulkan.level"
+        android:required="false"
+        android:version="0"
+    />
+    <uses-feature
+        android:name="android.hardware.vulkan.version"
+        android:required="false"
+        android:version="0x00401000"
+    />
+
+    <!-- GPU hardware acceleration is required for wgpu rendering. -->
+    <uses-feature android:glEsVersion="0x00030000" android:required="true" />
+
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false"
+    />
+
+    <application
+        android:allowBackup="false"
+        android:hardwareAccelerated="true"
+        android:largeHeap="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="Stratum"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/GpuiTheme"
+    >
+
+        <activity
+            android:name="dev.gpui.mobile.GpuiActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard|navigation|uiMode|density"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="unspecified"
+            android:theme="@style/GpuiSplashTheme"
+            android:windowSoftInputMode="adjustResize"
+        >
+
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="${nativeLibraryName}"
+            />
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- stratum:// deep links, routed into the shell's deep-link table. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="stratum" />
+            </intent-filter>
+        </activity>
+
+        <!-- Transparent helper Activity for the path picker. -->
+        <activity
+            android:name="dev.gpui.mobile.GpuiPathPicker"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard|navigation|uiMode|density"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+        />
+
+        <!-- Transparent helper Activity for file/image picker results. -->
+        <activity
+            android:name="dev.gpui.mobile.GpuiPickerActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+        />
+
+        <!-- Transparent helper Activity for runtime permission requests. -->
+        <activity
+            android:name="dev.gpui.mobile.GpuiPermissionActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+        />
+
+    </application>
+
+</manifest>

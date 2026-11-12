@@ -11,10 +11,12 @@
 //! newlines collapsed, prefixed by the page title when known, and capped at 200
 //! characters.
 
+#[cfg(desktop)]
 use std::sync::mpsc::Sender;
 
 use pkm_core::PkmResult;
 
+#[cfg(desktop)]
 use crate::PlatformEvent;
 
 /// The maximum number of characters in a notification body.

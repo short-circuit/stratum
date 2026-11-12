@@ -110,6 +110,7 @@ nav:
     - guide/localization.md
     - guide/settings.md
     - guide/platform-integration.md
+    - guide/android.md
     - guide/quick-capture.md
     - guide/mcp-server.md
   - CLI Reference:

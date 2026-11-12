@@ -12,6 +12,7 @@
 //! Quick Capture entry stays available either way. The shipped Tauri app had the
 //! same limitation because its plugin wraps the same crate.
 
+#[cfg(desktop)]
 use pkm_core::PkmResult;
 
 /// The shipped default binding.

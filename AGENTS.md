@@ -78,8 +78,11 @@ stratum/
 │   ├── stratum-editor/         # Headless block-editor engine: document, spans, state, undo, menus (no UI deps)
 │   ├── stratum-graph/          # Deterministic d3-force-3d physics, camera parity, headless wgpu 3D renderer + CPU fallback
 │   ├── stratum-i18n/           # Embedded locale catalogs, interpolation and parity gates (native shell)
+│   ├── stratum-mobile/         # Android host: NativeActivity entry, IME/insets/lifecycle glue, Gradle project (cargo ndk → libstratum_mobile.so)
 │   ├── stratum-platform/       # OS glue: tray, global shortcut, notifications, single instance, deep links, opener, drop classification
 │   └── stratum-ui/             # Native GPUI desktop shell (E2) on top of stratum-app
+├── vendor/
+│   └── gpui-mobile/            # Vendored gpui-pre Android/iOS platform layer (excluded from the workspace)
 ├── src/                        # React + TypeScript frontend
 │   ├── main.tsx                # App bootstrap, settings load
 │   ├── App.tsx                 # Root layout, routes, close handler
@@ -277,6 +280,7 @@ stratum-graph  →  pkm-core
 stratum-i18n   →  pkm-core
 stratum-platform →  pkm-core (desktop-only OS crates behind target cfgs: tray-icon, global-hotkey, notify-rust, interprocess)
 stratum-ui     →  gpui-kit (external), rodio (external), stratum-i18n, stratum-platform, stratum-app, stratum-editor, stratum-graph, stratum-canvas, pkm-core
+stratum-mobile →  stratum-ui, stratum-i18n, gpui-kit (external), gpui-mobile (vendored, Android-only), android-activity, android_logger, libc
 src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-dictation, pkm-plugin, stratum-app
 ```
 
@@ -612,6 +616,18 @@ frozen reference application and are never modified by shell work.
   field round-trip, validation matrix, theme fallback, fixture persistence,
   conflict resolution, tab env parsing and the `SETTINGS_I18N_KEYS` catalog gate
   without opening a window.
+- The native mobile shell lives in `crates/stratum-ui/src/mobile/`:
+  `insets.rs` (`MobileFrame` with top/right/bottom/left/ime, `frame_from_insets`,
+  `frame_for_window` and the `STRATUM_INSETS` capture override; safe-area edges
+  stay separate from the IME height), `nav.rs` (the four bottom tabs Journal /
+  Search / Graph / More, the ten-row More sheet, the ≥44 px touch-target contract
+  and the back stack), `services.rs` (the `MobileServices` host seam with
+  `NoopServices`) and `variants/` (one wrapper per `router::Panel` that reuses
+  the live desktop entities and adds only mobile chrome). `Shell::new_mobile` and
+  `Shell::with_platform_mobile` select the layout, `Shell::set_mobile_services`
+  installs the Android host implementation and `Shell::mobile_back` handles the
+  back gesture (`MobileBack` action). `MOBILE_I18N_KEYS` gates the mobile chrome
+  in every catalog.
 - `stratum-editor` is the headless block-editor engine the phase-B editor view
   renders (`DecoratedRow`s from `render`). It owns document canonicalization,
   inline spans, editing/undo/IME, slash and marker menus, wiki-link helpers,
@@ -651,8 +667,10 @@ frozen reference application and are never modified by shell work.
   `STRATUM_WHITEBOARD_TOOL`, `STRATUM_WHITEBOARD_LIBRARY`,
   `STRATUM_WHITEBOARD_STYLE`, `STRATUM_WHITEBOARD_TEXT`,
   `STRATUM_WHITEBOARD_EXPORT`, `STRATUM_SETTINGS_TAB`, `STRATUM_QUICK_CAPTURE`,
-  `STRATUM_QUICK_CAPTURE_VOICE` and `STRATUM_DEEP_LINK`; `STRATUM_REMINDER_TOAST=1`
-  makes the fixture report due reminders to the shell toaster.
+  `STRATUM_QUICK_CAPTURE_VOICE`, `STRATUM_DEEP_LINK`, `STRATUM_MOBILE`,
+  `STRATUM_MOBILE_MORE` and `STRATUM_INSETS`; `STRATUM_REMINDER_TOAST=1`
+  makes the fixture report due reminders to the shell toaster. `STRATUM_MOBILE=1`
+  opens the 1080×2400 mobile shell instead of the desktop shell.
 - `scripts/capture-gpui-shell.sh` renders the fixture shell on a private Xvfb
   screen and writes `dist/gpui-shell.png` (224 px sidebar) plus
   `dist/gpui-shell-collapsed.png` (52 px rail, `STRATUM_COLLAPSED=1`).
@@ -681,6 +699,12 @@ frozen reference application and are never modified by shell work.
   `dist/gpui-settings-tray.png` and `dist/gpui-settings-notifications.png`), and
   the Quick Capture dialog in text and voice mode (`dist/gpui-quick-capture.png`,
   `dist/gpui-quick-capture-voice.png`).
+- `scripts/capture-gpui-mobile.sh` owns a private 1080×2400 Xvfb screen and
+  performs fifteen mobile captures with `STRATUM_MOBILE=1` and
+  `STRATUM_INSETS=48,0,72,0,0`: journal, calendar, page, search, graph, More
+  sheet, Ask Notes, Query, Templates, Flashcards, Kanban, Reminders,
+  Whiteboards, Plugins and Settings (`dist/gpui-mobile-*.png`). The script fails
+  unless every PNG is exactly 1080×2400.
 - `crates/stratum-ui/tests/interaction_contract.rs` opens headless gpui windows
   to cover click propagation (snippet/voice chips), journal start scroll, the
   reminder block-open request, the toast open action and the plugins
@@ -689,6 +713,15 @@ frozen reference application and are never modified by shell work.
   fixture, prints frame/render timings and gates only on `render_p95_ms >
   18.18` (55 fps work budget); the JSON report lands in
   `.hermes/perf/editor-10k-frames.json`.
+- `crates/stratum-mobile` is the Android host. `android_main` boots the same
+  shell through the vendored `gpui-mobile` NativeActivity glue
+  (`dev.gpui.mobile.GpuiActivity`), `AndroidServices` implements
+  `stratum_ui::mobile::MobileServices` (microphone, file picker, notifications,
+  clipboard, URL opener), `StratumVault` resolves the on-device vault under the
+  app documents directory, and `scripts/build-android.sh` builds
+  `libstratum_mobile.so` for arm64-v8a + x86_64 and packages the debug APK. The
+  crate is a stub on non-Android hosts so the workspace gates stay green. See
+  `docs/development/gpui-ui.md#android-host`.
 - `.github/workflows/gpui-ci.yml` runs the GPUI format/build/test/clippy gates
   on Linux, Windows and macOS, publishes the screenshot and the editor perf
   report. The main `ci.yml` also has a `gpui-capture` job.
@@ -830,6 +863,7 @@ When in doubt, flag the dependency for review before adding it.
 | `crates/`, `src/`, `src-tauri/`, `e2e/`, `scripts/`, `nix/`, `deploy/`, `*` config | Real code, tests, tooling | ✅ yes |
 | `docs/` only `docs/guide/`, `docs/development/`, `docs/getting-started/`, `docs/advanced/`, `docs/cli/`, `docs/development/adr/`, `docs/index.md`, `docs/contributing.md`, `docs/announcement.md`, `docs/assets/`, `docs/landing/` | Shipped user/dev reference docs (each must be in a mkdocs nav entry or referenced by another shipped doc) | ✅ yes |
 | `verification/cdp_probe.mjs` | Reusable live-probe reference (cited by `docs/development/mobile-guide.md`) | ✅ yes (only file under `verification/`) |
+| `vendor/gpui-mobile/` | Vendored gpui-pre Android/iOS platform layer for the shell (excluded from the workspace; provenance and local patches in `vendor/gpui-mobile/VENDOR.md`) | ✅ yes |
 | `.hermes/` (plans, reports), `.omo/`, `.opencode/`, `.sisyphus/`, `.worktrees/`, `.screenshots/`, `e2e/**/.evidence/`, `verification/` (except cdp_probe), `docs/qa/`, `test-results/`, `dist/`, `target/`, `node_modules/` | Plans, QA reports, findings, audits, repros, evidence, screenshots, build output | ❌ never |
 
 **Rules:**
