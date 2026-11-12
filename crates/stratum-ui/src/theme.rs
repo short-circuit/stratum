@@ -333,7 +333,38 @@ impl Default for ThemeConfig {
     }
 }
 
+/// Whether `value` is a `#rgb` or `#rrggbb` hex colour.
+pub fn is_hex_color(value: &str) -> bool {
+    let Some(hex) = value.strip_prefix('#') else {
+        return false;
+    };
+    matches!(hex.len(), 3 | 6) && hex.chars().all(|c| c.is_ascii_hexdigit())
+}
+
 impl ThemeConfig {
+    /// Build a theme configuration from persisted settings.
+    ///
+    /// Invalid hex colours fall back to [`ThemeConfig::default`]'s values and a
+    /// zero font size resolves to the shipped 16 px default, so a corrupt
+    /// config cannot panic or produce a black palette.
+    pub fn from_settings(settings: &stratum_app::settings::ThemeSettingsDto) -> Self {
+        let fallback = Self::default();
+        Self {
+            primary_hex: if is_hex_color(&settings.primary_color) {
+                settings.primary_color.clone()
+            } else {
+                fallback.primary_hex
+            },
+            secondary_hex: if is_hex_color(&settings.secondary_color) {
+                settings.secondary_color.clone()
+            } else {
+                fallback.secondary_hex
+            },
+            dark: settings.dark_mode,
+            font_size: (settings.font_size > 0).then_some(settings.font_size as f32),
+        }
+    }
+
     /// Derive the palette for this configuration.
     pub fn palette(&self) -> Palette {
         derive_palette(&self.primary_hex, &self.secondary_hex, self.dark)
@@ -409,4 +440,41 @@ pub fn apply_to_kit(cx: &mut gpui::App, cfg: &ThemeConfig) {
     theme.font_size = px(base_font_size(cfg.font_size));
     theme.radius = px(RADIUS_BUTTON);
     theme.radius_lg = px(RADIUS_DIALOG);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ::core::prelude::v1::test;
+
+    #[test]
+    fn from_settings_keeps_valid_values() {
+        let settings = stratum_app::settings::ThemeSettingsDto {
+            dark_mode: false,
+            primary_color: "#f97316".to_string(),
+            secondary_color: "#6b7280".to_string(),
+            font_size: 18,
+        };
+        let config = ThemeConfig::from_settings(&settings);
+        assert_eq!(config.primary_hex, "#f97316");
+        assert_eq!(config.secondary_hex, "#6b7280");
+        assert!(!config.dark);
+        assert_eq!(config.font_size, Some(18.0));
+    }
+
+    #[test]
+    fn from_settings_falls_back_on_invalid_hex_and_zero_font_size() {
+        let settings = stratum_app::settings::ThemeSettingsDto {
+            dark_mode: true,
+            primary_color: "orange".to_string(),
+            secondary_color: "#12".to_string(),
+            font_size: 0,
+        };
+        let config = ThemeConfig::from_settings(&settings);
+        let fallback = ThemeConfig::default();
+        assert_eq!(config.primary_hex, fallback.primary_hex);
+        assert_eq!(config.secondary_hex, fallback.secondary_hex);
+        assert_eq!(config.font_size, None);
+        assert!(config.dark);
+    }
 }

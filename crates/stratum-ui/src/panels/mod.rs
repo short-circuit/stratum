@@ -23,6 +23,7 @@ pub mod plugins;
 pub mod query;
 pub mod reminders;
 pub mod search;
+pub mod settings;
 pub mod templates;
 pub mod voice;
 
@@ -36,6 +37,7 @@ use crate::panels::plugins::PluginsView;
 use crate::panels::query::QueryView;
 use crate::panels::reminders::RemindersView;
 use crate::panels::search::SearchView;
+use crate::panels::settings::SettingsView;
 use crate::panels::templates::TemplatesView;
 use crate::router::Panel;
 use crate::shell::Shell;
@@ -83,10 +85,10 @@ pub trait PanelRequests {
 /// Whether a panel type renders its own header instead of the shell chrome
 /// header.
 ///
-/// Page, Journal, Search, Query, Ask Notes, Templates, Flashcards, Reminders
-/// and Plugins own the full content column (title and controls), matching the
-/// shipped routed panels. The shell additionally gates on the live entity
-/// existing, so the placeholder fallback keeps a title.
+/// Page, Journal, Search, Query, Ask Notes, Templates, Flashcards, Reminders,
+/// Plugins, Settings and the canvas surfaces own the full content column (title
+/// and controls), matching the shipped routed panels. The shell additionally
+/// gates on the live entity existing, so the placeholder fallback keeps a title.
 pub fn panel_owns_header(panel: Panel) -> bool {
     matches!(
         panel,
@@ -101,6 +103,7 @@ pub fn panel_owns_header(panel: Panel) -> bool {
             | Panel::Plugins
             | Panel::Graph
             | Panel::Whiteboards
+            | Panel::Settings
     )
 }
 
@@ -151,6 +154,8 @@ pub struct PanelEntities {
     pub graph: Option<Entity<GraphView>>,
     /// Whiteboards entity.
     pub whiteboards: Option<Entity<CanvasView>>,
+    /// Settings entity.
+    pub settings: Option<Entity<SettingsView>>,
 }
 
 /// Render the active panel body.
@@ -217,6 +222,11 @@ pub fn panel_view(
     if panel == Panel::Whiteboards {
         if let Some(whiteboards) = entities.whiteboards {
             return div().size_full().child(whiteboards);
+        }
+    }
+    if panel == Panel::Settings {
+        if let Some(settings) = entities.settings {
+            return div().size_full().child(settings);
         }
     }
     let theme = cx.theme();
