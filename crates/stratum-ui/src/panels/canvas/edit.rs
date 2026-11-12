@@ -166,6 +166,46 @@ impl CanvasView {
         self.apply_edit(|session, now| session.duplicate_selection(now), cx);
     }
 
+    /// Group the selection under a fresh group id.
+    pub fn group_selection(&mut self, cx: &mut Context<Self>) {
+        self.apply_edit(|session, now| session.group_selection(now), cx);
+    }
+
+    /// Remove group membership from the selection.
+    pub fn ungroup_selection(&mut self, cx: &mut Context<Self>) {
+        self.apply_edit(|session, now| session.ungroup_selection(now), cx);
+    }
+
+    /// Toggle the locked flag on the selection.
+    pub fn toggle_lock_selection(&mut self, cx: &mut Context<Self>) {
+        self.apply_edit(|session, now| session.toggle_lock_selection(now), cx);
+    }
+
+    /// Move the selection to the top of the z-order.
+    pub fn bring_to_front(&mut self, cx: &mut Context<Self>) {
+        self.apply_edit(|session, now| session.bring_to_front(now), cx);
+    }
+
+    /// Move the selection to the bottom of the z-order.
+    pub fn send_to_back(&mut self, cx: &mut Context<Self>) {
+        self.apply_edit(|session, now| session.send_to_back(now), cx);
+    }
+
+    /// Move the selection one step forward in the z-order.
+    pub fn bring_forward(&mut self, cx: &mut Context<Self>) {
+        self.apply_edit(|session, now| session.bring_forward(now), cx);
+    }
+
+    /// Move the selection one step backward in the z-order.
+    pub fn send_backward(&mut self, cx: &mut Context<Self>) {
+        self.apply_edit(|session, now| session.send_backward(now), cx);
+    }
+
+    /// Nudge the selection by `(dx, dy)` world units.
+    pub fn nudge_selection(&mut self, dx: f64, dy: f64, cx: &mut Context<Self>) {
+        self.apply_edit(|session, now| session.nudge_selection(dx, dy, now), cx);
+    }
+
     /// Apply a style patch to the selection.
     pub fn apply_style(&mut self, patch: StylePatch, cx: &mut Context<Self>) {
         self.apply_edit(|session, now| session.set_style(&patch, now), cx);

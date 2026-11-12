@@ -52,6 +52,12 @@ pub struct CanvasStart {
     pub export: Option<ExportFormat>,
     /// Element id or frame name to focus after opening.
     pub element: Option<String>,
+    /// Whether the editor starts a fresh inline text edit on the board.
+    ///
+    /// Defaults to `false`; the capture harness sets it from
+    /// `STRATUM_WHITEBOARD_TEXT` so the inline overlay is visible without a
+    /// pointer interaction.
+    pub text_edit: bool,
 }
 
 impl CanvasStart {
@@ -71,6 +77,7 @@ impl CanvasStart {
                 .is_some_and(|value| matches!(value, "1" | "true")),
             export: target.param("export").and_then(ExportFormat::from_env),
             element: target.param("element").map(str::to_string),
+            text_edit: false,
         }
     }
 }

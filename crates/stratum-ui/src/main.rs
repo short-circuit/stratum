@@ -189,6 +189,7 @@ fn apply_start_state(shell: &mut Shell) {
     let whiteboard_element = std::env::var("STRATUM_WHITEBOARD_ELEMENT")
         .ok()
         .filter(|value| !value.is_empty());
+    let whiteboard_text = env_flag("STRATUM_WHITEBOARD_TEXT");
     let canvas = CanvasStart {
         board: whiteboard_board,
         tool: whiteboard_tool,
@@ -196,6 +197,7 @@ fn apply_start_state(shell: &mut Shell) {
         style_open: whiteboard_style,
         export: whiteboard_export,
         element: whiteboard_element,
+        text_edit: whiteboard_text,
     };
     let canvas_started = canvas != CanvasStart::default();
     if search.is_some()

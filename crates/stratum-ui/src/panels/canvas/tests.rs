@@ -375,6 +375,91 @@ fn whiteboard_keys_are_present_in_every_catalog_and_unique() {
 }
 
 #[test]
+fn selection_group_lock_zorder_and_nudge() {
+    fn element<'a>(session: &'a EditorSession, id: &str) -> &'a Element {
+        session.state().document().element(id).expect("element")
+    }
+
+    let mut session = EditorSession::empty("Selection edits", PreviewTheme::Light).expect("empty");
+    // Draw through the real pointer pipeline so the document, history and
+    // selection match what the editor produces.
+    for (tool, point) in [
+        (Tool::Rectangle, Point::new(40.0, 40.0)),
+        (Tool::Ellipse, Point::new(220.0, 80.0)),
+    ] {
+        session.state_mut().set_tool(tool);
+        let event = PointerEvent {
+            point,
+            screen: point,
+            modifiers: Modifiers::default(),
+        };
+        session.state_mut().pointer_down(event);
+        session.state_mut().pointer_up(event);
+    }
+    session.state_mut().select_all();
+    let ids = session.state().selection().to_vec();
+    assert_eq!(ids.len(), 2);
+
+    let now = Instant::now();
+    assert_eq!(session.group_selection(now), CanvasAction::DocumentChanged);
+    assert!(session.is_dirty());
+    let groups: Vec<Vec<String>> = ids
+        .iter()
+        .map(|id| element(&session, id).group_ids())
+        .collect();
+    assert!(groups.iter().all(|group| !group.is_empty()));
+    assert_eq!(groups[0], groups[1]);
+
+    assert_eq!(
+        session.ungroup_selection(now),
+        CanvasAction::DocumentChanged
+    );
+    assert!(session.is_dirty());
+    assert!(ids
+        .iter()
+        .all(|id| element(&session, id).group_ids().is_empty()));
+
+    assert_eq!(
+        session.toggle_lock_selection(now),
+        CanvasAction::DocumentChanged
+    );
+    assert!(session.is_dirty());
+    assert!(ids.iter().all(|id| element(&session, id).locked()));
+    // A fully locked selection cannot move and reports no change.
+    let locked_x = element(&session, &ids[0]).x();
+    assert_eq!(session.nudge_selection(1.0, 0.0, now), CanvasAction::None);
+    assert_eq!(element(&session, &ids[0]).x(), locked_x);
+
+    assert_eq!(
+        session.toggle_lock_selection(now),
+        CanvasAction::DocumentChanged
+    );
+    assert_eq!(
+        session.nudge_selection(1.0, 0.0, now),
+        CanvasAction::DocumentChanged
+    );
+    assert!(session.is_dirty());
+    assert_eq!(element(&session, &ids[0]).x(), locked_x + 1.0);
+
+    let index_of = |session: &EditorSession, id: &str| {
+        session
+            .state()
+            .document()
+            .elements()
+            .iter()
+            .position(|element| element.id() == id)
+            .expect("element")
+    };
+    session.state_mut().select_ids(&[ids[0].clone()]);
+    assert_eq!(session.bring_to_front(now), CanvasAction::DocumentChanged);
+    assert!(session.is_dirty());
+    assert_eq!(index_of(&session, &ids[0]), 1);
+    assert_eq!(session.send_to_back(now), CanvasAction::DocumentChanged);
+    assert!(session.is_dirty());
+    assert_eq!(index_of(&session, &ids[0]), 0);
+}
+
+#[test]
 fn tool_and_export_start_state_parse_from_env() {
     assert_eq!(super::tool_from_env("frame"), Some(Tool::Frame));
     assert_eq!(super::tool_from_env("nope"), None);

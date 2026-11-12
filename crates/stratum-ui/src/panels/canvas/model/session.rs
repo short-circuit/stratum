@@ -318,6 +318,58 @@ impl EditorSession {
         action
     }
 
+    /// Group the selection under a fresh group id.
+    pub fn group_selection(&mut self, now: Instant) -> CanvasAction {
+        let action = self.state.group_selection();
+        self.note_edit(now);
+        action
+    }
+
+    /// Remove group membership from the selection.
+    pub fn ungroup_selection(&mut self, now: Instant) -> CanvasAction {
+        let action = self.state.ungroup_selection();
+        self.note_edit(now);
+        action
+    }
+
+    /// Toggle the locked flag on the selection.
+    pub fn toggle_lock_selection(&mut self, now: Instant) -> CanvasAction {
+        let action = self.state.toggle_lock_selection();
+        self.note_edit(now);
+        action
+    }
+
+    /// Move the selection to the top of the z-order.
+    pub fn bring_to_front(&mut self, now: Instant) -> CanvasAction {
+        let action = self.state.bring_to_front();
+        self.note_edit(now);
+        action
+    }
+    /// Move the selection to the bottom of the z-order.
+    pub fn send_to_back(&mut self, now: Instant) -> CanvasAction {
+        let action = self.state.send_to_back();
+        self.note_edit(now);
+        action
+    }
+    /// Move the selection one step forward in the z-order.
+    pub fn bring_forward(&mut self, now: Instant) -> CanvasAction {
+        let action = self.state.bring_forward();
+        self.note_edit(now);
+        action
+    }
+    /// Move the selection one step backward in the z-order.
+    pub fn send_backward(&mut self, now: Instant) -> CanvasAction {
+        let action = self.state.send_backward();
+        self.note_edit(now);
+        action
+    }
+    /// Nudge the selection by `(dx, dy)` world units; locked elements are skipped.
+    pub fn nudge_selection(&mut self, dx: f64, dy: f64, now: Instant) -> CanvasAction {
+        let action = self.state.nudge_selection(dx, dy);
+        self.note_edit(now);
+        action
+    }
+
     /// Undo the last document mutation.
     pub fn undo(&mut self, now: Instant) -> CanvasAction {
         let action = self.state.undo();

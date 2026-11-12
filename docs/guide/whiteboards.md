@@ -47,8 +47,8 @@ your-vault/
 Snapping to the grid and to other elements' edges is on by default; hold `Alt` to place
 an element freely. Zoom with the wheel (0.1×–30×) and use the toolbar zoom controls to
 fit the board. The panel binds the tool keys (`v`, `h`, `r`, `d`, `o`, `a`, `l`, `p`,
-`t`, `e`, `f`), `Ctrl`/`Cmd` + `Z`/`Y`, copy/paste, select-all, `Delete` and `Esc`; the
-engine also implements group/ungroup, lock and z-order, which the crate tests cover.
+`t`, `e`, `f`), `Ctrl`/`Cmd` + `Z`/`Y`, copy/paste, select-all, `Delete` and `Esc`, plus
+the selection actions listed below.
 
 ### Editing shortcuts
 
@@ -58,8 +58,18 @@ engine also implements group/ungroup, lock and z-order, which the crate tests co
 | `Ctrl`/`Cmd` + `Y` | Redo |
 | `Ctrl`/`Cmd` + `A` | Select all |
 | `Ctrl`/`Cmd` + `C` / `V` | Copy / paste the selection |
+| `Ctrl`/`Cmd` + `D` | Duplicate the selection |
+| `Ctrl`/`Cmd` + `G` / `Shift` + `Ctrl`/`Cmd` + `G` | Group / ungroup the selection |
+| `Shift` + `Ctrl`/`Cmd` + `L` | Lock / unlock the selection (plain `L` selects the Line tool) |
+| `Ctrl`/`Cmd` + `]` / `Shift` + `Ctrl`/`Cmd` + `]` | Bring forward / bring to front |
+| `Ctrl`/`Cmd` + `[` / `Shift` + `Ctrl`/`Cmd` + `[` | Send backward / send to back |
+| `Arrow` keys / `Shift` + `Arrow` keys | Nudge the selection 1 / 10 world units |
 | `Delete` / `Backspace` | Delete the selection |
 | `Esc` | Cancel the current action, commit-less text edit or deselect |
+
+With the **Text** tool, clicking the canvas opens an inline text editor over the new
+element. Enter or leaving the field commits the text; Escape cancels the edit and
+discards a newly created empty text element.
 
 The style panel edits stroke colour, background colour, fill style, stroke width and
 style, roughness, opacity and font size for the selection, and aligns or distributes

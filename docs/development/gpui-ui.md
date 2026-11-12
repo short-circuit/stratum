@@ -396,7 +396,13 @@ Behaviour notes:
   only when the document revision changes.
 - Text editing is inline through the gpui input overlay (IME-capable), positioned over the
   edited element. Enter or blur commits the text, Escape cancels the edit and returns focus
-  to the canvas.
+  to the canvas. `STRATUM_WHITEBOARD_TEXT=1` opens a fresh edit on the framed fixture board
+  so `dist/gpui-whiteboard-text.png` captures the overlay.
+- The editor key map extends the tool keys with `Ctrl`/`Cmd` + `D` (duplicate), `G`
+  (group/ungroup with Shift), `Shift` + `L` (lock toggle; plain `L` stays the Line tool),
+  `]`/`[` (bring/send one step, with Shift to front/back) and the arrow keys (nudge 1 world
+  unit, 10 with Shift). Every handled key returns consumed so the shell shortcuts never see
+  it.
 - Exports use the document's raw colours and `viewBackgroundColor`; only the gallery
   thumbnail applies the shipped preview theme adaptation.
 - `canvas_perf --elements 5000 --frames 600` reports p95 0.063 ms for the per-frame
@@ -416,7 +422,7 @@ Behaviour notes:
 Start flags for captures and manual checks: `STRATUM_WHITEBOARD=<name>`,
 `STRATUM_WHITEBOARD_ELEMENT=<frame-or-id>`, `STRATUM_WHITEBOARD_TOOL=<tool>`,
 `STRATUM_WHITEBOARD_LIBRARY=1`, `STRATUM_WHITEBOARD_STYLE=1`,
-`STRATUM_WHITEBOARD_EXPORT=svg|png`.
+`STRATUM_WHITEBOARD_TEXT=1`, `STRATUM_WHITEBOARD_EXPORT=svg|png`.
 
 ## Building and Running
 

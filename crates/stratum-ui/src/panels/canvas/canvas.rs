@@ -64,6 +64,7 @@ pub(super) fn render_image(frame: &ViewportFrame) -> Option<Arc<RenderImage>> {
 pub(super) fn canvas_element(view: &CanvasView, cx: &mut Context<CanvasView>) -> impl IntoElement {
     let geometry = view.geometry();
     let image = view.frame_image();
+    let entity_id = cx.entity_id();
     let background = rgb(0xf8f9fa);
     div()
         .id("whiteboard-canvas")
@@ -81,7 +82,7 @@ pub(super) fn canvas_element(view: &CanvasView, cx: &mut Context<CanvasView>) ->
         .child(
             canvas(
                 move |bounds, _, _| bounds,
-                move |bounds, _, window, _| {
+                move |bounds, _, window, cx| {
                     let width = bounds.size.width.as_f32();
                     let height = bounds.size.height.as_f32();
                     let scale = (width / FRAME_WIDTH as f32).min(height / FRAME_HEIGHT as f32);
@@ -89,6 +90,7 @@ pub(super) fn canvas_element(view: &CanvasView, cx: &mut Context<CanvasView>) ->
                     let frame_height = FRAME_HEIGHT as f32 * scale;
                     let frame_x = bounds.origin.x.as_f32() + (width - frame_width) * 0.5;
                     let frame_y = bounds.origin.y.as_f32() + (height - frame_height) * 0.5;
+                    let previous = geometry.get();
                     geometry.set(CanvasGeometry {
                         window: [
                             bounds.origin.x.as_f32(),
@@ -98,6 +100,13 @@ pub(super) fn canvas_element(view: &CanvasView, cx: &mut Context<CanvasView>) ->
                         ],
                         image: [frame_x, frame_y, frame_width, frame_height],
                     });
+                    // The first paint populates the letterbox geometry the inline
+                    // text overlay measures against; request one follow-up frame so
+                    // a start-state text edit becomes visible without a pointer
+                    // interaction.
+                    if previous.image[2] <= f32::EPSILON && frame_width > f32::EPSILON {
+                        cx.notify(entity_id);
+                    }
                     let Some(image) = image else {
                         return;
                     };
@@ -316,10 +325,65 @@ impl CanvasView {
                     self.rebuild_frame(cx);
                     return true;
                 }
+                "d" => {
+                    self.duplicate_selection(cx);
+                    return true;
+                }
+                "g" => {
+                    if event.keystroke.modifiers.shift {
+                        self.ungroup_selection(cx);
+                    } else {
+                        self.group_selection(cx);
+                    }
+                    return true;
+                }
+                "l" => {
+                    // Shift+`l` toggles the lock; plain `l` falls through to the
+                    // Line tool shortcut below.
+                    if event.keystroke.modifiers.shift {
+                        self.toggle_lock_selection(cx);
+                        return true;
+                    }
+                }
+                "]" | "}" => {
+                    // A shifted bracket arrives as `}` on layouts that remap
+                    // the glyph, so treat the brace as the shift variant too.
+                    let shift = event.keystroke.modifiers.shift || key == "}";
+                    if shift {
+                        self.bring_to_front(cx);
+                    } else {
+                        self.bring_forward(cx);
+                    }
+                    return true;
+                }
+                "[" | "{" => {
+                    let shift = event.keystroke.modifiers.shift || key == "{";
+                    if shift {
+                        self.send_to_back(cx);
+                    } else {
+                        self.send_backward(cx);
+                    }
+                    return true;
+                }
                 _ => {}
             }
         }
         match key.as_str() {
+            "arrowup" | "arrowdown" | "arrowleft" | "arrowright" => {
+                let step = if event.keystroke.modifiers.shift {
+                    10.0
+                } else {
+                    1.0
+                };
+                let (dx, dy) = match key.as_str() {
+                    "arrowup" => (0.0, -step),
+                    "arrowdown" => (0.0, step),
+                    "arrowleft" => (-step, 0.0),
+                    _ => (step, 0.0),
+                };
+                self.nudge_selection(dx, dy, cx);
+                true
+            }
             "escape" => {
                 self.cancel_text_edit(window, cx);
                 true

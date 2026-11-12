@@ -22,6 +22,7 @@ use gpui_kit::component::input::{InputEvent, InputState};
 use gpui_kit::component::ActiveTheme;
 use gpui_kit::prelude::*;
 use gpui_kit::*;
+use stratum_canvas::{Modifiers, Point, PointerEvent, Tool};
 use stratum_i18n::t_global;
 
 use crate::panels::PanelRequests;
@@ -272,9 +273,26 @@ impl CanvasView {
             start_export: start.export,
             start_element: start.element.clone(),
         };
+        let start_text_edit = start.text_edit;
         view.reload_gallery(cx);
         if let Some(board) = start.board {
             view.open_board(&board, start.tool, window, cx);
+        }
+        // Capture/start-state hook: open a fresh inline text edit so the
+        // overlay is visible without a pointer interaction. The mode and
+        // session guards keep the gallery and failed opens inert.
+        if start_text_edit && view.mode == WhiteboardMode::Editor {
+            if let Some(session) = view.session.as_mut() {
+                session.state_mut().set_tool(Tool::Text);
+                let point = Point::new(60.0, 40.0);
+                session.state_mut().pointer_down(PointerEvent {
+                    point,
+                    screen: point,
+                    modifiers: Modifiers::default(),
+                });
+            }
+            view.rebuild_frame(cx);
+            view.begin_text_input(window, cx);
         }
         if view.library_open {
             view.reload_library(cx);

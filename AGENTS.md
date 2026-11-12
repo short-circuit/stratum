@@ -559,7 +559,7 @@ frozen reference application and are never modified by shell work.
   | Flashcards | `panels/flashcards` | `flashcards`, `review_card` | `dist/gpui-flashcards.png`, `dist/gpui-flashcards-answer.png` |
   | Reminders | `panels/reminders` | `reminders`, `due_reminders`, `snooze_reminder`, `clear_reminder`, `set_reminder` | `dist/gpui-reminders.png`, `dist/gpui-reminders-dialog.png`, `dist/gpui-reminder-toast.png` |
   | Plugins | `panels/plugins` | `plugins`, `set_plugin_enabled`, `reload_plugin`, `uninstall_plugin`, `install_plugin_path`, `install_plugin_url`, `plugin_note_read`, `plugin_http_request`, `plugin_catalog`, `theme_catalog`, `installed_themes`, `install_theme`, `apply_theme`, `uninstall_theme` | `dist/gpui-plugins.png`, `dist/gpui-plugins-directory.png`, `dist/gpui-plugins-themes.png` |
-  | Whiteboards | `panels/canvas` | `whiteboards`, `load_whiteboard`, `save_whiteboard`, `create_whiteboard`, `rename_whiteboard`, `delete_whiteboards`, `whiteboard_library`, `save_whiteboard_library`, `write_canvas_export` | `dist/gpui-whiteboards.png`, `dist/gpui-whiteboard-editor.png`, `dist/gpui-whiteboard-library.png`, `dist/gpui-whiteboard-style.png` |
+  | Whiteboards | `panels/canvas` | `whiteboards`, `load_whiteboard`, `save_whiteboard`, `create_whiteboard`, `rename_whiteboard`, `delete_whiteboards`, `whiteboard_library`, `save_whiteboard_library`, `write_canvas_export` | `dist/gpui-whiteboards.png`, `dist/gpui-whiteboard-editor.png`, `dist/gpui-whiteboard-library.png`, `dist/gpui-whiteboard-style.png`, `dist/gpui-whiteboard-text.png` |
   | Graph | `panels/graph` | `graph_panel_data` | `dist/gpui-graph.png`, `dist/gpui-graph-component.png`, `dist/gpui-graph-settings.png` |
 
 - The native whiteboards surface lives in `crates/stratum-ui/src/panels/canvas/`:
@@ -613,12 +613,13 @@ frozen reference application and are never modified by shell work.
   `STRATUM_GRAPH_COMPONENT`, `STRATUM_GRAPH_SETTINGS`, `STRATUM_GRAPH_SEARCH`,
   `STRATUM_GRAPH_TICKS`, `STRATUM_WHITEBOARD`, `STRATUM_WHITEBOARD_ELEMENT`,
   `STRATUM_WHITEBOARD_TOOL`, `STRATUM_WHITEBOARD_LIBRARY`,
-  `STRATUM_WHITEBOARD_STYLE` and `STRATUM_WHITEBOARD_EXPORT`; `STRATUM_REMINDER_TOAST=1`
-  makes the fixture report due reminders to the shell toaster.
+  `STRATUM_WHITEBOARD_STYLE`, `STRATUM_WHITEBOARD_TEXT` and
+  `STRATUM_WHITEBOARD_EXPORT`; `STRATUM_REMINDER_TOAST=1` makes the fixture report
+  due reminders to the shell toaster.
 - `scripts/capture-gpui-shell.sh` renders the fixture shell on a private Xvfb
   screen and writes `dist/gpui-shell.png` (224 px sidebar) plus
   `dist/gpui-shell-collapsed.png` (52 px rail, `STRATUM_COLLAPSED=1`).
-- `scripts/capture-gpui-panels.sh` performs thirty-one captures: the journal
+- `scripts/capture-gpui-panels.sh` performs thirty-two captures: the journal
   surface in edit mode, with the calendar expanded and on a past day in read mode
   (`dist/gpui-journal.png`, `dist/gpui-journal-calendar.png`,
   `dist/gpui-journal-read.png`), the fixture page in edit/read mode with the
@@ -632,9 +633,10 @@ frozen reference application and are never modified by shell work.
   Graph surface with the full fixture graph, the component view and the
   settings panel (`dist/gpui-graph.png`, `dist/gpui-graph-component.png`,
   `dist/gpui-graph-settings.png`), and the Whiteboards surface with the
-  fixture gallery, the framed board in the editor, the library drawer and the
-  style panel (`dist/gpui-whiteboards.png`, `dist/gpui-whiteboard-editor.png`,
-  `dist/gpui-whiteboard-library.png`, `dist/gpui-whiteboard-style.png`).
+  fixture gallery, the framed board in the editor, the library drawer, the
+  style panel and the inline text-edit overlay (`dist/gpui-whiteboards.png`,
+  `dist/gpui-whiteboard-editor.png`, `dist/gpui-whiteboard-library.png`,
+  `dist/gpui-whiteboard-style.png`, `dist/gpui-whiteboard-text.png`).
 - `crates/stratum-ui/tests/interaction_contract.rs` opens headless gpui windows
   to cover click propagation (snippet/voice chips), journal start scroll, the
   reminder block-open request, the toast open action and the plugins

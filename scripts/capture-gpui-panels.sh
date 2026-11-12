@@ -5,7 +5,7 @@
 # The shell is started with STRATUM_FIXTURE=1 so the capture is deterministic
 # and needs no vault. When no DISPLAY is set the script starts a private Xvfb
 # screen, waits for the window to map, and captures the root window with
-# ImageMagick. Thirty-one states are captured:
+# ImageMagick. Thirty-two states are captured:
 #
 #   1. the journal route in edit mode
 #   2. the journal route with the calendar popup expanded (STRATUM_CALENDAR=1)
@@ -59,6 +59,8 @@
 #      (… STRATUM_WHITEBOARD_LIBRARY=1)
 #  31. the whiteboard editor with the style panel open
 #      (… STRATUM_WHITEBOARD_STYLE=1)
+#  32. the whiteboard editor with an inline text edit overlay open
+#      (… STRATUM_WHITEBOARD_TEXT=1)
 #
 # The journal PNGs are written to dist/gpui-journal.png,
 # dist/gpui-journal-calendar.png and dist/gpui-journal-read.png; the page PNGs to
@@ -74,8 +76,8 @@
 # dist/gpui-plugins-directory.png and dist/gpui-plugins-themes.png; the Graph PNGs
 # to dist/gpui-graph.png, dist/gpui-graph-component.png and
 # dist/gpui-graph-settings.png; the Whiteboards PNGs to dist/gpui-whiteboards.png,
-# dist/gpui-whiteboard-editor.png, dist/gpui-whiteboard-library.png and
-# dist/gpui-whiteboard-style.png.
+# dist/gpui-whiteboard-editor.png, dist/gpui-whiteboard-library.png,
+# dist/gpui-whiteboard-style.png and dist/gpui-whiteboard-text.png.
 # Pass a path as the first argument or set OUTPUT to override the journal
 # edit-mode capture (the other captures derive from its directory).
 #
@@ -116,6 +118,7 @@ WHITEBOARDS_OUT="$OUT_DIR/gpui-whiteboards.png"
 WHITEBOARD_EDITOR_OUT="$OUT_DIR/gpui-whiteboard-editor.png"
 WHITEBOARD_LIBRARY_OUT="$OUT_DIR/gpui-whiteboard-library.png"
 WHITEBOARD_STYLE_OUT="$OUT_DIR/gpui-whiteboard-style.png"
+WHITEBOARD_TEXT_OUT="$OUT_DIR/gpui-whiteboard-text.png"
 # Deterministic block on pages/fixture.md (provider::FIXTURE_HIGHLIGHT_BLOCK).
 FIXTURE_HIGHLIGHT="413cf12c-969f-54ef-bf75-40ffd89e8618"
 # The fixture's first overdue reminder (`overdue-1`): the provider builds block
@@ -317,3 +320,7 @@ capture_state \
     "$WHITEBOARD_STYLE_OUT" \
     STRATUM_ROUTE=/whiteboards "STRATUM_WHITEBOARD=Architecture sketch" \
     STRATUM_WHITEBOARD_STYLE=1
+capture_state \
+    "$WHITEBOARD_TEXT_OUT" \
+    STRATUM_ROUTE=/whiteboards "STRATUM_WHITEBOARD=Architecture sketch" \
+    STRATUM_WHITEBOARD_TEXT=1
