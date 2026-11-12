@@ -11,6 +11,7 @@
 use std::sync::Arc;
 
 use gpui_kit::component::input::Input;
+use gpui_kit::component::ActiveTheme;
 use gpui_kit::prelude::*;
 use gpui_kit::*;
 use stratum_canvas::{
@@ -128,7 +129,7 @@ pub(super) fn canvas_element(view: &CanvasView, cx: &mut Context<CanvasView>) ->
             .inset_0(),
         )
         .when_some(text_overlay_bounds(view), |element, bounds| {
-            element.child(text_overlay(view, bounds))
+            element.child(text_overlay(view, bounds, cx))
         })
         .on_mouse_down(
             MouseButton::Left,
@@ -180,12 +181,21 @@ fn text_overlay_bounds(view: &CanvasView) -> Option<[f32; 4]> {
         window_x - geometry.window[0],
         window_y - geometry.window[1],
         (frame_width * scale_x).max(120.0),
-        (frame_height * scale_y).max(24.0),
+        (frame_height * scale_y).max(28.0),
     ])
 }
 
 /// Build the absolutely positioned inline text input over the edited element.
-fn text_overlay(view: &CanvasView, bounds: [f32; 4]) -> impl IntoElement {
+fn text_overlay(
+    view: &CanvasView,
+    bounds: [f32; 4],
+    cx: &mut Context<CanvasView>,
+) -> impl IntoElement {
+    // The overlay follows the shell theme instead of the board palette: the
+    // inline field's text colour comes from the active theme, so the chip has
+    // to carry the matching surface (the canvas itself stays light in both
+    // modes, which would otherwise leave the text invisible in dark mode).
+    let theme = cx.theme();
     div()
         .id("whiteboard-text-input")
         .debug_selector(|| "whiteboard-text-input".to_string())
@@ -194,8 +204,10 @@ fn text_overlay(view: &CanvasView, bounds: [f32; 4]) -> impl IntoElement {
         .top(px(bounds[1]))
         .w(px(bounds[2]))
         .h(px(bounds[3]))
-        .bg(rgb(0xf8f9fa))
-        .rounded(px(2.0))
+        .bg(theme.colors.background)
+        .border_1()
+        .border_color(theme.colors.border)
+        .rounded(px(4.0))
         .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
         .child(Input::new(view.text_input()).appearance(false))
 }
@@ -203,6 +215,7 @@ fn text_overlay(view: &CanvasView, bounds: [f32; 4]) -> impl IntoElement {
 impl CanvasView {
     /// Handle a canvas press.
     fn mouse_down(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        self.hold_text_edit = false;
         // A canvas press ends any active inline edit before the canvas state
         // machine runs, so a new text edit cannot replace the previous one
         // before its blur commit arrives.
@@ -294,6 +307,7 @@ impl CanvasView {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        self.hold_text_edit = false;
         let key = event.keystroke.key.to_ascii_lowercase();
         let control = event.keystroke.modifiers.control || event.keystroke.modifiers.platform;
         if control {

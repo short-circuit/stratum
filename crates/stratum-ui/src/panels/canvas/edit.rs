@@ -71,6 +71,7 @@ impl CanvasView {
     /// pass `None` because gpui has the window borrowed while dispatching the
     /// event, so the field clear is deferred to the end of the effect cycle.
     pub(crate) fn commit_text_edit(&mut self, window: Option<&mut Window>, cx: &mut Context<Self>) {
+        self.hold_text_edit = false;
         let action = {
             let Some(session) = self.session.as_mut() else {
                 return;
@@ -92,6 +93,7 @@ impl CanvasView {
     /// Cancel the active inline text edit (Escape) and return focus to the
     /// canvas.
     pub(crate) fn cancel_text_edit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.hold_text_edit = false;
         let action = {
             let Some(session) = self.session.as_mut() else {
                 return;

@@ -170,6 +170,10 @@ pub struct CanvasView {
     _library_subscription: Subscription,
     text_input: Entity<InputState>,
     _text_subscription: Subscription,
+    /// Suppresses the blur-commit for a start-state text edit until the user
+    /// actually interacts: window activation blurs the freshly focused field
+    /// before the canvas has painted, which would close the edit immediately.
+    hold_text_edit: bool,
     style_open: bool,
     focus: FocusHandle,
     save_generation: u64,
@@ -236,7 +240,11 @@ impl CanvasView {
                         this.focus_canvas_later(cx);
                     }
                     InputEvent::Blur => {
-                        this.commit_text_edit(None, cx);
+                        // A start-state edit stays open through window
+                        // activation; the first real interaction clears the hold.
+                        if !this.hold_text_edit {
+                            this.commit_text_edit(None, cx);
+                        }
                     }
                     InputEvent::Focus => {}
                 },
@@ -265,6 +273,7 @@ impl CanvasView {
             _library_subscription: library_subscription,
             text_input,
             _text_subscription: text_subscription,
+            hold_text_edit: false,
             style_open: start.style_open,
             focus: cx.focus_handle(),
             save_generation: 0,
@@ -291,8 +300,16 @@ impl CanvasView {
                     modifiers: Modifiers::default(),
                 });
             }
+            view.hold_text_edit = true;
             view.rebuild_frame(cx);
             view.begin_text_input(window, cx);
+            // Capture hook: a still frame cannot show a blinking caret or an
+            // empty buffer, so seed the field with sample text. A real edit
+            // always starts from the element's own content.
+            view.text_input.update(cx, |input, cx| {
+                input.set_value("Architecture notes".to_string(), window, cx);
+            });
+            view.rebuild_frame(cx);
         }
         if view.library_open {
             view.reload_library(cx);

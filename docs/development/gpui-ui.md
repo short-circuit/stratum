@@ -396,7 +396,10 @@ Behaviour notes:
   only when the document revision changes.
 - Text editing is inline through the gpui input overlay (IME-capable), positioned over the
   edited element. Enter or blur commits the text, Escape cancels the edit and returns focus
-  to the canvas. `STRATUM_WHITEBOARD_TEXT=1` opens a fresh edit on the framed fixture board
+  to the canvas. The chip follows the shell theme (surface, border and therefore the field's
+  text colour) because the canvas stays light in both modes; a start-state edit survives the
+  window-activation blur and the first canvas press clears that hold before committing.
+  `STRATUM_WHITEBOARD_TEXT=1` opens a fresh edit on the framed fixture board
   so `dist/gpui-whiteboard-text.png` captures the overlay.
 - The editor key map extends the tool keys with `Ctrl`/`Cmd` + `D` (duplicate), `G`
   (group/ungroup with Shift), `Shift` + `L` (lock toggle; plain `L` stays the Line tool),
