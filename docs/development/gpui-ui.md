@@ -82,9 +82,9 @@ logic: data comes from an `AppProvider` implementation.
 | `router` | `Panel`, `ROUTES`, `NAV_ITEMS`, `SHORTCUTS`, `parse_path`, `path_for`, percent codec |
 | `theme` | `ThemeConfig`, `derive_palette`, `apply_to_kit`, golden palette formulas |
 | `assets` | `StratumAssets` (icons + fonts), `register_fonts` |
-| `provider` | `ShellData`, `ShellSnapshot`, `FixtureProvider`, `provider_from_env`, asset seam (`provider/assets.rs`), journal seam (`provider/journal.rs`), page seam (`provider/page.rs`), voice seam (`provider/voice.rs`) and the panel data seam (`provider/panels.rs`, `provider/app_panels.rs`, `provider/fixture/panels`) |
-| `shell` | header, sidebar, footer, error bar, toaster (`shell/reminder_toast.rs`: due-reminder polling, announce-once state and the toast open action), journal/page view wiring (`shell/page.rs`), search/query/ask/templates/flashcards/reminders/plugins panel wiring (`shell/panels.rs`) and start-state setters |
-| `panels` | panel body rendering and icon mapping; `panels/journal` (entity, state, navigation, reload, calendar/stack/read-mode surface), `panels/page` (entity, header, Note menu, move/delete dialogs, backlinks, suggestions, actions), `panels/search` (model, entity, result rows), `panels/query` (model, entity, builder rows, toolbar, dialogs, saved list, results), `panels/ask` (entity, answer card), `panels/templates` (entity, variable model, cards), `panels/flashcards` (session model, entity), `panels/reminders` (grouping/humanize model, entity, dialog), `panels/plugins` (entity, installed/directory/themes tabs, actions), `panels/graph` (entity, model, canvas input/letterbox, layout job, scene build, settings, toolbar) and `panels/voice` (capture stage machine and entity) |
+| `provider` | `ShellData`, `ShellSnapshot`, `FixtureProvider`, `provider_from_env`, asset seam (`provider/assets.rs`), journal seam (`provider/journal.rs`), page seam (`provider/page.rs`), voice seam (`provider/voice.rs`), settings seam (`provider/settings.rs`, `provider/app_settings.rs`, `provider/fixture/panels/settings.rs`) and the panel data seam (`provider/panels.rs`, `provider/app_panels.rs`, `provider/fixture/panels`) |
+| `shell` | header, sidebar, footer, error bar, toaster (`shell/reminder_toast.rs`: due-reminder polling, announce-once state and the toast open action), journal/page view wiring (`shell/page.rs`), search/query/ask/templates/flashcards/reminders/plugins/graph/whiteboards/settings panel wiring (`shell/panels.rs`) and start-state setters |
+| `panels` | panel body rendering and icon mapping; `panels/journal` (entity, state, navigation, reload, calendar/stack/read-mode surface), `panels/page` (entity, header, Note menu, move/delete dialogs, backlinks, suggestions, actions), `panels/search` (model, entity, result rows), `panels/query` (model, entity, builder rows, toolbar, dialogs, saved list, results), `panels/ask` (entity, answer card), `panels/templates` (entity, variable model, cards), `panels/flashcards` (session model, entity), `panels/reminders` (grouping/humanize model, entity, dialog), `panels/plugins` (entity, installed/directory/themes tabs, actions), `panels/graph` (entity, model, canvas input/letterbox, layout job, scene build, settings, toolbar), `panels/canvas` (gallery, editor, canvas, toolbar, library, actions, edit, model), `panels/settings` (entity, form/validation, inputs, actions, controls and the eight tab bodies) and `panels/voice` (capture stage machine and entity) |
 
 The provider seam is the only place the shell touches the service layer. The
 real provider drives `stratum_app::StratumService`; `FixtureProvider` returns a
@@ -427,6 +427,56 @@ Start flags for captures and manual checks: `STRATUM_WHITEBOARD=<name>`,
 `STRATUM_WHITEBOARD_LIBRARY=1`, `STRATUM_WHITEBOARD_STYLE=1`,
 `STRATUM_WHITEBOARD_TEXT=1`, `STRATUM_WHITEBOARD_EXPORT=svg|png`.
 
+---
+
+### Settings
+
+`panels/settings` ports the shipped eight-tab `SettingsPage` onto the native
+shell. The panel is split by concern: `mod.rs` (entity, tabs, start state and
+render), `state.rs` (accessors and status mutators), `keys.rs` (the
+`SETTINGS_I18N_KEYS` release gate), `form.rs` plus `raw.rs` (the editable
+`SettingsDto` copy and raw numeric text), `validate.rs` (the validation matrix),
+`inputs.rs` (input entities and subscriptions), `actions.rs` plus
+`actions_ai.rs`/`actions_ops.rs` (provider mutations, probes and exports),
+`controls.rs` (palette snapshot and styled widgets) and `tabs/` (the vault,
+theme, AI, research, developer, sync/backup, tray and notifications bodies).
+
+| Concern | Module |
+|---------|--------|
+| Tab state, start state and tab dispatch | `panels/settings::{mod, state, tabs}` |
+| Form copy, raw numeric parsing and export paths | `panels/settings::{form, raw}` |
+| Save blocking and per-field messages | `panels/settings::validate` |
+| Provider calls, probes, exports and navigation requests | `panels/settings::{actions, actions_ai, actions_ops}` |
+| Live palette application and catalog switch | `panels/settings::{actions, tabs::theme}`, `stratum_ui::theme` |
+| Settings persistence seam | `provider/settings.rs`, `provider/app_settings.rs`, fixture `provider/fixture/panels/settings.rs` |
+
+Behaviour notes:
+
+- Saving validates the whole form first. Any invalid field marks its input, shows
+  the localized `settings.validation.*` message and blocks the save with
+  `settings.validation.save_blocked`; a valid save persists through
+  `SettingsData::save_settings`, reloads the stored settings and re-applies the
+  theme. Nothing is silently replaced with a default.
+- Theme edits apply live through `SettingsForm::theme_candidate`, which keeps the
+  last valid palette while a hex field is half-typed. Startup loads the persisted
+  theme through `ThemeConfig::from_settings` before the shell is constructed.
+- Numeric fields keep their raw text and are parsed only at save time, so a bad
+  value is reported instead of being coerced. Enum fields use chip/radio rows;
+  path fields use the platform path picker.
+- `STRATUM_SETTINGS_TAB=vault|theme|ai|research|developer|sync|tray|notifications`
+  selects the initial tab. Captures: `dist/gpui-settings-vault.png`,
+  `dist/gpui-settings-theme.png`, `dist/gpui-settings-ai.png`,
+  `dist/gpui-settings-research.png`, `dist/gpui-settings-developer.png`,
+  `dist/gpui-settings-sync.png`, `dist/gpui-settings-tray.png` and
+  `dist/gpui-settings-notifications.png`.
+- Deliberate deviations from the shipped page: conflict resolution and the SSH
+  passphrase prompt render inline in the Sync tab instead of as modals, reindex
+  reports an indeterminate progress state because the native service call is
+  synchronous, import preview/run render inline in the Vault tab instead of a
+  dialog, and the per-page PDF export row is disabled with
+  `export.no_current_page` because entering Settings clears the shell's current
+  page.
+
 ## Building and Running
 
 On Linux the shell links against xkbcommon and X11, so the development host
@@ -482,6 +532,14 @@ the sidebar and `Escape` dismisses the topmost overlay.
 | `STRATUM_GRAPH_SETTINGS=1` | Open the graph settings panel |
 | `STRATUM_GRAPH_SEARCH=<text>` | Prefill the graph title/tag filter |
 | `STRATUM_GRAPH_TICKS=<count>` | Set the deterministic layout tick count |
+| `STRATUM_WHITEBOARD=<name>` | Open the named fixture board in the editor |
+| `STRATUM_WHITEBOARD_ELEMENT=<frame-or-id>` | Focus a frame or element on the opened board |
+| `STRATUM_WHITEBOARD_TOOL=<tool>` | Select a canvas tool at start-up |
+| `STRATUM_WHITEBOARD_LIBRARY=1` | Open the whiteboard library drawer |
+| `STRATUM_WHITEBOARD_STYLE=1` | Open the whiteboard style panel |
+| `STRATUM_WHITEBOARD_TEXT=1` | Open an inline text edit on the framed fixture board |
+| `STRATUM_WHITEBOARD_EXPORT=svg\|png` | Write an export when the board opens |
+| `STRATUM_SETTINGS_TAB=vault\|theme\|ai\|research\|developer\|sync\|tray\|notifications` | Select the settings tab |
 
 The start-state flags are applied by `apply_start_state` in `main.rs` and exist
 for the capture harness; they do not change the interactive behaviour of the
@@ -566,9 +624,9 @@ test. The script requires `Xvfb`, `xdotool` and ImageMagick's `import`. It is
 used by the GPUI CI workflow to publish a screenshot artifact, and is safe to
 run locally without a desktop session.
 
-`scripts/capture-gpui-panels.sh` captures the journal, page, search, query, Ask
-Notes, Templates, Flashcards, Reminders, Plugins and Graph surfaces using the
-start-state flags:
+`scripts/capture-gpui-panels.sh` captures forty states across the journal, page,
+search, query, Ask Notes, Templates, Flashcards, Reminders, Plugins, Graph,
+Whiteboards and Settings surfaces using the start-state flags:
 
 ```bash
 ./scripts/capture-gpui-panels.sh
@@ -599,6 +657,19 @@ start-state flags:
 # → dist/gpui-graph.png             (STRATUM_ROUTE=/graph)
 # → dist/gpui-graph-component.png   (STRATUM_GRAPH_MODE=component)
 # → dist/gpui-graph-settings.png    (STRATUM_GRAPH_SETTINGS=1)
+# → dist/gpui-whiteboards.png       (STRATUM_ROUTE=/whiteboards)
+# → dist/gpui-whiteboard-editor.png (STRATUM_WHITEBOARD="Architecture sketch")
+# → dist/gpui-whiteboard-library.png (… STRATUM_WHITEBOARD_LIBRARY=1)
+# → dist/gpui-whiteboard-style.png  (… STRATUM_WHITEBOARD_STYLE=1)
+# → dist/gpui-whiteboard-text.png   (… STRATUM_WHITEBOARD_TEXT=1)
+# → dist/gpui-settings-vault.png    (STRATUM_ROUTE=/settings)
+# → dist/gpui-settings-theme.png    (STRATUM_SETTINGS_TAB=theme)
+# → dist/gpui-settings-ai.png       (STRATUM_SETTINGS_TAB=ai)
+# → dist/gpui-settings-research.png (STRATUM_SETTINGS_TAB=research)
+# → dist/gpui-settings-developer.png (STRATUM_SETTINGS_TAB=developer)
+# → dist/gpui-settings-sync.png     (STRATUM_SETTINGS_TAB=sync)
+# → dist/gpui-settings-tray.png     (STRATUM_SETTINGS_TAB=tray)
+# → dist/gpui-settings-notifications.png (STRATUM_SETTINGS_TAB=notifications)
 ```
 
 The journal edit-mode capture is the parity reference for the shipped
@@ -635,7 +706,13 @@ capture shows the due-reminder toaster with its localized open action on the
 journal route. The Plugins captures pin the `PluginsPanel` surface: the installed
 tab with the two fixture plugin cards, status chips and smoke-test rows, the
 community directory with its offline/fetched-at/verified-sha256 captions, and the
-theme hub with its catalog entries. The first
+theme hub with its catalog entries. The Whiteboards captures pin the native canvas
+surface: the fixture gallery, the framed board in the editor, the library drawer,
+the style panel and the inline text-edit overlay. The Settings captures pin the
+eight-tab page: the vault tab with import/export rows, the theme tab with live
+palette controls, the AI tab with provider/RAG/STT/TTS sections, the research tab
+with the SearXNG presets, the developer tools, the sync tab with Git and backup
+configuration, the tray controls and the notification toggles. The first
 argument or `OUTPUT` overrides the journal edit-mode path and every other capture
 derives from its directory. Requirements are the same as the shell capture.
 
@@ -668,8 +745,8 @@ crates, the capture scripts or the CI wiring:
 1. `gpui-shell` — formatting, build, tests and clippy on **Linux, Windows and
    macOS** (fail-fast disabled, one job per OS).
 2. `gpui-capture` — Linux only: shell, journal, page, search, query, Ask Notes,
-   Templates, Flashcards, Reminders, Plugins, Graph and editor-perf captures, plus
-   artifact upload.
+   Templates, Flashcards, Reminders, Plugins, Graph, Whiteboards, Settings and
+   editor-perf captures, plus artifact upload.
 
 Both jobs install the Tauri Linux dependencies through
 `.github/actions/install-linux-deps`, which now also carries the native shell
@@ -727,11 +804,14 @@ due-reminder toast with its open action. The Plugins view covers the shipped
 the note-read/HTTP smoke tests, the community directory with offline/sha256
 captions and catalog installs, and the theme hub with install/apply/uninstall
 and the built-in fallback. The routed
-search, query, Ask Notes, Templates, Flashcards, Reminders and Plugins panels own
-their header, like the page and journal panels.
-The graph view covers the shipped `GraphPanel` surface listed above; the
-remaining panel bodies (kanban, whiteboards and settings) are the next layer;
-the route/navigation/i18n contracts are already in place for them.
+search, query, Ask Notes, Templates, Flashcards, Reminders, Plugins, Graph,
+Whiteboards and Settings panels own their header, like the page and journal
+panels.
+The graph view covers the shipped `GraphPanel` surface listed above, the
+whiteboards view covers the shipped `WhiteboardPanel` surface, and the settings
+view covers the shipped eight-tab `SettingsPage` with validation, live theme
+application and persistence. The remaining panel body (kanban) is the next
+layer; the route/navigation/i18n contracts are already in place for it.
 
 The toaster dismisses manually or through `Escape`; there is no timer-based
 auto-dismiss yet. This is intentional for the E2 shell and is documented in

@@ -490,6 +490,7 @@ frozen reference application and are never modified by shell work.
   derivation (`theme`), the embedded asset source and Inter faces (`assets`),
   the `ShellData` provider seam (`provider`, with `provider/assets.rs`,
   `provider/journal.rs`, `provider/page.rs`, `provider/voice.rs`,
+  `provider/settings.rs`/`provider/app_settings.rs` for the settings contract,
   `provider/panels.rs` for the panel DTOs/seam, `provider/app_panels.rs` for the
   service-backed panel data and the `provider/fixture/` deterministic provider),
   the chrome (`shell`, including the page lifecycle in `shell/page.rs`, the panel
@@ -561,6 +562,7 @@ frozen reference application and are never modified by shell work.
   | Plugins | `panels/plugins` | `plugins`, `set_plugin_enabled`, `reload_plugin`, `uninstall_plugin`, `install_plugin_path`, `install_plugin_url`, `plugin_note_read`, `plugin_http_request`, `plugin_catalog`, `theme_catalog`, `installed_themes`, `install_theme`, `apply_theme`, `uninstall_theme` | `dist/gpui-plugins.png`, `dist/gpui-plugins-directory.png`, `dist/gpui-plugins-themes.png` |
   | Whiteboards | `panels/canvas` | `whiteboards`, `load_whiteboard`, `save_whiteboard`, `create_whiteboard`, `rename_whiteboard`, `delete_whiteboards`, `whiteboard_library`, `save_whiteboard_library`, `write_canvas_export` | `dist/gpui-whiteboards.png`, `dist/gpui-whiteboard-editor.png`, `dist/gpui-whiteboard-library.png`, `dist/gpui-whiteboard-style.png`, `dist/gpui-whiteboard-text.png` |
   | Graph | `panels/graph` | `graph_panel_data` | `dist/gpui-graph.png`, `dist/gpui-graph-component.png`, `dist/gpui-graph-settings.png` |
+  | Settings | `panels/settings` | `settings`, `save_settings`, `fetch_models`, `discover_local_ai`, `reindex_vault`, `repair_db_from_disk`, `normalize_all_files`, `sync_status`, `sync_now`, `sync_with_passphrase`, `commit_log`, `backup_status`, `run_backup`, `test_webdav`, `stt_test`, `tts_test`, `ping_search_instance`, `set_onboarding_pending`, `preview_import`, `run_import`, `export_html_to`, `export_json_to`, `export_pdf_to`, `export_zip_to` | `dist/gpui-settings-vault.png`, `dist/gpui-settings-theme.png`, `dist/gpui-settings-ai.png`, `dist/gpui-settings-research.png`, `dist/gpui-settings-developer.png`, `dist/gpui-settings-sync.png`, `dist/gpui-settings-tray.png`, `dist/gpui-settings-notifications.png` |
 
 - The native whiteboards surface lives in `crates/stratum-ui/src/panels/canvas/`:
   `mod.rs` (`CanvasView` entity, render and start state), `gallery.rs` (board
@@ -576,6 +578,22 @@ frozen reference application and are never modified by shell work.
   untouched saves, autosave, exports, library round-trip, clipboard, style/align,
   deep-link focus, the 5k-element visibility query and the `WHITEBOARD_I18N_KEYS`
   catalog gate without opening a window.
+- The native settings surface lives in `crates/stratum-ui/src/panels/settings/`:
+  `mod.rs` (`SettingsView` entity, eight-tab dispatch, start state and render),
+  `state.rs` (accessors/status mutators), `keys.rs` (`SETTINGS_I18N_KEYS`),
+  `form.rs`/`raw.rs` (editable `SettingsDto` copy, raw numeric text and export
+  paths), `validate.rs` (the validation matrix), `inputs.rs` (input entities and
+  subscriptions), `actions.rs`/`actions_ai.rs`/`actions_ops.rs` (provider
+  mutations, probes, exports and navigation requests), `controls.rs` (palette
+  snapshot and styled widgets) and `tabs/{vault,theme,ai,ai_discovery,ai_voice,
+  research,developer,sync,backup,tray,notifications}.rs`. Saving validates the
+  whole form, blocks on invalid fields with `settings.validation.save_blocked`,
+  and on success persists through `SettingsData::save_settings`, reloads and
+  re-applies the theme; theme edits apply live and startup loads the persisted
+  theme through `ThemeConfig::from_settings`. `panels/settings/tests.rs` covers
+  the field round-trip, validation matrix, theme fallback, fixture persistence,
+  tab env parsing and the `SETTINGS_I18N_KEYS` catalog gate without opening a
+  window.
 - `stratum-editor` is the headless block-editor engine the phase-B editor view
   renders (`DecoratedRow`s from `render`). It owns document canonicalization,
   inline spans, editing/undo/IME, slash and marker menus, wiki-link helpers,
@@ -613,13 +631,13 @@ frozen reference application and are never modified by shell work.
   `STRATUM_GRAPH_COMPONENT`, `STRATUM_GRAPH_SETTINGS`, `STRATUM_GRAPH_SEARCH`,
   `STRATUM_GRAPH_TICKS`, `STRATUM_WHITEBOARD`, `STRATUM_WHITEBOARD_ELEMENT`,
   `STRATUM_WHITEBOARD_TOOL`, `STRATUM_WHITEBOARD_LIBRARY`,
-  `STRATUM_WHITEBOARD_STYLE`, `STRATUM_WHITEBOARD_TEXT` and
-  `STRATUM_WHITEBOARD_EXPORT`; `STRATUM_REMINDER_TOAST=1` makes the fixture report
-  due reminders to the shell toaster.
+  `STRATUM_WHITEBOARD_STYLE`, `STRATUM_WHITEBOARD_TEXT`,
+  `STRATUM_WHITEBOARD_EXPORT` and `STRATUM_SETTINGS_TAB`; `STRATUM_REMINDER_TOAST=1`
+  makes the fixture report due reminders to the shell toaster.
 - `scripts/capture-gpui-shell.sh` renders the fixture shell on a private Xvfb
   screen and writes `dist/gpui-shell.png` (224 px sidebar) plus
   `dist/gpui-shell-collapsed.png` (52 px rail, `STRATUM_COLLAPSED=1`).
-- `scripts/capture-gpui-panels.sh` performs thirty-two captures: the journal
+- `scripts/capture-gpui-panels.sh` performs forty captures: the journal
   surface in edit mode, with the calendar expanded and on a past day in read mode
   (`dist/gpui-journal.png`, `dist/gpui-journal-calendar.png`,
   `dist/gpui-journal-read.png`), the fixture page in edit/read mode with the
@@ -636,7 +654,12 @@ frozen reference application and are never modified by shell work.
   fixture gallery, the framed board in the editor, the library drawer, the
   style panel and the inline text-edit overlay (`dist/gpui-whiteboards.png`,
   `dist/gpui-whiteboard-editor.png`, `dist/gpui-whiteboard-library.png`,
-  `dist/gpui-whiteboard-style.png`, `dist/gpui-whiteboard-text.png`).
+  `dist/gpui-whiteboard-style.png`, `dist/gpui-whiteboard-text.png`), and the
+  Settings surface with the eight tabs (`dist/gpui-settings-vault.png`,
+  `dist/gpui-settings-theme.png`, `dist/gpui-settings-ai.png`,
+  `dist/gpui-settings-research.png`, `dist/gpui-settings-developer.png`,
+  `dist/gpui-settings-sync.png`, `dist/gpui-settings-tray.png` and
+  `dist/gpui-settings-notifications.png`).
 - `crates/stratum-ui/tests/interaction_contract.rs` opens headless gpui windows
   to cover click propagation (snippet/voice chips), journal start scroll, the
   reminder block-open request, the toast open action and the plugins
