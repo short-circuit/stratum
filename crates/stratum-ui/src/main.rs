@@ -42,6 +42,7 @@ use std::sync::Arc;
 use gpui_kit::*;
 use stratum_i18n::{set_locale, Locale};
 use stratum_ui::panels::ask::AskStart;
+use stratum_ui::panels::canvas::{tool_from_env, CanvasStart, ExportFormat};
 use stratum_ui::panels::flashcards::FlashcardsStart;
 use stratum_ui::panels::graph::model::{view_mode_from_env, DEFAULT_TICKS};
 use stratum_ui::panels::graph::GraphStart;
@@ -50,7 +51,7 @@ use stratum_ui::panels::query::{QueryStart, QueryTab};
 use stratum_ui::panels::reminders::RemindersStart;
 use stratum_ui::panels::search::SearchStart;
 use stratum_ui::provider::provider_from_env;
-use stratum_ui::router::{keystroke_string, parse_path, ShortcutAction, SHORTCUTS};
+use stratum_ui::router::{keystroke_string, parse_target, ShortcutAction, SHORTCUTS};
 use stratum_ui::{init, PanelStarts, Shell, StratumAssets, ThemeConfig};
 
 fn main() {
@@ -102,8 +103,13 @@ fn apply_start_state(shell: &mut Shell) {
         shell.toggle_sidebar();
     }
     if let Ok(route) = std::env::var("STRATUM_ROUTE") {
-        match parse_path(&route) {
-            Some(panel) => shell.navigate(panel),
+        match parse_target(&route) {
+            Some(target) => {
+                shell.navigate(target.panel);
+                if target.panel == stratum_ui::router::Panel::Whiteboards {
+                    shell.set_canvas_start(CanvasStart::from_target(&target));
+                }
+            }
             None => log::warn!("ignoring unknown STRATUM_ROUTE={route}"),
         }
     }
@@ -157,6 +163,41 @@ fn apply_start_state(shell: &mut Shell) {
     let graph_ticks = std::env::var("STRATUM_GRAPH_TICKS")
         .ok()
         .and_then(|value| value.parse::<usize>().ok());
+    let whiteboard_board = std::env::var("STRATUM_WHITEBOARD")
+        .ok()
+        .filter(|value| !value.is_empty());
+    let whiteboard_tool = std::env::var("STRATUM_WHITEBOARD_TOOL")
+        .ok()
+        .and_then(|value| match tool_from_env(&value) {
+            Some(tool) => Some(tool),
+            None => {
+                log::warn!("ignoring unknown STRATUM_WHITEBOARD_TOOL={value}");
+                None
+            }
+        });
+    let whiteboard_library = env_flag("STRATUM_WHITEBOARD_LIBRARY");
+    let whiteboard_style = env_flag("STRATUM_WHITEBOARD_STYLE");
+    let whiteboard_export = std::env::var("STRATUM_WHITEBOARD_EXPORT")
+        .ok()
+        .and_then(|value| match ExportFormat::from_env(&value) {
+            Some(format) => Some(format),
+            None => {
+                log::warn!("ignoring unknown STRATUM_WHITEBOARD_EXPORT={value}");
+                None
+            }
+        });
+    let whiteboard_element = std::env::var("STRATUM_WHITEBOARD_ELEMENT")
+        .ok()
+        .filter(|value| !value.is_empty());
+    let canvas = CanvasStart {
+        board: whiteboard_board,
+        tool: whiteboard_tool,
+        library_open: whiteboard_library,
+        style_open: whiteboard_style,
+        export: whiteboard_export,
+        element: whiteboard_element,
+    };
+    let canvas_started = canvas != CanvasStart::default();
     if search.is_some()
         || query_datalog.is_some()
         || query_tab.is_some()
@@ -170,6 +211,7 @@ fn apply_start_state(shell: &mut Shell) {
         || graph_settings
         || graph_search.is_some()
         || graph_ticks.is_some()
+        || canvas_started
     {
         shell.set_panel_start(PanelStarts {
             search: SearchStart { query: search },
@@ -195,6 +237,7 @@ fn apply_start_state(shell: &mut Shell) {
                 search: graph_search,
                 ticks: graph_ticks.unwrap_or(DEFAULT_TICKS),
             },
+            canvas,
         });
     }
     if let Ok(page) = std::env::var("STRATUM_PAGE") {

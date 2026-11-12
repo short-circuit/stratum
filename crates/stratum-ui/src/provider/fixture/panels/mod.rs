@@ -7,12 +7,15 @@
 //! state behind a mutex so UI flows can be exercised without a vault.
 //!
 //! The module is split so every file stays under the repository length limit:
-//! [`data`] owns the immutable seed data, [`impls`] owns the [`PanelData`]
-//! implementation and this file owns the mutable state and shared helpers.
+//! [`data`] owns the immutable seed data, [`whiteboards`] owns the board seed
+//! data and state helpers, [`impls`] owns the [`PanelData`] implementation and
+//! this file owns the mutable state and shared helpers.
 
 mod data;
 mod impls;
+mod whiteboards;
 
+use std::collections::BTreeMap;
 use std::sync::MutexGuard;
 
 use super::FixtureProvider;
@@ -31,6 +34,12 @@ pub(super) struct PanelState {
     pub installed_themes: Vec<crate::provider::panels::InstalledThemeRow>,
     /// Persisted graph settings (mutable so the save round-trip is observable).
     pub graph_settings: crate::provider::panels::GraphSettingsRow,
+    /// Whiteboard rows, seeded with three deterministic boards.
+    pub whiteboards: Vec<crate::provider::panels::WhiteboardRow>,
+    /// Personal whiteboard library items.
+    pub whiteboard_library: Vec<crate::provider::panels::LibraryItemRow>,
+    /// Exported whiteboard bytes keyed by vault-relative path.
+    pub whiteboard_exports: BTreeMap<String, Vec<u8>>,
 }
 
 impl PanelState {
@@ -44,6 +53,9 @@ impl PanelState {
             plugins: data::fixture_plugins(),
             installed_themes: Vec::new(),
             graph_settings: crate::provider::panels::GraphSettingsRow::default(),
+            whiteboards: whiteboards::fixture_whiteboards(),
+            whiteboard_library: whiteboards::fixture_whiteboard_library(),
+            whiteboard_exports: BTreeMap::new(),
         }
     }
 }

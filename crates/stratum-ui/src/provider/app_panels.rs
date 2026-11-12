@@ -5,18 +5,22 @@
 //! mapping here leaves `provider/mod.rs` and `provider/app.rs` under the
 //! repository file-length limit.
 
+mod mappers;
+mod whiteboards;
+
 use chrono::Utc;
 use stratum_app::reminders::due::parse_due;
 use stratum_app::settings::GraphSettingsDto;
 use stratum_app::template::template_variables;
 
 use super::panels::{
-    AskAnswer, AskSource, FlashcardRow, GraphComponentRow, GraphEdgeRow, GraphNodeRow,
-    GraphOrphanRow, GraphPanelData, GraphSettingsRow, InstalledThemeRow, PanelData,
-    PluginCatalogSnapshot, PluginRow, QueryTable, ReminderRow, SavedQueryRow, SearchHit,
-    TemplateRow, ThemeCatalogSnapshot, ThemeValuesRow, PANEL_DATA_NOT_AVAILABLE,
+    AskAnswer, AskSource, FlashcardRow, GraphComponentRow, GraphOrphanRow, GraphPanelData,
+    GraphSettingsRow, InstalledThemeRow, LibraryItemRow, PanelData, PluginCatalogSnapshot,
+    PluginRow, QueryTable, ReminderRow, SavedQueryRow, SearchHit, TemplateRow,
+    ThemeCatalogSnapshot, ThemeValuesRow, WhiteboardRow, PANEL_DATA_NOT_AVAILABLE,
 };
 use super::AppProvider;
+use mappers::{graph_edge_row, graph_node_row, graph_settings_row, plugin_row};
 
 /// Map a service search result into a panel hit.
 fn search_hit(result: stratum_app::search::SearchResultDto) -> SearchHit {
@@ -409,55 +413,45 @@ impl PanelData for AppProvider {
                 use_3d: settings.use_3d,
             }))
     }
-}
 
-/// Map a service graph settings DTO into a panel row.
-fn graph_settings_row(settings: GraphSettingsDto) -> GraphSettingsRow {
-    GraphSettingsRow {
-        show_connected: settings.show_connected,
-        show_orphaned: settings.show_orphaned,
-        show_tags: settings.show_tags,
-        charge_strength: settings.charge_strength,
-        link_distance: settings.link_distance,
-        alpha_decay: settings.alpha_decay,
-        velocity_decay: settings.velocity_decay,
-        link_curvature: settings.link_curvature,
-        use_3d: settings.use_3d,
+    fn whiteboards(&self) -> Result<Vec<WhiteboardRow>, String> {
+        whiteboards::whiteboards(self)
     }
-}
 
-/// Map a service graph node into a panel row.
-fn graph_node_row(node: &stratum_app::graph::GraphNodeDto) -> GraphNodeRow {
-    GraphNodeRow {
-        id: node.id.clone(),
-        title: node.title.clone(),
-        path: node.path.clone(),
-        tags: node.tags.clone(),
-        degree: node.degree,
+    fn load_whiteboard(&self, name: &str) -> Result<String, String> {
+        whiteboards::load_whiteboard(self, name)
     }
-}
 
-/// Map a service graph edge into a panel row.
-fn graph_edge_row(edge: &stratum_app::graph::GraphEdgeDto) -> GraphEdgeRow {
-    GraphEdgeRow {
-        source: edge.source.clone(),
-        target: edge.target.clone(),
-        label: edge.label.clone(),
+    fn save_whiteboard(&self, name: &str, content: &str) -> Result<(), String> {
+        whiteboards::save_whiteboard(self, name, content)
     }
-}
 
-/// Map a service plugin record into a panel row.
-fn plugin_row(info: stratum_app::plugins::PluginInfo) -> PluginRow {
-    PluginRow {
-        id: info.id,
-        name: info.name,
-        version: info.version,
-        status: info.status,
-        enabled: info.enabled,
-        author: info.author,
-        description: info.description,
-        permissions: info.permissions,
-        hooks: info.hooks,
-        error: info.error,
+    fn create_whiteboard(&self, name: &str) -> Result<WhiteboardRow, String> {
+        whiteboards::create_whiteboard(self, name)
+    }
+
+    fn rename_whiteboard(&self, old_name: &str, new_name: &str) -> Result<(), String> {
+        whiteboards::rename_whiteboard(self, old_name, new_name)
+    }
+
+    fn delete_whiteboards(&self, names: Vec<String>) -> Result<(), String> {
+        whiteboards::delete_whiteboards(self, names)
+    }
+
+    fn whiteboard_library(&self) -> Result<Vec<LibraryItemRow>, String> {
+        whiteboards::whiteboard_library(self)
+    }
+
+    fn save_whiteboard_library(&self, json: &str) -> Result<(), String> {
+        whiteboards::save_whiteboard_library(self, json)
+    }
+
+    fn write_canvas_export(
+        &self,
+        name: &str,
+        extension: &str,
+        bytes: Vec<u8>,
+    ) -> Result<String, String> {
+        whiteboards::write_canvas_export(self, name, extension, bytes)
     }
 }

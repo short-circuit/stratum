@@ -1,7 +1,7 @@
 //! Panel data DTOs and the [`PanelData`] provider seam.
 //!
 //! This module is the data contract for the native panels (Search, Query, Ask
-//! Notes, Templates, Flashcards, Reminders, Plugins and Graph).
+//! Notes, Templates, Flashcards, Reminders, Plugins, Graph and Whiteboards).
 //! Every method has a safe default so existing providers and window-free tests
 //! keep compiling; the real implementation lives in [`super::app_panels`] and
 //! the deterministic fixture in [`super::fixture::panels`].
@@ -10,10 +10,16 @@
 //! maintain a second copy of the catalog schema.
 
 pub mod graph;
+pub mod plugins;
+pub mod whiteboard;
 pub use graph::{
     GraphComponentRow, GraphEdgeRow, GraphNodeRow, GraphOrphanRow, GraphPanelData, GraphSettingsRow,
 };
-pub use stratum_app::plugins::catalog::{PluginCatalogEntry, ThemeCatalogEntry};
+pub use plugins::{
+    InstalledThemeRow, PluginCatalogEntry, PluginCatalogSnapshot, PluginRow, PluginTestResult,
+    ThemeCatalogEntry, ThemeCatalogSnapshot, ThemeValuesRow,
+};
+pub use whiteboard::{LibraryItemRow, WhiteboardRow};
 
 /// One full-text search hit.
 #[derive(Clone, Debug, PartialEq)]
@@ -132,108 +138,6 @@ pub struct AskAnswer {
     pub sources: Vec<AskSource>,
     /// Whether any citation was produced.
     pub had_sources: bool,
-}
-
-/// One installed plugin row.
-#[derive(Clone, Debug, PartialEq)]
-pub struct PluginRow {
-    /// Plugin id.
-    pub id: String,
-    /// Display name.
-    pub name: String,
-    /// Version.
-    pub version: String,
-    /// Runtime status.
-    pub status: String,
-    /// Whether the plugin is enabled.
-    pub enabled: bool,
-    /// Author.
-    pub author: String,
-    /// Description.
-    pub description: String,
-    /// Declared permissions.
-    pub permissions: Vec<String>,
-    /// Declared hook names.
-    pub hooks: Vec<String>,
-    /// Optional load/runtime error.
-    pub error: Option<String>,
-}
-
-impl PluginRow {
-    /// Build a minimal row for provider defaults.
-    pub fn empty(id: &str) -> Self {
-        Self {
-            id: id.to_string(),
-            name: id.to_string(),
-            version: String::new(),
-            status: "disabled".to_string(),
-            enabled: false,
-            author: String::new(),
-            description: String::new(),
-            permissions: Vec::new(),
-            hooks: Vec::new(),
-            error: None,
-        }
-    }
-}
-
-/// A plugin catalog snapshot.
-#[derive(Clone, Debug, PartialEq)]
-pub struct PluginCatalogSnapshot {
-    /// Catalog entries.
-    pub entries: Vec<PluginCatalogEntry>,
-    /// True when served from the disk cache.
-    pub offline: bool,
-    /// Last successful fetch timestamp.
-    pub fetched_at: Option<String>,
-    /// Stable error message.
-    pub error: Option<String>,
-}
-
-/// A theme catalog snapshot.
-#[derive(Clone, Debug, PartialEq)]
-pub struct ThemeCatalogSnapshot {
-    /// Catalog entries.
-    pub entries: Vec<ThemeCatalogEntry>,
-    /// True when served from the disk cache.
-    pub offline: bool,
-    /// Last successful fetch timestamp.
-    pub fetched_at: Option<String>,
-    /// Stable error message.
-    pub error: Option<String>,
-}
-
-/// One installed theme row.
-#[derive(Clone, Debug, PartialEq)]
-pub struct InstalledThemeRow {
-    /// Theme id.
-    pub id: String,
-    /// Display name.
-    pub name: String,
-    /// Whether the theme is active.
-    pub active: bool,
-}
-
-/// Theme values applied to the shell.
-#[derive(Clone, Debug, PartialEq)]
-pub struct ThemeValuesRow {
-    /// Whether the theme is dark.
-    pub dark_mode: bool,
-    /// Primary color.
-    pub primary_color: String,
-    /// Secondary color.
-    pub secondary_color: String,
-    /// Base font size.
-    pub font_size: f64,
-}
-
-/// Result of a plugin HTTP smoke test.
-#[derive(Clone, Debug, PartialEq)]
-pub struct PluginTestResult {
-    /// Whether the request succeeded.
-    pub ok: bool,
-    /// Status/body detail.
-    pub detail: String,
 }
 
 /// Stable error for providers that cannot answer a panel request.
@@ -456,5 +360,55 @@ pub trait PanelData: Send + Sync {
     /// `node_cap` is not part of [`GraphSettingsRow`]; it stays client-side.
     fn save_graph_settings(&self, _settings: GraphSettingsRow) -> Result<(), String> {
         Ok(())
+    }
+
+    /// List whiteboards.
+    fn whiteboards(&self) -> Result<Vec<WhiteboardRow>, String> {
+        Ok(Vec::new())
+    }
+
+    /// Load a whiteboard's raw `.excalidraw` JSON.
+    fn load_whiteboard(&self, _name: &str) -> Result<String, String> {
+        Ok(String::new())
+    }
+
+    /// Save a whiteboard's raw `.excalidraw` JSON.
+    fn save_whiteboard(&self, _name: &str, _content: &str) -> Result<(), String> {
+        Ok(())
+    }
+
+    /// Create an empty whiteboard and return its row.
+    fn create_whiteboard(&self, _name: &str) -> Result<WhiteboardRow, String> {
+        Ok(WhiteboardRow::new(_name, String::new()))
+    }
+
+    /// Rename a whiteboard.
+    fn rename_whiteboard(&self, _old_name: &str, _new_name: &str) -> Result<(), String> {
+        Ok(())
+    }
+
+    /// Delete one or more whiteboards.
+    fn delete_whiteboards(&self, _names: Vec<String>) -> Result<(), String> {
+        Ok(())
+    }
+
+    /// Read the personal whiteboard library.
+    fn whiteboard_library(&self) -> Result<Vec<LibraryItemRow>, String> {
+        Ok(Vec::new())
+    }
+
+    /// Persist the personal whiteboard library from raw `.excalidrawlib` JSON.
+    fn save_whiteboard_library(&self, _json: &str) -> Result<(), String> {
+        Ok(())
+    }
+
+    /// Write an exported whiteboard image, returning its vault-relative path.
+    fn write_canvas_export(
+        &self,
+        _name: &str,
+        _extension: &str,
+        _bytes: Vec<u8>,
+    ) -> Result<String, String> {
+        Ok(String::new())
     }
 }

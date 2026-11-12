@@ -17,6 +17,7 @@ use gpui_kit::*;
 use stratum_i18n::{t_global, tr_global};
 
 use crate::panels::ask::AskView;
+use crate::panels::canvas::CanvasView;
 use crate::panels::editor::EditorView;
 use crate::panels::flashcards::FlashcardsView;
 use crate::panels::graph::{GraphStart, GraphView};
@@ -116,6 +117,7 @@ pub struct Shell {
     reminders: Option<Entity<RemindersView>>,
     plugins: Option<Entity<PluginsView>>,
     graph: Option<Entity<GraphView>>,
+    whiteboards: Option<Entity<CanvasView>>,
     panel_starts: PanelStarts,
     error: Option<String>,
     /// Reminder toaster state: the current toast, the announce-once set and the
@@ -150,6 +152,7 @@ impl Shell {
             reminders: None,
             plugins: None,
             graph: None,
+            whiteboards: None,
             panel_starts: PanelStarts::default(),
             error: None,
             toaster: reminder_toast::ReminderToaster::default(),
@@ -238,6 +241,10 @@ impl Shell {
         if panel != Panel::Graph {
             self.graph = None;
             self.panel_starts.graph = GraphStart::default();
+        }
+        if panel != Panel::Whiteboards {
+            self.whiteboards = None;
+            self.panel_starts.canvas = crate::panels::canvas::CanvasStart::default();
         }
         self.active = panel;
         self.read_mode = false;
@@ -405,6 +412,7 @@ impl Render for Shell {
                 Panel::Reminders => self.reminders.is_some(),
                 Panel::Plugins => self.plugins.is_some(),
                 Panel::Graph => self.graph.is_some(),
+                Panel::Whiteboards => self.whiteboards.is_some(),
                 _ => false,
             };
 
@@ -454,6 +462,7 @@ impl Render for Shell {
                             reminders: self.reminders.clone(),
                             plugins: self.plugins.clone(),
                             graph: self.graph.clone(),
+                            whiteboards: self.whiteboards.clone(),
                         },
                         cx,
                     ))),

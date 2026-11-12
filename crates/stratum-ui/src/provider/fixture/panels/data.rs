@@ -11,8 +11,9 @@ use chrono::{Duration, Local, Utc};
 use stratum_app::plugins::catalog::{PluginCatalogEntry, ThemeCatalogEntry};
 
 use crate::provider::panels::{
-    GraphComponentRow, GraphEdgeRow, GraphNodeRow, GraphOrphanRow, GraphPanelData,
-    InstalledThemeRow, PluginRow, ReminderRow, SavedQueryRow, ThemeValuesRow,
+    FlashcardRow, GraphComponentRow, GraphEdgeRow, GraphNodeRow, GraphOrphanRow, GraphPanelData,
+    InstalledThemeRow, PluginRow, ReminderRow, SavedQueryRow, SearchHit, TemplateRow,
+    ThemeValuesRow,
 };
 
 /// A stable 64-character sha256 placeholder for fixture catalog entries.
@@ -81,6 +82,134 @@ pub(super) fn fixture_installed_plugin(id: &str) -> PluginRow {
         hooks: Vec::new(),
         error: None,
     }
+}
+
+/// Three deterministic search hits for a non-empty query.
+pub(super) fn fixture_search_hits(query: &str, limit: usize) -> Vec<SearchHit> {
+    if query.trim().is_empty() {
+        return Vec::new();
+    }
+    let hits = vec![
+        SearchHit {
+            block_id: "fixture-search-1".to_string(),
+            page_path: "pages/fixture.md".to_string(),
+            snippet: format!("Fixture note mentions {query} in its opening line."),
+            content: format!("Fixture note mentions {query} in its opening line."),
+            score: 1.0,
+        },
+        SearchHit {
+            block_id: "fixture-search-2".to_string(),
+            page_path: "pages/Project Notes.md".to_string(),
+            snippet: format!("Project planning notes reference {query}."),
+            content: format!("Project planning notes reference {query}."),
+            score: 0.72,
+        },
+        SearchHit {
+            block_id: "fixture-search-3".to_string(),
+            page_path: "pages/Welcome.md".to_string(),
+            snippet: format!("Welcome tour points at {query}."),
+            content: format!("Welcome tour points at {query}."),
+            score: 0.41,
+        },
+    ];
+    hits.into_iter().take(limit).collect()
+}
+
+/// Two deterministic tag hits per known tag.
+pub(super) fn fixture_tag_hits(tag: &str) -> Vec<SearchHit> {
+    let pages: &[(&str, &str)] = match tag.trim().to_lowercase().as_str() {
+        "project" => &[
+            (
+                "pages/fixture.md",
+                "Project planning block tagged #project.",
+            ),
+            ("pages/Project Notes.md", "Sprint notes tagged #project."),
+        ],
+        "reading" => &[
+            ("pages/Reading List.md", "Reading queue tagged #reading."),
+            ("pages/Welcome.md", "Welcome tour tagged #reading."),
+        ],
+        _ => &[],
+    };
+    pages
+        .iter()
+        .enumerate()
+        .map(|(index, (path, snippet))| SearchHit {
+            block_id: format!("fixture-tag-{index}"),
+            page_path: path.to_string(),
+            snippet: snippet.to_string(),
+            content: snippet.to_string(),
+            score: 1.0,
+        })
+        .collect()
+}
+
+/// Three deterministic templates.
+pub(super) fn fixture_templates() -> Vec<TemplateRow> {
+    vec![
+        fixture_template(
+            "Daily note",
+            "Daily journal scaffold.",
+            "# {{title}}\n\n## {{date}}\n\n- Morning review\n",
+        ),
+        fixture_template(
+            "Meeting",
+            "Meeting notes with attendees.",
+            "# {{title}}\n\nDate: {{date}}\n\nAttendees: {{attendees}}\n",
+        ),
+        fixture_template(
+            "Project",
+            "Project brief with a date.",
+            "# {{title}}\n\nStarted: {{date}}\n\n## Goal\n",
+        ),
+    ]
+}
+
+/// Build one deterministic fixture template row from its content.
+fn fixture_template(name: &str, description: &str, content: &str) -> TemplateRow {
+    TemplateRow {
+        name: name.to_string(),
+        path: format!("templates/{name}.md"),
+        description: Some(description.to_string()),
+        variables: stratum_app::template::template_variables(content),
+        content: content.to_string(),
+    }
+}
+
+/// Three deterministic flashcards.
+pub(super) fn fixture_flashcards() -> Vec<FlashcardRow> {
+    vec![
+        FlashcardRow {
+            id: "card-1".to_string(),
+            front: "What is the fixture page?".to_string(),
+            back: "A deterministic page used by tests and captures.".to_string(),
+            page_path: "pages/fixture.md".to_string(),
+            ease_factor: 2.5,
+            interval_days: 1,
+            repetitions: 1,
+            next_review: "2026-11-11".to_string(),
+        },
+        FlashcardRow {
+            id: "card-2".to_string(),
+            front: "What does the reading list track?".to_string(),
+            back: "Offline knowledge tooling.".to_string(),
+            page_path: "pages/Reading List.md".to_string(),
+            ease_factor: 2.4,
+            interval_days: 6,
+            repetitions: 2,
+            next_review: "2026-11-16".to_string(),
+        },
+        FlashcardRow {
+            id: "card-3".to_string(),
+            front: "What is the project planning cadence?".to_string(),
+            back: "A sprint review every two weeks.".to_string(),
+            page_path: "pages/Project Notes.md".to_string(),
+            ease_factor: 2.3,
+            interval_days: 3,
+            repetitions: 1,
+            next_review: "2026-11-13".to_string(),
+        },
+    ]
 }
 
 /// Five reminders: two overdue, one today and two upcoming.

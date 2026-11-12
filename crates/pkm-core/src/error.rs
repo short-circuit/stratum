@@ -9,6 +9,9 @@ pub enum PkmError {
     #[error("Config error: {0}")]
     Config(String),
 
+    #[error("Canvas error: {0}")]
+    Canvas(String),
+
     #[error("Markdown parse error: {0}")]
     MarkdownParse(String),
 
@@ -152,6 +155,7 @@ mod tests {
         let variants: Vec<PkmError> = vec![
             PkmError::Io(std::io::Error::other("io")),
             PkmError::Config("config".into()),
+            PkmError::Canvas("canvas".into()),
             PkmError::MarkdownParse("md".into()),
             PkmError::Frontmatter("fm".into()),
             PkmError::NoteNotFound("nn".into()),

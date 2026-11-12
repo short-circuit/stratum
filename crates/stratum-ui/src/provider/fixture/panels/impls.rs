@@ -6,72 +6,21 @@
 use chrono::{Duration, Utc};
 
 use stratum_app::reminders::due::parse_due;
-use stratum_app::template::template_variables;
 
-use super::{data, panel_state, FixtureProvider};
+use super::{data, panel_state, whiteboards, FixtureProvider};
 use crate::provider::panels::{
     AskAnswer, AskSource, FlashcardRow, GraphPanelData, GraphSettingsRow, InstalledThemeRow,
-    PanelData, PluginCatalogSnapshot, PluginRow, QueryTable, ReminderRow, SavedQueryRow, SearchHit,
-    TemplateRow, ThemeCatalogSnapshot, ThemeValuesRow,
+    LibraryItemRow, PanelData, PluginCatalogSnapshot, PluginRow, QueryTable, ReminderRow,
+    SavedQueryRow, SearchHit, TemplateRow, ThemeCatalogSnapshot, ThemeValuesRow, WhiteboardRow,
 };
 
 impl PanelData for FixtureProvider {
     fn search_blocks(&self, query: &str, limit: usize) -> Result<Vec<SearchHit>, String> {
-        if query.trim().is_empty() {
-            return Ok(Vec::new());
-        }
-        let hits = vec![
-            SearchHit {
-                block_id: "fixture-search-1".to_string(),
-                page_path: "pages/fixture.md".to_string(),
-                snippet: format!("Fixture note mentions {query} in its opening line."),
-                content: format!("Fixture note mentions {query} in its opening line."),
-                score: 1.0,
-            },
-            SearchHit {
-                block_id: "fixture-search-2".to_string(),
-                page_path: "pages/Project Notes.md".to_string(),
-                snippet: format!("Project planning notes reference {query}."),
-                content: format!("Project planning notes reference {query}."),
-                score: 0.72,
-            },
-            SearchHit {
-                block_id: "fixture-search-3".to_string(),
-                page_path: "pages/Welcome.md".to_string(),
-                snippet: format!("Welcome tour points at {query}."),
-                content: format!("Welcome tour points at {query}."),
-                score: 0.41,
-            },
-        ];
-        Ok(hits.into_iter().take(limit).collect())
+        Ok(data::fixture_search_hits(query, limit))
     }
 
     fn search_by_tag(&self, tag: &str) -> Result<Vec<SearchHit>, String> {
-        let pages: &[(&str, &str)] = match tag.trim().to_lowercase().as_str() {
-            "project" => &[
-                (
-                    "pages/fixture.md",
-                    "Project planning block tagged #project.",
-                ),
-                ("pages/Project Notes.md", "Sprint notes tagged #project."),
-            ],
-            "reading" => &[
-                ("pages/Reading List.md", "Reading queue tagged #reading."),
-                ("pages/Welcome.md", "Welcome tour tagged #reading."),
-            ],
-            _ => &[],
-        };
-        Ok(pages
-            .iter()
-            .enumerate()
-            .map(|(index, (path, snippet))| SearchHit {
-                block_id: format!("fixture-tag-{index}"),
-                page_path: path.to_string(),
-                snippet: snippet.to_string(),
-                content: snippet.to_string(),
-                score: 1.0,
-            })
-            .collect())
+        Ok(data::fixture_tag_hits(tag))
     }
 
     fn rebuild_search_index(&self) -> Result<String, String> {
@@ -195,23 +144,7 @@ impl PanelData for FixtureProvider {
     }
 
     fn templates(&self) -> Result<Vec<TemplateRow>, String> {
-        Ok(vec![
-            fixture_template(
-                "Daily note",
-                "Daily journal scaffold.",
-                "# {{title}}\n\n## {{date}}\n\n- Morning review\n",
-            ),
-            fixture_template(
-                "Meeting",
-                "Meeting notes with attendees.",
-                "# {{title}}\n\nDate: {{date}}\n\nAttendees: {{attendees}}\n",
-            ),
-            fixture_template(
-                "Project",
-                "Project brief with a date.",
-                "# {{title}}\n\nStarted: {{date}}\n\n## Goal\n",
-            ),
-        ])
+        Ok(data::fixture_templates())
     }
 
     fn apply_template(
@@ -240,38 +173,7 @@ impl PanelData for FixtureProvider {
     }
 
     fn flashcards(&self) -> Result<Vec<FlashcardRow>, String> {
-        Ok(vec![
-            FlashcardRow {
-                id: "card-1".to_string(),
-                front: "What is the fixture page?".to_string(),
-                back: "A deterministic page used by tests and captures.".to_string(),
-                page_path: "pages/fixture.md".to_string(),
-                ease_factor: 2.5,
-                interval_days: 1,
-                repetitions: 1,
-                next_review: "2026-11-11".to_string(),
-            },
-            FlashcardRow {
-                id: "card-2".to_string(),
-                front: "What does the reading list track?".to_string(),
-                back: "Offline knowledge tooling.".to_string(),
-                page_path: "pages/Reading List.md".to_string(),
-                ease_factor: 2.4,
-                interval_days: 6,
-                repetitions: 2,
-                next_review: "2026-11-16".to_string(),
-            },
-            FlashcardRow {
-                id: "card-3".to_string(),
-                front: "What is the project planning cadence?".to_string(),
-                back: "A sprint review every two weeks.".to_string(),
-                page_path: "pages/Project Notes.md".to_string(),
-                ease_factor: 2.3,
-                interval_days: 3,
-                repetitions: 1,
-                next_review: "2026-11-13".to_string(),
-            },
-        ])
+        Ok(data::fixture_flashcards())
     }
 
     fn review_card(&self, id: &str, quality: u8, _page_path: &str) -> Result<(), String> {
@@ -482,15 +384,45 @@ impl PanelData for FixtureProvider {
         panel_state(self)?.graph_settings = settings;
         Ok(())
     }
-}
 
-/// Build one deterministic fixture template row from its content.
-fn fixture_template(name: &str, description: &str, content: &str) -> TemplateRow {
-    TemplateRow {
-        name: name.to_string(),
-        path: format!("templates/{name}.md"),
-        description: Some(description.to_string()),
-        variables: template_variables(content),
-        content: content.to_string(),
+    fn whiteboards(&self) -> Result<Vec<WhiteboardRow>, String> {
+        whiteboards::whiteboards(self)
+    }
+
+    fn load_whiteboard(&self, name: &str) -> Result<String, String> {
+        whiteboards::load_whiteboard(self, name)
+    }
+
+    fn save_whiteboard(&self, name: &str, content: &str) -> Result<(), String> {
+        whiteboards::save_whiteboard(self, name, content)
+    }
+
+    fn create_whiteboard(&self, name: &str) -> Result<WhiteboardRow, String> {
+        whiteboards::create_whiteboard(self, name)
+    }
+
+    fn rename_whiteboard(&self, old_name: &str, new_name: &str) -> Result<(), String> {
+        whiteboards::rename_whiteboard(self, old_name, new_name)
+    }
+
+    fn delete_whiteboards(&self, names: Vec<String>) -> Result<(), String> {
+        whiteboards::delete_whiteboards(self, names)
+    }
+
+    fn whiteboard_library(&self) -> Result<Vec<LibraryItemRow>, String> {
+        whiteboards::whiteboard_library(self)
+    }
+
+    fn save_whiteboard_library(&self, json: &str) -> Result<(), String> {
+        whiteboards::save_whiteboard_library(self, json)
+    }
+
+    fn write_canvas_export(
+        &self,
+        name: &str,
+        extension: &str,
+        bytes: Vec<u8>,
+    ) -> Result<String, String> {
+        whiteboards::write_canvas_export(self, name, extension, bytes)
     }
 }

@@ -13,6 +13,7 @@ use gpui_kit::*;
 use stratum_i18n::t_global;
 
 pub mod ask;
+pub mod canvas;
 pub mod editor;
 pub mod flashcards;
 pub mod graph;
@@ -26,6 +27,7 @@ pub mod templates;
 pub mod voice;
 
 use crate::panels::ask::AskView;
+use crate::panels::canvas::CanvasView;
 use crate::panels::flashcards::FlashcardsView;
 use crate::panels::graph::GraphView;
 use crate::panels::journal::JournalView;
@@ -98,6 +100,7 @@ pub fn panel_owns_header(panel: Panel) -> bool {
             | Panel::Reminders
             | Panel::Plugins
             | Panel::Graph
+            | Panel::Whiteboards
     )
 }
 
@@ -146,6 +149,8 @@ pub struct PanelEntities {
     pub plugins: Option<Entity<PluginsView>>,
     /// Graph entity.
     pub graph: Option<Entity<GraphView>>,
+    /// Whiteboards entity.
+    pub whiteboards: Option<Entity<CanvasView>>,
 }
 
 /// Render the active panel body.
@@ -207,6 +212,11 @@ pub fn panel_view(
     if panel == Panel::Graph {
         if let Some(graph) = entities.graph {
             return div().size_full().child(graph);
+        }
+    }
+    if panel == Panel::Whiteboards {
+        if let Some(whiteboards) = entities.whiteboards {
+            return div().size_full().child(whiteboards);
         }
     }
     let theme = cx.theme();

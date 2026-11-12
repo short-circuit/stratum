@@ -5,7 +5,7 @@
 # The shell is started with STRATUM_FIXTURE=1 so the capture is deterministic
 # and needs no vault. When no DISPLAY is set the script starts a private Xvfb
 # screen, waits for the window to map, and captures the root window with
-# ImageMagick. Twenty-seven states are captured:
+# ImageMagick. Thirty-one states are captured:
 #
 #   1. the journal route in edit mode
 #   2. the journal route with the calendar popup expanded (STRATUM_CALENDAR=1)
@@ -51,6 +51,14 @@
 #      (STRATUM_ROUTE=/graph STRATUM_GRAPH_MODE=component)
 #  27. the Graph route with the settings panel expanded
 #      (STRATUM_ROUTE=/graph STRATUM_GRAPH_SETTINGS=1)
+#  28. the Whiteboards gallery with the fixture boards
+#      (STRATUM_ROUTE=/whiteboards)
+#  29. the whiteboard editor on the framed fixture board
+#      (STRATUM_ROUTE=/whiteboards STRATUM_WHITEBOARD="Architecture sketch")
+#  30. the whiteboard editor with the library drawer open
+#      (… STRATUM_WHITEBOARD_LIBRARY=1)
+#  31. the whiteboard editor with the style panel open
+#      (… STRATUM_WHITEBOARD_STYLE=1)
 #
 # The journal PNGs are written to dist/gpui-journal.png,
 # dist/gpui-journal-calendar.png and dist/gpui-journal-read.png; the page PNGs to
@@ -65,7 +73,9 @@
 # and dist/gpui-reminder-toast.png; the Plugins PNGs to dist/gpui-plugins.png,
 # dist/gpui-plugins-directory.png and dist/gpui-plugins-themes.png; the Graph PNGs
 # to dist/gpui-graph.png, dist/gpui-graph-component.png and
-# dist/gpui-graph-settings.png.
+# dist/gpui-graph-settings.png; the Whiteboards PNGs to dist/gpui-whiteboards.png,
+# dist/gpui-whiteboard-editor.png, dist/gpui-whiteboard-library.png and
+# dist/gpui-whiteboard-style.png.
 # Pass a path as the first argument or set OUTPUT to override the journal
 # edit-mode capture (the other captures derive from its directory).
 #
@@ -102,6 +112,10 @@ PLUGINS_THEMES_OUT="$OUT_DIR/gpui-plugins-themes.png"
 GRAPH_OUT="$OUT_DIR/gpui-graph.png"
 GRAPH_COMPONENT_OUT="$OUT_DIR/gpui-graph-component.png"
 GRAPH_SETTINGS_OUT="$OUT_DIR/gpui-graph-settings.png"
+WHITEBOARDS_OUT="$OUT_DIR/gpui-whiteboards.png"
+WHITEBOARD_EDITOR_OUT="$OUT_DIR/gpui-whiteboard-editor.png"
+WHITEBOARD_LIBRARY_OUT="$OUT_DIR/gpui-whiteboard-library.png"
+WHITEBOARD_STYLE_OUT="$OUT_DIR/gpui-whiteboard-style.png"
 # Deterministic block on pages/fixture.md (provider::FIXTURE_HIGHLIGHT_BLOCK).
 FIXTURE_HIGHLIGHT="413cf12c-969f-54ef-bf75-40ffd89e8618"
 # The fixture's first overdue reminder (`overdue-1`): the provider builds block
@@ -290,3 +304,16 @@ capture_state \
 capture_state \
     "$GRAPH_SETTINGS_OUT" \
     STRATUM_ROUTE=/graph STRATUM_GRAPH_SETTINGS=1
+
+capture_state "$WHITEBOARDS_OUT" STRATUM_ROUTE=/whiteboards
+capture_state \
+    "$WHITEBOARD_EDITOR_OUT" \
+    STRATUM_ROUTE=/whiteboards "STRATUM_WHITEBOARD=Architecture sketch"
+capture_state \
+    "$WHITEBOARD_LIBRARY_OUT" \
+    STRATUM_ROUTE=/whiteboards "STRATUM_WHITEBOARD=Architecture sketch" \
+    STRATUM_WHITEBOARD_LIBRARY=1
+capture_state \
+    "$WHITEBOARD_STYLE_OUT" \
+    STRATUM_ROUTE=/whiteboards "STRATUM_WHITEBOARD=Architecture sketch" \
+    STRATUM_WHITEBOARD_STYLE=1

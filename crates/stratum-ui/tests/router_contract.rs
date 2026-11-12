@@ -5,8 +5,8 @@
 //! under the repository's 500-line limit.
 
 use stratum_ui::router::{
-    keystroke_string, parse_path, path_for, percent_decode, percent_encode, Modifier, Panel,
-    ShortcutAction, NAV_ITEMS, ROUTES, SHORTCUTS,
+    keystroke_string, parse_path, parse_target, path_for, percent_decode, percent_encode, Modifier,
+    Panel, ShortcutAction, NAV_ITEMS, ROUTES, SHORTCUTS,
 };
 
 #[test]
@@ -103,6 +103,45 @@ fn percent_codec_round_trips() {
         assert_eq!(percent_decode(&percent_encode(value)), value);
     }
     assert_eq!(percent_decode("bad%zz"), "bad%zz");
+}
+
+#[test]
+fn parse_target_keeps_page_queries() {
+    let target = parse_target("/page/foo.md?x=1").expect("page target");
+    assert_eq!(target.panel, Panel::Page);
+    assert_eq!(target.param("x"), Some("1"));
+    // `parse_path` strips the query for callers that only need the panel.
+    assert_eq!(parse_path("/page/foo.md?x=1"), Some(Panel::Page));
+}
+
+#[test]
+fn parse_target_reads_whiteboard_deep_links() {
+    let target = parse_target(
+        "/whiteboards?board=Architecture%20sketch&tool=frame&library=1&export=svg\
+         &element=fixture-flow-left",
+    )
+    .expect("whiteboards target");
+    assert_eq!(target.panel, Panel::Whiteboards);
+    assert_eq!(target.param("board"), Some("Architecture sketch"));
+    assert_eq!(target.param("tool"), Some("frame"));
+    assert_eq!(target.param("library"), Some("1"));
+    assert_eq!(target.param("export"), Some("svg"));
+    assert_eq!(target.param("element"), Some("fixture-flow-left"));
+}
+
+#[test]
+fn parse_target_decodes_percent_encoded_spaces() {
+    let target = parse_target("/whiteboards?board=My+Board&tool=frame").expect("target");
+    assert_eq!(target.param("board"), Some("My Board"));
+    let target = parse_target("/page/pages/My%20Note.md").expect("page target");
+    assert_eq!(target.panel, Panel::Page);
+    assert!(target.query.is_empty());
+}
+
+#[test]
+fn parse_target_rejects_unknown_paths() {
+    assert!(parse_target("/unknown").is_none());
+    assert!(parse_target("/unknown?x=1").is_none());
 }
 
 #[test]

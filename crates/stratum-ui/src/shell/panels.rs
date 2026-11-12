@@ -13,6 +13,7 @@ use gpui_kit::*;
 
 use super::Shell;
 use crate::panels::ask::{AskStart, AskView};
+use crate::panels::canvas::{CanvasStart, CanvasView};
 use crate::panels::flashcards::{FlashcardsStart, FlashcardsView};
 use crate::panels::graph::{GraphStart, GraphView};
 use crate::panels::journal::JournalView;
@@ -46,6 +47,8 @@ pub struct PanelStarts {
     pub plugins: PluginsStart,
     /// Graph panel start state.
     pub graph: GraphStart,
+    /// Whiteboards panel start state.
+    pub canvas: CanvasStart,
 }
 
 impl PanelStarts {
@@ -86,6 +89,16 @@ impl Shell {
         self.reminders = None;
         self.plugins = None;
         self.graph = None;
+        self.whiteboards = None;
+    }
+
+    /// Set the Whiteboards start state and recreate its entity.
+    ///
+    /// Used by `/whiteboards?...` deep links and the `STRATUM_WHITEBOARD*`
+    /// capture flags.
+    pub fn set_canvas_start(&mut self, start: CanvasStart) {
+        self.panel_starts.canvas = start;
+        self.whiteboards = None;
     }
 
     /// Set the search panel's start query (used by tag navigation).
@@ -134,6 +147,11 @@ impl Shell {
         self.graph.as_ref()
     }
 
+    /// The live Whiteboards entity, if the panel has created one.
+    pub fn canvas_view(&self) -> Option<&Entity<CanvasView>> {
+        self.whiteboards.as_ref()
+    }
+
     /// Create the active panel entity and drain its pending requests.
     pub(super) fn sync_panels(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         match self.active {
@@ -145,6 +163,7 @@ impl Shell {
             Panel::Reminders => self.sync_reminders(window, cx),
             Panel::Plugins => self.sync_plugins(cx),
             Panel::Graph => self.sync_graph(window, cx),
+            Panel::Whiteboards => self.sync_canvas(window, cx),
             _ => {}
         }
     }
@@ -252,6 +271,19 @@ impl Shell {
             return;
         };
         self.drain_panel(&graph, cx);
+    }
+
+    /// Create or reuse the Whiteboards entity, then drain its requests.
+    fn sync_canvas(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.whiteboards.is_none() {
+            let provider = Arc::clone(&self.provider);
+            let start = std::mem::take(&mut self.panel_starts.canvas);
+            self.whiteboards = Some(cx.new(move |cx| CanvasView::new(provider, start, window, cx)));
+        }
+        let Some(canvas) = self.whiteboards.clone() else {
+            return;
+        };
+        self.drain_panel(&canvas, cx);
     }
 
     /// Drain a hosted panel's pending navigation, block-open and toast

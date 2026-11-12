@@ -74,6 +74,7 @@ stratum/
 │   ├── pkm-tests/              # Integration tests for the Rust crates
 │   ├── pkm-watcher/            # File system watcher
 │   ├── stratum-app/            # Headless service layer behind every Tauri command (no tauri deps)
+│   ├── stratum-canvas/         # Excalidraw-compatible board model: elements, tools, roughr scene, SVG/PNG/WebP export
 │   ├── stratum-editor/         # Headless block-editor engine: document, spans, state, undo, menus (no UI deps)
 │   ├── stratum-graph/          # Deterministic d3-force-3d physics, camera parity, headless wgpu 3D renderer + CPU fallback
 │   ├── stratum-i18n/           # Embedded locale catalogs, interpolation and parity gates (native shell)
@@ -269,9 +270,10 @@ stratum-app    →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pk
 pkm-tests      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-sync, pkm-query, pkm-ai, pkm-plugin, stratum-tauri
 pkm-cli        →  pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
 stratum-editor →  pkm-core, pkm-block, pkm-markdown
+stratum-canvas →  pkm-core
 stratum-graph  →  pkm-core
 stratum-i18n   →  pkm-core
-stratum-ui     →  gpui-kit (external), rodio (external), stratum-i18n, stratum-app, pkm-core
+stratum-ui     →  gpui-kit (external), rodio (external), stratum-i18n, stratum-app, stratum-editor, stratum-graph, stratum-canvas, pkm-core
 src-tauri      →  pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-dictation, pkm-plugin, stratum-app
 ```
 
@@ -557,8 +559,23 @@ frozen reference application and are never modified by shell work.
   | Flashcards | `panels/flashcards` | `flashcards`, `review_card` | `dist/gpui-flashcards.png`, `dist/gpui-flashcards-answer.png` |
   | Reminders | `panels/reminders` | `reminders`, `due_reminders`, `snooze_reminder`, `clear_reminder`, `set_reminder` | `dist/gpui-reminders.png`, `dist/gpui-reminders-dialog.png`, `dist/gpui-reminder-toast.png` |
   | Plugins | `panels/plugins` | `plugins`, `set_plugin_enabled`, `reload_plugin`, `uninstall_plugin`, `install_plugin_path`, `install_plugin_url`, `plugin_note_read`, `plugin_http_request`, `plugin_catalog`, `theme_catalog`, `installed_themes`, `install_theme`, `apply_theme`, `uninstall_theme` | `dist/gpui-plugins.png`, `dist/gpui-plugins-directory.png`, `dist/gpui-plugins-themes.png` |
+  | Whiteboards | `panels/canvas` | `whiteboards`, `load_whiteboard`, `save_whiteboard`, `create_whiteboard`, `rename_whiteboard`, `delete_whiteboards`, `whiteboard_library`, `save_whiteboard_library`, `write_canvas_export` | `dist/gpui-whiteboards.png`, `dist/gpui-whiteboard-editor.png`, `dist/gpui-whiteboard-library.png`, `dist/gpui-whiteboard-style.png` |
   | Graph | `panels/graph` | `graph_panel_data` | `dist/gpui-graph.png`, `dist/gpui-graph-component.png`, `dist/gpui-graph-settings.png` |
 
+- The native whiteboards surface lives in `crates/stratum-ui/src/panels/canvas/`:
+  `mod.rs` (`CanvasView` entity, render and start state), `gallery.rs` (board
+  cards, previews, multi-select and create/rename/delete), `editor.rs` (header,
+  save chip and status rows), `canvas.rs` (rasterized board surface, pan/zoom and
+  pointer input), `toolbar.rs` (tools, style panel, align/distribute), `library.rs`
+  (drawer), `actions.rs` (create/rename/delete/export/copy-link flows), `edit.rs`
+  (tool and style mutators) and `model/{mod,session,scene}.rs` (gallery/session
+  models, the 800 ms autosave and the visibility query). `stratum-canvas` supplies
+  the element model, `.excalidraw`/`.excalidrawlib` round-trip, tools, snapping,
+  undo/redo, `Board#Element` links, the `roughr` scene and the SVG/PNG/WebP export;
+  `panels/canvas/tests.rs` covers the gallery/session models, byte-identical
+  untouched saves, autosave, exports, library round-trip, clipboard, style/align,
+  deep-link focus, the 5k-element visibility query and the `WHITEBOARD_I18N_KEYS`
+  catalog gate without opening a window.
 - `stratum-editor` is the headless block-editor engine the phase-B editor view
   renders (`DecoratedRow`s from `render`). It owns document canonicalization,
   inline spans, editing/undo/IME, slash and marker menus, wiki-link helpers,
@@ -593,13 +610,15 @@ frozen reference application and are never modified by shell work.
   `apply_start_state` in `main.rs`: `STRATUM_ROUTE`, `STRATUM_PAGE`,
   `STRATUM_JOURNAL_DATE`, `STRATUM_CALENDAR`, `STRATUM_READ_MODE`,
   `STRATUM_REMINDER_DIALOG`, `STRATUM_PLUGINS_TAB`, `STRATUM_GRAPH_MODE`,
-  `STRATUM_GRAPH_COMPONENT`, `STRATUM_GRAPH_SETTINGS`, `STRATUM_GRAPH_SEARCH` and
-  `STRATUM_GRAPH_TICKS`; `STRATUM_REMINDER_TOAST=1`
+  `STRATUM_GRAPH_COMPONENT`, `STRATUM_GRAPH_SETTINGS`, `STRATUM_GRAPH_SEARCH`,
+  `STRATUM_GRAPH_TICKS`, `STRATUM_WHITEBOARD`, `STRATUM_WHITEBOARD_ELEMENT`,
+  `STRATUM_WHITEBOARD_TOOL`, `STRATUM_WHITEBOARD_LIBRARY`,
+  `STRATUM_WHITEBOARD_STYLE` and `STRATUM_WHITEBOARD_EXPORT`; `STRATUM_REMINDER_TOAST=1`
   makes the fixture report due reminders to the shell toaster.
 - `scripts/capture-gpui-shell.sh` renders the fixture shell on a private Xvfb
   screen and writes `dist/gpui-shell.png` (224 px sidebar) plus
   `dist/gpui-shell-collapsed.png` (52 px rail, `STRATUM_COLLAPSED=1`).
-- `scripts/capture-gpui-panels.sh` performs twenty-seven captures: the journal
+- `scripts/capture-gpui-panels.sh` performs thirty-one captures: the journal
   surface in edit mode, with the calendar expanded and on a past day in read mode
   (`dist/gpui-journal.png`, `dist/gpui-journal-calendar.png`,
   `dist/gpui-journal-read.png`), the fixture page in edit/read mode with the
@@ -612,7 +631,10 @@ frozen reference application and are never modified by shell work.
   `dist/gpui-plugins-directory.png`, `dist/gpui-plugins-themes.png`), and the
   Graph surface with the full fixture graph, the component view and the
   settings panel (`dist/gpui-graph.png`, `dist/gpui-graph-component.png`,
-  `dist/gpui-graph-settings.png`).
+  `dist/gpui-graph-settings.png`), and the Whiteboards surface with the
+  fixture gallery, the framed board in the editor, the library drawer and the
+  style panel (`dist/gpui-whiteboards.png`, `dist/gpui-whiteboard-editor.png`,
+  `dist/gpui-whiteboard-library.png`, `dist/gpui-whiteboard-style.png`).
 - `crates/stratum-ui/tests/interaction_contract.rs` opens headless gpui windows
   to cover click propagation (snippet/voice chips), journal start scroll, the
   reminder block-open request, the toast open action and the plugins

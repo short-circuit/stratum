@@ -368,6 +368,53 @@ per-batch progress to report.
 
 ---
 
+### Whiteboards
+
+`stratum-canvas` is the headless whiteboard engine behind the native panel; the gpui
+surface is thin over it and lives in `crates/stratum-ui/src/panels/canvas/`
+(`mod`, `gallery`, `editor`, `canvas`, `toolbar`, `library`, `actions`, `edit`,
+`runtime`, `helpers`, `model/{mod,session,scene}`).
+
+| Concern | Module |
+|---------|--------|
+| Element model, unknown-field passthrough, `.excalidraw`/`.excalidrawlib` IO | `stratum-canvas::{element, document, library}` |
+| Tools, snapping, undo/redo, clipboard, style patches, alignment | `stratum-canvas::{tools, geometry, history}` |
+| `Board#Element` links and deep-link query parsing | `stratum-canvas::link`, `stratum_ui::router::parse_target` |
+| roughr scene generation (Excalidraw's rough options, arrowheads, frames) | `stratum-canvas::render::{rough, rough_arrow, scene}` |
+| SVG / PNG / WebP export and 300 px previews | `stratum-canvas::render::{svg, raster}` |
+| 5k-element visibility query and perf harness | `stratum-canvas::render::{scene::SceneCache, perf}`, `canvas_perf` |
+
+Behaviour notes:
+
+- The gallery/editor are wired through `PanelData` (`whiteboards`, `load_whiteboard`,
+  `save_whiteboard`, `create_whiteboard`, `rename_whiteboard`, `delete_whiteboards`,
+  `whiteboard_library`, `save_whiteboard_library`, `write_canvas_export`) and the
+  service-backed and fixture providers implement all of them.
+- Autosave debounces 800 ms, flushes on back-navigation, regenerates the WebP preview
+  (`preview` + `previewTheme`) and never writes a board that is not dirty.
+- Pan/zoom repaints from the cached `SceneCache::visible` set; the rough scene is rebuilt
+  only when the document revision changes.
+- Exports use the document's raw colours and `viewBackgroundColor`; only the gallery
+  thumbnail applies the shipped preview theme adaptation.
+- `canvas_perf --elements 5000 --frames 600` reports p95 0.063 ms for the per-frame
+  visibility query (budget 18.18 ms) and a 261.8 ms one-time scene build on this host;
+  `--text 500` builds a 500-element text board in 4.4 ms with a p95 of 0.004 ms. The
+  gate is `p95_ms <= 18.18`; `crates/stratum-canvas/tests/perf.rs` asserts both scenarios.
+- Known deviations from the Excalidraw reference: text renders with the bundled Inter
+  face instead of Excalifont, WebP previews are lossless (VP8L) because `image-webp` has
+  no lossy encoder, freedraw is stroked as a polyline rather than smoothed and filled,
+  arrowheads derive from the element points instead of the roughened sketch, there is no
+  laser pointer, and `roughr` 0.14's random jitter sequence differs from `rough.js`, so
+  the hand-drawn wobble is a few units off while geometry, seeds, colours and element
+  composition match. Legacy v1 boards are normalised the way Excalidraw's `restore()`
+  does (`strokeSharpness: "round"` → `LEGACY`/`PROPORTIONAL_RADIUS` roundness), so they
+  render with the same corner radius as the web app.
+
+Start flags for captures and manual checks: `STRATUM_WHITEBOARD=<name>`,
+`STRATUM_WHITEBOARD_ELEMENT=<frame-or-id>`, `STRATUM_WHITEBOARD_TOOL=<tool>`,
+`STRATUM_WHITEBOARD_LIBRARY=1`, `STRATUM_WHITEBOARD_STYLE=1`,
+`STRATUM_WHITEBOARD_EXPORT=svg|png`.
+
 ## Building and Running
 
 On Linux the shell links against xkbcommon and X11, so the development host
