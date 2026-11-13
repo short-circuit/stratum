@@ -41,6 +41,17 @@ Indenting makes a block a child of the block above it. This creates hierarchical
 ## Moving Blocks
 
 You can rearrange blocks by dragging the drag handle on the left side of each block.
+In the native editor the drag starts on the empty indent gutter left of the block
+text instead of a handle, so the text itself stays selectable.
+
+While dragging, a line shows where the block will land:
+
+- dropping in the upper or lower part of a block places it above or below that
+  block (as a sibling);
+- dropping onto the middle of a block makes it that block's last child;
+- `Esc` cancels the drag.
+
+A block's children move with it, and the whole move is a single undo step.
 
 <!-- SCREENSHOT: [block-drag] Showing the drag handle and reorder animation -->
 

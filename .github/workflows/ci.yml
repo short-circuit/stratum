@@ -37,7 +37,9 @@ jobs:
   test:
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The workspace now includes the GPUI crates (wgpu/gpui-kit), which are
+    # heavier to compile than the previous Tauri-only workspace.
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -104,6 +106,65 @@ jobs:
 
       - name: Run frontend unit tests
         run: npm test
+
+  # ── GPUI shell screenshot (required for PR merge) ────────────────
+  # Builds the native shell in fixture mode, renders it on a private Xvfb
+  # screen and publishes the PNG. The GPUI test/clippy gates run in the
+  # workspace-wide `test` job; this job proves the shell still paints.
+  gpui-capture:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Linux dependencies
+        uses: ./.github/actions/install-linux-deps
+
+      - name: Install GPUI rendering and capture dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libx11-dev \
+            libxcb1-dev \
+            libgl1-mesa-dri \
+            libegl1-mesa-dev \
+            libvulkan1 \
+            mesa-vulkan-drivers \
+            imagemagick \
+            xdotool
+
+      - name: Install frontend dependencies
+        # stratum-app embeds node_modules/mermaid/dist/mermaid.min.js.
+        run: npm ci
+
+      - name: Capture GPUI shell
+        run: ./scripts/capture-gpui-shell.sh
+
+      - name: Upload GPUI screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpui-shell-screenshot
+          path: dist/gpui-shell.png
+          if-no-files-found: error
 
   # ── MCP server coverage gate (required for PR merge) ──────────────
   # Enforces >=80% line coverage of the MCP server crate (QA acceptance for
@@ -836,9 +897,14 @@ jobs:
             cp "$AAB" assets/stratum-pkm-android.aab
           fi
 
-          # Checksums for every artifact (canonical release names)
+          # Checksums for every artifact (canonical release names). The
+          # manifest is named sha256sums-pkm.txt because gpui-release.yml
+          # publishes sha256sums.txt for the native-shell assets on the same
+          # tag; a shared name would let whichever release job finishes last
+          # overwrite the other channel's checksums.
           if ls assets/stratum-pkm-* >/dev/null 2>&1; then
-            (cd assets && sha256sum stratum-pkm-* > sha256sums.txt)
+            (cd assets && sha256sum stratum-pkm-* > sha256sums-pkm.txt)
+            (cd assets && sha256sum -c sha256sums-pkm.txt)
           fi
 
           ls -la assets/

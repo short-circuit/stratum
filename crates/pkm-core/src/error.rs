@@ -9,6 +9,9 @@ pub enum PkmError {
     #[error("Config error: {0}")]
     Config(String),
 
+    #[error("Canvas error: {0}")]
+    Canvas(String),
+
     #[error("Markdown parse error: {0}")]
     MarkdownParse(String),
 
@@ -65,6 +68,12 @@ pub enum PkmError {
 
     #[error("Internal error: {0}")]
     Internal(String),
+
+    #[error("i18n error: {0}")]
+    I18n(String),
+
+    #[error("Render error: {0}")]
+    Render(String),
 }
 
 /// Convenience alias.
@@ -146,6 +155,7 @@ mod tests {
         let variants: Vec<PkmError> = vec![
             PkmError::Io(std::io::Error::other("io")),
             PkmError::Config("config".into()),
+            PkmError::Canvas("canvas".into()),
             PkmError::MarkdownParse("md".into()),
             PkmError::Frontmatter("fm".into()),
             PkmError::NoteNotFound("nn".into()),
@@ -162,6 +172,8 @@ mod tests {
             PkmError::AlreadyExists("ae".into()),
             PkmError::Unsupported("uns".into()),
             PkmError::Internal("int".into()),
+            PkmError::I18n("i18n".into()),
+            PkmError::Render("render".into()),
         ];
         for v in &variants {
             let s = v.to_string();

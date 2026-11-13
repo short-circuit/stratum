@@ -1,5 +1,6 @@
 # === Rust ===
 target/
+target-android/
 **/*.rs.bk
 *.pdb
 .cargo/
@@ -40,6 +41,12 @@ result/
 !src-tauri/android-patches/debug.keystore
 # Generated Android Vite assets (hash-named, change every build)
 /src-tauri/gen/android/app/src/main/assets/
+# Native Stratum Android host: cargo-ndk output, Gradle caches and SDK paths
+/crates/stratum-mobile/android/app/src/main/jniLibs/
+/crates/stratum-mobile/android/.gradle/
+/crates/stratum-mobile/android/app/build/
+/crates/stratum-mobile/android/build/
+/crates/stratum-mobile/android/local.properties
 
 # === MkDocs ===
 site/

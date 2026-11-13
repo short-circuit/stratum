@@ -1,0 +1,35 @@
+[package]
+name = "stratum-platform"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+description = "OS glue for the native Stratum shell: tray, global shortcut, notifications, single instance, deep links"
+
+[lib]
+name = "stratum_platform"
+path = "src/lib.rs"
+
+[dependencies]
+pkm-core = { path = "../pkm-core" }
+log.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+# Desktop-only OS glue. The pure models (menu layout, shortcut validation,
+# notification text, deep-link parsing, drop classification) build everywhere so
+# the Android host (E10) reuses them without the desktop crates.
+[target.'cfg(any(target_os = "linux", target_os = "windows", target_os = "macos", target_os = "freebsd"))'.dependencies]
+interprocess = "2"
+global-hotkey = "0.8"
+notify-rust = "4.18"
+
+[target.'cfg(any(target_os = "linux", target_os = "freebsd"))'.dependencies]
+# KSNI is the pure-Rust StatusNotifierItem backend: it runs its own D-Bus worker
+# thread, so the shell does not need a GTK main loop (gpui owns its own loop).
+tray-icon = { version = "0.25", default-features = false, features = ["ksni"] }
+
+[target.'cfg(any(target_os = "windows", target_os = "macos"))'.dependencies]
+tray-icon = "0.25"

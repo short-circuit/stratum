@@ -1,10 +1,16 @@
 //! Block reminder commands.
 //!
 //! Provides `list_reminders` to list all blocks carrying a `due` property,
-//! plus `snooze_reminder` / `clear_reminder` to mutate that `due` property and
-//! persist the change through the full block-save pipeline (SQLite + disk).
+//! plus `snooze_reminder` / `clear_reminder` / `set_block_reminder` to mutate
+//! that `due` property and persist the change through the full block-save
+//! pipeline (SQLite + disk). [`due`] holds the pure date parsing, bucketing and
+//! humanization helpers shared by hosts.
 
+pub mod due;
 pub mod scheduler;
+
+#[cfg(test)]
+mod tests;
 
 pub use scheduler::{DueReminder, NotifyFn, NowFn, ReminderScheduler};
 
@@ -87,6 +93,40 @@ impl StratumService {
 
         let mut block = store.get_block(id).map_err(|e| e.to_string())?;
         block.properties.remove("due");
+        store.update_block(&block).map_err(|e| e.to_string())?;
+        persist_page(&mut state, &store, &page_path)?;
+        Ok(())
+    }
+
+    /// Set or clear an arbitrary reminder due time for a block.
+    ///
+    /// `due` accepts an RFC 3339 timestamp or a naive `%Y-%m-%dT%H:%M` local
+    /// value. `None` removes the `due` property (the same effect as
+    /// [`Self::clear_reminder`]). The mutation is persisted through the same
+    /// page-save pipeline as snoozing, so SQLite and the Markdown file stay in
+    /// sync.
+    pub async fn set_block_reminder(
+        &self,
+        page_path: String,
+        block_id: String,
+        due: Option<String>,
+    ) -> Result<(), String> {
+        let mut state = self.lock()?;
+        let id = Uuid::parse_str(&block_id).map_err(|e| format!("Invalid block id: {e}"))?;
+        let store = state.get_store().map_err(|e| e.to_string())?;
+
+        let mut block = store.get_block(id).map_err(|e| e.to_string())?;
+        match due {
+            Some(raw) => {
+                let parsed =
+                    due::parse_due(&raw).ok_or_else(|| format!("Invalid due timestamp: {raw}"))?;
+                block = block.with_due(parsed);
+            }
+            None => {
+                block.properties.remove("due");
+            }
+        }
+
         store.update_block(&block).map_err(|e| e.to_string())?;
         persist_page(&mut state, &store, &page_path)?;
         Ok(())

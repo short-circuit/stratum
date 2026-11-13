@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+# Capture screenshots of the native Stratum gpui shell.
+#
+# The shell is started with STRATUM_FIXTURE=1 so the capture is deterministic
+# and needs no vault. When no DISPLAY is set the script starts a private Xvfb
+# screen, waits for the window to map, and captures the root window with
+# ImageMagick. Two states are captured: the expanded shell (224 px sidebar) and
+# the collapsed rail (52 px), selected with STRATUM_COLLAPSED=1 because Xvfb has
+# no window manager and synthetic key events are unreliable there.
+#
+# The PNGs are written to dist/gpui-shell.png and dist/gpui-shell-collapsed.png
+# by default; pass a path as the first argument or set OUTPUT to override the
+# expanded capture (the collapsed one derives from it).
+#
+# Requirements: Xvfb, xdotool and ImageMagick's `import` (the CI job installs
+# them). Run from any directory; the script locates the workspace itself.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUT="${1:-${OUTPUT:-$ROOT/dist/gpui-shell.png}}"
+COLLAPSED_OUT="${OUT%.png}-collapsed.png"
+LOG="${CAPTURE_LOG:-$ROOT/dist/gpui-shell.log}"
+WIDTH="${CAPTURE_WIDTH:-1280}"
+HEIGHT="${CAPTURE_HEIGHT:-720}"
+DISPLAY_NUM="${CAPTURE_DISPLAY:-99}"
+
+mkdir -p "$(dirname "$OUT")" "$(dirname "$LOG")"
+
+export STRATUM_FIXTURE=1
+export STRATUM_LOCALE="${STRATUM_LOCALE:-en}"
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/target}"
+export LIBGL_ALWAYS_SOFTWARE=1
+export WINIT_UNIX_BACKEND=x11
+export RUST_BACKTRACE=1
+
+for tool in Xvfb xdotool import; do
+    if ! command -v "$tool" >/dev/null 2>&1; then
+        echo "capture-gpui-shell: missing required tool: $tool" >&2
+        exit 1
+    fi
+done
+
+XVFB_PID=""
+APP_PID=""
+cleanup() {
+    if [[ -n "$APP_PID" ]]; then
+        kill "$APP_PID" 2>/dev/null || true
+        wait "$APP_PID" 2>/dev/null || true
+    fi
+    if [[ -n "$XVFB_PID" ]]; then
+        kill "$XVFB_PID" 2>/dev/null || true
+        wait "$XVFB_PID" 2>/dev/null || true
+    fi
+}
+trap cleanup EXIT
+
+# Build first so the timed capture windows are not spent compiling.
+cargo build -p stratum-ui --bin stratum --manifest-path "$ROOT/Cargo.toml"
+
+if [[ -z "${DISPLAY:-}" ]]; then
+    Xvfb ":$DISPLAY_NUM" -screen "0" "${WIDTH}x${HEIGHT}x24" -nolisten tcp \
+        >/dev/null 2>&1 &
+    XVFB_PID=$!
+    export DISPLAY=":$DISPLAY_NUM"
+    # Give Xvfb a moment to create its socket before the client connects.
+    for _ in $(seq 1 40); do
+        if xdotool getdisplaygeometry >/dev/null 2>&1; then
+            break
+        fi
+        sleep 0.25
+    done
+fi
+
+# Start the shell, wait for its window, normalise its geometry and capture it.
+# $1 = extra environment assignments (space separated, empty for the default).
+capture_state() {
+    local extra_env="$1"
+    local out="$2"
+    local window_id=""
+
+    env $extra_env "$CARGO_TARGET_DIR/debug/stratum" >"$LOG" 2>&1 &
+    APP_PID=$!
+
+    # gpui maps the window asynchronously; poll instead of a fixed sleep so fast
+    # machines do not capture an empty root window.
+    for _ in $(seq 1 120); do
+        if ! kill -0 "$APP_PID" 2>/dev/null; then
+            echo "capture-gpui-shell: shell exited early; see $LOG" >&2
+            cat "$LOG" >&2 || true
+            exit 1
+        fi
+        window_id="$(xdotool search --onlyvisible --name 'Stratum' 2>/dev/null | head -n1 || true)"
+        if [[ -n "$window_id" ]]; then
+            break
+        fi
+        sleep 0.25
+    done
+
+    if [[ -z "$window_id" ]]; then
+        echo "capture-gpui-shell: timed out waiting for the Stratum window" >&2
+        cat "$LOG" >&2 || true
+        exit 1
+    fi
+
+    # Pin the window to the top-left so the capture is exactly the shell bounds
+    # (no window-manager decorations under Xvfb, but this keeps it deterministic
+    # if the app is started on a real display).
+    xdotool windowmove "$window_id" 0 0 || true
+    xdotool windowsize "$window_id" "$WIDTH" "$HEIGHT" || true
+    xdotool windowactivate "$window_id" 2>/dev/null || true
+    # Let fonts, icons and the first paint settle.
+    sleep 1.5
+
+    import -display "$DISPLAY" -window root "$out"
+
+    if [[ ! -s "$out" ]]; then
+        echo "capture-gpui-shell: screenshot was not written to $out" >&2
+        exit 1
+    fi
+
+    kill "$APP_PID" 2>/dev/null || true
+    wait "$APP_PID" 2>/dev/null || true
+    APP_PID=""
+    echo "captured $out (${WIDTH}x${HEIGHT})"
+}
+
+capture_state "" "$OUT"
+capture_state "STRATUM_COLLAPSED=1" "$COLLAPSED_OUT"

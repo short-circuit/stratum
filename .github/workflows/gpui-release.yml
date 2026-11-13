@@ -1,0 +1,633 @@
+name: GPUI release
+
+# Packages the native Stratum shell for every shipped platform: deb, AppImage
+# and rpm on Linux, MSI and NSIS on Windows, the .app bundle on macOS, and the
+# APK/AAB on Android — then publishes the artifacts together with a sha256
+# checksum manifest.
+#
+# Triggers:
+#   - v* tags: full build + publish to the tag's GitHub release (draft).
+#   - pull requests touching packaging inputs: the Linux job runs as a gate, so
+#     a broken manifest or script cannot reach a release tag.
+#   - manual dispatch: build the artifacts without publishing.
+#
+# Linux runs on ubuntu-22.04 on purpose: the packages must install on the oldest
+# glibc we support (2.35). Building on a newer runner would raise the required
+# libc6 version and break older distributions.
+#
+# Signing is optional and secret-driven: the macOS bundle is codesigned and
+# notarized when APPLE_SIGNING_IDENTITY / APPLE_ID / APPLE_PASSWORD /
+# APPLE_TEAM_ID are present, the Windows installers are signed when
+# WINDOWS_CERTIFICATE is present, and the Android artifacts are signed with the
+# upload keystore from ANDROID_KEYSTORE. Without them the build still succeeds
+# and produces unsigned (or debug-signed) artifacts.
+#
+# Every job installs (or mounts) what it built on its own clean runner before
+# uploading: the Linux job verifies the packages in throwaway containers, the
+# Windows job installs the MSI and the NSIS installer, launches the installed
+# shell and uninstalls it, and the macOS job checks the bundle layout, the
+# architecture and the signature, then launches it. A packaging job therefore
+# fails on a broken installer instead of only on a broken build.
+#
+# The release job publishes `sha256sums.txt` for the stratum-gpui-* assets.
+# ci.yml publishes the Tauri build for the same tag under its own manifest
+# (`sha256sums-pkm.txt`), so the two workflows cannot overwrite each other's
+# checksums on a shared draft release.
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    branches: [master]
+    paths:
+      - 'packaging/**'
+      - 'crates/stratum-ui/Cargo.toml'
+      - 'crates/stratum-mobile/android/**'
+      - 'scripts/package-desktop.sh'
+      - 'scripts/verify-packages.sh'
+      - 'scripts/build-android.sh'
+      - '.github/workflows/gpui-release.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: gpui-release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # Pinned so a release build is reproducible.
+  CARGO_PACKAGER_VERSION: '0.11.8'
+  CARGO_GENERATE_RPM_VERSION: '0.21.1'
+
+jobs:
+  linux:
+    name: Linux packages (deb, AppImage, rpm)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Linux dependencies
+        uses: ./.github/actions/install-linux-deps
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install packaging tools
+        run: |
+          cargo install cargo-packager --version "$CARGO_PACKAGER_VERSION" --locked
+          cargo install cargo-generate-rpm --version "$CARGO_GENERATE_RPM_VERSION" --locked
+
+      - name: Package deb, AppImage and rpm
+        shell: bash
+        run: |
+          set -o pipefail
+          scripts/package-desktop.sh --formats deb,appimage,rpm 2>&1 | tee packaging.log
+
+      # Artifacts need a token to download, so a failing job also hands its log
+      # to the diagnostics job, which publishes it on the draft release.
+      - name: Keep the packaging log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-linux
+          path: packaging.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # Install the artifacts into throwaway containers instead of trusting the
+      # build host: apt/dnf resolve the declared dependencies and the shell has
+      # to stay up under Xvfb with the software Vulkan driver.
+      - name: Verify installers on clean systems
+        run: scripts/verify-packages.sh --dir dist/packages
+
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: |
+            dist/packages/*.deb
+            dist/packages/*.rpm
+            dist/packages/*.AppImage
+            dist/packages/sha256sums.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  windows:
+    name: Windows installers (MSI, NSIS)
+    runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      # Declared at job level so the signing step can be gated on the secret
+      # being present; the installers are published unsigned without it.
+      WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+      WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # cargo-packager downloads the WiX and NSIS toolchains into its cache on
+      # first use, so no extra setup step is needed.
+      - name: Install packaging tools
+        run: cargo install cargo-packager --version "$env:CARGO_PACKAGER_VERSION" --locked
+
+      - name: Package MSI and NSIS installer
+        shell: bash
+        run: |
+          set -o pipefail
+          scripts/package-desktop.sh --formats nsis,wix 2>&1 | tee packaging.log
+
+      - name: Keep the packaging log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-windows
+          path: packaging.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Sign the installers
+        if: env.WINDOWS_CERTIFICATE != ''
+        shell: pwsh
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP 'certificate.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
+            Sort-Object FullName | Select-Object -Last 1 -ExpandProperty FullName
+          Get-ChildItem dist/packages -Include *.msi,*.exe -Recurse | ForEach-Object {
+            & $signtool sign /fd sha256 /f $pfx /p $env:WINDOWS_CERTIFICATE_PASSWORD `
+              /tr http://timestamp.digicert.com /td sha256 $_.FullName
+          }
+          # The checksums were computed before signing, so refresh them.
+          Remove-Item dist/packages/sha256sums.txt -ErrorAction SilentlyContinue
+          Get-ChildItem dist/packages -Include *.msi,*.exe -File | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($_.Name)"
+          } | Set-Content dist/packages/sha256sums.txt
+
+      - name: Verify the installers on a clean runner
+        shell: pwsh
+        run: pwsh scripts/verify-windows-installers.ps1 -Dir dist/packages
+
+      - name: Upload Windows installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installers
+          path: |
+            dist/packages/*.msi
+            dist/packages/*.exe
+            dist/packages/sha256sums.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  macos:
+    name: macOS bundle (${{ matrix.arch }})
+    runs-on: macos-latest
+    timeout-minutes: 120
+    env:
+      # scripts/package-desktop.sh codesigns the bundle when the identity is
+      # set and notarizes it when the Apple credentials are set too.
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            arch: arm64
+          - target: x86_64-apple-darwin
+            arch: x86_64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: ${{ matrix.target }}
+          cache: false
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install packaging tools
+        run: cargo install cargo-packager --version "$CARGO_PACKAGER_VERSION" --locked
+
+      - name: Package the app bundle
+        shell: bash
+        run: |
+          set -o pipefail
+          scripts/package-desktop.sh --formats app --target ${{ matrix.target }} 2>&1 | tee packaging.log
+
+      - name: Keep the packaging log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-macos-${{ matrix.arch }}
+          path: packaging.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Verify the app bundle on a clean runner
+        run: scripts/verify-macos-app.sh --dir dist/packages --arch ${{ matrix.arch }}
+
+      - name: Upload macOS bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          path: |
+            dist/packages/*.zip
+            dist/packages/sha256sums.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  android:
+    name: Android APK and AAB
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Add Android targets
+        run: |
+          rustup target add aarch64-linux-android x86_64-linux-android
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        shell: bash
+        run: |
+          # The hosted runner ships an SDK; sdkmanager must accept the licences
+          # non-interactively or the NDK install below stalls without a TTY.
+          if [ -d /usr/local/lib/android/sdk ]; then
+            echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+            echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          fi
+          SDKMANAGER=$(find /usr/local/lib/android/sdk/cmdline-tools -name sdkmanager -type f 2>/dev/null | head -1 || true)
+          if [ -z "$SDKMANAGER" ]; then SDKMANAGER=$(command -v sdkmanager || true); fi
+          if [ -n "$SDKMANAGER" ]; then
+            echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+            yes | "$SDKMANAGER" --licenses >/dev/null || true
+          fi
+
+      - name: Install NDK
+        shell: bash
+        run: |
+          for NDK_VER in "27.1.12297006" "27.0.12077973"; do
+            if sdkmanager --install "ndk;${NDK_VER}" >/dev/null 2>&1; then
+              NDK_PATH="$ANDROID_HOME/ndk/${NDK_VER}"
+              break
+            fi
+          done
+          : "${NDK_PATH:=$ANDROID_HOME/ndk/27.1.12297006}"
+          if [ ! -d "$NDK_PATH" ]; then
+            NDK_PATH=$(ls -d "$ANDROID_HOME"/ndk/* 2>/dev/null | sort -V | tail -1)
+          fi
+          if [ -z "$NDK_PATH" ] || [ ! -d "$NDK_PATH" ]; then
+            echo "::error::No Android NDK available"
+            exit 1
+          fi
+          echo "ANDROID_NDK_HOME=$NDK_PATH" >> "$GITHUB_ENV"
+
+      - name: Install Linux dependencies
+        uses: ./.github/actions/install-linux-deps
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --version 4.1.2 --locked
+
+      - name: Prepare release keystore
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          # The upload key lives in a repository secret as base64. Without it
+          # (fork PRs, manual dispatch before the secret existed) Gradle signs
+          # with the debug key and the script prints a warning.
+          if [ -n "$ANDROID_KEYSTORE_B64" ]; then
+            echo "$ANDROID_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            {
+              echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore"
+              echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+              echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+              echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+            } >> "$GITHUB_ENV"
+            echo "::notice::Signing the release artifacts with the upload key"
+          else
+            echo "::notice::No ANDROID_KEYSTORE secret — the release APK/AAB will be debug-signed"
+          fi
+
+      - name: Derive the Android version from the tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          MAJOR="${VERSION%%.*}"
+          REST="${VERSION#*.}"
+          MINOR="${REST%%.*}"
+          PATCH="${REST#*.}"
+          PATCH="${PATCH%%[!0-9]*}"
+          : "${MAJOR:=0}" "${MINOR:=0}" "${PATCH:=0}"
+          # versionCode has to increase with every store upload; a
+          # major.minor.patch tag maps onto it monotonically.
+          CODE=$((10#$MAJOR * 1000000 + 10#$MINOR * 10000 + 10#$PATCH * 100))
+          {
+            echo "STRATUM_ANDROID_VERSION_NAME=$VERSION"
+            echo "STRATUM_ANDROID_VERSION_CODE=$CODE"
+          } >> "$GITHUB_ENV"
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            crates/stratum-mobile/android/.gradle
+          key: ${{ runner.os }}-gpui-gradle-${{ hashFiles('crates/stratum-mobile/android/**/*.gradle*', 'crates/stratum-mobile/android/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Build the release APK and AAB
+        shell: bash
+        run: |
+          set -o pipefail
+          scripts/build-android.sh --release 2>&1 | tee packaging.log
+
+      - name: Keep the packaging log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-android
+          path: packaging.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: |
+            crates/stratum-mobile/android/app/build/outputs/apk/release/*.apk
+            crates/stratum-mobile/android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+          retention-days: 14
+
+
+  # A failed packaging job keeps its log as an artifact, but artifacts need a
+  # token to download. This job attaches those logs to the draft release for the
+  # tag, so a failed run is diagnosable from the public release page alone.
+  diagnostics:
+    name: Publish failure logs
+    needs: [linux, windows, macos, android, release]
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download the packaging logs
+        uses: actions/download-artifact@v8
+        with:
+          pattern: log-*
+          path: artifacts
+
+      - name: Stage the logs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p logs
+          while IFS= read -r f; do
+            rel="${f#artifacts/}"
+            cp "$f" "logs/${rel//\//-}"
+          done < <(find artifacts -type f \( -name '*.log' -o -name 'assets.txt' \) 2>/dev/null || true)
+          ls -la logs
+
+      - name: Attach the logs to the draft release
+        if: ${{ hashFiles('logs/*') != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: logs/*
+          draft: true
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    name: Publish release assets
+    needs: [linux, windows, macos, android]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+
+      - name: Stage release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets
+
+          # Canonical, collision-free names: the Tauri release job publishes
+          # stratum-pkm-* for the same tag, so the native shell is published
+          # as stratum-gpui-* until the cutover flips the naming.
+          copy_first() {
+            local src_dir="$1" pattern="$2" dest="$3"
+            local found
+            found=$(find "artifacts/$src_dir" -name "$pattern" -type f 2>/dev/null | head -1 || true)
+            if [ -z "$found" ]; then
+              echo "::error::missing $pattern in $src_dir"
+              exit 1
+            fi
+            cp "$found" "assets/$dest"
+          }
+
+          copy_first linux-packages '*.deb' stratum-gpui-linux.deb
+          copy_first linux-packages '*.AppImage' stratum-gpui-linux.AppImage
+          copy_first linux-packages '*.rpm' stratum-gpui-linux.rpm
+          copy_first windows-installers '*.msi' stratum-gpui-windows.msi
+          copy_first windows-installers '*.exe' stratum-gpui-windows-setup.exe
+          copy_first macos-arm64 '*.zip' stratum-gpui-macos-arm64.zip
+          copy_first macos-x86_64 '*.zip' stratum-gpui-macos-x86_64.zip
+          copy_first android '*.apk' stratum-gpui-android.apk
+          copy_first android '*.aab' stratum-gpui-android.aab
+
+          # One checksum manifest for every published artifact.
+          (cd assets && sha256sum stratum-gpui-* > sha256sums.txt)
+          # The manifest ships next to the assets, so it has to verify against
+          # them before it leaves the runner.
+          (cd assets && sha256sum -c sha256sums.txt)
+          ls -la assets/
+          cat assets/sha256sums.txt
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: assets/*
+          draft: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The upload is the only step that can silently corrupt an artifact, and
+      # the release stays a draft (invisible to anonymous downloads), so the
+      # assets are fetched back through the API and checked against the
+      # published manifest here.
+      - name: Verify the published assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -o pipefail
+          mkdir -p downloaded
+          expected=(
+            stratum-gpui-linux.deb
+            stratum-gpui-linux.AppImage
+            stratum-gpui-linux.rpm
+            stratum-gpui-windows.msi
+            stratum-gpui-windows-setup.exe
+            stratum-gpui-macos-arm64.zip
+            stratum-gpui-macos-x86_64.zip
+            stratum-gpui-android.apk
+            stratum-gpui-android.aab
+            sha256sums.txt
+          )
+          # Actions logs need a token to read, so every failure mode reports
+          # itself as an annotation, including the captured command output.
+          die() {
+            local message="$1" detail="${2:-}"
+            echo "::error::$message"
+            if [ -n "$detail" ] && [ -s "$detail" ]; then
+              head -15 "$detail" | while IFS= read -r line; do
+                [ -n "$line" ] && echo "::error::$line"
+              done
+            fi
+            exit 1
+          }
+          # The assets were uploaded seconds ago; GitHub needs a moment before
+          # they are downloadable, so the listing and each download are retried
+          # instead of failing the release on a transient 404.
+          retry() {
+            local attempts="$1" delay="$2" out="$3"; shift 3
+            local n=1
+            until "$@" >"$out" 2>&1; do
+              if [ "$n" -ge "$attempts" ]; then
+                return 1
+              fi
+              n=$((n + 1))
+              sleep "$delay"
+            done
+          }
+          # The release job never checks out the repository, so gh cannot infer
+          # the repo from a git remote and has to be told.
+          retry 6 15 assets.txt gh release view "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' \
+            || die "gh release view failed for $GITHUB_REF_NAME" assets.txt
+          echo "==> published assets"
+          cat assets.txt
+          missing=0
+          for name in "${expected[@]}"; do
+            if ! grep -qxF "$name" assets.txt; then
+              echo "::error::missing release asset $name"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || die "the release does not carry every expected asset (see listing above)"
+          for name in "${expected[@]}"; do
+            retry 6 15 "download-$name.log" \
+              gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+              --pattern "$name" --dir downloaded --clobber \
+              || die "could not download $name" "download-$name.log"
+            [ -f "downloaded/$name" ] || die "$name was reported but not downloaded"
+          done
+          cd downloaded
+          sha256sum -c sha256sums.txt > checksums.log 2>&1 \
+            || die "the published assets do not match sha256sums.txt" checksums.log
+          cat checksums.log
+          echo "==> all ${#expected[@]} release assets verified against sha256sums.txt"
+
+      - name: Keep the release log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-release
+          path: |
+            assets.txt
+            download-*.log
+            downloaded/checksums.log
+          if-no-files-found: ignore
+          retention-days: 14

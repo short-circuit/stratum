@@ -6,14 +6,21 @@ use pkm_block::Block;
 pub fn serialize_blocks(blocks: &[Block]) -> String {
     use pkm_block::BlockTree;
 
-    // Build a temporary tree to get ordering
+    // Build a temporary tree to recover canonical ordering and nesting. The
+    // parser stores hierarchy in `parent_id`/`left_id`, so the tree is the only
+    // place where real depth is available; serializing the flat vector would
+    // flatten every block to depth 0.
     let mut tree = BlockTree::new();
     for block in blocks {
         tree.insert(block.clone());
     }
 
-    let ordered = tree.into_sorted_vec();
-    serialize_ordered_blocks(&ordered, 0)
+    let ordered: Vec<(usize, &Block)> = tree
+        .depth_first_order()
+        .into_iter()
+        .map(|block| (tree.depth(block.id), block))
+        .collect();
+    serialize_ordered_blocks(&ordered)
 }
 
 /// Assemble a full `.md` document from a serialized body, preserving any existing
@@ -43,11 +50,11 @@ pub fn assemble_blocks_markdown(existing: &str, body: &str, title: Option<&str>)
     }
 }
 
-fn serialize_ordered_blocks(blocks: &[Block], depth: usize) -> String {
+fn serialize_ordered_blocks(blocks: &[(usize, &Block)]) -> String {
     let mut output = String::new();
 
-    for block in blocks {
-        let indent = "  ".repeat(depth);
+    for (depth, block) in blocks {
+        let indent = "  ".repeat(*depth);
         output.push_str(&format!(
             "{}- {}\n",
             indent,

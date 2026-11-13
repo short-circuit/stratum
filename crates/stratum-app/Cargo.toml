@@ -35,6 +35,9 @@ base64.workspace = true
 reqwest.workspace = true
 sha2.workspace = true
 tempfile.workspace = true
+# Raster decoder used for asset thumbnails and upload compression.
+# License: MIT OR Apache-2.0 (AGPL-3.0 compatible), already present transitively.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "ico"] }
 
 [dev-dependencies]
 wat.workspace = true

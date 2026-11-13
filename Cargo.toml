@@ -1,5 +1,6 @@
 [workspace]
 resolver = "2"
+exclude = ["vendor/gpui-mobile"]
 members = [
     "crates/pkm-core",
     "crates/pkm-markdown",
@@ -19,6 +20,13 @@ members = [
     "crates/pkm-mcp",
     "crates/pkm-mcp-security",
     "crates/stratum-app",
+    "crates/stratum-i18n",
+    "crates/stratum-ui",
+    "crates/stratum-platform",
+    "crates/stratum-mobile",
+    "crates/stratum-editor",
+    "crates/stratum-graph",
+    "crates/stratum-canvas",
     "src-tauri",
 ]
 
@@ -35,7 +43,7 @@ serde_json = "1"
 thiserror = "2"
 anyhow = "1"
 chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1", features = ["v4", "serde"] }
+uuid = { version = "1", features = ["v4", "v5", "serde"] }
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
@@ -81,10 +89,10 @@ wat = "1"
 flutter_rust_bridge = "2"
 
 # Block storage
-rusqlite = { version = "0.40", features = ["bundled", "serde_json"] }
+rusqlite = { version = "0.41", features = ["bundled", "serde_json"] }
 
 # MCP server
-rmcp = { version = "3.4.0", features = [
+rmcp = { version = "3.9.0", features = [
     "server",
     "macros",
     "transport-io",

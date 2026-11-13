@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct SettingsDto {
     pub vault_path: String,
     pub locale: String,
@@ -27,7 +27,7 @@ pub struct SettingsDto {
 }
 
 /// Vault layout settings, mirroring the `layout` section of `pkm_core::Config`.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(default)]
 pub struct LayoutSettingsDto {
     /// "flat" | "tree" — page list rendering mode for the current vault.
@@ -43,7 +43,7 @@ impl Default for LayoutSettingsDto {
 }
 
 /// Block reminder settings, mirroring `pkm_core::ReminderConfig`.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct ReminderSettingsDto {
     /// Whether block reminders are enabled (scheduler active + notifications).
     pub enabled: bool,
@@ -61,7 +61,7 @@ impl Default for ReminderSettingsDto {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct TraySettingsDto {
     pub enabled: bool,
     pub close_to_tray: bool,
@@ -85,7 +85,7 @@ impl Default for TraySettingsDto {
 
 /// One-tap voice-capture (E9.F4) feature settings, mirroring
 /// `pkm_core::VoiceCaptureConfig`.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct VoiceSettingsDto {
     /// Whether the one-tap voice-capture button is shown in the Journal.
     pub enabled: bool,
@@ -103,7 +103,7 @@ impl Default for VoiceSettingsDto {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct TtsSettingsDto {
     pub endpoint: String,
     pub api_key: Option<String>,
@@ -127,7 +127,7 @@ impl Default for TtsSettingsDto {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 pub struct SttSettingsDto {
     pub endpoint: String,
     pub api_key: Option<String>,
@@ -141,7 +141,7 @@ pub struct SttSettingsDto {
     pub use_llm_gateway_and_auth: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct GraphSettingsDto {
     pub show_connected: bool,
     pub show_orphaned: bool,
@@ -158,14 +158,14 @@ pub struct GraphSettingsDto {
     pub use_3d: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct ResearchSettingsDto {
     pub searxng_endpoint: String,
     pub max_results: usize,
     pub max_depth: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct ThemeSettingsDto {
     pub dark_mode: bool,
     pub primary_color: String,
@@ -173,7 +173,7 @@ pub struct ThemeSettingsDto {
     pub font_size: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct AiSettingsDto {
     pub provider: String,
     pub endpoint: Option<String>,
@@ -194,13 +194,13 @@ pub struct AiSettingsDto {
     pub last_discovered: Vec<pkm_core::DiscoveredEndpoint>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct AiModelDto {
     pub name: String,
     pub capabilities: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct SyncSettingsDto {
     pub mode: String,
     pub remote_url: Option<String>,
@@ -214,7 +214,7 @@ pub struct SyncSettingsDto {
 }
 
 /// Cloud/folder backup settings (E10.F3), mirroring `pkm_core::BackupConfig`.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct BackupSettingsDto {
     #[serde(default)]
     pub enabled: bool,

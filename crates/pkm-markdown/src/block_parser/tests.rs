@@ -495,3 +495,27 @@ fn test_due_property_value_with_colons() {
         Some("2026-10-15T07:00:00+00:00")
     );
 }
+
+#[test]
+fn test_serialize_preserves_nested_block_depth() {
+    // A canonical three-level body must survive parse -> serialize byte-for-byte:
+    // `serialize_blocks` must keep real indentation instead of flattening the
+    // hierarchy to depth 0. The sibling after the grandchild subtree stays at
+    // its own depth, and the root-level sibling after the whole subtree stays at
+    // depth 0.
+    let body = "\
+- parent
+  .id: 11111111-1111-4111-8111-111111111111
+  - child
+    .id: 22222222-2222-4222-8222-222222222222
+    - grandchild
+      .id: 33333333-3333-4333-8333-333333333333
+  - sibling
+    .id: 44444444-4444-4444-8444-444444444444
+- top
+  .id: 55555555-5555-4555-8555-555555555555
+";
+    let (_fm, _body, blocks) = parse_document(body);
+    assert_eq!(blocks.len(), 5);
+    assert_eq!(serialize_blocks(&blocks), body);
+}

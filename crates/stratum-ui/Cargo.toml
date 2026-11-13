@@ -1,0 +1,174 @@
+[package]
+name = "stratum-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+description = "Stratum gpui shell: the desktop UI on top of the headless service layer"
+
+[[bin]]
+name = "stratum"
+path = "src/main.rs"
+
+[[bin]]
+name = "stratum-editor-perf"
+path = "src/bin/editor_perf.rs"
+
+[lib]
+name = "stratum_ui"
+path = "src/lib.rs"
+
+[dependencies]
+gpui-kit = { version = "0.9", default-features = false, features = ["component", "assets"] }
+stratum-i18n = { path = "../stratum-i18n" }
+stratum-app = { path = "../stratum-app" }
+stratum-editor = { path = "../stratum-editor" }
+stratum-graph = { path = "../stratum-graph" }
+stratum-canvas = { path = "../stratum-canvas" }
+stratum-platform = { path = "../stratum-platform" }
+pkm-core = { path = "../pkm-core" }
+image = { version = "0.25", default-features = false, features = ["png"] }
+chrono.workspace = true
+uuid.workspace = true
+base64.workspace = true
+rodio = { version = "0.20", default-features = false, features = [
+    "symphonia-mp3",
+    "symphonia-wav",
+    "symphonia-vorbis",
+] }
+# rust-embed reads files from disk at runtime in debug builds unless the
+# `debug-embed` feature is on. The Android host runs a debug APK from an app
+# sandbox whose working directory has no `assets/` tree, so every shell icon
+# and Inter face resolved to `None` on device until this feature was enabled.
+rust-embed = { version = "8", features = ["debug-embed"] }
+serde.workspace = true
+serde_json.workspace = true
+log.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+gpui-kit = { version = "0.9", default-features = false, features = [
+    "component",
+    "assets",
+    "test-support",
+] }
+tempfile.workspace = true
+
+# ---------------------------------------------------------------------------
+# Desktop packaging metadata.
+#
+# `cargo packager -p stratum-ui --release -f <formats>` reads the `packager`
+# table and `cargo generate-rpm -p stratum-ui` reads `generate-rpm`. Both are
+# driven by scripts/package-desktop.sh so CI and local runs execute the same
+# commands.
+#
+# Name, version, description and license are inherited from this manifest, so a
+# version bump stays a single edit and the packages always carry the workspace
+# version.
+#
+# Path bases differ between the two tools: cargo-packager changes into this
+# crate's directory before packaging, so its paths start with `../../`; cargo-
+# generate-rpm runs from the repository root, so its paths are root-relative.
+#
+# The runtime dependencies below are the libraries the shell actually links or
+# loads through `dlopen`: libxcb/libxkbcommon come from the X11 backend, the
+# Vulkan loader is loaded by the wgpu renderer, and libasound by the audio
+# capture path. The Wayland client is pure Rust and needs no system library.
+# ---------------------------------------------------------------------------
+[package.metadata.packager]
+productName = "Stratum"
+# User-facing strings for the installer metadata; the crate description names
+# the implementation layer, which is not what a package manager should show.
+description = "Privacy-first, offline-capable personal knowledge management system"
+identifier = "app.stratum"
+category = "Productivity"
+homepage = "https://github.com/short-circuit/stratum"
+authors = ["Davide Del Popolo <davidedp91@gmail.com>"]
+copyright = "Copyright © Davide Del Popolo — AGPL-3.0-only"
+licenseFile = "../../LICENSE"
+outDir = "../../dist/packages"
+binaries = [{ path = "stratum", main = true }]
+icons = [
+    "../../packaging/icons/hicolor/32x32/apps/stratum.png",
+    "../../packaging/icons/hicolor/128x128/apps/stratum.png",
+    "../../packaging/icons/hicolor/256x256/apps/stratum.png",
+    "../../packaging/icons/stratum.ico",
+    "../../packaging/icons/stratum.icns",
+]
+longDescription = """\
+Stratum stores every note as a plain Markdown file in a folder you own, so the
+vault stays readable and editable by any tool and syncs through ordinary Git.
+The desktop shell adds an outliner editor, bi-directional links, a graph view,
+Datalog queries, journals, flashcards, Kanban boards, whiteboards and an
+optional AI assistant — all of it offline."""
+
+[package.metadata.packager.deb]
+section = "utils"
+priority = "optional"
+desktopTemplate = "../../packaging/stratum.desktop.hbs"
+depends = [
+    "libc6 (>= 2.35)",
+    "libgcc-s1",
+    "libasound2 | libasound2t64",
+    "libxcb1",
+    "libxcb-xkb1",
+    "libxau6",
+    "libxdmcp6",
+    "libxkbcommon0",
+    "libxkbcommon-x11-0",
+    "libvulkan1",
+]
+files = { "../../LICENSE" = "/usr/share/doc/stratum/copyright" }
+
+[package.metadata.packager.appimage]
+# linuxdeploy bundles the X11/xkbcommon stack into the AppImage, but it treats
+# libasound as a system library and leaves it to the host. The audio-capture
+# path needs it, so it is copied into the AppDir explicitly. The Vulkan loader
+# and the GPU driver stay on the host by design: the driver has to match the
+# machine's GPU.
+libs = ["libasound.so.2"]
+
+[package.metadata.packager.nsis]
+installMode = "currentUser"
+languages = ["English"]
+
+[package.metadata.packager.wix]
+# WiX needs no overrides: the default template is a per-machine MSI that installs
+# to %ProgramFiles%\Stratum and registers its uninstall entry under HKLM, so a
+# silent `msiexec /i` needs an elevated context (the Windows release runner has
+# one).
+
+[package.metadata.packager.macos]
+minimumSystemVersion = "11.0"
+
+# ---------------------------------------------------------------------------
+# RPM metadata (cargo-generate-rpm).
+#
+# RPMs are produced with `cargo generate-rpm -p stratum-ui` because
+# cargo-packager has no RPM backend. `auto-req` stays enabled so the shared
+# library requirements are derived from the binary with `ldd`; the explicit
+# requires cover what `ldd` cannot see (the Vulkan loader is dlopen'd).
+# ---------------------------------------------------------------------------
+[package.metadata.generate-rpm]
+name = "stratum"
+summary = "Privacy-first, offline-capable personal knowledge management system"
+url = "https://github.com/short-circuit/stratum"
+license = "AGPL-3.0-only"
+# The package ships no scriptlets, so /bin/sh is not a dependency.
+require-sh = false
+assets = [
+    { source = "target/release/stratum", dest = "/usr/bin/stratum", mode = "755" },
+    { source = "packaging/stratum.desktop", dest = "/usr/share/applications/stratum.desktop", mode = "644" },
+    { source = "packaging/icons/hicolor/32x32/apps/stratum.png", dest = "/usr/share/icons/hicolor/32x32/apps/stratum.png", mode = "644" },
+    { source = "packaging/icons/hicolor/128x128/apps/stratum.png", dest = "/usr/share/icons/hicolor/128x128/apps/stratum.png", mode = "644" },
+    { source = "packaging/icons/hicolor/256x256/apps/stratum.png", dest = "/usr/share/icons/hicolor/256x256/apps/stratum.png", mode = "644" },
+    { source = "LICENSE", dest = "/usr/share/licenses/stratum/LICENSE", mode = "644", doc = true },
+]
+
+[package.metadata.generate-rpm.requires]
+# `ldd` cannot see the Vulkan loader because wgpu opens it with dlopen, so the
+# soname is required explicitly. Every other shared-library requirement is
+# derived from the binary by the automatic dependency pass.
+"libvulkan.so.1()(64bit)" = ""
+

@@ -1,0 +1,16 @@
+[package]
+name = "stratum-i18n"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+description = "Embedded Stratum locale catalogs with i18next-compatible interpolation"
+
+[dependencies]
+serde_json.workspace = true
+pkm-core = { path = "../pkm-core" }
+
+[dev-dependencies]
+serde_json.workspace = true
+tempfile.workspace = true
