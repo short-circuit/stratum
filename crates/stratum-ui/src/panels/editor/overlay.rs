@@ -115,6 +115,10 @@ pub fn detect_overlay(
 }
 
 /// Render the page marker badge strip.
+///
+/// The strip renders nothing when the page carries no markers; the shipped
+/// `MarkerBadgeRow` is empty in that case, and showing an "empty page" message
+/// here contradicted pages that do have blocks.
 pub fn badge_strip(view: &EditorView, cx: &mut Context<EditorView>) -> impl IntoElement {
     let theme = cx.theme();
     let badges = badge_row(view.state.document());
@@ -127,14 +131,6 @@ pub fn badge_strip(view: &EditorView, cx: &mut Context<EditorView>) -> impl Into
         .py(px(6.0))
         .border_b_1()
         .border_color(theme.colors.border);
-    if badges.is_empty() {
-        strip = strip.child(
-            div()
-                .text_size(px(12.0))
-                .text_color(theme.colors.muted_foreground)
-                .child(t_global("page.prose_empty")),
-        );
-    }
     for badge in badges {
         strip = strip.child(badge_chip(&badge, theme));
     }
