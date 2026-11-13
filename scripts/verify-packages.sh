@@ -116,7 +116,9 @@ PROBE
 record() {
     local name="$1" status="$2" detail="$3"
     RESULTS+=("$(printf '%-30s %-6s %s' "$name" "$status" "$detail")")
-    if [[ "$status" != "PASS" ]]; then
+    # SKIP means another platform verifies the artifact, so only a FAIL is a
+    # failure here.
+    if [[ "$status" == "FAIL" ]]; then
         FAILED=1
     fi
 }
