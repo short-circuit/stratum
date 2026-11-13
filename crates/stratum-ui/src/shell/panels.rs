@@ -282,7 +282,12 @@ impl Shell {
     fn sync_graph(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.graph.is_none() {
             let provider = Arc::clone(&self.provider);
-            let start = std::mem::take(&mut self.panel_starts.graph);
+            let mut start = std::mem::take(&mut self.panel_starts.graph);
+            // The mobile shell starts on the 2D graph, matching the shipped
+            // mobile surface; the settings toggle can still switch to 3D.
+            if self.mobile {
+                start.use_3d = Some(false);
+            }
             self.graph = Some(cx.new(move |cx| GraphView::new(provider, start, window, cx)));
         }
         let Some(graph) = self.graph.clone() else {

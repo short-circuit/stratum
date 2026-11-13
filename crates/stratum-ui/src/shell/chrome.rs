@@ -120,6 +120,16 @@ pub(crate) fn error_bar(shell: &Shell, cx: &mut Context<Shell>) -> impl IntoElem
 
 /// The success toaster in the lower-right corner.
 pub(crate) fn toast_overlay(shell: &Shell, cx: &mut Context<Shell>) -> impl IntoElement {
+    toast_overlay_at(shell, cx, 40.0)
+}
+
+/// The success toaster anchored `bottom` logical pixels above the viewport
+/// bottom. The mobile shell raises it above the bottom navigation bar.
+pub(crate) fn toast_overlay_at(
+    shell: &Shell,
+    cx: &mut Context<Shell>,
+    bottom: f32,
+) -> impl IntoElement {
     let theme = cx.theme();
     let background = theme.colors.secondary;
     let border = theme.colors.border;
@@ -129,7 +139,7 @@ pub(crate) fn toast_overlay(shell: &Shell, cx: &mut Context<Shell>) -> impl Into
     div()
         .absolute()
         .right(px(16.0))
-        .bottom(px(40.0))
+        .bottom(px(bottom))
         .flex()
         .items_center()
         .gap(px(12.0))
