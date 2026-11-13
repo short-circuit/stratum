@@ -107,7 +107,7 @@ The release workflow reads the same values from repository secrets:
 `WINDOWS_CERTIFICATE_PASSWORD`.
 
 The Android `versionCode` must increase with every store upload. The release
-workflow derives it from the tag (`v1.2.3` → `10020300`) and passes
+workflow derives it from the tag (`v1.2.3` → `1020300`) and passes
 `STRATUM_ANDROID_VERSION_NAME` / `STRATUM_ANDROID_VERSION_CODE` to Gradle.
 
 ## Updates
@@ -144,6 +144,38 @@ library, a panicking renderer or an early exit fails the check. A probe that
 fails a payload assertion prints nothing — read the log file named in the
 result, not the console.
 
+The Windows and macOS formats need their own platform, so they are verified by
+two scripts that run on the release runner of that platform (and locally on the
+same OS):
+
+```powershell
+# Windows: installs the MSI, locates the payload, launches it, uninstalls
+pwsh scripts/verify-windows-installers.ps1 -Dir dist/packages
+```
+
+```bash
+# macOS: layout, architecture, signature and launch probe of the .app
+scripts/verify-macos-app.sh --dir dist/packages --arch arm64
+```
+
+- `.msi` → `msiexec /i /qn /norestart`, then the installed `stratum.exe` is
+  located under `%LOCALAPPDATA%`/Program Files, launched with
+  `STRATUM_FIXTURE=1`, and removed through the product's uninstall entry. The
+  probe passes when the shell stays alive for the probe window or exits cleanly
+  (a headless runner may refuse to create a window); a panic or a non-zero exit
+  fails it. The uninstall is confirmed by polling for the payload and the
+  uninstall registry entry, because an NSIS uninstaller relaunches itself from
+  `%TEMP%` and returns before the files are gone.
+- `.exe` (NSIS) → the installer runs in silent mode (`/S`), then the same launch
+  and uninstall checks apply.
+- `.zip` (macOS) → the archive is expanded with `ditto`, the bundle must carry
+  `app.stratum`, `LSMinimumSystemVersion` 11.0 and exactly the requested
+  architecture, and the shell is launched the same way. A Developer ID signature
+  must pass `codesign --verify --deep --strict` and `spctl`; without the Apple
+  secrets the bundle is unsigned (or ad-hoc signed) and Gatekeeper rejects it by
+  design, so the script reports that instead of failing — see the first-launch
+  note in `docs/getting-started/installation.md`.
+
 ## CI release job
 
 `.github/workflows/gpui-release.yml` builds every format and publishes the
@@ -152,11 +184,19 @@ artifacts with checksums:
 - **Triggers** — `v*` tags (publish), pull requests that touch packaging inputs
   (Linux gate), and manual dispatch (build only).
 - **Jobs** — `linux` (ubuntu-22.04, deb/AppImage/rpm + container verification),
-  `windows` (MSI/NSIS), `macos` (arm64 and x86_64 app bundles), `android`
-  (signed APK/AAB) and `release`, which requires all four to succeed.
+  `windows` (MSI/NSIS + install/launch/uninstall verification), `macos` (arm64
+  and x86_64 app bundles + bundle/signature/launch verification), `android`
+  (signed APK/AAB) and `release`, which requires all four to succeed. A
+  packaging job therefore fails on a broken installer, not only on a broken
+  build.
 - **Publication** — assets are renamed to `stratum-gpui-<platform>.<ext>`, a
-  single `sha256sums.txt` is generated over all of them and the draft release
-  for the tag is updated.
+  single `sha256sums.txt` is generated over all of them, verified with
+  `sha256sum -c` on the runner, and the draft release for the tag is updated.
+
+The Tauri workflow (`ci.yml`) also publishes on a `v*` tag. It ships its own
+manifest, `sha256sums-pkm.txt`, because both workflows update the same draft
+release: a shared `sha256sums.txt` name would let whichever release job finished
+last overwrite the other channel's checksums.
 
 Verify a download against the published manifest:
 

@@ -21,6 +21,18 @@ name: GPUI release
 # WINDOWS_CERTIFICATE is present, and the Android artifacts are signed with the
 # upload keystore from ANDROID_KEYSTORE. Without them the build still succeeds
 # and produces unsigned (or debug-signed) artifacts.
+#
+# Every job installs (or mounts) what it built on its own clean runner before
+# uploading: the Linux job verifies the packages in throwaway containers, the
+# Windows job installs the MSI and the NSIS installer, launches the installed
+# shell and uninstalls it, and the macOS job checks the bundle layout, the
+# architecture and the signature, then launches it. A packaging job therefore
+# fails on a broken installer instead of only on a broken build.
+#
+# The release job publishes `sha256sums.txt` for the stratum-gpui-* assets.
+# ci.yml publishes the Tauri build for the same tag under its own manifest
+# (`sha256sums-pkm.txt`), so the two workflows cannot overwrite each other's
+# checksums on a shared draft release.
 
 on:
   push:
@@ -163,6 +175,10 @@ jobs:
             "$hash  $($_.Name)"
           } | Set-Content dist/packages/sha256sums.txt
 
+      - name: Verify the installers on a clean runner
+        shell: pwsh
+        run: pwsh scripts/verify-windows-installers.ps1 -Dir dist/packages
+
       - name: Upload Windows installers
         uses: actions/upload-artifact@v4
         with:
@@ -220,6 +236,9 @@ jobs:
 
       - name: Package the app bundle
         run: scripts/package-desktop.sh --formats app --target ${{ matrix.target }}
+
+      - name: Verify the app bundle on a clean runner
+        run: scripts/verify-macos-app.sh --dir dist/packages --arch ${{ matrix.arch }}
 
       - name: Upload macOS bundle
         uses: actions/upload-artifact@v4
@@ -419,6 +438,9 @@ jobs:
 
           # One checksum manifest for every published artifact.
           (cd assets && sha256sum stratum-gpui-* > sha256sums.txt)
+          # The manifest ships next to the assets, so it has to verify against
+          # them before it leaves the runner.
+          (cd assets && sha256sum -c sha256sums.txt)
           ls -la assets/
           cat assets/sha256sums.txt
 

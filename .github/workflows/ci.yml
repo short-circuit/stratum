@@ -897,9 +897,14 @@ jobs:
             cp "$AAB" assets/stratum-pkm-android.aab
           fi
 
-          # Checksums for every artifact (canonical release names)
+          # Checksums for every artifact (canonical release names). The
+          # manifest is named sha256sums-pkm.txt because gpui-release.yml
+          # publishes sha256sums.txt for the native-shell assets on the same
+          # tag; a shared name would let whichever release job finishes last
+          # overwrite the other channel's checksums.
           if ls assets/stratum-pkm-* >/dev/null 2>&1; then
-            (cd assets && sha256sum stratum-pkm-* > sha256sums.txt)
+            (cd assets && sha256sum stratum-pkm-* > sha256sums-pkm.txt)
+            (cd assets && sha256sum -c sha256sums-pkm.txt)
           fi
 
           ls -la assets/

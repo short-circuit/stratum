@@ -731,11 +731,16 @@ frozen reference application and are never modified by shell work.
   report. The main `ci.yml` also has a `gpui-capture` job.
 - `.github/workflows/gpui-release.yml` packages the native shell: deb, AppImage
   and rpm on ubuntu-22.04 (verified by install + headless launch in throwaway
-  containers), MSI/NSIS on Windows, the arm64/x86_64 `.app` bundles on macOS and
-  the signed APK/AAB, then publishes `stratum-gpui-*` assets with one
-  `sha256sums.txt`. `scripts/package-desktop.sh` and `scripts/build-android.sh
-  --release` are the same commands CI runs; `docs/development/packaging.md` is
-  the configuration, signing and verification reference.
+  containers), MSI/NSIS on Windows (verified by silent install, launch and
+  uninstall through `scripts/verify-windows-installers.ps1`), the arm64/x86_64
+  `.app` bundles on macOS (verified by layout, architecture, signature and
+  launch checks in `scripts/verify-macos-app.sh`) and the signed APK/AAB, then
+  publishes `stratum-gpui-*` assets with one `sha256sums.txt`. The Tauri build
+  in `ci.yml` publishes `sha256sums-pkm.txt` for the same tag, so the two
+  channels cannot overwrite each other's checksums. `scripts/package-desktop.sh`
+  and `scripts/build-android.sh --release` are the same commands CI runs;
+  `docs/development/packaging.md` is the configuration, signing and verification
+  reference.
 
 See `docs/development/gpui-ui.md` for the module/API map, build commands,
 test coverage and current limitations, and `docs/development/gpui-editor.md`

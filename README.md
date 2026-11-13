@@ -249,8 +249,9 @@ WebDAV/folder backup mirror.
 ### Download a Release (recommended)
 
 Pre-built binaries for Linux, Windows, macOS, and Android are available on the
-[GitHub Releases page](https://github.com/short-circuit/stratum/releases). Every
-release ships a `sha256sums.txt` with checksums for all artifacts.
+[GitHub Releases page](https://github.com/short-circuit/stratum/releases). Each
+release channel ships its own checksum manifest: `sha256sums.txt` for the native
+shell builds and `sha256sums-pkm.txt` for the Tauri build.
 
 | Platform | Format | File |
 |----------|--------|------|

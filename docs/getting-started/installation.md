@@ -15,7 +15,12 @@ Pre-built binaries are available on the [GitHub Releases page](https://github.co
 | macOS | App bundle | `stratum-pkm-macos.zip` |
 | Android | APK / AAB | `stratum-pkm-android.apk` / `stratum-pkm-android.aab` |
 
-Every release ships a `sha256sums.txt` with checksums for all artifacts.
+The Tauri build ships a `sha256sums-pkm.txt` manifest covering those artifacts.
+Verify a download before installing it:
+
+```bash
+sha256sum -c sha256sums-pkm.txt
+```
 
 !!! note "Native shell builds"
     Releases also carry the native gpui shell, published as
@@ -24,11 +29,23 @@ Every release ships a `sha256sums.txt` with checksums for all artifacts.
     `stratum-gpui-windows.msi`, `stratum-gpui-windows-setup.exe`,
     `stratum-gpui-macos-arm64.zip`, `stratum-gpui-macos-x86_64.zip`,
     `stratum-gpui-android.apk` and `stratum-gpui-android.aab`. They install
-    next to the Tauri build and are covered by the same `sha256sums.txt`
-    manifest. The native Linux packages need `libxkbcommon`, `libxcb` and the
-    Vulkan loader instead of WebKitGTK; the deb declares them, the RPM derives
-    them and the AppImage bundles the xkbcommon stack and `libasound` while
-    leaving `libxcb1` and the Vulkan driver to the system.
+    next to the Tauri build and ship their own `sha256sums.txt` manifest
+    (`sha256sum -c sha256sums.txt`). The native Linux packages need
+    `libxkbcommon`, `libxcb` and the Vulkan loader instead of WebKitGTK; the
+    deb declares them, the RPM derives them and the AppImage bundles the
+    xkbcommon stack and `libasound` while leaving `libxcb1` and the Vulkan
+    driver to the system.
+
+!!! note "macOS first launch"
+    The `stratum-gpui-macos-*.zip` bundles are only codesigned and notarized
+    when the release was built with the Apple signing secrets. Without them
+    macOS refuses the first launch of a downloaded bundle with "cannot be
+    opened because Apple cannot check it for malicious software". Right-click
+    the app and choose **Open**, or clear the quarantine flag once:
+
+    ```bash
+    xattr -d com.apple.quarantine /Applications/Stratum.app
+    ```
 
 !!! note "Linux Dependencies"
     The AppImage bundles most dependencies. For other Linux formats you need WebKitGTK libraries:
