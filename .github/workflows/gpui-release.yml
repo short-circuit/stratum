@@ -567,6 +567,18 @@ jobs:
             stratum-gpui-android.aab
             sha256sums.txt
           )
+          # Actions logs need a token to read, so every failure mode reports
+          # itself as an annotation, including the captured command output.
+          die() {
+            local message="$1" detail="${2:-}"
+            echo "::error::$message"
+            if [ -n "$detail" ] && [ -s "$detail" ]; then
+              head -15 "$detail" | while IFS= read -r line; do
+                [ -n "$line" ] && echo "::error::$line"
+              done
+            fi
+            exit 1
+          }
           # The assets were uploaded seconds ago; GitHub needs a moment before
           # they are downloadable, so the listing and each download are retried
           # instead of failing the release on a transient 404.
@@ -575,15 +587,14 @@ jobs:
             local n=1
             until "$@" >"$out" 2>&1; do
               if [ "$n" -ge "$attempts" ]; then
-                echo "::error::$* failed after $attempts attempts:"
-                cat "$out"
                 return 1
               fi
               n=$((n + 1))
               sleep "$delay"
             done
           }
-          retry 6 15 assets.txt gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name'
+          retry 6 15 assets.txt gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' \
+            || die "gh release view failed for $GITHUB_REF_NAME" assets.txt
           echo "==> published assets"
           cat assets.txt
           missing=0
@@ -593,21 +604,16 @@ jobs:
               missing=1
             fi
           done
-          [ "$missing" -eq 0 ] || exit 1
+          [ "$missing" -eq 0 ] || die "the release does not carry every expected asset (see listing above)"
           for name in "${expected[@]}"; do
             retry 6 15 "download-$name.log" \
-              gh release download "$GITHUB_REF_NAME" --pattern "$name" --dir downloaded --clobber
-            if [ ! -f "downloaded/$name" ]; then
-              echo "::error::could not download $name"
-              exit 1
-            fi
+              gh release download "$GITHUB_REF_NAME" --pattern "$name" --dir downloaded --clobber \
+              || die "could not download $name" "download-$name.log"
+            [ -f "downloaded/$name" ] || die "$name was reported but not downloaded"
           done
           cd downloaded
-          if ! sha256sum -c sha256sums.txt > checksums.log 2>&1; then
-            cat checksums.log
-            echo "::error::$(grep -m1 -E 'FAILED|No such file' checksums.log)"
-            exit 1
-          fi
+          sha256sum -c sha256sums.txt > checksums.log 2>&1 \
+            || die "the published assets do not match sha256sums.txt" checksums.log
           cat checksums.log
           echo "==> all ${#expected[@]} release assets verified against sha256sums.txt"
 
