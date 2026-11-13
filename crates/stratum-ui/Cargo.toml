@@ -134,8 +134,10 @@ installMode = "currentUser"
 languages = ["English"]
 
 [package.metadata.packager.wix]
-# WiX needs no overrides: the default template produces a per-user MSI that
-# installs to %LOCALAPPDATA%.
+# WiX needs no overrides: the default template is a per-machine MSI that installs
+# to %ProgramFiles%\Stratum and registers its uninstall entry under HKLM, so a
+# silent `msiexec /i` needs an elevated context (the Windows release runner has
+# one).
 
 [package.metadata.packager.macos]
 minimumSystemVersion = "11.0"
