@@ -465,18 +465,17 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p logs
-          shopt -s nullglob
-          for f in artifacts/log-*/*.log; do
-            job="$(basename "$(dirname "$f")")"
-            cp "$f" "logs/${job}-$(basename "$f")"
-          done
+          while IFS= read -r f; do
+            rel="${f#artifacts/}"
+            cp "$f" "logs/${rel//\//-}"
+          done < <(find artifacts -type f \( -name '*.log' -o -name 'assets.txt' \) 2>/dev/null || true)
           ls -la logs
 
       - name: Attach the logs to the draft release
-        if: ${{ hashFiles('logs/*.log') != '' }}
+        if: ${{ hashFiles('logs/*') != '' }}
         uses: softprops/action-gh-release@v2
         with:
-          files: logs/*.log
+          files: logs/*
           draft: true
           fail_on_unmatched_files: false
         env:
@@ -593,7 +592,10 @@ jobs:
               sleep "$delay"
             done
           }
-          retry 6 15 assets.txt gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' \
+          # The release job never checks out the repository, so gh cannot infer
+          # the repo from a git remote and has to be told.
+          retry 6 15 assets.txt gh release view "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' \
             || die "gh release view failed for $GITHUB_REF_NAME" assets.txt
           echo "==> published assets"
           cat assets.txt
@@ -607,7 +609,8 @@ jobs:
           [ "$missing" -eq 0 ] || die "the release does not carry every expected asset (see listing above)"
           for name in "${expected[@]}"; do
             retry 6 15 "download-$name.log" \
-              gh release download "$GITHUB_REF_NAME" --pattern "$name" --dir downloaded --clobber \
+              gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+              --pattern "$name" --dir downloaded --clobber \
               || die "could not download $name" "download-$name.log"
             [ -f "downloaded/$name" ] || die "$name was reported but not downloaded"
           done
