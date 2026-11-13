@@ -3,10 +3,24 @@
 // The module packages the pre-compiled Rust native library into an APK that
 // hosts the gpui shell through Android's NativeActivity. The library is built
 // by scripts/build-android.sh and copied into app/src/main/jniLibs/<abi>/.
+//
+// Release signing reads its key material from the environment so no key is ever
+// committed: CI exports ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD,
+// ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD from repository secrets. A local
+// `--release` build without them falls back to the debug key (scripts/
+// build-android.sh warns about it), which keeps the task runnable offline.
+
+import java.io.File
 
 plugins {
     id("com.android.application")
 }
+
+// The store requires a monotonic versionCode, so CI passes one derived from the
+// release tag; the literal defaults keep a plain `./gradlew assembleDebug`
+// working without any environment.
+val releaseKeystore = System.getenv("ANDROID_KEYSTORE_PATH")?.let(::File)
+val hasReleaseKeystore = releaseKeystore?.isFile == true
 
 android {
     namespace = "com.stratum.app"
@@ -18,8 +32,8 @@ android {
         // exists in the API 26 NDK sysroot.
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = System.getenv("STRATUM_ANDROID_VERSION_CODE")?.toIntOrNull() ?: 1
+        versionName = System.getenv("STRATUM_ANDROID_VERSION_NAME") ?: "1.0.0"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")
@@ -29,6 +43,19 @@ android {
         manifestPlaceholders["nativeLibraryName"] = "stratum_mobile"
     }
 
+    signingConfigs {
+        // Only declare the release config when a keystore is present: a
+        // SigningConfig without a storeFile fails configuration otherwise.
+        if (hasReleaseKeystore) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -36,6 +63,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = if (hasReleaseKeystore) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
         debug {
             isDebuggable = true
