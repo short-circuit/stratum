@@ -245,6 +245,10 @@ stratum/
 │       ├── frontend-guide.md    # Component patterns, hooks, state mgmt
 │       ├── rust-guide.md        # Crate organization, comment standards
 │       └── mobile-guide.md     # Build targets, responsive patterns
+├── packaging/                  # Desktop installer assets (shared by deb/AppImage/rpm)
+│   ├── stratum.desktop         # static entry shipped by the RPM
+│   ├── stratum.desktop.hbs     # template rendered by cargo-packager
+│   └── icons/                  # hicolor tree + .ico/.icns for MSI and the macOS app
 ├── .sisyphus/
 │   └── refactoring-plan.md     # Long-term refactoring roadmap
 ├── package.json
@@ -725,6 +729,13 @@ frozen reference application and are never modified by shell work.
 - `.github/workflows/gpui-ci.yml` runs the GPUI format/build/test/clippy gates
   on Linux, Windows and macOS, publishes the screenshot and the editor perf
   report. The main `ci.yml` also has a `gpui-capture` job.
+- `.github/workflows/gpui-release.yml` packages the native shell: deb, AppImage
+  and rpm on ubuntu-22.04 (verified by install + headless launch in throwaway
+  containers), MSI/NSIS on Windows, the arm64/x86_64 `.app` bundles on macOS and
+  the signed APK/AAB, then publishes `stratum-gpui-*` assets with one
+  `sha256sums.txt`. `scripts/package-desktop.sh` and `scripts/build-android.sh
+  --release` are the same commands CI runs; `docs/development/packaging.md` is
+  the configuration, signing and verification reference.
 
 See `docs/development/gpui-ui.md` for the module/API map, build commands,
 test coverage and current limitations, and `docs/development/gpui-editor.md`
@@ -823,6 +834,12 @@ cargo clippy -p stratum-i18n -p stratum-platform -p stratum-ui -p stratum-editor
 # Tauri desktop app
 cargo tauri dev                  # Dev mode (Rust + Vite)
 cargo tauri build                # Production bundle
+
+# Native shell installers (deb/AppImage/rpm; --formats for one platform)
+scripts/package-desktop.sh
+
+# Verify installers install and launch in clean containers
+scripts/verify-packages.sh --dir dist/packages
 ```
 
 ## License & Dependency Policy

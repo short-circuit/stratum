@@ -961,6 +961,13 @@ The main `ci.yml` keeps the GPUI crates in `cargo test --workspace` (the
 workspace gate must cover every member) and publishes the shell capture through
 its `gpui-capture` job.
 
+Packaging runs in its own workflow: `.github/workflows/gpui-release.yml` builds
+the deb, AppImage, rpm, MSI, NSIS installer, macOS app bundle and the Android
+APK/AAB, verifies the Linux installers in clean containers and publishes the
+artifacts with a sha256 manifest. See
+[packaging](packaging.md) for the configuration, signing variables and the
+verification commands.
+
 ---
 
 ## Current Scope and Limitations

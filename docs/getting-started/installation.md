@@ -17,6 +17,19 @@ Pre-built binaries are available on the [GitHub Releases page](https://github.co
 
 Every release ships a `sha256sums.txt` with checksums for all artifacts.
 
+!!! note "Native shell builds"
+    Releases also carry the native gpui shell, published as
+    `stratum-gpui-<platform>.<ext>`: `stratum-gpui-linux.deb`,
+    `stratum-gpui-linux.AppImage`, `stratum-gpui-linux.rpm`,
+    `stratum-gpui-windows.msi`, `stratum-gpui-windows-setup.exe`,
+    `stratum-gpui-macos-arm64.zip`, `stratum-gpui-macos-x86_64.zip`,
+    `stratum-gpui-android.apk` and `stratum-gpui-android.aab`. They install
+    next to the Tauri build and are covered by the same `sha256sums.txt`
+    manifest. The native Linux packages need `libxkbcommon`, `libxcb` and the
+    Vulkan loader instead of WebKitGTK; the deb declares them, the RPM derives
+    them and the AppImage bundles the xkbcommon stack and `libasound` while
+    leaving `libxcb1` and the Vulkan driver to the system.
+
 !!! note "Linux Dependencies"
     The AppImage bundles most dependencies. For other Linux formats you need WebKitGTK libraries:
     ```bash

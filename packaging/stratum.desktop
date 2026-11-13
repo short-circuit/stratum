@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Stratum
+GenericName=Personal Knowledge Management
+Comment=Privacy-first, offline-capable personal knowledge management system
+Exec=stratum %F
+Icon=stratum
+Terminal=false
+Categories=Office;Utility;Productivity;
+Keywords=notes;knowledge;markdown;wiki;pkm;outliner;
+StartupWMClass=stratum
+StartupNotify=true
