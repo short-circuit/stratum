@@ -14,7 +14,9 @@
 #
 # Usage: bash scripts/mcp-coverage-gate.sh [threshold_percent] [target_dir]
 # Env:   MCP_COV_REUSE=1  skip the build and reuse an existing instrumented
-#                        build in <target_dir> (local debugging only).
+#                        build in <target_dir> (local debugging only). The
+#                        tree must match that build: profiles left over from a
+#                        different tree report ~0%, not the real coverage.
 set -euo pipefail
 
 THRESHOLD="${1:-80}"
