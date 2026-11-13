@@ -115,6 +115,10 @@ impl Shell {
             let mut start = std::mem::take(&mut self.page_start);
             let read_mode = self.read_mode;
             start.read_mode = read_mode;
+            // The mobile layout renders the compact header: the desktop header's
+            // labelled controls squeeze the title to one character per line at
+            // a phone width.
+            start.compact = self.mobile;
             self.page_read_mode = read_mode;
             self.page = Some(cx.new(move |cx| PageView::new(provider, path, start, cx)));
         } else if let Some(page) = &self.page {

@@ -1,5 +1,6 @@
 # === Rust ===
 target/
+target-android/
 **/*.rs.bk
 *.pdb
 .cargo/

@@ -638,6 +638,25 @@ adb logcat -s stratum        # platform init, vault path, window open
 adb exec-out screencap -p > mobile.png
 ```
 
+**Embedded assets in debug builds.** `stratum-ui` enables `rust-embed`'s
+`debug-embed` feature: without it the crate reads `assets/` from the source
+tree at runtime, and the Android app process has no such directory, so every
+Inter face and shell icon resolved to `None` and the host panicked on the
+missing font right after `gpui-kit` initialisation. A debug APK now embeds the
+faces and icons exactly like a release build.
+
+**Compact page header on mobile.** The page header renders icon-only controls,
+a single-line truncated title and no path chip when the shell is mobile
+(`PageStart::compact`). The desktop header's labelled controls squeezed the
+title to one character per line at the 415 logical-pixel viewport an
+`xxhdpi` phone reports.
+
+**Emulator caveat.** `adb shell input text` injects key events, which the
+gpui-pre Android key path does not turn into text; type through the on-screen
+IME (tap the keys) when driving the emulator. The IME itself works: the
+platform reports the keyboard inset (`safe_area_insets updated: … bottom=883`)
+and `commitText` lands in the focused field.
+
 The mobile surfaces are also reviewable without a device:
 `scripts/capture-gpui-mobile.sh` owns a private 1080×2400 Xvfb screen and
 renders the fixture with `STRATUM_MOBILE=1` and `STRATUM_INSETS=48,0,72,0,0`.

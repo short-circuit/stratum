@@ -8,6 +8,13 @@
 //! `Ok(None)`. This makes icons and fonts work on both the desktop host and
 //! the Android host path without patching gpui-kit.
 //!
+//! The bundle must be embedded in debug builds too: `rust-embed` otherwise
+//! reads the files from the source tree at runtime, and the Android app process
+//! has no `assets/` directory next to it, so every font and icon resolved to
+//! `None` on device. `crates/stratum-ui/Cargo.toml` therefore enables the
+//! `debug-embed` feature; without it the host panics on the missing Inter face
+//! right after `gpui-kit` initialisation.
+//!
 //! [`register_fonts`] installs the four static Inter faces with the GPUI text
 //! system. The faces are generated from the upstream variable font with
 //! `fontTools.varLib.instancer` at weights 400/500/600/700 and optical size
@@ -103,7 +110,7 @@ mod tests {
 
     /// Every icon the shell embeds. Kept outside the test body so the test
     /// macro expansion stays shallow.
-    const SHELL_ICONS: [gpui_kit::assets::IconName; 24] = [
+    const SHELL_ICONS: [gpui_kit::assets::IconName; 25] = [
         gpui_kit::assets::IconName::Calendar,
         gpui_kit::assets::IconName::Network,
         gpui_kit::assets::IconName::ListChecks,
@@ -128,6 +135,8 @@ mod tests {
         gpui_kit::assets::IconName::FolderInput,
         gpui_kit::assets::IconName::X,
         gpui_kit::assets::IconName::Ellipsis,
+        // Compact (mobile) page header edit-mode control.
+        gpui_kit::assets::IconName::Pencil,
     ];
 
     #[test]

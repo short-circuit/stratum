@@ -37,7 +37,11 @@ rodio = { version = "0.20", default-features = false, features = [
     "symphonia-wav",
     "symphonia-vorbis",
 ] }
-rust-embed = "8"
+# rust-embed reads files from disk at runtime in debug builds unless the
+# `debug-embed` feature is on. The Android host runs a debug APK from an app
+# sandbox whose working directory has no `assets/` tree, so every shell icon
+# and Inter face resolved to `None` on device until this feature was enabled.
+rust-embed = { version = "8", features = ["debug-embed"] }
 serde.workspace = true
 serde_json.workspace = true
 log.workspace = true

@@ -124,6 +124,11 @@ pub struct PageStart {
     pub cards_open: bool,
     /// Start with the first linked backlink's snippet card preloaded.
     pub snippet_open: bool,
+    /// Render the compact (mobile) header: icon-only controls, a single-line
+    /// truncated title and no path chip. The shell sets this for the mobile
+    /// layout, where the full desktop header squeezes the title to one
+    /// character per line at a 415 logical-pixel width.
+    pub compact: bool,
 }
 
 /// The page panel entity.
@@ -131,6 +136,8 @@ pub struct PageView {
     provider: Arc<dyn ShellData>,
     path: String,
     read_mode: bool,
+    /// Render the compact mobile header (see [`PageStart::compact`]).
+    compact: bool,
     info: Option<PageInfo>,
     editor: Option<Entity<EditorView>>,
     voice: Entity<VoiceCapture>,
@@ -204,6 +211,7 @@ impl PageView {
             provider,
             path,
             read_mode,
+            compact: start.compact,
             info,
             editor: Some(editor),
             voice,

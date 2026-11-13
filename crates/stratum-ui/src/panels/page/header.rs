@@ -23,6 +23,33 @@ pub fn header(view: &PageView, cx: &mut Context<PageView>) -> impl IntoElement {
     let accent_foreground = theme.colors.accent_foreground;
     let foreground = theme.colors.foreground;
 
+    let compact = view.compact();
+
+    let mut title_column = div().flex().flex_col().min_w(px(0.0)).child(
+        div()
+            .text_size(px(16.0))
+            .font_weight(FontWeight::BOLD)
+            .text_color(foreground)
+            .when(compact, |element| {
+                element.whitespace_nowrap().text_ellipsis()
+            })
+            .child(page_title(view)),
+    );
+    if !compact {
+        title_column = title_column.child(
+            div()
+                .mt(px(2.0))
+                .px(px(6.0))
+                .py(px(1.0))
+                .rounded(px(4.0))
+                .border_1()
+                .border_color(border)
+                .text_size(px(10.0))
+                .text_color(muted)
+                .child(view.path().to_string()),
+        );
+    }
+
     div()
         .flex()
         .items_center()
@@ -31,31 +58,7 @@ pub fn header(view: &PageView, cx: &mut Context<PageView>) -> impl IntoElement {
         .py(px(8.0))
         .border_b_1()
         .border_color(border)
-        .child(
-            div()
-                .flex()
-                .flex_col()
-                .min_w(px(0.0))
-                .child(
-                    div()
-                        .text_size(px(16.0))
-                        .font_weight(FontWeight::BOLD)
-                        .text_color(foreground)
-                        .child(page_title(view)),
-                )
-                .child(
-                    div()
-                        .mt(px(2.0))
-                        .px(px(6.0))
-                        .py(px(1.0))
-                        .rounded(px(4.0))
-                        .border_1()
-                        .border_color(border)
-                        .text_size(px(10.0))
-                        .text_color(muted)
-                        .child(view.path().to_string()),
-                ),
-        )
+        .child(title_column)
         .child(div().flex_1())
         .child(view.voice().clone())
         .child(icon_button(
@@ -63,14 +66,22 @@ pub fn header(view: &PageView, cx: &mut Context<PageView>) -> impl IntoElement {
             IconName::Paperclip,
             muted,
             t_global("asset.attach"),
+            compact,
             cx,
             |view, cx| view.attach_files(cx),
         ))
-        .child(read_mode_button(view, accent, accent_foreground, muted, cx))
+        .child(read_mode_button(
+            view,
+            accent,
+            accent_foreground,
+            muted,
+            compact,
+            cx,
+        ))
         .when(view.read_mode(), |element| {
-            element.child(edit_mode_button(accent, accent_foreground, cx))
+            element.child(edit_mode_button(accent, accent_foreground, compact, cx))
         })
-        .child(note_menu_button(view, muted, accent, cx))
+        .child(note_menu_button(view, muted, accent, compact, cx))
 }
 
 /// The page title with the same fallback chain as the shipped panel.
@@ -90,11 +101,15 @@ fn page_title(view: &PageView) -> String {
 }
 
 /// Read-mode toggle, mirroring the shipped prose button.
+///
+/// In the compact (mobile) header the label is dropped and only the icon is
+/// rendered, so four controls fit beside the title at a phone width.
 fn read_mode_button(
     view: &PageView,
     accent: Hsla,
     accent_foreground: Hsla,
     muted: Hsla,
+    compact: bool,
     cx: &mut Context<PageView>,
 ) -> impl IntoElement {
     let read_mode = view.read_mode();
@@ -115,7 +130,9 @@ fn read_mode_button(
         .text_size(px(12.0))
         .cursor_pointer()
         .child(Icon::new(IconName::BookOpen).with_size(px(14.0)))
-        .child(div().child(t_global("page.read_mode")))
+        .when(!compact, |element| {
+            element.child(div().child(t_global("page.read_mode")))
+        })
         .on_click(cx.listener(|view, _, _, cx| {
             view.set_read_mode(!view.read_mode(), cx);
         }))
@@ -125,6 +142,7 @@ fn read_mode_button(
 fn edit_mode_button(
     accent: Hsla,
     accent_foreground: Hsla,
+    compact: bool,
     cx: &mut Context<PageView>,
 ) -> impl IntoElement {
     div()
@@ -140,7 +158,13 @@ fn edit_mode_button(
         .text_color(accent_foreground)
         .text_size(px(12.0))
         .cursor_pointer()
-        .child(t_global("page.edit_mode"))
+        .child(if compact {
+            Icon::new(IconName::Pencil)
+                .with_size(px(14.0))
+                .into_any_element()
+        } else {
+            t_global("page.edit_mode").into_any_element()
+        })
         .on_click(cx.listener(|view, _, _, cx| view.set_read_mode(false, cx)))
 }
 
@@ -149,6 +173,7 @@ fn note_menu_button(
     view: &PageView,
     muted: Hsla,
     accent: Hsla,
+    compact: bool,
     cx: &mut Context<PageView>,
 ) -> impl IntoElement {
     let label = if view.reindexing() {
@@ -169,7 +194,7 @@ fn note_menu_button(
         .text_color(if view.menu_open() { accent } else { muted })
         .text_size(px(12.0))
         .cursor_pointer()
-        .child(div().child(label))
+        .when(!compact, |element| element.child(div().child(label)))
         .child(Icon::new(IconName::ChevronDown).with_size(px(12.0)))
         .on_click(cx.listener(|view, _, _, cx| view.toggle_menu(cx)))
 }
@@ -180,6 +205,7 @@ fn icon_button(
     icon: IconName,
     color: Hsla,
     label: String,
+    compact: bool,
     cx: &mut Context<PageView>,
     action: impl Fn(&mut PageView, &mut Context<PageView>) + 'static,
 ) -> impl IntoElement {
@@ -195,6 +221,6 @@ fn icon_button(
         .text_color(color)
         .cursor_pointer()
         .child(Icon::new(icon).with_size(px(14.0)))
-        .child(div().child(label))
+        .when(!compact, |element| element.child(div().child(label)))
         .on_click(cx.listener(move |view, _, _, cx| action(view, cx)))
 }

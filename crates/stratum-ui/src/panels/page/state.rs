@@ -17,6 +17,11 @@ impl PageView {
         self.read_mode
     }
 
+    /// Whether the compact (mobile) header is rendered.
+    pub fn compact(&self) -> bool {
+        self.compact
+    }
+
     /// Page metadata, when the provider could read it.
     pub fn page_info(&self) -> Option<&PageInfo> {
         self.info.as_ref()
