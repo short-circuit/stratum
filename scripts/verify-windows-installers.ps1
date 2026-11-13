@@ -44,7 +44,13 @@ function Record-Result {
     param([string]$Name, [string]$Status, [string]$Detail)
     $script:results += ('{0,-34} {1,-6} {2}' -f $Name, $Status, $Detail)
     Write-Host ("==> {0}: {1} {2}" -f $Name, $Status, $Detail)
-    if ($Status -eq 'FAIL') { $script:failed = 1 }
+    if ($Status -eq 'FAIL') {
+        $script:failed = 1
+        # Workflow annotations are readable without downloading the job log, so
+        # the reason travels with the check run even when the log is not.
+        $flat = ($Detail -replace "\r?\n", ' ')
+        Write-Host "::error::$Name failed: $flat"
+    }
 }
 
 # The installers are per-user (MSI) or current-user (NSIS), so the payload lands
@@ -78,15 +84,6 @@ function Find-UninstallEntry {
     return $null
 }
 
-function Wait-Removed {
-    param([string]$Path, [int]$Seconds = 90)
-    for ($i = 0; $i -lt $Seconds; $i++) {
-        if (-not (Test-Path $Path)) { return $true }
-        Start-Sleep -Seconds 1
-    }
-    return $false
-}
-
 function Uninstall-Product {
     param([string]$InstalledBinary)
     $entry = Find-UninstallEntry
@@ -96,7 +93,8 @@ function Uninstall-Product {
 
     # An MSI entry is `MsiExec.exe /X{GUID}`; an NSIS entry points at the
     # uninstaller. The NSIS uninstaller relaunches itself from %TEMP% and
-    # returns immediately, so removal is confirmed by polling the payload.
+    # returns immediately, so removal is confirmed by polling both the payload
+    # and the uninstall entry instead of trusting the exit code.
     if ($command -match '\{[0-9A-Fa-f-]{36}\}') {
         $guid = $matches[0]
         Write-Host "    removing product $guid"
@@ -113,12 +111,17 @@ function Uninstall-Product {
         Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait | Out-Null
     }
 
-    if (-not (Wait-Removed -Path $InstalledBinary)) {
+    $deadline = (Get-Date).AddSeconds(90)
+    while ((Get-Date) -lt $deadline) {
+        if (-not (Test-Path $InstalledBinary) -and -not (Find-UninstallEntry)) {
+            return
+        }
+        Start-Sleep -Seconds 2
+    }
+    if (Test-Path $InstalledBinary) {
         throw "the installed binary $InstalledBinary was still present after uninstalling"
     }
-    if (Find-UninstallEntry) {
-        throw 'the uninstall entry was still registered after uninstalling'
-    }
+    throw 'the uninstall entry was still registered after uninstalling'
 }
 
 function Invoke-LaunchProbe {

@@ -192,6 +192,16 @@ artifacts with checksums:
 - **Publication** — assets are renamed to `stratum-gpui-<platform>.<ext>`, a
   single `sha256sums.txt` is generated over all of them, verified with
   `sha256sum -c` on the runner, and the draft release for the tag is updated.
+  A final step downloads the published assets back through the API and checks
+  them against the manifest, so a corrupted upload fails the run instead of
+  shipping. The release stays a draft (a human publishes it), which also means
+  anonymous downloads of the assets only work after it is published.
+- **Failure diagnostics** — a packaging job that fails keeps its output as a
+  `log-<job>` artifact, and the `diagnostics` job attaches those logs to the
+  draft release as `<job>-packaging.log`, because Actions artifacts need a token
+  to download while release assets do not. The verification scripts also emit
+  `::error::` annotations, which show up on the check run without opening the
+  job log.
 
 The Tauri workflow (`ci.yml`) also publishes on a `v*` tag. It ships its own
 manifest, `sha256sums-pkm.txt`, because both workflows update the same draft

@@ -97,7 +97,21 @@ jobs:
           cargo install cargo-generate-rpm --version "$CARGO_GENERATE_RPM_VERSION" --locked
 
       - name: Package deb, AppImage and rpm
-        run: scripts/package-desktop.sh --formats deb,appimage,rpm
+        shell: bash
+        run: |
+          set -o pipefail
+          scripts/package-desktop.sh --formats deb,appimage,rpm 2>&1 | tee packaging.log
+
+      # Artifacts need a token to download, so a failing job also hands its log
+      # to the diagnostics job, which publishes it on the draft release.
+      - name: Keep the packaging log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-linux
+          path: packaging.log
+          if-no-files-found: ignore
+          retention-days: 14
 
       # Install the artifacts into throwaway containers instead of trusting the
       # build host: apt/dnf resolve the declared dependencies and the shell has
@@ -154,7 +168,18 @@ jobs:
 
       - name: Package MSI and NSIS installer
         shell: bash
-        run: scripts/package-desktop.sh --formats nsis,wix
+        run: |
+          set -o pipefail
+          scripts/package-desktop.sh --formats nsis,wix 2>&1 | tee packaging.log
+
+      - name: Keep the packaging log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-windows
+          path: packaging.log
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Sign the installers
         if: env.WINDOWS_CERTIFICATE != ''
@@ -235,7 +260,19 @@ jobs:
         run: cargo install cargo-packager --version "$CARGO_PACKAGER_VERSION" --locked
 
       - name: Package the app bundle
-        run: scripts/package-desktop.sh --formats app --target ${{ matrix.target }}
+        shell: bash
+        run: |
+          set -o pipefail
+          scripts/package-desktop.sh --formats app --target ${{ matrix.target }} 2>&1 | tee packaging.log
+
+      - name: Keep the packaging log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-macos-${{ matrix.arch }}
+          path: packaging.log
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Verify the app bundle on a clean runner
         run: scripts/verify-macos-app.sh --dir dist/packages --arch ${{ matrix.arch }}
@@ -379,7 +416,19 @@ jobs:
           key: ${{ runner.os }}-gpui-gradle-${{ hashFiles('crates/stratum-mobile/android/**/*.gradle*', 'crates/stratum-mobile/android/gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Build the release APK and AAB
-        run: scripts/build-android.sh --release
+        shell: bash
+        run: |
+          set -o pipefail
+          scripts/build-android.sh --release 2>&1 | tee packaging.log
+
+      - name: Keep the packaging log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-android
+          path: packaging.log
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
@@ -390,6 +439,48 @@ jobs:
             crates/stratum-mobile/android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
           retention-days: 14
+
+
+  # A failed packaging job keeps its log as an artifact, but artifacts need a
+  # token to download. This job attaches those logs to the draft release for the
+  # tag, so a failed run is diagnosable from the public release page alone.
+  diagnostics:
+    name: Publish failure logs
+    needs: [linux, windows, macos, android]
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download the packaging logs
+        uses: actions/download-artifact@v8
+        with:
+          pattern: log-*
+          path: artifacts
+
+      - name: Stage the logs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p logs
+          shopt -s nullglob
+          for f in artifacts/log-*/*.log; do
+            job="$(basename "$(dirname "$f")")"
+            cp "$f" "logs/${job}-$(basename "$f")"
+          done
+          ls -la logs
+
+      - name: Attach the logs to the draft release
+        if: ${{ hashFiles('logs/*.log') != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: logs/*.log
+          draft: true
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release:
     name: Publish release assets
@@ -452,3 +543,37 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The upload is the only step that can silently corrupt an artifact, and
+      # the release stays a draft (invisible to anonymous downloads), so the
+      # assets are fetched back through the API and checked against the
+      # published manifest here.
+      - name: Verify the published assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p downloaded
+          gh release download "$GITHUB_REF_NAME" --dir downloaded --clobber
+          cd downloaded
+          sha256sum -c sha256sums.txt
+          expected=(
+            stratum-gpui-linux.deb
+            stratum-gpui-linux.AppImage
+            stratum-gpui-linux.rpm
+            stratum-gpui-windows.msi
+            stratum-gpui-windows-setup.exe
+            stratum-gpui-macos-arm64.zip
+            stratum-gpui-macos-x86_64.zip
+            stratum-gpui-android.apk
+            stratum-gpui-android.aab
+            sha256sums.txt
+          )
+          for name in "${expected[@]}"; do
+            if [ ! -f "$name" ]; then
+              echo "::error::missing release asset $name"
+              exit 1
+            fi
+          done
+          echo "==> all ${#expected[@]} release assets verified against sha256sums.txt"

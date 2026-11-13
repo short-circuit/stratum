@@ -101,6 +101,9 @@ BIN="$APP/Contents/MacOS/stratum"
 
 fail() {
     echo "FAIL: $*" >&2
+    # Workflow annotations are readable without downloading the job log, so the
+    # reason travels with the check run even when the log is not.
+    echo "::error::$*"
     exit 1
 }
 
