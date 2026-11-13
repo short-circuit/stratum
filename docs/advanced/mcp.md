@@ -831,3 +831,18 @@ in CI by the `mcp-coverage` job (`scripts/mcp-coverage-gate.sh`), which asserts
 Coverage is measured with rustup `llvm-tools` (`-Cinstrument-coverage`); the
 gate threshold is 80%. Untested additions to the MCP tool/adapter layer fail the
 gate even when `cargo test` passes.
+
+The gate script is self-diagnosing on purpose: a failing run must explain itself
+from the check-run annotations alone, because Actions job logs need a token to
+download. It keeps the instrumented build output (`<target_dir>/mcp-cargo-test.log`
+plus the `cargo test --no-run` diagnostics), reports every failure mode as a
+`::error::` annotation together with the target-directory layout, toolchain and
+`CARGO_*` environment, discovers the instrumented binaries through cargo's JSON
+build messages (so a build that lands under `<target_dir>/<triple>/debug/deps`
+instead of `<target_dir>/debug/deps` no longer breaks the gate), and reads the
+result from `llvm-cov export --summary-only` JSON instead of parsing report
+columns, which follow the LLVM version rather than the tool contract. It clears
+stale `.profraw` files before each run so a cached target directory cannot
+inflate the result. `python3` is required to read the JSON export.
+`MCP_COV_REUSE=1` skips the build and reuses an existing instrumented build in
+`<target_dir>` (local debugging only).
