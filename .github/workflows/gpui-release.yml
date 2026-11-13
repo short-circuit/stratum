@@ -446,7 +446,7 @@ jobs:
   # tag, so a failed run is diagnosable from the public release page alone.
   diagnostics:
     name: Publish failure logs
-    needs: [linux, windows, macos, android]
+    needs: [linux, windows, macos, android, release]
     if: failure()
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -553,11 +553,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
+          set -o pipefail
           mkdir -p downloaded
-          gh release download "$GITHUB_REF_NAME" --dir downloaded --clobber
-          cd downloaded
-          sha256sum -c sha256sums.txt
           expected=(
             stratum-gpui-linux.deb
             stratum-gpui-linux.AppImage
@@ -570,10 +567,58 @@ jobs:
             stratum-gpui-android.aab
             sha256sums.txt
           )
+          # The assets were uploaded seconds ago; GitHub needs a moment before
+          # they are downloadable, so the listing and each download are retried
+          # instead of failing the release on a transient 404.
+          retry() {
+            local attempts="$1" delay="$2" out="$3"; shift 3
+            local n=1
+            until "$@" >"$out" 2>&1; do
+              if [ "$n" -ge "$attempts" ]; then
+                echo "::error::$* failed after $attempts attempts:"
+                cat "$out"
+                return 1
+              fi
+              n=$((n + 1))
+              sleep "$delay"
+            done
+          }
+          retry 6 15 assets.txt gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name'
+          echo "==> published assets"
+          cat assets.txt
+          missing=0
           for name in "${expected[@]}"; do
-            if [ ! -f "$name" ]; then
+            if ! grep -qxF "$name" assets.txt; then
               echo "::error::missing release asset $name"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+          for name in "${expected[@]}"; do
+            retry 6 15 "download-$name.log" \
+              gh release download "$GITHUB_REF_NAME" --pattern "$name" --dir downloaded --clobber
+            if [ ! -f "downloaded/$name" ]; then
+              echo "::error::could not download $name"
               exit 1
             fi
           done
+          cd downloaded
+          if ! sha256sum -c sha256sums.txt > checksums.log 2>&1; then
+            cat checksums.log
+            echo "::error::$(grep -m1 -E 'FAILED|No such file' checksums.log)"
+            exit 1
+          fi
+          cat checksums.log
           echo "==> all ${#expected[@]} release assets verified against sha256sums.txt"
+
+      - name: Keep the release log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-release
+          path: |
+            assets.txt
+            download-*.log
+            downloaded/checksums.log
+          if-no-files-found: ignore
+          retention-days: 14

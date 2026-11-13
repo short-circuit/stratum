@@ -13,6 +13,10 @@ THRESHOLD="${1:-80}"
 COV_TARGET="${2:-target/cov}"
 cd "$(dirname "$0")/.."
 
+# `set -e` failures are invisible without the job log (Actions logs need a
+# token), so the failing line is surfaced as a workflow annotation instead.
+trap 'echo "::error::MCP coverage gate failed at line $LINENO"' ERR
+
 export CARGO_TARGET_DIR="$COV_TARGET"
 export RUSTFLAGS="-Cinstrument-coverage"
 export LLVM_PROFILE_FILE="$PWD/$COV_TARGET/mcp-%p-%m.profraw"
