@@ -54,7 +54,8 @@ pub(super) fn render_image(frame: &ViewportFrame) -> Option<Arc<RenderImage>> {
     let (width, height) = rgba.dimensions();
     let mut raw = rgba.into_raw();
     // gpui's RenderImage stores BGRA bytes; the rasterizer produces RGBA.
-    for pixel in raw.chunks_exact_mut(4) {
+    let (pixels, _remainder) = raw.as_chunks_mut::<4>();
+    for pixel in pixels {
         pixel.swap(0, 2);
     }
     let buffer = image::RgbaImage::from_raw(width, height, raw)?;

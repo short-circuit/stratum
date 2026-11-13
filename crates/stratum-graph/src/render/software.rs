@@ -175,8 +175,11 @@ fn project_point(
 }
 
 fn fill_background(pixels: &mut [u8], background: [u8; 4]) {
-    for pixel in pixels.chunks_exact_mut(4) {
-        pixel.copy_from_slice(&background);
+    // `as_chunks_mut` yields whole pixels as arrays; a trailing partial pixel
+    // (a truncated buffer) is left untouched, exactly like `chunks_exact_mut`.
+    let (whole, _remainder) = pixels.as_chunks_mut::<4>();
+    for pixel in whole {
+        *pixel = background;
     }
 }
 
@@ -413,9 +416,10 @@ mod tests {
         });
         let frame = renderer.render(&scene, &Camera::default()).expect("frame");
         let background = scene.background;
-        let visible = frame
-            .rgba()
-            .chunks_exact(4)
+        let rgba = frame.rgba();
+        let (pixels, _remainder) = rgba.as_chunks::<4>();
+        let visible = pixels
+            .iter()
             .filter(|pixel| pixel[0] != background[0] || pixel[1] != background[1])
             .count();
         assert!(visible > 0);

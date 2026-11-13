@@ -66,10 +66,8 @@ fn decode_webp(bytes: &[u8]) -> Vec<[u8; 4]> {
         image_webp::WebPDecoder::new(std::io::Cursor::new(bytes)).expect("webp decoder");
     let mut buffer = vec![0; decoder.output_buffer_size().expect("webp buffer size")];
     decoder.read_image(&mut buffer).expect("webp decodes");
-    buffer
-        .chunks_exact(4)
-        .map(|chunk| [chunk[0], chunk[1], chunk[2], chunk[3]])
-        .collect()
+    let (pixels, _remainder) = buffer.as_chunks::<4>();
+    pixels.to_vec()
 }
 
 #[test]
