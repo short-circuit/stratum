@@ -7,7 +7,7 @@
 //! (single-writer atomicity, §8/§10), commits inside a SQLite transaction, and
 //! refreshes the index exactly like the desktop `save_page`/`delete_page`.
 //!
-//! The write path mirrors `src-tauri/src/commands/page.rs::save_page`:
+//! The write path mirrors `stratum_app::page::save_page`:
 //!   parse/validate → atomic temp-file+rename of `.md` → SQLite transaction
 //!   (delete_blocks_by_page + insert_block per block + upsert_page) → index
 //!   refresh → `watcher_last_save` marker (watcher coordination) → plugin

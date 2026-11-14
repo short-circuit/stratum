@@ -2,7 +2,7 @@
 //! methods.
 //!
 //! The shipped React app keeps these catalogs in `localStorage`
-//! (`src/lib/pluginCatalog.ts`). The headless service keeps the same payloads
+//! (`panels/plugins`). The headless service keeps the same payloads
 //! under `<vault>/.pkm/catalog/` so the native shell works offline after the
 //! first successful fetch. Network access is behind [`CatalogFetch`] so tests
 //! never touch the network.

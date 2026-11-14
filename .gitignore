@@ -36,11 +36,10 @@ result/
 
 # === Android ===
 *.keystore
+*.jks
 *.b64
-# Allow checked-in debug keystore used for CI signing
-!src-tauri/android-patches/debug.keystore
-# Generated Android Vite assets (hash-named, change every build)
-/src-tauri/gen/android/app/src/main/assets/
+# Release keystores are never committed; without one the Gradle build falls
+# back to the standard Android debug key (~/.android/debug.keystore).
 # Native Stratum Android host: cargo-ndk output, Gradle caches and SDK paths
 /crates/stratum-mobile/android/app/src/main/jniLibs/
 /crates/stratum-mobile/android/.gradle/
@@ -83,11 +82,6 @@ test-results/
 /docs/fc-*.md
 /docs/audit-*.md
 /docs/qa/
-/verification/*
-!/verification/cdp_probe.mjs
 /.screenshots/
 **/.evidence/
 /.worktrees/
-
-# Playwright evidence capture output
-e2e/capture/

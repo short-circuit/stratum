@@ -26,11 +26,9 @@
 <!-- What did you run, and what was the result? Be specific. -->
 
 - [ ] `cargo fmt --check` (Rust formatting)
-- [ ] `cargo clippy --workspace -- -D warnings` (lint gate in CI)
+- [ ] `cargo clippy --workspace --all-targets -- -D warnings` (lint gate in CI)
 - [ ] `cargo test --workspace` (or scoped: `cargo test -p <crate>`)
-- [ ] `npm run test` (frontend unit/component tests)
-- [ ] `npm run lint` (ESLint)
-- [ ] `npm run build` (`tsc -b && vite build`)
+- [ ] `./scripts/verify-gpui-goldens.sh` (if a shipped surface changed)
 - [ ] `mkdocs build -f docs/mkdocs.yml --strict` (if docs changed)
 - [ ] `bash scripts/mcp-coverage-gate.sh` (if MCP crates changed)
 

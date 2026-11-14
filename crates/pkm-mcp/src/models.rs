@@ -1,7 +1,7 @@
 //! Contract DTOs (contract §4).
 //!
 //! These types mirror the existing command DTO shapes in
-//! `src-tauri/src/commands/*` wherever the two surfaces overlap, but are
+//! the shipped command DTOs wherever the two surfaces overlap, but are
 //! owned by this crate so the MCP server does not depend on the Tauri crate.
 //! Field names are the exact contract wire names.
 //!

@@ -27,7 +27,6 @@ members = [
     "crates/stratum-editor",
     "crates/stratum-graph",
     "crates/stratum-canvas",
-    "src-tauri",
 ]
 
 [workspace.package]

@@ -610,7 +610,7 @@ pub struct GraphConfig {
     /// Render the graph in 3D. Desktop always renders 3D regardless of this
     /// flag; on mobile this is the opt-in that switches the graph from the 2D
     /// force layout to the 3D one. The frontend additionally falls back to 2D
-    /// automatically when the device cannot render WebGL (see src/lib/graph3d.ts).
+    /// automatically when the device cannot render WebGL (see `panels/graph`).
     pub use_3d: bool,
 }
 

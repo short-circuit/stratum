@@ -9,13 +9,14 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-/// Embedded Mermaid runtime, compiled in from `node_modules` so the exported
-/// HTML can render diagrams offline without a network fetch. `node_modules` is
-/// guaranteed present for Tauri builds because `beforeBuildCommand` runs
-/// `npm run build` first.
+/// Embedded Mermaid runtime so exported HTML can render diagrams offline
+/// without a network fetch. The bundle is vendored at
+/// `assets/mermaid.min.js` (Mermaid 12.2.0, MIT — see `assets/MERMAID-LICENSE.txt`)
+/// so the crate builds without an npm install: the web frontend that used to
+/// supply `node_modules` was deleted at the native cutover.
 const MERMAID_JS: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../node_modules/mermaid/dist/mermaid.min.js"
+    "/assets/mermaid.min.js"
 ));
 
 /// Result of a successful per-page PDF export, carrying the output file path.

@@ -7,7 +7,7 @@
 //! Scope note: the Tauri command layer (`ensure_today_journal_core`,
 //! `apply_template`, `review_card`, `get_kanban_blocks`, `save_whiteboard` /
 //! `load_whiteboard`) wraps these primitives; the full command-path flows that
-//! persist to disk are exercised in `src-tauri/tests/feature_commands.rs`
+//! persist to disk are exercised in `crates/stratum-ui/tests/`
 //! through the real IPC dispatcher. This file covers the data-layer contracts.
 
 mod common;

@@ -5,7 +5,7 @@
 //! string with YAML frontmatter, wiki-links (`[[...]]`), and tags (`#tag`).
 //!
 //! Templates are installed idempotently into a vault's `templates/` directory
-//! by the Tauri `install_starter_templates` command (see `src-tauri`). The
+//! by the `install_starter_templates` service method (see `stratum-app`). The
 //! content uses ONLY the variable placeholders the existing `apply_template`
 //! command supports (`{{date}}`, `{{time}}`, `{{datetime}}`, `{{title}}`) plus
 //! arbitrary user variables (e.g. `{{author}}`), so a template can be applied

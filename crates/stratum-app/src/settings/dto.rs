@@ -152,7 +152,7 @@ pub struct GraphSettingsDto {
     pub velocity_decay: f64,
     pub link_curvature: f64,
     /// Opt-in 3D rendering (mobile). Desktop always renders 3D; this flag is
-    /// only consumed by the mobile variant (see src/lib/graph3d.ts for the
+    /// only consumed by the mobile variant (see `panels/graph` for the
     /// WebGL-capability fallback).
     #[serde(default)]
     pub use_3d: bool,

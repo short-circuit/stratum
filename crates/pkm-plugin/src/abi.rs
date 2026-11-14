@@ -6,7 +6,7 @@
 //! every struct in this file are part of the plugin contract; do not change
 //! them without a new ADR.
 //!
-//! The `HostApi` trait is the seam the host (`src-tauri`, CLI) implements to
+//! The `HostApi` trait is the seam the host (`stratum-app`, CLI) implements to
 //! back the `pkm.note_read`, `pkm.note_write` and `pkm.http_request` imports.
 //! The runtime dispatches requests/envelopes in [`crate::runtime`].
 

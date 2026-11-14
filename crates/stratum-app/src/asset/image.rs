@@ -1,7 +1,7 @@
 //! Pure image helpers for asset thumbnails and upload compression.
 //!
 //! This module mirrors the shipped React attachment behaviour
-//! (`src/lib/assetUpload.ts`, `src/components/AttachmentPanel.tsx`) in Rust so
+//! (`panels/editor/asset_actions.rs`, `panels/editor/attachments.rs`) in Rust so
 //! the native shell can share the exact same upload policy. The `image` crate
 //! (MIT/Apache-2.0, already present transitively) is the decoder used for both
 //! thumbnails and compression; only raster formats are decodable.

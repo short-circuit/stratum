@@ -718,7 +718,7 @@ fn e2e_disabled_plugin_does_not_run() {
 
 #[test]
 fn manager_init_for_vault_scans_and_loads_enabled_plugin() {
-    use app_lib::commands::plugins::PluginManager;
+    use stratum_app::plugins::PluginManager;
 
     let vault = TestVault::new();
     // Install the plugin and persist an enabling config.toml.
@@ -752,7 +752,7 @@ fn manager_init_for_vault_scans_and_loads_enabled_plugin() {
 
 #[test]
 fn manager_enable_disable_persists_and_reflects_state() {
-    use app_lib::commands::plugins::PluginManager;
+    use stratum_app::plugins::PluginManager;
 
     let vault = TestVault::new();
     vault.install_sample_plugin();
@@ -774,7 +774,7 @@ fn manager_enable_disable_persists_and_reflects_state() {
 
 #[test]
 fn manager_reload_reinstantiates_from_disk() {
-    use app_lib::commands::plugins::PluginManager;
+    use stratum_app::plugins::PluginManager;
 
     let vault = TestVault::new();
     vault.install_sample_plugin();
@@ -790,7 +790,7 @@ fn manager_reload_reinstantiates_from_disk() {
 
 #[test]
 fn manager_dispatch_all_runs_enabled_plugin_hook() {
-    use app_lib::commands::plugins::PluginManager;
+    use stratum_app::plugins::PluginManager;
 
     let vault = TestVault::new();
     vault.write_note("notes/real.md", "# from disk");
@@ -814,7 +814,7 @@ fn manager_dispatch_all_runs_enabled_plugin_hook() {
 
 #[test]
 fn manager_no_vault_plugins_is_empty() {
-    use app_lib::commands::plugins::PluginManager;
+    use stratum_app::plugins::PluginManager;
 
     let vault = TestVault::new();
     // No .pkm/plugins dir at all.
@@ -825,7 +825,7 @@ fn manager_no_vault_plugins_is_empty() {
 
 #[test]
 fn manager_install_uninstall_roundtrips_through_registry_and_disk() {
-    use app_lib::commands::plugins::PluginManager;
+    use stratum_app::plugins::PluginManager;
 
     let vault = TestVault::new();
     let manager = PluginManager::init_for_vault(&vault.root).expect("init_for_vault");
@@ -954,10 +954,8 @@ fn install_echo_plugin(vault: &TestVault) -> String {
 }
 
 /// Init a manager with the echo plugin enabled, plus the given extra config.
-fn manager_with_echo(
-    vault: &TestVault,
-) -> std::sync::Arc<app_lib::commands::plugins::PluginManager> {
-    use app_lib::commands::plugins::PluginManager;
+fn manager_with_echo(vault: &TestVault) -> std::sync::Arc<stratum_app::plugins::PluginManager> {
+    use stratum_app::plugins::PluginManager;
     install_echo_plugin(vault);
     let pkm_dir = vault.root.join(".pkm");
     let config = "\n[[plugins]]\nname = \"com.example.echo-hooks\"\nenabled = true\nwasm_path = \".pkm/plugins/com.example.echo-hooks/plugin.wasm\"\npermissions = []\n";
@@ -967,7 +965,7 @@ fn manager_with_echo(
 
 #[test]
 fn dispatch_on_open_delivers_path_payload() {
-    use app_lib::commands::plugins::dispatch_on_open;
+    use stratum_app::plugins::dispatch_on_open;
 
     let vault = TestVault::new();
     let manager = manager_with_echo(&vault);
@@ -985,7 +983,7 @@ fn dispatch_on_open_delivers_path_payload() {
 
 #[test]
 fn dispatch_on_link_delivers_path_and_links_payload() {
-    use app_lib::commands::plugins::dispatch_on_link;
+    use stratum_app::plugins::dispatch_on_link;
 
     let vault = TestVault::new();
     let manager = manager_with_echo(&vault);
@@ -1008,7 +1006,7 @@ fn dispatch_on_link_delivers_path_and_links_payload() {
 
 #[test]
 fn dispatch_on_search_delivers_query_and_limit_payload() {
-    use app_lib::commands::plugins::dispatch_on_search;
+    use stratum_app::plugins::dispatch_on_search;
 
     let vault = TestVault::new();
     let manager = manager_with_echo(&vault);
@@ -1026,7 +1024,7 @@ fn dispatch_on_search_delivers_query_and_limit_payload() {
 
 #[test]
 fn dispatch_hooks_noop_when_plugin_declares_but_does_not_export() {
-    use app_lib::commands::plugins::{dispatch_on_open, dispatch_on_search};
+    use stratum_app::plugins::{dispatch_on_open, dispatch_on_search};
 
     // A plugin that declares onOpen/onSearch but does not export them: the
     // runtime's `run_plugin` returns an error (missing export), which the
@@ -1057,8 +1055,8 @@ fn dispatch_hooks_noop_when_plugin_declares_but_does_not_export() {
     let config = "\n[[plugins]]\nname = \"com.example.empty-hooks\"\nenabled = true\nwasm_path = \".pkm/plugins/com.example.empty-hooks/plugin.wasm\"\npermissions = []\n";
     std::fs::write(pkm_dir.join("config.toml"), config).unwrap();
 
-    let manager = app_lib::commands::plugins::PluginManager::init_for_vault(&vault.root)
-        .expect("init_for_vault");
+    let manager =
+        stratum_app::plugins::PluginManager::init_for_vault(&vault.root).expect("init_for_vault");
     assert!(manager.has_hook("onOpen"));
     assert!(manager.has_hook("onSearch"));
 
