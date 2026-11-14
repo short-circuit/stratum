@@ -18,16 +18,16 @@
 # exercises the control flow without a real device).
 #
 # Env:
-#   PKG              app package (defaults to app.stratum.debug)
-#   ACTIVITY         launchable activity (defaults to app.stratum.MainActivity)
+#   PKG              app package (defaults to com.stratum.app)
+#   ACTIVITY         launchable activity (defaults to dev.gpui.mobile.GpuiActivity)
 #   CI_HARVEST_DIR   evidence output dir (defaults to android-smoke-evidence)
 #   EXPECT_VERDICT   'pass' (default) or 'fail' — lets the harness assert the
 #                    probe fails on the old build (regression proof).
 #
 set -uo pipefail
 
-PKG="${PKG:-app.stratum.debug}"
-ACTIVITY="${ACTIVITY:-app.stratum.MainActivity}"
+PKG="${PKG:-com.stratum.app}"
+ACTIVITY="${ACTIVITY:-dev.gpui.mobile.GpuiActivity}"
 CI_HARVEST_DIR="${CI_HARVEST_DIR:-android-smoke-evidence}"
 EXPECT_VERDICT="${EXPECT_VERDICT:-pass}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
