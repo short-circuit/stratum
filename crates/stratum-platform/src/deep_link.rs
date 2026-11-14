@@ -251,8 +251,10 @@ pub fn register_scheme() -> PkmResult<()> {
     #[cfg(target_os = "macos")]
     {
         // Declared by the bundle's Info.plist; nothing to write at runtime.
+        // This block is the function's tail expression on macOS, so it returns
+        // the value directly instead of a `return` (clippy::needless_return).
         let _ = exe;
-        return Ok(());
+        Ok(())
     }
 
     #[cfg(not(target_os = "macos"))]
