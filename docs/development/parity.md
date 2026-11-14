@@ -55,6 +55,13 @@ regenerates the set; the resulting image diff must be reviewed before commit.
 64 surfaces, 64 goldens. The mobile capture script additionally fails unless
 every PNG is exactly 1080×2400.
 
+A capture run that dies before drawing (gpui panics on a failed display
+connection, which a busy CI runner can trigger) is retried once, and the
+headless launch log is surfaced as warnings: the golden diff — not the capture
+run — is the parity verdict, so a retry cannot mask drift. The capture scripts
+resolve the workspace's real cargo target directory through `cargo metadata`,
+because the workspace pins `[build] target-dir` in `.cargo/config.toml`.
+
 ### 2.2 Differential command tests
 
 The web frontend was a thin adapter over `stratum_app::StratumService`, so

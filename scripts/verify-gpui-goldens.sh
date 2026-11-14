@@ -35,13 +35,39 @@ mkdir -p "$WORK" "$GOLDENS" "$(dirname "$REPORT")"
 unset DISPLAY WAYLAND_DISPLAY
 
 echo "== capturing desktop surfaces at 1440x900 =="
-CAPTURE_WIDTH=1440 CAPTURE_HEIGHT=900 CAPTURE_DISPLAY="${CAPTURE_DISPLAY:-95}" \
+# A headless gpui launch can fail transiently before it ever draws (gpui panics
+# on a failed display connection; a fresh Xvfb on a busy runner is the usual
+# cause). Retry the capture run once: the golden diff — not the capture run — is
+# the parity verdict, so a retry cannot mask drift, and a recovered run reports
+# the launch log as warnings instead of turning the gate red.
+retry_capture() { # retry_capture <command...>
+    local attempt log
+    for attempt in 1 2; do
+        if "$@"; then
+            return 0
+        fi
+        echo "goldens: capture run failed (attempt ${attempt}/2)" >&2
+        printf '::warning::goldens: capture run failed on attempt %s; retrying once\n' "$attempt"
+        # Job logs are admin-only, so surface the headless launch log: a gpui
+        # display-connection panic is the transient failure seen here.
+        for log in "$ROOT/dist/gpui-shell.log" "$WORK/gpui-journal.log" "$WORK/gpui-mobile.log"; do
+            [ -f "$log" ] || continue
+            tail -n 3 "$log" | while IFS= read -r line; do
+                [ -n "$line" ] && printf '::warning::goldens %s: %s\n' "$(basename "$log")" "${line//$'\r'/}"
+            done
+        done
+        sleep 2
+    done
+    return 1
+}
+
+retry_capture env CAPTURE_WIDTH=1440 CAPTURE_HEIGHT=900 CAPTURE_DISPLAY="${CAPTURE_DISPLAY:-95}" \
     "$ROOT/scripts/capture-gpui-shell.sh" "$WORK/gpui-shell.png"
-CAPTURE_WIDTH=1440 CAPTURE_HEIGHT=900 CAPTURE_DISPLAY="${CAPTURE_DISPLAY:-95}" \
+retry_capture env CAPTURE_WIDTH=1440 CAPTURE_HEIGHT=900 CAPTURE_DISPLAY="${CAPTURE_DISPLAY:-95}" \
     "$ROOT/scripts/capture-gpui-panels.sh" "$WORK/gpui-journal.png"
 
 echo "== capturing mobile surfaces at 1080x2400 =="
-CAPTURE_WIDTH=1080 CAPTURE_HEIGHT=2400 CAPTURE_DISPLAY="${CAPTURE_DISPLAY:-94}" \
+retry_capture env CAPTURE_WIDTH=1080 CAPTURE_HEIGHT=2400 CAPTURE_DISPLAY="${CAPTURE_DISPLAY:-94}" \
     "$ROOT/scripts/capture-gpui-mobile.sh" "$WORK/gpui-mobile-journal.png"
 
 python3 - "$WORK" "$GOLDENS" "$REPORT" "$TOLERANCE" "$UPDATE" <<'PY'
