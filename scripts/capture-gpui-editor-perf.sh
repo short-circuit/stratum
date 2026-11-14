@@ -23,6 +23,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib/capture-display.sh
+source "$ROOT/scripts/lib/capture-display.sh"
 OUT="${STRATUM_PERF_OUT:-$ROOT/.hermes/perf/editor-10k-frames.json}"
 FRAMES="${STRATUM_PERF_FRAMES:-600}"
 WIDTH="${CAPTURE_WIDTH:-1280}"
@@ -30,7 +32,9 @@ HEIGHT="${CAPTURE_HEIGHT:-720}"
 DISPLAY_NUM="${CAPTURE_DISPLAY:-98}"
 LOG="${PERF_LOG:-$ROOT/.hermes/perf/editor-10k.log}"
 PROFILE="${STRATUM_PERF_PROFILE:-release}"
-TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/target}"
+# The workspace pins [build] target-dir in .cargo/config.toml, so $ROOT/target
+# is not where the binaries land; resolve the real directory.
+TARGET_DIR="$(resolve_cargo_target_dir "$ROOT")"
 BUDGET_MS="18.18"
 
 if [[ "$PROFILE" == "release" ]]; then
@@ -45,7 +49,7 @@ mkdir -p "$(dirname "$OUT")" "$(dirname "$LOG")"
 
 export STRATUM_PERF_OUT="$OUT"
 export STRATUM_PERF_FRAMES="$FRAMES"
-export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/target}"
+export CARGO_TARGET_DIR="$TARGET_DIR"
 export LIBGL_ALWAYS_SOFTWARE=1
 export WINIT_UNIX_BACKEND=x11
 export RUST_BACKTRACE=1

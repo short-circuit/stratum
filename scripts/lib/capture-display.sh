@@ -67,6 +67,22 @@ acquire_capture_display() {
     return 1
 }
 
+# resolve_cargo_target_dir ROOT
+#
+# Prints the cargo target directory cargo would use for the workspace at ROOT.
+# The workspace pins `[build] target-dir` in .cargo/config.toml, so `$ROOT/target`
+# is not where the binaries land; `cargo metadata` honours both that config and
+# CARGO_TARGET_DIR.
+resolve_cargo_target_dir() {
+    local root="$1" dir
+    dir="$(cargo metadata --no-deps --format-version 1 --manifest-path "$root/Cargo.toml" 2>/dev/null \
+        | python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])' 2>/dev/null || true)"
+    if [[ -z "$dir" ]]; then
+        dir="${CARGO_TARGET_DIR:-$root/target}"
+    fi
+    printf '%s\n' "$dir"
+}
+
 # assert_capture_not_blank FILE
 #
 # Fails when a capture is a flat image (fewer than 8 unique colors), which is

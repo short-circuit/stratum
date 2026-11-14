@@ -59,7 +59,6 @@ export STRATUM_FIXTURE=1
 export STRATUM_MOBILE=1
 export STRATUM_INSETS="${STRATUM_INSETS:-48,0,72,0,0}"
 export STRATUM_LOCALE="${STRATUM_LOCALE:-en}"
-export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/target}"
 export LIBGL_ALWAYS_SOFTWARE=1
 export WINIT_UNIX_BACKEND=x11
 # gpui prefers Wayland when it is advertised, but the capture drives the window
@@ -76,6 +75,10 @@ done
 
 # shellcheck source=lib/capture-display.sh
 source "$ROOT/scripts/lib/capture-display.sh"
+
+# The workspace pins [build] target-dir in .cargo/config.toml, so $ROOT/target
+# is not where the binaries land; resolve the real directory.
+export CARGO_TARGET_DIR="$(resolve_cargo_target_dir "$ROOT")"
 
 XVFB_PID=""
 APP_PID=""

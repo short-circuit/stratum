@@ -15,12 +15,14 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib/capture-display.sh
+source "$ROOT/scripts/lib/capture-display.sh"
 OUT="${1:-${A11Y_OUT:-$ROOT/.hermes/a11y/tree.json}}"
 WIDTH="${CAPTURE_WIDTH:-1440}"
 HEIGHT="${CAPTURE_HEIGHT:-900}"
 DISPLAY_NUM="${CAPTURE_DISPLAY:-97}"
 LOG="${A11Y_LOG:-$ROOT/.hermes/a11y/probe.log}"
-TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/target}"
+TARGET_DIR="$(resolve_cargo_target_dir "$ROOT")"
 
 mkdir -p "$(dirname "$OUT")" "$(dirname "$LOG")"
 
