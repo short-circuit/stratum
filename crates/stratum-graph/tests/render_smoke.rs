@@ -38,7 +38,9 @@ fn smoke_scene() -> Scene {
 fn non_background_pixels(frame: &stratum_graph::Frame, background: [u8; 4]) -> usize {
     frame
         .rgba()
-        .chunks_exact(4)
+        .as_chunks::<4>()
+        .0
+        .iter()
         .filter(|pixel| {
             pixel[0] != background[0] || pixel[1] != background[1] || pixel[2] != background[2]
         })

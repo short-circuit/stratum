@@ -7,8 +7,6 @@
 
 use gpui_kit::component::input::{Input, InputState};
 use gpui_kit::component::ActiveTheme;
-use gpui_kit::prelude::*;
-use gpui_kit::*;
 use stratum_i18n::{t_global, tr_global};
 
 use super::*;

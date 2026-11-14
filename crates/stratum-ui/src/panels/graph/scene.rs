@@ -231,7 +231,7 @@ pub fn render_image(
 fn frame_image(frame: &Frame) -> Arc<RenderImage> {
     let mut rgba = frame.rgba();
     // gpui's RenderImage stores BGRA bytes; the graph renderer produces RGBA.
-    for pixel in rgba.chunks_exact_mut(4) {
+    for pixel in rgba.as_chunks_mut::<4>().0 {
         pixel.swap(0, 2);
     }
     let buffer = RgbaImage::from_raw(frame.width(), frame.height(), rgba)

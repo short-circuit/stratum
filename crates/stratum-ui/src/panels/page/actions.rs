@@ -7,8 +7,6 @@
 
 use std::sync::Arc;
 
-use gpui_kit::prelude::*;
-use gpui_kit::*;
 use stratum_i18n::t_global;
 
 use super::*;

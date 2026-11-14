@@ -175,8 +175,10 @@ fn project_point(
 }
 
 fn fill_background(pixels: &mut [u8], background: [u8; 4]) {
-    for pixel in pixels.chunks_exact_mut(4) {
-        pixel.copy_from_slice(&background);
+    // The frame buffer is always a whole number of RGBA pixels, so the
+    // constant-size split is exact.
+    for pixel in pixels.as_chunks_mut::<4>().0 {
+        *pixel = background;
     }
 }
 
@@ -415,7 +417,9 @@ mod tests {
         let background = scene.background;
         let visible = frame
             .rgba()
-            .chunks_exact(4)
+            .as_chunks::<4>()
+            .0
+            .iter()
             .filter(|pixel| pixel[0] != background[0] || pixel[1] != background[1])
             .count();
         assert!(visible > 0);

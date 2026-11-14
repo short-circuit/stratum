@@ -66,10 +66,9 @@ fn decode_webp(bytes: &[u8]) -> Vec<[u8; 4]> {
         image_webp::WebPDecoder::new(std::io::Cursor::new(bytes)).expect("webp decoder");
     let mut buffer = vec![0; decoder.output_buffer_size().expect("webp buffer size")];
     decoder.read_image(&mut buffer).expect("webp decodes");
-    buffer
-        .chunks_exact(4)
-        .map(|chunk| [chunk[0], chunk[1], chunk[2], chunk[3]])
-        .collect()
+    // A lossless WebP decodes to whole RGBA quads, so the constant-size chunk
+    // split is exact (`as_chunks` is the clippy-preferred form).
+    buffer.as_chunks::<4>().0.to_vec()
 }
 
 #[test]
