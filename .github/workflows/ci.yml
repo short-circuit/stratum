@@ -71,7 +71,9 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: Run tests
-        run: RUSTFLAGS=-D warnings cargo test --workspace
+        env:
+          RUSTFLAGS: -D warnings
+        run: bash scripts/ci-annotate.sh cargo test --workspace
 
   # ── Cross-platform shell gate ────────────────────────────────────
   # The shell ships on Windows and macOS too, so those hosts must compile and
@@ -100,7 +102,8 @@ jobs:
         run: cargo build -p stratum-ui -p stratum-mobile
 
       - name: Run shell tests
-        run: cargo test -p stratum-i18n -p stratum-ui -p stratum-editor
+        shell: bash
+        run: bash scripts/ci-annotate.sh cargo test -p stratum-i18n -p stratum-ui -p stratum-editor
 
       - name: Run shell clippy
         run: cargo clippy -p stratum-i18n -p stratum-ui -p stratum-editor --all-targets -- -D warnings
@@ -143,13 +146,13 @@ jobs:
             dbus
 
       - name: Golden-screenshot parity
-        run: ./scripts/verify-gpui-goldens.sh
+        run: bash scripts/ci-annotate.sh ./scripts/verify-gpui-goldens.sh
 
       - name: Performance budgets
-        run: ./scripts/verify-gpui-perf.sh
+        run: bash scripts/ci-annotate.sh ./scripts/verify-gpui-perf.sh
 
       - name: Accessibility probe
-        run: dbus-run-session -- ./scripts/verify-gpui-a11y.sh
+        run: bash scripts/ci-annotate.sh dbus-run-session -- ./scripts/verify-gpui-a11y.sh
 
       - name: Upload parity reports
         if: always()

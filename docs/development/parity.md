@@ -120,6 +120,11 @@ Consequences:
   fmt/clippy/test, the Windows/macOS shell gate, the parity harness, the Android
   build + emulator smoke, MCP coverage and `cargo audit`. `.github/workflows/gpui-ci.yml`
   was folded into it. Release packaging stays in `gpui-release.yml`.
+- Every test/perf/parity step runs through `scripts/ci-annotate.sh`, which
+  re-emits the failing test names, budget lines and log tail as check-run
+  annotations: GitHub only shows job logs to repository admins, so without it a
+  red run is opaque to contributors (and to agents without a token). The
+  wrapper passes the gate's exit status through unchanged.
 - The npm/npm-audit/dependabot-npm lanes are gone; the Mermaid bundle is vendored
   in `crates/stratum-app/assets/` (MIT, licence file alongside), so the workspace
   builds without Node.
