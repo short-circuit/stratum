@@ -24,6 +24,14 @@ COV_TARGET="${2:-target/cov}"
 REUSE="${MCP_COV_REUSE:-0}"
 cd "$(dirname "$0")/.."
 
+# Resolve the coverage target to an absolute path: LLVM writes the profile files
+# relative to the process CWD, so a caller-supplied absolute target used to
+# produce "$PWD//abs/path/mcp-*.profraw" and every profile was dropped.
+case "$COV_TARGET" in
+  /*) ;;
+  *) COV_TARGET="$PWD/$COV_TARGET" ;;
+esac
+
 # --- failure reporting ------------------------------------------------------
 # GitHub workflow commands must stay on one line, so multi-line detail is
 # joined with '|' and truncated.
@@ -47,7 +55,7 @@ trap 'err "MCP coverage gate failed at line $LINENO"' ERR
 # --- environment ------------------------------------------------------------
 export CARGO_TARGET_DIR="$COV_TARGET"
 export RUSTFLAGS="-Cinstrument-coverage"
-export LLVM_PROFILE_FILE="$PWD/$COV_TARGET/mcp-%p-%m.profraw"
+export LLVM_PROFILE_FILE="$COV_TARGET/mcp-%p-%m.profraw"
 
 # Printed unconditionally: the next red run has to show which toolchain and
 # which target layout it used, without needing the job log.
