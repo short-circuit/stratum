@@ -31,14 +31,20 @@ export STRATUM_LOCALE="${STRATUM_LOCALE:-en}"
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/target}"
 export LIBGL_ALWAYS_SOFTWARE=1
 export WINIT_UNIX_BACKEND=x11
+# gpui prefers Wayland when it is advertised; the capture drives the window
+# through xdotool, so force the X11 backend even on a Wayland session.
+unset WAYLAND_DISPLAY
 export RUST_BACKTRACE=1
 
-for tool in Xvfb xdotool import; do
+for tool in Xvfb xdotool import identify; do
     if ! command -v "$tool" >/dev/null 2>&1; then
         echo "capture-gpui-shell: missing required tool: $tool" >&2
         exit 1
     fi
 done
+
+# shellcheck source=lib/capture-display.sh
+source "$ROOT/scripts/lib/capture-display.sh"
 
 XVFB_PID=""
 APP_PID=""
@@ -58,17 +64,7 @@ trap cleanup EXIT
 cargo build -p stratum-ui --bin stratum --manifest-path "$ROOT/Cargo.toml"
 
 if [[ -z "${DISPLAY:-}" ]]; then
-    Xvfb ":$DISPLAY_NUM" -screen "0" "${WIDTH}x${HEIGHT}x24" -nolisten tcp \
-        >/dev/null 2>&1 &
-    XVFB_PID=$!
-    export DISPLAY=":$DISPLAY_NUM"
-    # Give Xvfb a moment to create its socket before the client connects.
-    for _ in $(seq 1 40); do
-        if xdotool getdisplaygeometry >/dev/null 2>&1; then
-            break
-        fi
-        sleep 0.25
-    done
+    acquire_capture_display "$WIDTH" "$HEIGHT" "$DISPLAY_NUM" || exit 1
 fi
 
 # Start the shell, wait for its window, normalise its geometry and capture it.
@@ -115,6 +111,10 @@ capture_state() {
 
     if [[ ! -s "$out" ]]; then
         echo "capture-gpui-shell: screenshot was not written to $out" >&2
+        exit 1
+    fi
+    if ! assert_capture_not_blank "$out"; then
+        cat "$LOG" >&2 || true
         exit 1
     fi
 

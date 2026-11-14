@@ -74,6 +74,9 @@ for tool in Xvfb xdotool import identify; do
     fi
 done
 
+# shellcheck source=lib/capture-display.sh
+source "$ROOT/scripts/lib/capture-display.sh"
+
 XVFB_PID=""
 APP_PID=""
 cleanup() {
@@ -93,30 +96,9 @@ cargo build -p stratum-ui --bin stratum --manifest-path "$ROOT/Cargo.toml"
 
 if [[ -z "${DISPLAY:-}" || "${CAPTURE_USE_EXISTING_DISPLAY:-0}" != "1" ]]; then
     # The mobile capture must own an exact 1080×2400 screen; a developer's
-    # desktop display would otherwise decide the PNG size. Pick the first free
-    # X display so a stale lock never blocks the run.
-    for candidate in $(seq 90 110); do
-        if [[ ! -e "/tmp/.X${candidate}-lock" ]]; then
-            DISPLAY_NUM="$candidate"
-            break
-        fi
-    done
-    Xvfb ":$DISPLAY_NUM" -screen "0" "${WIDTH}x${HEIGHT}x24" -nolisten tcp \
-        >/dev/null 2>&1 &
-    XVFB_PID=$!
-    export DISPLAY=":$DISPLAY_NUM"
-    # Give Xvfb a moment to create its socket before the client connects.
-    for _ in $(seq 1 40); do
-        if xdotool getdisplaygeometry >/dev/null 2>&1; then
-            break
-        fi
-        sleep 0.25
-    done
-    geometry="$(xdotool getdisplaygeometry 2>/dev/null || true)"
-    if [[ "$geometry" != "$WIDTH $HEIGHT" ]]; then
-        echo "capture-gpui-mobile: Xvfb geometry is ${geometry:-unavailable}, expected $WIDTH $HEIGHT" >&2
-        exit 1
-    fi
+    # desktop display would otherwise decide the PNG size, and a stale Xvfb
+    # left by an interrupted run would silently capture onto a foreign screen.
+    acquire_capture_display "$WIDTH" "$HEIGHT" "$DISPLAY_NUM" || exit 1
 fi
 
 # Start the shell, wait for its window, normalise its geometry and capture it.
@@ -164,6 +146,10 @@ capture_state() {
 
     if [[ ! -s "$out" ]]; then
         echo "capture-gpui-mobile: screenshot was not written to $out" >&2
+        exit 1
+    fi
+    if ! assert_capture_not_blank "$out"; then
+        cat "$LOG" >&2 || true
         exit 1
     fi
 

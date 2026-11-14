@@ -5,7 +5,7 @@
 # The shell is started with STRATUM_FIXTURE=1 so the capture is deterministic
 # and needs no vault. When no DISPLAY is set the script starts a private Xvfb
 # screen, waits for the window to map, and captures the root window with
-# ImageMagick. Forty-three states are captured:
+# ImageMagick. Forty-seven states are captured:
 #
 #   1. the journal route in edit mode
 #   2. the journal route with the calendar popup expanded (STRATUM_CALENDAR=1)
@@ -82,6 +82,12 @@
 #      (STRATUM_ROUTE=/journal STRATUM_QUICK_CAPTURE=1)
 #  43. the Quick Capture dialog in voice mode
 #      (STRATUM_ROUTE=/journal STRATUM_QUICK_CAPTURE_VOICE=1)
+#  44. the Kanban board with the fixture task columns (STRATUM_ROUTE=/kanban)
+#  45. the Kanban board with the Done column collapsed
+#      (STRATUM_ROUTE=/kanban STRATUM_KANBAN_COLLAPSED=1)
+#  46. the Kanban board with the inline new-card row open in To Do
+#      (STRATUM_ROUTE=/kanban STRATUM_KANBAN_NEW=todo)
+#  47. the first-run onboarding wizard (STRATUM_ONBOARDING=1)
 #
 # The journal PNGs are written to dist/gpui-journal.png,
 # dist/gpui-journal-calendar.png and dist/gpui-journal-read.png; the page PNGs to
@@ -103,7 +109,9 @@
 # dist/gpui-settings-ai.png, dist/gpui-settings-research.png,
 # dist/gpui-settings-developer.png, dist/gpui-settings-sync.png,
 # dist/gpui-settings-sync-conflicts.png, dist/gpui-settings-tray.png and
-# dist/gpui-settings-notifications.png.
+# dist/gpui-settings-notifications.png. The Kanban PNGs go to
+# dist/gpui-kanban.png, dist/gpui-kanban-done.png and dist/gpui-kanban-new.png;
+# the onboarding wizard to dist/gpui-onboarding.png.
 # Pass a path as the first argument or set OUTPUT to override the journal
 # edit-mode capture (the other captures derive from its directory).
 #
@@ -156,6 +164,10 @@ SETTINGS_TRAY_OUT="$OUT_DIR/gpui-settings-tray.png"
 SETTINGS_NOTIFICATIONS_OUT="$OUT_DIR/gpui-settings-notifications.png"
 QUICK_CAPTURE_OUT="$OUT_DIR/gpui-quick-capture.png"
 QUICK_CAPTURE_VOICE_OUT="$OUT_DIR/gpui-quick-capture-voice.png"
+KANBAN_OUT="$OUT_DIR/gpui-kanban.png"
+KANBAN_DONE_OUT="$OUT_DIR/gpui-kanban-done.png"
+KANBAN_NEW_OUT="$OUT_DIR/gpui-kanban-new.png"
+ONBOARDING_OUT="$OUT_DIR/gpui-onboarding.png"
 # Deterministic block on pages/fixture.md (provider::FIXTURE_HIGHLIGHT_BLOCK).
 FIXTURE_HIGHLIGHT="413cf12c-969f-54ef-bf75-40ffd89e8618"
 # The fixture's first overdue reminder (`overdue-1`): the provider builds block
@@ -178,12 +190,15 @@ export WINIT_UNIX_BACKEND=x11
 unset WAYLAND_DISPLAY
 export RUST_BACKTRACE=1
 
-for tool in Xvfb xdotool import; do
+for tool in Xvfb xdotool import identify; do
     if ! command -v "$tool" >/dev/null 2>&1; then
         echo "capture-gpui-panels: missing required tool: $tool" >&2
         exit 1
     fi
 done
+
+# shellcheck source=lib/capture-display.sh
+source "$ROOT/scripts/lib/capture-display.sh"
 
 XVFB_PID=""
 APP_PID=""
@@ -203,17 +218,7 @@ trap cleanup EXIT
 cargo build -p stratum-ui --bin stratum --manifest-path "$ROOT/Cargo.toml"
 
 if [[ -z "${DISPLAY:-}" ]]; then
-    Xvfb ":$DISPLAY_NUM" -screen "0" "${WIDTH}x${HEIGHT}x24" -nolisten tcp \
-        >/dev/null 2>&1 &
-    XVFB_PID=$!
-    export DISPLAY=":$DISPLAY_NUM"
-    # Give Xvfb a moment to create its socket before the client connects.
-    for _ in $(seq 1 40); do
-        if xdotool getdisplaygeometry >/dev/null 2>&1; then
-            break
-        fi
-        sleep 0.25
-    done
+    acquire_capture_display "$WIDTH" "$HEIGHT" "$DISPLAY_NUM" || exit 1
 fi
 
 # Start the shell, wait for its window, normalise its geometry and capture it.
@@ -261,6 +266,10 @@ capture_state() {
 
     if [[ ! -s "$out" ]]; then
         echo "capture-gpui-panels: screenshot was not written to $out" >&2
+        exit 1
+    fi
+    if ! assert_capture_not_blank "$out"; then
+        cat "$LOG" >&2 || true
         exit 1
     fi
 
@@ -392,3 +401,9 @@ capture_state "$QUICK_CAPTURE_OUT" STRATUM_ROUTE=/journal STRATUM_QUICK_CAPTURE=
 capture_state \
     "$QUICK_CAPTURE_VOICE_OUT" \
     STRATUM_ROUTE=/journal STRATUM_QUICK_CAPTURE_VOICE=1
+
+capture_state "$KANBAN_OUT" STRATUM_ROUTE=/kanban
+capture_state "$KANBAN_DONE_OUT" STRATUM_ROUTE=/kanban STRATUM_KANBAN_COLLAPSED=1
+capture_state "$KANBAN_NEW_OUT" STRATUM_ROUTE=/kanban STRATUM_KANBAN_NEW=todo
+
+capture_state "$ONBOARDING_OUT" STRATUM_ONBOARDING=1
