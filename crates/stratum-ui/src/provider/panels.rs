@@ -10,11 +10,13 @@
 //! maintain a second copy of the catalog schema.
 
 pub mod graph;
+pub mod kanban;
 pub mod plugins;
 pub mod whiteboard;
 pub use graph::{
     GraphComponentRow, GraphEdgeRow, GraphNodeRow, GraphOrphanRow, GraphPanelData, GraphSettingsRow,
 };
+pub use kanban::KanbanCardRow;
 pub use plugins::{
     InstalledThemeRow, PluginCatalogEntry, PluginCatalogSnapshot, PluginRow, PluginTestResult,
     ThemeCatalogEntry, ThemeCatalogSnapshot, ThemeValuesRow,
@@ -410,5 +412,28 @@ pub trait PanelData: super::settings::SettingsData + Send + Sync {
         _bytes: Vec<u8>,
     ) -> Result<String, String> {
         Ok(String::new())
+    }
+
+    /// List every block carrying a task marker across the vault.
+    fn kanban_cards(&self) -> Result<Vec<KanbanCardRow>, String> {
+        Ok(Vec::new())
+    }
+
+    /// Create a task block on today's journal page.
+    fn create_kanban_card(&self, content: &str, marker: &str) -> Result<KanbanCardRow, String> {
+        Ok(KanbanCardRow::new("", content, marker, ""))
+    }
+
+    /// Persist an edited card (content, marker and priority).
+    ///
+    /// The provider rewrites the owning page so the board and the Markdown file
+    /// stay in sync; `page_path` identifies the file.
+    fn update_kanban_card(&self, _card: KanbanCardRow) -> Result<(), String> {
+        Ok(())
+    }
+
+    /// Delete a card and rewrite its page.
+    fn delete_kanban_card(&self, _id: &str, _page_path: &str) -> Result<(), String> {
+        Ok(())
     }
 }

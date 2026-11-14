@@ -64,6 +64,7 @@ use stratum_ui::panels::canvas::{tool_from_env, CanvasStart, ExportFormat};
 use stratum_ui::panels::flashcards::FlashcardsStart;
 use stratum_ui::panels::graph::model::{view_mode_from_env, DEFAULT_TICKS};
 use stratum_ui::panels::graph::GraphStart;
+use stratum_ui::panels::kanban::{model::ColumnId as KanbanColumn, KanbanStart};
 use stratum_ui::panels::plugins::{PluginsStart, PluginsTab};
 use stratum_ui::panels::query::{QueryStart, QueryTab};
 use stratum_ui::panels::reminders::RemindersStart;
@@ -268,6 +269,26 @@ fn apply_start_state(shell: &mut Shell) {
         text_edit: whiteboard_text,
     };
     let canvas_started = canvas != CanvasStart::default();
+    let kanban_new = std::env::var("STRATUM_KANBAN_NEW").ok().and_then(|value| {
+        match KanbanColumn::from_env(&value) {
+            Some(column) => Some(column),
+            None => {
+                log::warn!("ignoring unknown STRATUM_KANBAN_NEW={value}");
+                None
+            }
+        }
+    });
+    let kanban_start = KanbanStart {
+        done_collapsed: env_flag("STRATUM_KANBAN_COLLAPSED"),
+        new_card: kanban_new,
+        editing: std::env::var("STRATUM_KANBAN_EDIT")
+            .ok()
+            .filter(|value| !value.is_empty()),
+        menu: std::env::var("STRATUM_KANBAN_MENU")
+            .ok()
+            .filter(|value| !value.is_empty()),
+    };
+    let kanban_started = kanban_start != KanbanStart::default();
     if search.is_some()
         || query_datalog.is_some()
         || query_tab.is_some()
@@ -283,6 +304,7 @@ fn apply_start_state(shell: &mut Shell) {
         || graph_ticks.is_some()
         || canvas_started
         || settings_tab.is_some()
+        || kanban_started
     {
         shell.set_panel_start(PanelStarts {
             search: SearchStart { query: search },
@@ -313,7 +335,14 @@ fn apply_start_state(shell: &mut Shell) {
             },
             canvas,
             settings: SettingsStart { tab: settings_tab },
+            kanban: kanban_start,
         });
+    }
+    if let Ok(step) = std::env::var("STRATUM_ONBOARDING_STEP") {
+        match stratum_ui::OnboardingStep::from_env(&step) {
+            Some(step) => shell.set_onboarding_step(step),
+            None => log::warn!("ignoring unknown STRATUM_ONBOARDING_STEP={step}"),
+        }
     }
     if let Ok(page) = std::env::var("STRATUM_PAGE") {
         let highlight = std::env::var("STRATUM_HIGHLIGHT")

@@ -13,6 +13,7 @@
 
 mod data;
 mod impls;
+mod kanban;
 mod settings;
 mod whiteboards;
 
@@ -47,6 +48,12 @@ pub(super) struct PanelState {
     pub conflicts: Vec<String>,
     /// Number of backup runs, used to vary the reported copied-file count.
     pub backup_runs: usize,
+    /// Whether the first-run onboarding wizard is pending.
+    pub onboarding_pending: bool,
+    /// Task blocks shown on the Kanban board.
+    pub kanban: Vec<crate::provider::panels::KanbanCardRow>,
+    /// Counter used to mint stable ids for cards created during a run.
+    pub kanban_created: usize,
 }
 
 impl PanelState {
@@ -76,6 +83,11 @@ impl PanelState {
             settings: settings::fixture_settings(),
             conflicts,
             backup_runs: 0,
+            // The capture harness sets `STRATUM_ONBOARDING=1` to render the
+            // first-run wizard; tests seed the flag directly.
+            onboarding_pending: std::env::var("STRATUM_ONBOARDING").as_deref() == Ok("1"),
+            kanban: kanban::fixture_cards(&chrono::Utc::now().format("%Y-%m-%d").to_string()),
+            kanban_created: 0,
         }
     }
 }

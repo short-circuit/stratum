@@ -137,6 +137,9 @@ pub(crate) fn render(
     if shell.quick_capture_open() {
         root = root.child(shell.render_quick_capture_overlay(cx).into_any_element());
     }
+    if shell.onboarding_open() {
+        root = root.child(crate::shell::onboarding_overlay(shell, cx));
+    }
 
     root.into_any_element()
 }

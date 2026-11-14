@@ -37,6 +37,7 @@ impl Shell {
                 Panel::Plugins => self.plugins.is_some(),
                 Panel::Graph => self.graph.is_some(),
                 Panel::Whiteboards => self.whiteboards.is_some(),
+                Panel::Kanban => self.kanban.is_some(),
                 _ => false,
             };
 
@@ -93,6 +94,7 @@ impl Shell {
                             graph: self.graph.clone(),
                             whiteboards: self.whiteboards.clone(),
                             settings: self.settings.clone(),
+                            kanban: self.kanban.clone(),
                         },
                         cx,
                     ))),
@@ -102,6 +104,9 @@ impl Shell {
             })
             .when(self.quick_capture.is_open(), |element| {
                 element.child(self.render_quick_capture(cx))
+            })
+            .when(self.onboarding.open, |element| {
+                element.child(super::onboarding_overlay(self, cx))
             })
             .into_any_element()
     }

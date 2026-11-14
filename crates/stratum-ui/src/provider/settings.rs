@@ -193,6 +193,26 @@ pub trait SettingsData: Send + Sync {
         Ok(())
     }
 
+    /// Whether the first-run onboarding wizard should be shown.
+    fn onboarding_pending(&self) -> bool {
+        false
+    }
+
+    /// Persist that the onboarding wizard has been completed.
+    fn mark_onboarding_done(&self) -> Result<(), String> {
+        Ok(())
+    }
+
+    /// The active vault path.
+    fn vault_path(&self) -> String {
+        String::new()
+    }
+
+    /// Seed the sample vault when the vault is empty, returning the page paths.
+    fn install_starter_sample(&self) -> Result<Vec<String>, String> {
+        Ok(Vec::new())
+    }
+
     /// Preview a vault import without writing anything.
     fn preview_import(
         &self,

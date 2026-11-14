@@ -5,6 +5,7 @@
 //! mapping here leaves `provider/mod.rs` and `provider/app.rs` under the
 //! repository file-length limit.
 
+mod kanban;
 mod mappers;
 mod whiteboards;
 
@@ -15,9 +16,9 @@ use stratum_app::template::template_variables;
 
 use super::panels::{
     AskAnswer, AskSource, FlashcardRow, GraphComponentRow, GraphOrphanRow, GraphPanelData,
-    GraphSettingsRow, InstalledThemeRow, LibraryItemRow, PanelData, PluginCatalogSnapshot,
-    PluginRow, QueryTable, ReminderRow, SavedQueryRow, SearchHit, TemplateRow,
-    ThemeCatalogSnapshot, ThemeValuesRow, WhiteboardRow, PANEL_DATA_NOT_AVAILABLE,
+    GraphSettingsRow, InstalledThemeRow, KanbanCardRow, LibraryItemRow, PanelData,
+    PluginCatalogSnapshot, PluginRow, QueryTable, ReminderRow, SavedQueryRow, SearchHit,
+    TemplateRow, ThemeCatalogSnapshot, ThemeValuesRow, WhiteboardRow, PANEL_DATA_NOT_AVAILABLE,
 };
 use super::AppProvider;
 use mappers::{graph_edge_row, graph_node_row, graph_settings_row, plugin_row};
@@ -453,5 +454,21 @@ impl PanelData for AppProvider {
         bytes: Vec<u8>,
     ) -> Result<String, String> {
         whiteboards::write_canvas_export(self, name, extension, bytes)
+    }
+
+    fn kanban_cards(&self) -> Result<Vec<KanbanCardRow>, String> {
+        kanban::cards(self)
+    }
+
+    fn create_kanban_card(&self, content: &str, marker: &str) -> Result<KanbanCardRow, String> {
+        kanban::create(self, content, marker)
+    }
+
+    fn update_kanban_card(&self, card: KanbanCardRow) -> Result<(), String> {
+        kanban::update(self, card)
+    }
+
+    fn delete_kanban_card(&self, id: &str, page_path: &str) -> Result<(), String> {
+        kanban::delete(self, id, page_path)
     }
 }

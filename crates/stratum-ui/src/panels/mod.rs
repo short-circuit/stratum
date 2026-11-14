@@ -18,6 +18,7 @@ pub mod editor;
 pub mod flashcards;
 pub mod graph;
 pub mod journal;
+pub mod kanban;
 pub mod page;
 pub mod plugins;
 pub mod query;
@@ -32,6 +33,7 @@ use crate::panels::canvas::CanvasView;
 use crate::panels::flashcards::FlashcardsView;
 use crate::panels::graph::GraphView;
 use crate::panels::journal::JournalView;
+use crate::panels::kanban::KanbanView;
 use crate::panels::page::PageView;
 use crate::panels::plugins::PluginsView;
 use crate::panels::query::QueryView;
@@ -156,6 +158,8 @@ pub struct PanelEntities {
     pub whiteboards: Option<Entity<CanvasView>>,
     /// Settings entity.
     pub settings: Option<Entity<SettingsView>>,
+    /// Kanban entity.
+    pub kanban: Option<Entity<KanbanView>>,
 }
 
 /// Render the active panel body.
@@ -227,6 +231,11 @@ pub fn panel_view(
     if panel == Panel::Settings {
         if let Some(settings) = entities.settings {
             return div().size_full().child(settings);
+        }
+    }
+    if panel == Panel::Kanban {
+        if let Some(kanban) = entities.kanban {
+            return div().size_full().child(kanban);
         }
     }
     let theme = cx.theme();

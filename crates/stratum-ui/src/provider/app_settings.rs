@@ -145,6 +145,27 @@ impl SettingsData for AppProvider {
             .block_on(self.service.set_onboarding_pending(pending))
     }
 
+    fn onboarding_pending(&self) -> bool {
+        self.runtime
+            .block_on(self.service.get_onboarding_state())
+            .unwrap_or(false)
+    }
+
+    fn mark_onboarding_done(&self) -> Result<(), String> {
+        self.runtime.block_on(self.service.mark_onboarding_done())
+    }
+
+    fn vault_path(&self) -> String {
+        self.runtime
+            .block_on(self.service.get_vault_info())
+            .map(|info| info.path)
+            .unwrap_or_default()
+    }
+
+    fn install_starter_sample(&self) -> Result<Vec<String>, String> {
+        self.runtime.block_on(self.service.install_starter_sample())
+    }
+
     fn preview_import(&self, path: &str, options: ImportOptions) -> Result<ImportPreview, String> {
         self.runtime
             .block_on(self.service.preview_import(path.to_string(), options))

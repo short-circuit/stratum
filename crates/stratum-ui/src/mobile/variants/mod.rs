@@ -3,8 +3,8 @@
 //! Every variant wraps the live entity the shell lifecycle created
 //! (`sync_panels`, `sync_journal`, `sync_page`) instead of rewriting the
 //! desktop view. The variant only adds the mobile-specific chrome: the journal
-//! calendar sheet, the Ask keyboard padding, the Query sticky run action, the
-//! Kanban placeholder and the Settings tab accordion.
+//! calendar sheet, the Ask keyboard padding, the Query sticky run action and the
+//! Settings tab accordion.
 
 use gpui_kit::prelude::*;
 use gpui_kit::*;
@@ -74,6 +74,7 @@ pub(super) fn placeholder(panel: Panel, cx: &mut Context<Shell>) -> AnyElement {
             graph: None,
             whiteboards: None,
             settings: None,
+            kanban: None,
         },
         cx,
     )

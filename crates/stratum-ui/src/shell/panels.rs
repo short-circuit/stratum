@@ -17,6 +17,7 @@ use crate::panels::canvas::{CanvasStart, CanvasView};
 use crate::panels::flashcards::{FlashcardsStart, FlashcardsView};
 use crate::panels::graph::{GraphStart, GraphView};
 use crate::panels::journal::JournalView;
+use crate::panels::kanban::{KanbanStart, KanbanView};
 use crate::panels::plugins::{PluginsStart, PluginsView};
 use crate::panels::query::{QueryStart, QueryTab, QueryView};
 use crate::panels::reminders::{RemindersStart, RemindersView};
@@ -52,6 +53,8 @@ pub struct PanelStarts {
     pub canvas: CanvasStart,
     /// Settings panel start state.
     pub settings: SettingsStart,
+    /// Kanban panel start state.
+    pub kanban: KanbanStart,
 }
 
 impl PanelStarts {
@@ -94,6 +97,7 @@ impl Shell {
         self.graph = None;
         self.whiteboards = None;
         self.settings = None;
+        self.kanban = None;
     }
 
     /// Set the Whiteboards start state and recreate its entity.
@@ -161,6 +165,19 @@ impl Shell {
         self.settings.as_ref()
     }
 
+    /// The live Kanban entity, if the panel has created one.
+    pub fn kanban_view(&self) -> Option<&Entity<KanbanView>> {
+        self.kanban.as_ref()
+    }
+
+    /// Set the Kanban start state and recreate its entity.
+    ///
+    /// Used by the `STRATUM_KANBAN*` capture flags.
+    pub fn set_kanban_start(&mut self, start: KanbanStart) {
+        self.panel_starts.kanban = start;
+        self.kanban = None;
+    }
+
     /// Set the Settings tab start state and recreate its entity.
     ///
     /// Used by the `STRATUM_SETTINGS_TAB` capture flag.
@@ -182,6 +199,7 @@ impl Shell {
             Panel::Graph => self.sync_graph(window, cx),
             Panel::Whiteboards => self.sync_canvas(window, cx),
             Panel::Settings => self.sync_settings(window, cx),
+            Panel::Kanban => self.sync_kanban(window, cx),
             _ => {}
         }
     }
@@ -320,6 +338,19 @@ impl Shell {
             return;
         };
         self.drain_panel(&settings, cx);
+    }
+
+    /// Create or reuse the Kanban entity, then drain its requests.
+    fn sync_kanban(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.kanban.is_none() {
+            let provider = Arc::clone(&self.provider);
+            let start = std::mem::take(&mut self.panel_starts.kanban);
+            self.kanban = Some(cx.new(move |cx| KanbanView::new(provider, start, window, cx)));
+        }
+        let Some(kanban) = self.kanban.clone() else {
+            return;
+        };
+        self.drain_panel(&kanban, cx);
     }
 
     /// Drain a hosted panel's pending navigation, block-open and toast

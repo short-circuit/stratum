@@ -288,8 +288,37 @@ impl SettingsData for FixtureProvider {
         })
     }
 
-    fn set_onboarding_pending(&self, _pending: bool) -> Result<(), String> {
+    fn set_onboarding_pending(&self, pending: bool) -> Result<(), String> {
+        let mut state = panel_state(self)?;
+        state.onboarding_pending = pending;
         Ok(())
+    }
+
+    fn onboarding_pending(&self) -> bool {
+        panel_state(self)
+            .map(|state| state.onboarding_pending)
+            .unwrap_or(false)
+    }
+
+    fn mark_onboarding_done(&self) -> Result<(), String> {
+        let mut state = panel_state(self)?;
+        state.onboarding_pending = false;
+        Ok(())
+    }
+
+    fn vault_path(&self) -> String {
+        panel_state(self)
+            .map(|state| state.settings.vault_path.clone())
+            .unwrap_or_default()
+    }
+
+    fn install_starter_sample(&self) -> Result<Vec<String>, String> {
+        Ok(vec![
+            "pages/Getting Started.md".to_string(),
+            "pages/Project Alpha.md".to_string(),
+            "pages/Second Project.md".to_string(),
+            "pages/Quick Notes.md".to_string(),
+        ])
     }
 
     fn preview_import(&self, path: &str, _options: ImportOptions) -> Result<ImportPreview, String> {

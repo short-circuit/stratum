@@ -7,11 +7,12 @@ use chrono::{Duration, Utc};
 
 use stratum_app::reminders::due::parse_due;
 
-use super::{data, panel_state, whiteboards, FixtureProvider};
+use super::{data, kanban, panel_state, whiteboards, FixtureProvider};
 use crate::provider::panels::{
     AskAnswer, AskSource, FlashcardRow, GraphPanelData, GraphSettingsRow, InstalledThemeRow,
-    LibraryItemRow, PanelData, PluginCatalogSnapshot, PluginRow, QueryTable, ReminderRow,
-    SavedQueryRow, SearchHit, TemplateRow, ThemeCatalogSnapshot, ThemeValuesRow, WhiteboardRow,
+    KanbanCardRow, LibraryItemRow, PanelData, PluginCatalogSnapshot, PluginRow, QueryTable,
+    ReminderRow, SavedQueryRow, SearchHit, TemplateRow, ThemeCatalogSnapshot, ThemeValuesRow,
+    WhiteboardRow,
 };
 
 impl PanelData for FixtureProvider {
@@ -407,6 +408,22 @@ impl PanelData for FixtureProvider {
 
     fn delete_whiteboards(&self, names: Vec<String>) -> Result<(), String> {
         whiteboards::delete_whiteboards(self, names)
+    }
+
+    fn kanban_cards(&self) -> Result<Vec<KanbanCardRow>, String> {
+        kanban::cards(self)
+    }
+
+    fn create_kanban_card(&self, content: &str, marker: &str) -> Result<KanbanCardRow, String> {
+        kanban::create(self, content, marker)
+    }
+
+    fn update_kanban_card(&self, card: KanbanCardRow) -> Result<(), String> {
+        kanban::update(self, card)
+    }
+
+    fn delete_kanban_card(&self, id: &str, _page_path: &str) -> Result<(), String> {
+        kanban::delete(self, id)
     }
 
     fn whiteboard_library(&self) -> Result<Vec<LibraryItemRow>, String> {

@@ -22,6 +22,7 @@ use crate::panels::editor::EditorView;
 use crate::panels::flashcards::FlashcardsView;
 use crate::panels::graph::{GraphStart, GraphView};
 use crate::panels::journal::JournalView;
+use crate::panels::kanban::KanbanView;
 use crate::panels::page::{PageStart, PageView};
 use crate::panels::plugins::PluginsView;
 use crate::panels::query::QueryView;
@@ -39,6 +40,8 @@ mod chrome;
 mod desktop;
 mod footer;
 mod mobile;
+mod onboarding;
+pub(crate) use onboarding::overlay as onboarding_overlay;
 mod page;
 mod panels;
 mod platform;
@@ -46,6 +49,7 @@ mod quick_capture;
 mod reminder_toast;
 mod sidebar;
 
+pub use onboarding::{Onboarding, Step as OnboardingStep, ONBOARDING_I18N_KEYS};
 pub use panels::PanelStarts;
 pub use platform::settings_fingerprint;
 pub use quick_capture::QuickCapture;
@@ -126,6 +130,7 @@ pub struct Shell {
     graph: Option<Entity<GraphView>>,
     whiteboards: Option<Entity<CanvasView>>,
     settings: Option<Entity<SettingsView>>,
+    kanban: Option<Entity<KanbanView>>,
     panel_starts: PanelStarts,
     error: Option<String>,
     /// Reminder toaster state: the current toast, the announce-once set and the
@@ -158,13 +163,19 @@ pub struct Shell {
     mobile_nav: crate::mobile::MobileNav,
     /// Whether the mobile Settings tab accordion is expanded.
     mobile_settings_open: bool,
+    /// First-run onboarding wizard state.
+    onboarding: onboarding::Onboarding,
 }
 
 impl Shell {
     /// Create a shell for `provider` and read the initial snapshot.
     pub fn new(provider: Arc<dyn ShellData>) -> Self {
         let snapshot = provider.snapshot();
-        Self {
+        // The first-run wizard is seeded before the shell owns the provider, so
+        // the query runs while the handle is still borrowed here.
+        let onboarding_pending = provider.onboarding_pending();
+        let vault_path = provider.vault_path();
+        let mut shell = Self {
             provider,
             active: Panel::Journal,
             current_page: None,
@@ -189,6 +200,7 @@ impl Shell {
             graph: None,
             whiteboards: None,
             settings: None,
+            kanban: None,
             panel_starts: PanelStarts::default(),
             error: None,
             toaster: reminder_toast::ReminderToaster::default(),
@@ -204,7 +216,10 @@ impl Shell {
             mobile_services: Arc::new(crate::mobile::NoopServices),
             mobile_nav: crate::mobile::MobileNav::default(),
             mobile_settings_open: false,
-        }
+            onboarding: onboarding::Onboarding::default(),
+        };
+        shell.seed_onboarding(vault_path, onboarding_pending);
+        shell
     }
 
     /// Create a shell with the OS glue bridge.
@@ -271,6 +286,10 @@ impl Shell {
         if panel != Panel::Settings {
             self.settings = None;
             self.panel_starts.settings = crate::panels::settings::SettingsStart::default();
+        }
+        if panel != Panel::Kanban {
+            self.kanban = None;
+            self.panel_starts.kanban = crate::panels::kanban::KanbanStart::default();
         }
         self.active = panel;
         self.read_mode = false;
@@ -434,6 +453,9 @@ impl Shell {
             self.sync_journal(cx);
         }
         self.sync_panels(window, cx);
+        if self.onboarding.open {
+            self.sync_onboarding_input(window, cx);
+        }
         self.ensure_reminder_watch(cx);
         self.maybe_poll_reminders(cx);
     }
