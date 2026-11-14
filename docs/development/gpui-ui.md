@@ -1,15 +1,14 @@
 # Native GPUI Shell
 
-Stratum ships two front ends:
+Stratum ships one application: the native GPUI shell in `crates/stratum-ui`,
+which renders the sidebar, navigation, recents, footer, error bar, toaster and
+every panel on top of the headless service layer. `crates/stratum-mobile` is the
+Android host of the same shell. The React + Tauri frontend that this shell was
+built to match was deleted at the E12 cutover; see
+[parity.md](parity.md) for the campaign record.
 
-- The frozen React + Tauri application in `src/` and `src-tauri/`, which remains
-  the reference implementation and is not modified by the native shell work.
-- The native GPUI shell in `crates/stratum-ui`, which reproduces the React
-  shell's chrome (sidebar, navigation, recents, footer, error bar and
-  toaster) on top of the headless service layer.
-
-`crates/stratum-i18n` provides the locale catalogs the native shell renders.
-Both crates are workspace members and are covered by the GPUI CI workflow.
+`crates/stratum-i18n` provides the locale catalogs the shell renders. All of
+these crates are workspace members and are covered by `.github/workflows/ci.yml`.
 
 ---
 
@@ -18,7 +17,7 @@ Both crates are workspace members and are covered by the GPUI CI workflow.
 ```
 crates/
 ├── stratum-i18n/
-│   ├── locales/            # byte-identical copies of src/i18n/locales/*.json
+│   ├── locales/            # the eight shipped locale catalogs
 │   ├── src/lib.rs          # catalogs, interpolation, parity helpers
 │   └── tests/              # catalog + parity gates
 ├── stratum-platform/
@@ -63,9 +62,9 @@ crates/
     └── tests/              # route, theme, layout, asset, journal, page and editor contracts
 ```
 
-The React application is the visual ground truth. Route order, navigation
-order, shortcut modifiers, palette formulas and locale keys are pinned by
-tests against the shipped TypeScript implementation.
+Route order, navigation order, shortcut modifiers, palette formulas and locale
+keys are pinned by tests (`crates/stratum-ui/tests/`) and by the committed
+goldens in `goldens/gpui/`.
 
 ---
 
@@ -942,24 +941,20 @@ matching the shipped app where the route fills the whole content column.
 
 ## CI
 
-`.github/workflows/gpui-ci.yml` runs the GPUI checks on changes to the two
-crates, the capture scripts or the CI wiring:
+`.github/workflows/ci.yml` is the single pipeline. The shell is covered by:
 
-1. `gpui-shell` — formatting, build, tests and clippy on **Linux, Windows and
-   macOS** (fail-fast disabled, one job per OS).
-2. `gpui-capture` — Linux only: shell, journal, page, search, query, Ask Notes,
-   Templates, Flashcards, Reminders, Plugins, Graph, Whiteboards, Settings and
-   editor-perf captures, plus artifact upload.
+1. `test` — workspace formatting, clippy and tests on Linux.
+2. `shell` — build, tests and clippy for the shell crates on **Windows and
+   macOS**.
+3. `parity` — Linux only: golden screenshots for every surface (desktop
+   1440×900, mobile 1080×2400), the perf budgets and the accessibility probe,
+   with the reports and renders uploaded as artifacts.
+4. `android` / `android-smoke` — the debug APK and an emulator first-frame check.
 
-Both jobs install the Tauri Linux dependencies through
-`.github/actions/install-linux-deps`, which now also carries the native shell
-headers (Wayland, xkbcommon, fontconfig, freetype, Vulkan/EGL/X11). They run
-`npm ci` first because `stratum-app` embeds the Mermaid bundle from
-`node_modules`; without it the GPUI build fails on a clean checkout.
-
-The main `ci.yml` keeps the GPUI crates in `cargo test --workspace` (the
-workspace gate must cover every member) and publishes the shell capture through
-its `gpui-capture` job.
+Every job installs its Linux dependencies through
+`.github/actions/install-linux-deps` (Wayland, xkbcommon, fontconfig, freetype,
+Vulkan/EGL/X11, ALSA, GTK for the tray). No npm step is needed:
+`stratum-app` embeds the Mermaid bundle from its own `assets/` directory.
 
 Packaging runs in its own workflow: `.github/workflows/gpui-release.yml` builds
 the deb, AppImage, rpm, MSI, NSIS installer, macOS app bundle and the Android
@@ -1018,19 +1013,20 @@ search, query, Ask Notes, Templates, Flashcards, Reminders, Plugins, Graph,
 Whiteboards and Settings panels own their header, like the page and journal
 panels.
 The graph view covers the shipped `GraphPanel` surface listed above, the
-whiteboards view covers the shipped `WhiteboardPanel` surface, and the settings
-view covers the shipped eight-tab `SettingsPage` with validation, live theme
-application and persistence. The remaining panel body (kanban) is the next
-layer; the route/navigation/i18n contracts are already in place for it.
+whiteboards view covers the shipped `WhiteboardPanel` surface, the kanban view
+covers the shipped `KanbanPanel` surface (three marker columns, Done collapse,
+inline card creation, drag/drop, edit dialog), and the settings view covers the
+shipped eight-tab `SettingsPage` with validation, live theme application and
+persistence. The first-run onboarding wizard covers the shipped `Onboarding`
+flow (vault picker, starter templates, sample vault).
 
 The toaster dismisses manually or through `Escape`; there is no timer-based
-auto-dismiss yet. This is intentional for the E2 shell and is documented in
+auto-dismiss yet. This is intentional and is documented in
 `crates/stratum-ui/src/shell/mod.rs`.
 
-The desktop shell remains the shipped React/Tauri reference; the native shell
-now ships both the desktop layout and the Android mobile layout described
-above. The mobile Kanban surface is still the empty-state placeholder until a
-live Kanban entity lands.
+This shell is the shipped application: it carries both the desktop layout and
+the Android mobile layout described above, and every panel listed in
+`AGENTS.md` → "Native shell surfaces" is implemented and golden-covered.
 
 ---
 

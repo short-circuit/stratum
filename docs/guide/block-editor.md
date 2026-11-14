@@ -1,6 +1,6 @@
 # Block Editor
 
-Stratum's editor is a **block-based outliner** — every paragraph is a first-class entity with a UUID. Think Logseq-style editing with the power of BlockNote (ProseMirror).
+Stratum's editor is a **block-based outliner** — every paragraph is a first-class entity with a UUID. Think Logseq-style editing, implemented natively on the Rust editor engine (`crates/stratum-editor`).
 
 <!-- SCREENSHOT: [block-editor] The block editor showing indented blocks with different markers -->
 

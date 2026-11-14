@@ -6,10 +6,11 @@ global Quick Capture shortcut, reminder notifications, the single-instance lock,
 implemented by the native shell itself. There is no plugin runtime and no
 webview IPC in the path: the shell calls the operating system directly.
 
-The capability set replaces the seven Tauri plugins the React app shipped with
-(tray, global-shortcut, notification, dialog, opener, single-instance, log) plus
-the webview-provided clipboard and drag-and-drop. The React app in `src/` and
-`src-tauri/` remains the frozen reference; both front ends behave the same way.
+The capability set replaces the seven Tauri plugins the previous (React) app
+shipped with (tray, global-shortcut, notification, dialog, opener,
+single-instance, log) plus the webview-provided clipboard and drag-and-drop. The
+React/Tauri frontend was deleted at the E12 cutover, so the native shell is the
+only implementation; `crates/stratum-platform` is the crate behind it.
 
 > [!note]
 > The desktop capabilities are documented here. The Android host wires the same

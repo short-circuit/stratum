@@ -596,7 +596,7 @@ business logic.
 
 Path safety: all user-supplied `path`/`target` values MUST pass vault-root
 containment checks equivalent to `resolve_safe_path` /
-`resolve_safe_write_path` in `src-tauri/src/commands/page.rs` (canonicalize, then
+`resolve_safe_write_path` in `crates/stratum-app/src/page/` (canonicalize, then
 verify `starts_with(vault_root)`), and the server MUST reject traversal.
 
 ### 6.1 How link & organize operations map to MCP tools

@@ -1,34 +1,34 @@
 # Headless service layer (`stratum-app`)
 
-`crates/stratum-app` owns the business logic behind every Tauri IPC command.
-It is a plain Rust library: it has **no** dependency on `tauri` or any
-`tauri-plugin-*` crate, so the same logic runs in the desktop shell, on mobile
-hosts, in integration tests, and in the CLI-adjacent tooling without spinning up
-a Tauri runtime.
+`crates/stratum-app` owns the business logic behind every shipped command.
+It is a plain Rust library with **no** dependency on any UI toolkit, so the same
+logic runs in the desktop shell, on the Android host, in integration tests and in
+tooling.
 
-The Tauri shell (`src-tauri`) is now a thin adapter layer:
+The shell (`crates/stratum-ui`) is a thin layer over it:
 
 ```
-frontend invoke() ──► src-tauri/src/commands/*  (IPC adapter)
-                             │  state: StratumService
-                             ▼
-                      crates/stratum-app/src/*   (business logic)
-                             │
-                             ▼
-        pkm-core / pkm-block / pkm-index / pkm-sync / …
+panel entity ──► ShellData / PanelData  (provider seam)
+                        │  state: StratumService
+                        ▼
+                 crates/stratum-app/src/*   (business logic)
+                        │
+                        ▼
+   pkm-core / pkm-block / pkm-index / pkm-sync / …
 ```
 
 The split is intentional: command **names, argument names, DTO shapes, event
-names/payloads, error strings, and on-disk formats are unchanged**. Moving the
-code did not change the public contract; it only changed where it lives.
+names/payloads, error strings, and on-disk formats are unchanged**. The React
+IPC adapters were deleted at the E12 cutover, but the service surface they
+called is still the contract every panel uses.
 
 ## Entry point
 
 All commands are exposed as associated functions on
-[`stratum_app::StratumService`](../advanced/component-architecture.md), a
+[`stratum_app::StratumService`](../../crates/stratum-app/src/state.rs), a
 cloneable handle around the shared vault state (`crates/stratum-app/src/state.rs`).
-The method name matches the IPC command name, and the argument list matches the
-IPC arguments **minus** `state`/`app` (host handles supplied by the adapter).
+The method name matches the historical command name, and the argument list
+matches those arguments **minus** the host handles.
 
 ```rust
 use stratum_app::{EventSink, StratumService};
@@ -37,35 +37,36 @@ let service = StratumService::new(vault_path);
 let info = service.get_vault_info().await?;
 ```
 
-Operations that used to call `AppHandle::emit` take an
-[`EventSink`](../../crates/stratum-app/src/events.rs) instead. Hosts implement
-that trait over their own event bus; tests can record emitted events; and
-`NoopSink` discards everything. Event names and payload shapes are identical to
-the pre-extraction Tauri events (for example `reindex-progress`,
-`dictation:stage`, `dictation:done`, `mic-permission-request`).
+Operations that emit progress take an
+[`EventSink`](../../crates/stratum-app/src/events.rs). Hosts implement that trait
+over their own event bus; tests can record emitted events; and `NoopSink`
+discards everything. Event names and payload shapes are unchanged (for example
+`reindex-progress`, `dictation:stage`, `dictation:done`,
+`mic-permission-request`).
 
-## Adapter rules
+## Host rules
 
-Every adapter in `src-tauri/src/commands/` must:
+Every host (the desktop shell, the Android host) must:
 
-1. Take `tauri::State<'_, StratumService>` (or `tauri::AppHandle` when platform
-   APIs are needed) and forward the arguments verbatim.
-2. Call exactly one service method. Do not add business logic to the adapter.
-3. Forward events through an `EventSink` implementation backed by the
-   `AppHandle` (`src-tauri/src/commands/events.rs`).
+1. Hold a `StratumService` and forward arguments verbatim.
+2. Call exactly one service method per user action. Do not add business logic to
+   the panel.
+3. Forward events through an `EventSink` implementation backed by the shell's
+   event bus.
 4. Keep platform-only work (folder pickers, tray icons, window management,
-   OS notifications, global shortcuts, Android SAF) in the adapter, calling the
-   service only for the vault/data mutation.
-5. Return the service result unchanged — no error-string rewriting.
-
-`src-tauri/src/lib.rs` stays a small bootstrap file; the IPC registry lives in
-`src-tauri/src/invoke.rs` and the boot sequence in `src-tauri/src/setup.rs`.
+   OS notifications, global shortcuts, Android SAF) in `stratum-platform` /
+   `stratum-mobile`, calling the service only for the vault/data mutation.
+5. Surface the service result unchanged — no error-string rewriting.
 
 ## Command → service method map
 
-The table below maps every registered IPC command to the service method that
-implements it and the adapter file that exposes it. Methods live under
-`crates/stratum-app/src/`.
+The table below maps every command in the shipped v1.0.0 surface to the service
+method that implements it. The third column records the adapter module the
+command was registered from before the cutover; it is kept as provenance and is
+**not** a live path. Methods live under `crates/stratum-app/src/`.
+
+`crates/stratum-ui/tests/command_parity.rs` parses this table and fails when a
+listed method no longer exists in `stratum-app`, so the inventory cannot drift.
 
 ### Vault
 
@@ -305,17 +306,17 @@ when creating the tray menu; it has no IPC command.
 
 Hook dispatch helpers (`dispatch_on_open`, `dispatch_on_link`,
 `dispatch_on_search`, …) live in `crates/stratum-app/src/plugins/hooks.rs` and
-are re-exported from `src-tauri::commands::plugins` so existing call sites and
-tests keep working.
+are re-exported from `stratum_app::plugins` for the shell and tests.
 
 ## Testing
 
 Headless tests live in `crates/stratum-app/tests/`, one file per domain
 (`vault_service.rs`, `page_service.rs`, `block_service.rs`, …). They drive
 `StratumService` directly with a real temp vault and a `RecordingSink` that
-captures events — no Tauri runtime and no IPC serialization. This is the
-preferred place for new command coverage; the `src-tauri` integration tests
-remain as end-to-end checks of the IPC adapters.
+captures events — no UI runtime and no serialization. This is the preferred
+place for new command coverage; `crates/stratum-ui/tests/` holds the shell
+contracts (menu order, validation, catalog gates, parity) and
+`crates/pkm-tests/tests/` the cross-crate integration suites.
 
 Tests that need an external service use `wiremock` (AI, STT, TTS, WebDAV).
 Tests that need a microphone or a Chromium binary skip cleanly when the
@@ -324,11 +325,13 @@ resource is unavailable.
 ## Adding a command
 
 1. Implement the logic as a `StratumService` method in the matching
-   `crates/stratum-app/src/` module. Keep the IPC command name, argument names,
+   `crates/stratum-app/src/` module. Keep the command name, argument names,
    DTOs, and error strings.
-2. Add a thin `#[tauri::command]` adapter in `src-tauri/src/commands/`, register
-   it in `src-tauri/src/invoke.rs`, and add the typed wrapper in
-   `src/lib/commands.ts` plus the DTO in `src/lib/types.ts`.
+2. Expose it through the provider seam (`ShellData`/`PanelData`), implement it on
+   both the service-backed and fixture providers, and add a typed accessor for
+   the panel.
 3. Add a headless test in `crates/stratum-app/tests/` that calls the service
-   method directly.
-4. Update the table above and any user-facing guide that documents the feature.
+   method directly, plus a contract test when the panel has a gate list.
+4. Update the table above, the inventory gate's `SHIPPED_COMMANDS` constant in
+   `crates/stratum-ui/tests/command_parity.rs`, and any user-facing guide that
+   documents the feature.

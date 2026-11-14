@@ -5,9 +5,8 @@ configuration drives them, how the release workflow publishes them, and how to
 verify an installer before it ships.
 
 The packaged application is the native gpui shell (`crates/stratum-ui`, binary
-`stratum`). The Tauri bundle is built by `ci.yml` until the web frontend is
-retired; the native artifacts are published as `stratum-gpui-*` so both can
-coexist on one release.
+`stratum`). It is the only frontend since the E12 cutover, so the artifacts are
+published as `stratum-gpui-*`.
 
 ## Formats and tools
 
@@ -112,10 +111,10 @@ workflow derives it from the tag (`v1.2.3` → `10020300`) and passes
 
 ## Updates
 
-There is no in-app updater, and the native shell keeps that behaviour: the Tauri
-build never shipped one, so adding a network client now would be a new feature,
-not parity. Updates arrive through the platform channel — `apt`/`dnf` for the
-deb and rpm, a replaced AppImage, the MSI/NSIS installer, Google Play for the
+There is no in-app updater: the shell never shipped one, so adding a network
+client now would be a new feature, not parity. Updates arrive through the
+platform channel — `apt`/`dnf` for the deb and rpm, a replaced AppImage, the
+MSI/NSIS installer, Google Play for the
 Android bundle, or a fresh `.app` from the release page. The shell therefore
 never phones home; the release workflow only publishes the artifacts and the
 checksum manifest.

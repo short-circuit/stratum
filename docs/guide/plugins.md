@@ -4,7 +4,7 @@ Stratum plugins are WebAssembly modules that extend the app without a rebuild.
 They run in an embedded, sandboxed runtime and interact with your vault only
 through the host functions they import (`pkm.note_read`, `pkm.note_write`,
 `pkm.http_request`, `pkm.log`). The full contract — manifest schema, host ABI,
-error codes, and the Tauri command surface — is the normative
+error codes, and the service command surface — is the normative
 [Plugins API Specification](../advanced/plugins.md).
 
 Need a plugin? The community catalog lives in the
@@ -46,9 +46,9 @@ from the community catalog at
   `applyTheme` + the settings store. Uninstalling the active theme falls back
   to the built-in theme.
 
-> Catalog install requires the `https://raw.githubusercontent.com` origin in
-> the Tauri CSP `connect-src` (already configured). No other network origin is
-> contacted unless a plugin declares the `network` permission.
+> Catalog install requires the `https://raw.githubusercontent.com` origin. No
+> other network origin is contacted unless a plugin declares the `network`
+> permission (the host allowlist enforces it).
 
 <!-- SCREENSHOT: [plugins-panel] Plugins panel listing installed plugins with status -->
 
@@ -495,7 +495,7 @@ the `.wasm` on disk does not hot-reload automatically.
 
 - [Plugins API Specification](../advanced/plugins.md) — the normative contract:
   manifest schema, full host ABI, permission model, error codes, SSRF guard,
-  lifecycle, and the Tauri command surface.
+  lifecycle, and the service command surface.
 - [ADR-0004](../development/adr/0004-wasm-plugin-abi.md) — the accepted design
   and its stability guarantees.
 - `examples/plugins/titlecase/` — the real Rust example plugin (build, install,

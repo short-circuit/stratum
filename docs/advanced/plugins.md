@@ -18,8 +18,8 @@ The plugin system has **three surfaces**:
 |---------|-------|----------|
 | Plugin manifest + host ABI (this doc) | architect | contract |
 | Runtime host function implementations | backend | `crates/pkm-plugin` |
-| Tauri commands + vault loading | backend | `src-tauri` |
-| Management UI | frontend | `src/` (React) |
+| Service methods + vault loading | backend | `crates/stratum-app` (`plugins`) |
+| Management UI | frontend | `crates/stratum-ui/src/panels/plugins` |
 
 ## 2. Plugin packaging
 
@@ -237,7 +237,7 @@ Request:
 |-------|------|----------|-------|
 | `path` | string | yes | Vault-relative POSIX path. Empty ⇒ `InvalidArgument`. |
 
-Resolution rules (mirror `resolve_safe_path` in `src-tauri/src/commands/page.rs`):
+Resolution rules (mirror `resolve_safe_path` in `crates/stratum-app/src/page/`):
 
 1. Reject on `..` escaping the vault root ⇒ **must** stay under the canonicalized
    vault root.
@@ -434,7 +434,7 @@ All error envelopes are `Err { code, message }`. `code` is always one of
 - Every host call is logged at `trace` (request envelope) and `debug` (outcome).
 - Host call failures are logged at `warn` with the plugin id, function, and error code.
 - A plugin that fails to load logs `error` with `PluginLoadError` details; the
-  error is also visible through the Tauri `plugins_list` command output.
+  error is also visible through the `plugins_list` service method output.
 
 ## 7. Runtime instantiation & lifecycle
 
@@ -524,8 +524,8 @@ The frontend calls only the commands below. Names, argument names, and DTO shape
 are normative.
 
 All commands return `Result<_, String>` where the `Err` string is the
-`message` of a `PluginErrorCode` mapped per §6.3. Command modules live in
-`src-tauri/src/commands/plugins.rs`.
+`message` of a `PluginErrorCode` mapped per §6.3. The implementations live in
+`crates/stratum-app/src/plugins/`.
 
 Common DTOs:
 
@@ -750,7 +750,8 @@ pub enum HttpResponseEnvelope {
 }
 
 /// The notes/filesystem backend the plugin runtime talks to.
-/// Implemented by the host (src-tauri) and injected into the runtime.
+/// Implemented by the host (`stratum-app`'s plugin manager) and injected into
+/// the runtime.
 #[async_trait::async_trait]
 pub trait HostApi: Send + Sync {
     async fn read_note(&self, rel_path: &str) -> Result<HostNote, PluginErrorCode>;

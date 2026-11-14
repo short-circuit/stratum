@@ -5,8 +5,8 @@ frontend as the desktop app — one code base, the same vault format, the same
 service layer — hosted by an Android `NativeActivity` that hands GPUI a Vulkan
 surface, the soft keyboard and the system window insets.
 
-The frozen React application in `src/` remains the parity reference; the Android
-build is the native path that replaces it.
+The Android build is the shipped mobile application; it replaced the frozen
+React application that served as the parity reference until the E12 cutover.
 
 ## Requirements
 

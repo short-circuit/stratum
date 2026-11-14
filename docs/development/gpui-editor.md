@@ -7,11 +7,12 @@ transition, menu catalog, marker/reminder model, WYSIWYM decoration and
 virtualization calculation lives here so the phase-B view can be a thin
 renderer over `render::DecoratedRow` values.
 
-The frozen React + Tauri application in `src/` and `src-tauri/` remains the
-behavioural and visual reference. The crate ports the pure helpers from
-`src/components/OutlinerEditor`, `src/components/AISlashMenu.tsx`,
-`src/lib/wikiLinks.ts` and `src/lib/reminders/reminderUtils.ts`; it never
-duplicates React state or rendering.
+The React + Tauri application in `src/` and `src-tauri/` was the behavioural and
+visual reference for this crate until the E12 cutover deleted it. The crate
+ported the pure helpers from `src/components/OutlinerEditor`,
+`src/components/AISlashMenu.tsx`, `src/lib/wikiLinks.ts` and
+`src/lib/reminders/reminderUtils.ts`; the shipped rules now live here and are
+pinned by `tests/editor_contract.rs` and the committed goldens.
 
 ---
 

@@ -96,7 +96,8 @@ Stratum looks for it, in order:
 2. `chromium`, `chromium-browser`, `google-chrome`, or `google-chrome-stable`
    on your `PATH`
 3. `/usr/bin/chromium`, `/usr/bin/google-chrome`, `/usr/bin/google-chrome-stable`
-4. A Chromium in Playwright's cache (`~/.cache/ms-playwright/`)
+4. A Chromium in Playwright's cache (`~/.cache/ms-playwright/`), if one is
+   present from another tool
 
 If none is found the export reports an error telling you to install Chromium or
 set `STRATUM_CHROMIUM`.

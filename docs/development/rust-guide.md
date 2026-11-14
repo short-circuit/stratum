@@ -6,7 +6,8 @@ This document covers the Rust workspace architecture, coding standards, module o
 
 ## Workspace Structure
 
-Stratum uses a Cargo workspace with **11 crates** (10 library crates + 1 binary crate for Tauri):
+Stratum uses a Cargo workspace with the domain crates, the headless service
+layer and the native shell crates:
 
 ```
 stratum/
@@ -24,8 +25,15 @@ stratum/
 │   ├── pkm-mcp/               # MCP server — stdio + Streamable HTTP
 │   ├── pkm-mcp-security/      # MCP security controls (PAT, scopes, limits)
 │   ├── pkm-cli/               # CLI binary
-│   └── stratum-app/           # Headless service layer behind every Tauri command (no tauri deps)
-└── src-tauri/                 # Tauri v2 shell: bootstrap, IPC registry, thin command adapters
+│   ├── stratum-app/           # Headless service layer behind every surface (no UI deps)
+│   ├── stratum-editor/        # Headless block-editor engine
+│   ├── stratum-graph/         # Graph physics + renderer
+│   ├── stratum-canvas/        # Whiteboard model + export
+│   ├── stratum-i18n/          # Locale catalogs + parity gates
+│   ├── stratum-platform/      # OS glue (tray, shortcut, notifications, deep links)
+│   ├── stratum-ui/            # Native gpui application (desktop)
+│   └── stratum-mobile/        # Android host of the shell
+└── vendor/gpui-mobile/        # Vendored gpui Android/iOS platform layer (excluded from the workspace)
 ```
 
 ### Crate Purposes
@@ -44,7 +52,7 @@ stratum/
 | `pkm-mcp` | MCP server (stdio + Streamable HTTP) exposing the vault to AI clients | `KbServer`, `McpConfig`, 15 `kb_*` tools |
 | `pkm-mcp-security` | Transport-agnostic MCP security controls | `pat`, `scope`, `ratelimit`, `path`, `input`, `output` |
 | `pkm-cli` | Terminal interface | `main()` with clap args |
-| `stratum-app` | Headless service layer behind every IPC command; no `tauri` dependency | `StratumService`, `EventSink`, per-domain service modules |
+| `stratum-app` | Headless service layer behind every surface; no UI dependency | `StratumService`, `EventSink`, per-domain service modules |
 
 ### Dependency Graph
 
@@ -62,12 +70,13 @@ pkm-mcp        -> pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-query
 pkm-mcp-security -> (standalone; no Stratum crates)
 pkm-cli        -> pkm-core, pkm-markdown, pkm-index, pkm-sync, pkm-watcher, pkm-ai, pkm-plugin
 stratum-app    -> pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-query, pkm-plugin, pkm-dictation
-src-tauri      -> stratum-app, pkm-core, pkm-block, pkm-markdown, pkm-index, pkm-import, pkm-query, pkm-sync, pkm-watcher, pkm-ai, pkm-audio, pkm-stt, pkm-dictation, pkm-plugin
+stratum-ui     -> stratum-app, stratum-editor, stratum-graph, stratum-canvas, stratum-i18n, stratum-platform, pkm-core
+stratum-mobile -> stratum-ui, stratum-i18n
 ```
 
-Note: the deskbound app (`src-tauri`) and the CLI both depend on `pkm-plugin`
-(the WASM plugin runtime is wired into the desktop app's vault state and
-surfaced through the Tauri plugin commands; the CLI links the same crate).
+Note: the shell (`stratum-ui`) and the CLI both depend on `pkm-plugin`
+(the WASM plugin runtime is wired into the vault state and surfaced through the
+plugin panels; the CLI links the same crate).
 The MCP server (`pkm-mcp`) is a standalone binary that reuses the same data
 layer crates (`pkm-block`, `pkm-index`, `pkm-markdown`, `pkm-query`); its
 security controls are isolated in `pkm-mcp-security`, which depends on no
@@ -153,7 +162,7 @@ impl From<rusqlite::Error> for StoreError {
 }
 ```
 
-However, note that `pkm-block/src/store.rs` defines its own `StoreError` type. This is a known area for refactoring. The `StoreError` should ideally be converted to `PkmError` at the crate boundary. Command handlers in `src-tauri` catch these and convert them to `String` anyway:
+However, note that `pkm-block/src/store.rs` defines its own `StoreError` type. This is a known area for refactoring. The `StoreError` should ideally be converted to `PkmError` at the crate boundary. The service layer catches these and converts them to `String` anyway:
 
 ```rust
 // src-tauri/src/commands/vault/mod.rs
@@ -293,38 +302,38 @@ let models: Vec<String> = if let Some(data) = body.get("data").and_then(|d| d.as
 
 ## Module Organization
 
-### Command Handlers Are Thin Glue
+### Panels Are Thin Glue
 
-Files in `src-tauri/src/commands/` are **adapters**. Their only job is:
+Panel modules under `crates/stratum-ui/src/panels/` are **renderers**. Their
+only job is:
 
-1. Accept Tauri state and arguments
-2. Call exactly one `stratum_app::StratumService` method
-3. Return the service result unchanged (no error-string rewriting)
+1. Read state from the provider seam (`ShellData`/`PanelData`)
+2. Call exactly one `stratum_app::StratumService` method through that seam
+3. Render the result unchanged (no error-string rewriting)
 
-Business logic lives in `stratum-app` (which wraps the domain crate). Platform-only work — folder pickers, tray icons, OS notifications, global shortcuts, Android SAF — stays in the adapter. The full command → service method map and the adapter rules are documented in [service-layer.md](service-layer.md).
+Business logic lives in `stratum-app` (which wraps the domain crate). Platform-only work — folder pickers, tray icons, OS notifications, global shortcuts, Android SAF — stays in `stratum-platform`/`stratum-mobile`. The full command → service method map and the host rules are documented in [service-layer.md](service-layer.md).
 
-| Adapter | Service module |
+| Panel | Service module |
 |---------|----------------|
-| `graph/mod.rs` | `stratum_app::graph` |
-| `settings.rs` | `stratum_app::settings` |
-| `search/mod.rs` | `stratum_app::search` |
-| `sync.rs` | `stratum_app::sync` |
-| `page/*.rs` | `stratum_app::page` |
-| `block/mod.rs` | `stratum_app::block` |
+| `panels/graph` | `stratum_app::graph` |
+| `panels/settings` | `stratum_app::settings` |
+| `panels/search` | `stratum_app::search` |
+| `panels/settings` (sync) | `stratum_app::sync` |
+| `panels/page`, `panels/journal` | `stratum_app::page` |
+| `panels/kanban` | `stratum_app::kanban` |
 
 ### What Belongs Where
 
-**In the command handler (thin layer):**
+**In the panel (thin layer):**
 
 ```rust
-// src-tauri/src/commands/search/mod.rs
-#[tauri::command]
-pub async fn search_blocks(
-    query: String,
-    limit: Option<usize>,
-    state: tauri::State<'_, stratum_app::StratumService>,
-) -> Result<SearchResultsDto, String> {
-    state.search_blocks(query, limit).await
+// crates/stratum-ui/src/panels/search/mod.rs
+impl SearchView {
+    fn run_search(&mut self, cx: &mut Context<Self>) {
+        let results = self.data.search_blocks(self.query.clone(), Some(20));
+        self.results = results;
+        cx.notify();
+    }
 }
 ```
 
@@ -353,26 +362,32 @@ impl StratumService {
 }
 ```
 
-### Registering Commands
+### Exposing Commands
 
-All commands are registered in `src-tauri/src/invoke.rs` (the registry macro is expanded from `lib.rs`):
+The shipped command surface is exposed through the provider seam
+(`ShellData`/`PanelData`). The service-backed provider implements each method by
+calling exactly one `StratumService` method; the fixture provider returns
+deterministic data for tests and captures:
 
 ```rust
-// src-tauri/src/invoke.rs
-tauri::generate_handler![
-    crate::commands::vault::get_vault_info,
-    crate::commands::vault::set_vault_path,
-    crate::commands::page::list_pages,
-    crate::commands::page::save_page,
-    crate::commands::search::search_blocks,
-    crate::commands::graph::get_graph_data,
-    crate::commands::graph::get_connected_components,
-    crate::commands::sync::sync_vault,
-    // ... 128 commands total
-]
+// crates/stratum-ui/src/provider/app_panels.rs (service-backed)
+fn search_blocks(&self, query: &str, limit: usize) -> Result<Vec<SearchHit>, String> {
+    let results = self.runtime.block_on(
+        self.service.search_blocks(query.to_string(), Some(limit)),
+    )?;
+    Ok(results.results.into_iter().map(search_hit).collect())
+}
+
+// crates/stratum-ui/src/provider/fixture/panels/impls.rs (fixture)
+fn search_blocks(&self, query: &str, limit: usize) -> Result<Vec<SearchHit>, String> {
+    Ok(self.fixture_search(query, limit))
+}
 ```
 
-The corresponding TypeScript wrappers live in `src/lib/commands.ts`. When you add a new Rust command, you must add a matching wrapper there too.
+The shipped inventory is `docs/development/service-layer.md` (128 rows), and
+`crates/stratum-ui/tests/command_parity.rs` fails when a listed method no longer
+exists. When you add a surface, add it to both providers, the inventory table and
+the parity gate's `SHIPPED_COMMANDS` constant.
 
 ---
 
@@ -399,47 +414,38 @@ pub struct VaultState {
 }
 ```
 
-Initialized in `setup.rs` during Tauri setup:
+Initialized when the shell starts (`crates/stratum-ui/src/main.rs`) and installed
+into the provider:
 
 ```rust
-// src-tauri/src/setup.rs
-app.manage(StratumService::new(vault_path.clone()));
+// crates/stratum-ui/src/main.rs
+let provider = provider_from_env(vault.clone(), fixture);
+let shell = cx.new(|_| Shell::new(Arc::clone(&provider)));
 ```
 
-Usage in commands — no mutex, no business logic:
+Usage in a panel — no mutex, no business logic:
 
 ```rust
-#[tauri::command]
-pub async fn get_vault_info(
-    state: tauri::State<'_, stratum_app::StratumService>,
-) -> Result<VaultInfo, String> {
-    state.get_vault_info().await
-}
+let info = self.data.vault_info()?;
 ```
 
-`src-tauri/src/commands/vault/mod.rs` keeps `pub type AppState = StratumService;` so existing adapter imports still resolve.
+### Panel Method Pattern
 
-### Command Handler Pattern
-
-Every Tauri command adapter follows this shape:
+Every provider method follows this shape:
 
 ```rust
-#[tauri::command]
-pub async fn command_name(
-    // 1. Arguments from the frontend (names must match the TS wrapper)
-    arg1: String,
-    arg2: Option<usize>,
-    // 2. Managed state (always last)
-    state: tauri::State<'_, stratum_app::StratumService>,
-) -> Result<SomeDto, String> {   // 3. Return Result<Dto, String>
-    // 4. Delegate — the service owns the logic, the adapter only forwards
-    state.command_name(arg1, arg2).await
+// PanelData trait implementation
+fn command_name(&self, arg1: &str, arg2: Option<usize>) -> Result<SomeDto, String> {
+    // 1. Delegate — the service owns the logic, the provider only forwards
+    self.runtime.block_on(self.service.command_name(arg1.to_string(), arg2))
 }
 ```
 
 ### DTO Pattern
 
-All DTOs use `#[derive(Debug, Serialize, Deserialize, Clone)]` and mirror the TypeScript types in `src/lib/types.ts`.
+All DTOs use `#[derive(Debug, Serialize, Deserialize, Clone)]`. They are the
+shared wire shape between the service layer, the fixture provider and the panel
+renderers.
 
 ```rust
 // crates/stratum-app/src/search/dto.rs

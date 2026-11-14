@@ -1,6 +1,7 @@
 # Installation
 
-Stratum runs on Linux, macOS, and Windows. There are several ways to get it:
+Stratum runs on Linux, macOS, and Windows as a single native application
+(gpui shell over the Rust core), plus an Android host of the same shell.
 
 ## Download a Release
 
@@ -8,45 +9,33 @@ Pre-built binaries are available on the [GitHub Releases page](https://github.co
 
 | Platform | Format | File |
 |----------|--------|------|
-| Linux | AppImage | `stratum-pkm-linux.AppImage` |
-| Linux | Debian | `stratum-pkm-linux.deb` |
-| Linux | RPM | `stratum-pkm-linux.rpm` |
-| Windows | Portable exe | `stratum-pkm-windows.exe` |
-| macOS | App bundle | `stratum-pkm-macos.zip` |
-| Android | APK / AAB | `stratum-pkm-android.apk` / `stratum-pkm-android.aab` |
+| Linux | AppImage | `stratum-gpui-linux.AppImage` |
+| Linux | Debian | `stratum-gpui-linux.deb` |
+| Linux | RPM | `stratum-gpui-linux.rpm` |
+| Windows | MSI installer | `stratum-gpui-windows.msi` |
+| Windows | NSIS installer | `stratum-gpui-windows-setup.exe` |
+| macOS | App bundle (arm64) | `stratum-gpui-macos-arm64.zip` |
+| macOS | App bundle (x86_64) | `stratum-gpui-macos-x86_64.zip` |
+| Android | APK / AAB | `stratum-gpui-android.apk` / `stratum-gpui-android.aab` |
 
 Every release ships a `sha256sums.txt` with checksums for all artifacts.
 
-!!! note "Native shell builds"
-    Releases also carry the native gpui shell, published as
-    `stratum-gpui-<platform>.<ext>`: `stratum-gpui-linux.deb`,
-    `stratum-gpui-linux.AppImage`, `stratum-gpui-linux.rpm`,
-    `stratum-gpui-windows.msi`, `stratum-gpui-windows-setup.exe`,
-    `stratum-gpui-macos-arm64.zip`, `stratum-gpui-macos-x86_64.zip`,
-    `stratum-gpui-android.apk` and `stratum-gpui-android.aab`. They install
-    next to the Tauri build and are covered by the same `sha256sums.txt`
-    manifest. The native Linux packages need `libxkbcommon`, `libxcb` and the
-    Vulkan loader instead of WebKitGTK; the deb declares them, the RPM derives
-    them and the AppImage bundles the xkbcommon stack and `libasound` while
-    leaving `libxcb1` and the Vulkan driver to the system.
-
-!!! note "Linux Dependencies"
-    The AppImage bundles most dependencies. For other Linux formats you need WebKitGTK libraries:
-    ```bash
-    # Debian/Ubuntu
-    sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev                      libjavascriptcoregtk-4.1-dev librsvg2-dev
-
-    # Arch Linux
-    sudo pacman -S webkitgtk-4.1 gtk3 libsoup3 librsvg
-    ```
+!!! note "Linux runtime dependencies"
+    The AppImage bundles the xkbcommon stack and `libasound` and needs the
+    system `libxcb1` plus a Vulkan driver. The deb declares `libc6 (>= 2.35)`,
+    `libasound2`, `libxcb1`, `libxcb-xkb1`, `libxkbcommon-x11`, `libvulkan1`;
+    the RPM derives the same sonames. No WebKitGTK or GTK web stack is needed —
+    the shell renders natively.
 
 ## Build from Source
 
 ### Prerequisites
 
-- **Rust** 1.75+ — [rustup.rs](https://rustup.rs)
-- **Node.js** 22+ — [nodejs.org](https://nodejs.org)
-- **Tauri v2 system libraries** (see above)
+- **Rust** (pinned by `rust-toolchain.toml`) — [rustup.rs](https://rustup.rs)
+- A C toolchain, `pkg-config` and the native windowing libraries:
+  `libxkbcommon`, `libxcb`/`libx11`, a Vulkan loader and driver, ALSA, and GTK 3
+  for the tray indicator (Linux). The Nix shell below provides all of them.
+- No Node.js, no npm, no web toolchain — the shell embeds its own assets.
 
 ### Nix (recommended)
 
@@ -61,11 +50,9 @@ nix develop ./nix
 # Or use direnv for automatic activation
 direnv allow
 
-# Build everything
+# Build and test
 cargo build --workspace
 cargo test --workspace
-npm install
-npm run build
 ```
 
 ### Manual Build
@@ -73,9 +60,6 @@ npm run build
 ```bash
 git clone https://github.com/short-circuit/stratum.git
 cd stratum
-
-# Install frontend dependencies
-npm install
 
 # Build Rust crates
 cargo build --workspace
@@ -87,31 +71,33 @@ cargo test --workspace
 ## Running the Desktop App
 
 ```bash
-# Development mode (hot-reload)
-npm run tauri:dev
+# Development build
+cargo build -p stratum-ui
 
-# Production build
-npm run tauri:build
+# Run against the deterministic fixture vault (no vault required)
+STRATUM_FIXTURE=1 cargo run -p stratum-ui
+
+# Run against a real vault
+STRATUM_VAULT=/path/to/vault cargo run -p stratum-ui
 ```
 
-The built app is in `src-tauri/target/release/stratum`.
+The built binary is `target/debug/stratum` (or `target/release/stratum` for a
+release build). See [Configuration](configuration.md) for the environment
+variables that select a vault, a locale or a start state.
 
-### Environment Variables
-
-Stratum uses some environment variables for Wayland compatibility:
+### Installer builds
 
 ```bash
-# If you encounter display issues on Linux/ Wayland:
-export WEBKIT_DISABLE_DMABUF_RENDERER=1
-export WEBKIT_DISABLE_COMPOSITING_MODE=1
-
-# Or use the provided npm scripts:
-npm run tauri:dev:x11  # Force X11 backend
+scripts/package-desktop.sh                 # deb, AppImage and rpm for this host
+scripts/verify-packages.sh --dir dist/packages
 ```
+
+`scripts/build-android.sh` builds the Android APK/AAB (`--release` for the
+signed release artifacts).
 
 ## Using the CLI
 
-The CLI binary is built alongside the desktop app:
+The CLI binary is built alongside the rest of the workspace:
 
 ```bash
 cargo run -p pkm-cli -- --help
@@ -121,7 +107,7 @@ Or build it separately:
 
 ```bash
 cargo build -p pkm-cli
-./target/debug/stratum --help
+./target/debug/pkm-cli --help
 ```
 
 See the [CLI Reference](../cli/command-reference.md) for all commands.

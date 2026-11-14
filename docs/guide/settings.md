@@ -2,9 +2,8 @@
 
 The **Settings** panel is the single place to configure Stratum: vault location,
 appearance, AI providers, web research, sync and backup, tray behaviour, and
-block reminders. The native shell reproduces the shipped eight-tab page, so the
-same fields and validation apply whether you run the React desktop app or the
-native GPUI shell.
+block reminders. The panel is the shipped eight-tab page; the same fields and
+validation apply on desktop and mobile.
 
 Settings are persisted in `.pkm/config.toml` inside your vault. The panel writes
 through the same service layer as the TOML file, so a change made here and a

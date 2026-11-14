@@ -123,13 +123,13 @@ nav:
   - Contributing: contributing.md
   - Announcement: announcement.md
   - Development:
-    - development/frontend-guide.md
     - development/rust-guide.md
     - development/service-layer.md
     - development/mobile-guide.md
     - development/gpui-ui.md
     - development/gpui-editor.md
     - development/packaging.md
+    - development/parity.md
     - development/branch-policy.md
     - development/freeze.md
     - ADR-0004 WASM Plugin ABI:

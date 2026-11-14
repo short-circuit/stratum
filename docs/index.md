@@ -52,8 +52,7 @@ nix develop ./nix
 
 # Or build manually
 cargo build --workspace
-npm install
-cargo tauri dev
+STRATUM_FIXTURE=1 cargo run -p stratum-ui
 ```
 
 See the [Installation Guide](getting-started/installation.md) for detailed setup.

@@ -1,8 +1,8 @@
 # Localization
 
 Stratum ships a fully translatable interface. All user-facing strings are routed
-through the `i18next` layer (`t(...)`), and the active UI language is a persisted
-setting — no restart required.
+through `stratum-i18n` (`t_global(...)` / `tr_global(...)`), and the active UI
+language is a persisted setting — no restart required.
 
 <!-- SCREENSHOT: [settings-locale] Language selector in Settings → Appearance -->
 
@@ -42,7 +42,7 @@ locale = "de"
 ## Locale-Aware Formatting
 
 Dates, numbers, and calendar labels follow the active locale's conventions via
-the `Intl` helpers in `src/i18n/` (`formatDate`, `formatNumber`,
+the formatting helpers in `stratum-i18n` (date/number formatting,
 `localizedMonthNames`, `localizedDayHeaders`). The **Journal** calendar and any
 number/date rendering use these helpers automatically.
 
@@ -50,51 +50,52 @@ number/date rendering use these helpers automatically.
 
 ### Adding a new UI string
 
-Never hardcode user-facing copy. Use `t(...)`:
+Never hardcode user-facing copy. Use the catalog:
 
-```tsx
-import { useTranslation } from 'react-i18next';
-const { t } = useTranslation();
-return <Button>{t('common.save')}</Button>;
+```rust
+use stratum_i18n::t_global;
+
+let label = t_global("common.save");
 ```
 
-Add the key (and all translations) to `src/i18n/locales/<lang>.json` under the
-appropriate section.
+Add the key (and all translations) to **all eight** catalogs under
+`crates/stratum-i18n/locales/` under the appropriate section, using the
+`{{var}}` interpolation style.
 
-### The i18n gate
+### The raw-key gate
 
-`src/i18n/i18nGate.test.ts` is a static AST scan that **fails `npm run test`**
-if a user-facing English string is hardcoded as JSX text or a
-`label/placeholder/title/aria-label` literal outside `t()`. It walks `src/`
-(excluding tests, workers, and `i18n/` itself) and reports each violation as
-`path:line — 'literal'`.
+`crates/stratum-i18n/tests/raw_keys.rs` walks `crates/stratum-ui/src`, extracts
+every literal key passed to `t_global`/`tr_global` and **fails `cargo test`**
+when a key is absent from the English catalog (and therefore from every catalog,
+which the parity gate keeps in lock-step). A missing key would otherwise render
+as the raw key string.
 
 Run it in isolation:
 
 ```bash
-npx vitest run src/i18n/i18nGate.test.ts
+cargo test -p stratum-i18n --test raw_keys
 ```
 
-The gate's allowlist covers non-UI literals (CSS, units, URLs, enum tokens,
-imports, SVG paths, LaTeX). It is intentionally **conservative**: when the scan
-flags something that IS user-facing, translate it — do not extend the allowlist.
+### Catalog parity gate
 
-### Locale parity gate
+`stratum-i18n`'s parity helpers (`key_set`, `missing_keys`, `extra_keys`) and the
+panel contract tests enforce the release contract:
 
-`src/i18n/localeParity.test.ts` enforces the release contract:
-
-- all 8 locale files expose the **identical flattened key set**;
+- all 8 catalogs expose the **identical flattened key set**;
 - every key exists in `en` (extra keys in any locale fail);
 - placeholder locales (`zh`/`ja`/`el`) mirror `en` values — no missing-key path;
 - full locales (`de`/`it`/`fr`/`es`) contain **no untranslated English** except
   a reviewed allowlist of brands, endonyms, and technical loanwords.
 
-When adding a locale key, add it to **all 8 files** in the same commit. When
+Every panel also declares a `*_I18N_KEYS` gate list that
+`crates/stratum-ui/tests/*_contract.rs` verifies against all eight catalogs.
+
+When adding a locale key, add it to **all 8 catalogs** in the same commit. When
 translating a full locale, never leave an English value behind.
 
 ### Runtime fallback behavior
 
-The runtime i18next fallback chain is `active locale → en`. There is **no**
-raw-key rendering: if a key is missing from the active locale but present in
-`en`, the `en` value is used. Only a key missing from `en` itself would surface
-as the key string — the parity gate prevents that.
+The runtime fallback chain is `active locale → en`. There is **no** raw-key
+rendering: if a key is missing from the active locale but present in `en`, the
+`en` value is used. Only a key missing from `en` itself would surface as the key
+string — the raw-key gate prevents that.
