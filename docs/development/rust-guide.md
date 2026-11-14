@@ -811,11 +811,17 @@ fn slug_from_path(path: &str) -> String {
 - **Edition 2021** — set in workspace `Cargo.toml` and `rust-toolchain.toml`
 - **Formatter**: `cargo fmt` (runs on save in rust-analyzer)
 - **Linter**: `cargo clippy -- -D warnings` (deny all warnings in CI)
+- **Pinned channel**: `rust-toolchain.toml` pins an exact stable release (not
+  `"stable"`). Because CI builds with `-D warnings`, tracking the moving
+  `stable` channel lets a new rustc/clippy release turn the pipeline red with
+  no source change. Bump the pin deliberately and validate the full gate set
+  (`fmt`, `clippy --workspace --all-targets`, `RUSTFLAGS=-D warnings cargo
+  test --workspace`) against the new version before landing the bump.
 
 ```toml
 # rust-toolchain.toml
 [toolchain]
-channel = "stable"
+channel = "1.100.0"
 components = ["rustfmt", "clippy", "rust-analyzer"]
 ```
 

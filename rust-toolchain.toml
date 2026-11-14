@@ -1,5 +1,11 @@
 [toolchain]
-channel = "stable"
+# Pinned on purpose. The CI gates run with `-D warnings`, so an unpinned
+# `stable` channel means a new rustc/clippy release can turn the whole pipeline
+# red without a single source change (clippy 1.100 added
+# `chunks_exact_to_as_chunks` and tightened unused-glob-import detection).
+# Bump this deliberately, run `cargo fmt`/`clippy`/`test` against the new pin,
+# and land the bump as its own commit.
+channel = "1.100.0"
 components = ["rustfmt", "clippy", "rust-analyzer"]
 targets = [
   "wasm32-unknown-unknown",
