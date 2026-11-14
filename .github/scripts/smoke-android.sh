@@ -160,6 +160,16 @@ log "APK: ${APK}"
 adb install -r "${APK}"
 snapshot "installed"
 
+# ── 1b. Pin the renderer to GLES ─────────────────────────────────────────
+# The emulator's SwiftShader Vulkan path chokes on wgpu's SPIR-V, so the shell
+# never reaches a first frame with the Vulkan-first default. `android_main`
+# honours the `debug.stratum.gpu` system property (apply_gpu_override in
+# crates/stratum-mobile/src/android/mod.rs) and prefers GLES when it is `gl`.
+GPU_BACKEND="${SMOKE_GPU_BACKEND:-gl}"
+adb shell setprop debug.stratum.gpu "${GPU_BACKEND}" 2>/dev/null \
+    || log "WARN: could not set debug.stratum.gpu=${GPU_BACKEND}"
+log "renderer property: debug.stratum.gpu=${GPU_BACKEND}"
+
 # ── 2. Verify the launchable activity exists in the installed package ────
 if ! adb shell cmd package resolve-activity --brief "${PKG}" \
         | grep -q "${ACTIVITY}"; then

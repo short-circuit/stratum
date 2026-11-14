@@ -118,9 +118,11 @@ timeout, and every hard failure is re-emitted as a check-run annotation (the job
 log itself is admin-only). The package and launcher activity it targets are
 `com.stratum.app` / `dev.gpui.mobile.GpuiActivity`, taken from
 `crates/stratum-mobile/android/app/build.gradle.kts` and the manifest — keep the
-script's constants in sync when either changes. `.github/scripts/test-smoke-harness.sh`
-drives the same control flow against a mock `adb` (scenarios A–D) with no
-emulator.
+script's constants in sync when either changes. Before launching it pins
+`debug.stratum.gpu=gl`: the emulator's SwiftShader Vulkan path chokes on wgpu's
+SPIR-V, and `android_main` prefers GLES when that property is set.
+`.github/scripts/test-smoke-harness.sh` drives the same control flow against a
+mock `adb` (scenarios A–D) with no emulator.
 
 ### Vault location
 
@@ -235,4 +237,4 @@ Release artifacts (signed APK + AAB) are produced by
 | `Operation not permitted` writing to the vault | The vault must live in the app documents directory | Let `StratumVault` create `…/StratumVault`; do not point the vault at a SAF URI. |
 | `INSTALL_FAILED_INVALID_APK` | Architecture mismatch | Build for the device ABI (`arm64-v8a` for most phones, `x86_64` for emulators). |
 | App content behind system bars | A surface ignores the frame | Render inside `MobileFrame`; the shell and the panel variants already offset by the insets. |
-| App never reaches a first frame in CI | Software emulation stalled | Re-run; the smoke script already retries once after a platform ANR. |
+| App never reaches a first frame in CI | Vulkan on SwiftShader, or software emulation stalled | The smoke script already pins `debug.stratum.gpu=gl` and retries once after a platform ANR; re-run if the emulator itself stalled. |
