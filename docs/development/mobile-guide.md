@@ -103,7 +103,7 @@ variables; V1, V2 and V3 signing are enabled in the Gradle config.
 
 ```bash
 adb install -r crates/stratum-mobile/android/app/build/outputs/apk/debug/app-debug.apk
-adb shell am start -n com.stratum.app/.MainActivity
+adb shell am start -n com.stratum.app/dev.gpui.mobile.GpuiActivity
 adb logcat | grep -E '(stratum|libstratum|RustError)'
 ```
 
@@ -114,7 +114,13 @@ routed through `android_logger`, so `adb logcat` shows them.
 launches it, waits for the platform's own first-frame signal
 (`ActivityTaskManager: Displayed …`) and captures a screenshot plus logcat as
 evidence. It fails on install errors, process death without a first frame, or a
-timeout.
+timeout, and every hard failure is re-emitted as a check-run annotation (the job
+log itself is admin-only). The package and launcher activity it targets are
+`com.stratum.app` / `dev.gpui.mobile.GpuiActivity`, taken from
+`crates/stratum-mobile/android/app/build.gradle.kts` and the manifest — keep the
+script's constants in sync when either changes. `.github/scripts/test-smoke-harness.sh`
+drives the same control flow against a mock `adb` (scenarios A–D) with no
+emulator.
 
 ### Vault location
 
