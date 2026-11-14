@@ -70,16 +70,31 @@ if ! run_gate editor "$ROOT/.hermes/parity/perf-editor.log" \
 fi
 
 echo "== graph: deterministic golden (fps budget) =="
-# The fps gate needs a GPU adapter. GitHub-hosted runners expose none to wgpu,
-# and a CPU rasterizer cannot hold a 60-fps-class budget at 20k nodes, so when
-# the GPU renderer cannot start the deterministic CPU renderer (the path the
-# shell itself uses on adapter-less devices) is measured WITHOUT the fps
-# assertion: gating it there would measure the runner's CPU, not the renderer.
-# A budget failure is recognised by the golden's own messages and stays red;
-# every other failure means the renderer could not start.
+# The fps gate describes hardware rendering. GitHub's runners expose a software
+# Vulkan adapter (lavapipe/llvmpipe), which renders 2000 nodes at ~15 fps: gating
+# that number would measure the runner's CPU, not the renderer. The adapter the
+# golden actually used is printed on its first line, so:
+#   - hardware adapter + budget miss  -> red
+#   - software adapter               -> re-run without the assertion (report and
+#                                       PNGs are still produced) with a notice
+#   - renderer cannot start at all    -> deterministic CPU renderer, no assertion
+# A budget miss on a hardware adapter is still recognised by the golden's own
+# messages and stays red.
 GRAPH_LOG="$ROOT/.hermes/parity/perf-graph.log"
 if cargo run -q --release -p stratum-graph --bin graph_golden -- --assert-fps >"$GRAPH_LOG" 2>&1; then
     cat "$GRAPH_LOG"
+elif grep -qiE "^graph_golden backend=.*adapter=.*(lavapipe|llvmpipe|swiftshader|softpipe|software|llvm)" "$GRAPH_LOG"; then
+    cat "$GRAPH_LOG"
+    grep -m1 '^graph_golden backend=' "$GRAPH_LOG" | while IFS= read -r line; do
+        printf '::notice::perf graph: %s\n' "${line//$'\r'/}"
+    done
+    echo "perf: software render adapter — fps gate not applicable, re-running without the assertion"
+    printf '::notice::perf graph: software render adapter on this runner; fps gate skipped (the budget describes a hardware adapter)\n'
+    if ! run_gate graph-report "$ROOT/.hermes/parity/perf-graph-software-adapter.log" \
+        cargo run -q --release -p stratum-graph --bin graph_golden; then
+        echo "perf: graph report run failed" >&2
+        status=1
+    fi
 elif grep -qE "below the [0-9.]+ fps gate|exceeds the [0-9.]+ MB gate" "$GRAPH_LOG"; then
     cat "$GRAPH_LOG"
     # Annotate only the budget lines: the tail also carries cargo's workspace

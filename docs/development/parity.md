@@ -88,13 +88,14 @@ recorded in `.hermes/parity/perf-report.json`.
 
 Two host-dependent qualifications, both recorded in the report:
 
-- The graph fps assertion needs a GPU renderer. On a host where the GPU renderer
-  cannot start (GitHub's runners expose no adapter to wgpu), the gate measures
-  the deterministic CPU renderer the shell itself falls back to and skips the
-  fps assertion — a CPU rasterizer cannot hold a 60-fps-class budget at 20 000
-  nodes, so asserting it there would gate the runner's CPU, not the renderer. A
-  genuine budget miss is still recognised by the golden's own messages and stays
-  red.
+- The graph fps assertion describes hardware rendering. GitHub's runners expose
+  a software Vulkan adapter (lavapipe/llvmpipe), which renders 2 000 nodes at
+  ~15 fps; asserting that number would gate the runner's CPU, not the renderer.
+  The gate reads the adapter the golden actually used from its output and
+  re-runs without the fps assertion when it is a software adapter, so the report
+  and PNGs are still produced and a budget miss on a hardware adapter still
+  stays red. A host where the renderer cannot start at all falls back to the
+  deterministic CPU renderer the shell itself uses.
 - Software rasterization allocates in-process framebuffers, which land in
   `RssAnon`: the same release shell measures 49 MB on a hardware adapter and
   83 MB under software Vulkan/GL. `PERF_IDLE_RSS_ANON_BUDGET_MB` raises the
