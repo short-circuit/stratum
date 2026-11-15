@@ -404,7 +404,7 @@ jobs:
           cat assets/sha256sums.txt
 
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: assets/*
           draft: true
