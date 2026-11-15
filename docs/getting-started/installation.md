@@ -20,6 +20,13 @@ Pre-built binaries are available on the [GitHub Releases page](https://github.co
 
 Every release ships a `sha256sums.txt` with checksums for all artifacts.
 
+!!! note "macOS first launch of an unsigned bundle"
+    When the release was built without the Apple signing secrets, the bundle is
+    unsigned or ad-hoc signed and Gatekeeper refuses the first launch. Open it
+    once via right-click → Open (or `xattr -d com.apple.quarantine` on the
+    expanded `.app`) and macOS remembers the choice. Signed Developer ID builds
+    are notarized and launch normally.
+
 !!! note "Linux runtime dependencies"
     The AppImage bundles the xkbcommon stack and `libasound` and needs the
     system `libxcb1` plus a Vulkan driver. The deb declares `libc6 (>= 2.35)`,
