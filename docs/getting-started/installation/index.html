@@ -3002,6 +3002,14 @@
 </table>
 <p>Every release ships a <code>sha256sums.txt</code> with checksums for all artifacts.</p>
 <div class="admonition note">
+<p class="admonition-title">macOS first launch of an unsigned bundle</p>
+<p>When the release was built without the Apple signing secrets, the bundle is
+unsigned or ad-hoc signed and Gatekeeper refuses the first launch. Open it
+once via right-click → Open (or <code>xattr -d com.apple.quarantine</code> on the
+expanded <code>.app</code>) and macOS remembers the choice. Signed Developer ID builds
+are notarized and launch normally.</p>
+</div>
+<div class="admonition note">
 <p class="admonition-title">Linux runtime dependencies</p>
 <p>The AppImage bundles the xkbcommon stack and <code>libasound</code> and needs the
 system <code>libxcb1</code> plus a Vulkan driver. The deb declares <code>libc6 (&gt;= 2.35)</code>,

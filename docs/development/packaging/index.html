@@ -3074,7 +3074,7 @@ in afterwards.</p>
 <code>APPLE_ID</code>, <code>APPLE_PASSWORD</code>, <code>APPLE_TEAM_ID</code>, <code>WINDOWS_CERTIFICATE</code>,
 <code>WINDOWS_CERTIFICATE_PASSWORD</code>.</p>
 <p>The Android <code>versionCode</code> must increase with every store upload. The release
-workflow derives it from the tag (<code>v1.2.3</code> → <code>10020300</code>) and passes
+workflow derives it from the tag (<code>v1.2.3</code> → <code>1020300</code>) and passes
 <code>STRATUM_ANDROID_VERSION_NAME</code> / <code>STRATUM_ANDROID_VERSION_CODE</code> to Gradle.</p>
 <h2 id="updates">Updates<a class="headerlink" href="#updates" title="Permanent link">&para;</a></h2>
 <p>There is no in-app updater: the shell never shipped one, so adding a network
@@ -3104,6 +3104,34 @@ instead of trusting the build host:</p>
 library, a panicking renderer or an early exit fails the check. A probe that
 fails a payload assertion prints nothing — read the log file named in the
 result, not the console.</p>
+<p>The Windows and macOS formats need their own platform, so they are verified by
+two scripts that run on the release runner of that platform (and locally on the
+same OS):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c"># Windows: installs the MSI, locates the payload, launches it, uninstalls</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">pwsh</span> <span class="n">scripts</span><span class="p">/</span><span class="n">verify-windows-installers</span><span class="p">.</span><span class="n">ps1</span> <span class="n">-Dir</span> <span class="n">dist</span><span class="p">/</span><span class="n">packages</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># macOS: layout, architecture, signature and launch probe of the .app</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>scripts/verify-macos-app.sh<span class="w"> </span>--dir<span class="w"> </span>dist/packages<span class="w"> </span>--arch<span class="w"> </span>arm64
+</code></pre></div>
+<ul>
+<li><code>.msi</code> → <code>msiexec /i /qn /norestart</code>, then the installed <code>stratum.exe</code> is
+  located under <code>%LOCALAPPDATA%</code>/Program Files, launched with
+  <code>STRATUM_FIXTURE=1</code>, and removed through the product's uninstall entry. The
+  probe passes when the shell stays alive for the probe window or exits cleanly
+  (a headless runner may refuse to create a window); a panic or a non-zero exit
+  fails it. The uninstall is confirmed by polling for the payload and the
+  uninstall registry entry, because an NSIS uninstaller relaunches itself from
+  <code>%TEMP%</code> and returns before the files are gone.</li>
+<li><code>.exe</code> (NSIS) → the installer runs in silent mode (<code>/S</code>), then the same launch
+  and uninstall checks apply.</li>
+<li><code>.zip</code> (macOS) → the archive is expanded with <code>ditto</code>, the bundle must carry
+  <code>app.stratum</code>, <code>LSMinimumSystemVersion</code> 11.0 and exactly the requested
+  architecture, and the shell is launched the same way. A Developer ID signature
+  must pass <code>codesign --verify --deep --strict</code> and <code>spctl</code>; without the Apple
+  secrets the bundle is unsigned (or ad-hoc signed) and Gatekeeper rejects it by
+  design, so the script reports that instead of failing — see the first-launch
+  note in <code>docs/getting-started/installation.md</code>.</li>
+</ul>
 <h2 id="ci-release-job">CI release job<a class="headerlink" href="#ci-release-job" title="Permanent link">&para;</a></h2>
 <p><code>.github/workflows/gpui-release.yml</code> builds every format and publishes the
 artifacts with checksums:</p>
@@ -3111,14 +3139,17 @@ artifacts with checksums:</p>
 <li><strong>Triggers</strong> — <code>v*</code> tags (publish), pull requests that touch packaging inputs
   (Linux gate), and manual dispatch (build only).</li>
 <li><strong>Jobs</strong> — <code>linux</code> (ubuntu-22.04, deb/AppImage/rpm + container verification),
-  <code>windows</code> (MSI/NSIS), <code>macos</code> (arm64 and x86_64 app bundles), <code>android</code>
-  (signed APK/AAB) and <code>release</code>, which requires all four to succeed.</li>
+  <code>windows</code> (MSI/NSIS + install/launch/uninstall verification), <code>macos</code> (arm64
+  and x86_64 app bundles + bundle/signature/launch verification), <code>android</code>
+  (signed APK/AAB) and <code>release</code>, which requires all four to succeed. A
+  packaging job therefore fails on a broken installer, not only on a broken
+  build.</li>
 <li><strong>Publication</strong> — assets are renamed to <code>stratum-gpui-&lt;platform&gt;.&lt;ext&gt;</code>, a
-  single <code>sha256sums.txt</code> is generated over all of them and the draft release
-  for the tag is updated.</li>
+  single <code>sha256sums.txt</code> is generated over all of them, verified with
+  <code>sha256sum -c</code> on the runner, and the draft release for the tag is updated.</li>
 </ul>
 <p>Verify a download against the published manifest:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>sha256sum<span class="w"> </span>-c<span class="w"> </span>sha256sums.txt
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>sha256sum<span class="w"> </span>-c<span class="w"> </span>sha256sums.txt
 </code></pre></div>
 <h2 id="pitfalls">Pitfalls<a class="headerlink" href="#pitfalls" title="Permanent link">&para;</a></h2>
 <ul>
