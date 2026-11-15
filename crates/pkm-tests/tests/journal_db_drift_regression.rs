@@ -47,7 +47,7 @@ fn copy_db_trio(src_vault: &std::path::Path, dst_vault: &std::path::Path) {
 /// the journal invisible/empty until an app restart ran `sync_filesystem_to_db`.
 #[test]
 fn ensure_today_journal_file_exists_syncs_stale_db_from_disk() {
-    use app_lib::commands::page::ensure_today_journal_core;
+    use stratum_app::page::ensure_today_journal_core;
 
     // Source vault: a real on-disk journal plus one unrelated registered page so
     // the copied DB is a non-trivial stale vault that simply lacks the journal.
@@ -91,7 +91,7 @@ fn ensure_today_journal_file_exists_syncs_stale_db_from_disk() {
 /// once the page is already in SQLite must not duplicate blocks or change content.
 #[test]
 fn ensure_today_journal_file_exists_converges_idempotently() {
-    use app_lib::commands::page::ensure_today_journal_core;
+    use stratum_app::page::ensure_today_journal_core;
 
     let src = create_test_vault();
     src.create_md_file(
@@ -140,7 +140,7 @@ fn ensure_today_journal_file_exists_converges_idempotently() {
 /// zero `blocks` rows). After the call the on-disk blocks are queryable.
 #[test]
 fn sync_filesystem_to_db_heals_zero_block_page_from_disk() {
-    use app_lib::commands::page::sync_filesystem_to_db;
+    use stratum_app::page::sync_filesystem_to_db;
 
     let tv = create_test_vault();
     // Decayed shape: page registered in SQLite with zero block rows, but the
@@ -183,7 +183,7 @@ fn sync_filesystem_to_db_heals_zero_block_page_from_disk() {
 /// After the call the page is queryable with its on-disk blocks.
 #[test]
 fn sync_filesystem_to_db_heals_missing_page_from_disk() {
-    use app_lib::commands::page::sync_filesystem_to_db;
+    use stratum_app::page::sync_filesystem_to_db;
 
     let tv = create_test_vault();
     // File on disk, page NOT in SQLite at all.
@@ -206,7 +206,7 @@ fn sync_filesystem_to_db_heals_missing_page_from_disk() {
 /// not duplicate block rows for a healed page.
 #[test]
 fn sync_filesystem_to_db_heals_idempotently() {
-    use app_lib::commands::page::sync_filesystem_to_db;
+    use stratum_app::page::sync_filesystem_to_db;
 
     let tv = create_test_vault();
     tv.create_md_file("pages/stable.md", "- stable block\n");

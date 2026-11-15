@@ -1,0 +1,5 @@
+# Canonical editor fixtures are asserted byte-for-byte by
+# `crates/stratum-editor/tests/roundtrip.rs`; the canonical form is LF-only, so
+# pin the line endings instead of letting a Windows checkout turn them into
+# CRLF (which made the shell gate red on windows-latest).
+crates/stratum-editor/tests/fixtures/* text eol=lf

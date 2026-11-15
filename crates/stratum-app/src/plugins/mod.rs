@@ -5,6 +5,7 @@
 //! vault mutex. Commands are exposed as [`crate::state::StratumService`]
 //! methods; hosts keep only their IPC adapters.
 
+pub mod catalog;
 pub mod dto;
 pub mod hooks;
 pub mod install;

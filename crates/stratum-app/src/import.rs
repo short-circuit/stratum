@@ -8,8 +8,11 @@
 //! subdirectory.
 
 use crate::state::StratumService;
-use pkm_import::{ImportOptions, ImportPreview, ImportReport};
 use std::path::PathBuf;
+
+pub use pkm_import::{
+    ImportAsset, ImportFormat, ImportOptions, ImportPreview, ImportPreviewItem, ImportReport,
+};
 
 impl StratumService {
     /// Preview what importing `path` would do. Never writes to the source or the

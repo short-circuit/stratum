@@ -6,6 +6,34 @@
 use crate::state::StratumService;
 use serde::{Deserialize, Serialize};
 
+/// Extract the `{{name}}` placeholders referenced by template content.
+///
+/// The scan is intentionally forgiving: it walks the content left to right,
+/// trims each name, skips empty placeholders, and keeps only the first
+/// occurrence of a name (first-appearance order). Malformed content — an
+/// unclosed `{{`, or text after a closing `}}` without a new opener — is
+/// ignored rather than rejected, so partially written templates still list the
+/// variables they do reference.
+///
+/// Returns the unique placeholder names without braces, in the order they
+/// appear in `content`.
+pub fn template_variables(content: &str) -> Vec<String> {
+    let mut variables = Vec::new();
+    let mut rest = content;
+    while let Some(start) = rest.find("{{") {
+        let after = &rest[start + 2..];
+        let Some(end) = after.find("}}") else {
+            break;
+        };
+        let name = after[..end].trim();
+        if !name.is_empty() && !variables.iter().any(|existing| existing == name) {
+            variables.push(name.to_string());
+        }
+        rest = &after[end + 2..];
+    }
+    variables
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TemplateDto {
     pub name: String,
@@ -230,5 +258,38 @@ impl StratumService {
         }
 
         Ok(created)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn template_variables_are_empty_without_placeholders() {
+        assert!(template_variables("").is_empty());
+        assert!(template_variables("No variables here.").is_empty());
+    }
+
+    #[test]
+    fn template_variables_keep_first_appearance_order() {
+        let content = "# {{title}}\n\nCreated {{date}} at {{time}}. Again {{date}}.";
+        assert_eq!(template_variables(content), vec!["title", "date", "time"]);
+    }
+
+    #[test]
+    fn template_variables_trim_and_drop_empty_names() {
+        let content = "{{ title }} {{}} {{   }} {{author}}";
+        assert_eq!(template_variables(content), vec!["title", "author"]);
+    }
+
+    #[test]
+    fn template_variables_ignore_malformed_placeholders() {
+        assert!(template_variables("{{unclosed").is_empty());
+        assert_eq!(
+            template_variables("before {{title}} then {{broken"),
+            vec!["title"]
+        );
+        assert!(template_variables("{{}}").is_empty());
     }
 }

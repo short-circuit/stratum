@@ -13,13 +13,11 @@ Quick summary:
   (`feat(scope): ...`, `fix(scope): ...`, `docs: ...`).
 - **Verify before PR:**
   ```bash
-  nix develop ./nix        # or install deps manually (Rust 1.75+, Node 22+)
+  nix develop ./nix        # or install the native deps manually (Rust toolchain pinned in rust-toolchain.toml)
   cargo build --workspace
   cargo test --workspace
-  npm install
-  npm run test
-  npm run lint
-  npm run build
+  cargo clippy --workspace --all-targets -- -D warnings
+  ./scripts/verify-gpui-goldens.sh   # if a shipped surface changed
   ```
 - **Docs are mandatory** — every code change must update the relevant
   section of `AGENTS.md` / `docs/guide/` / `docs/development/`. See the

@@ -74,6 +74,25 @@ fn shell_i18n_keys_are_complete_in_every_locale() {
 }
 
 #[test]
+fn mobile_i18n_keys_are_complete_in_every_locale() {
+    for locale in Locale::ALL {
+        for key in stratum_ui::MOBILE_I18N_KEYS {
+            assert_ne!(t(locale, key), key, "{} missing in {}", key, locale.code());
+        }
+    }
+}
+
+#[test]
+fn mobile_shell_selects_the_mobile_layout() {
+    let provider: Arc<dyn ShellData> = provider_from_env(std::env::temp_dir(), true);
+    let mut shell = stratum_ui::Shell::new_mobile(provider);
+    assert!(shell.mobile());
+    assert_eq!(shell.active_panel(), stratum_ui::Panel::Journal);
+    assert!(shell.mobile_nav().stack().is_empty());
+    assert!(!shell.mobile_back());
+}
+
+#[test]
 fn embedded_shell_assets_are_loadable() {
     let assets = StratumAssets::new();
     assert!(assets

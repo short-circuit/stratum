@@ -67,7 +67,7 @@ and an operational `GET /health` endpoint for load balancers and monitors.
 
 !!! note "Linux"
     On Linux you need the standard Rust build toolchain. The MCP server does
-    **not** require the Tauri/WebKitGTK system libraries — it is a pure
+    **not** require the native shell's windowing/Vulkan libraries — it is a pure
     networking + local-data binary.
 
 ---

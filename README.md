@@ -1,7 +1,7 @@
 # Stratum
 
 <p align="center">
-  <img src="src-tauri/icons/app-icon.svg" alt="Stratum" width="128">
+  <img src="packaging/icons/hicolor/256x256/apps/stratum.png" alt="Stratum" width="128">
 </p>
 
 <p align="center">
@@ -51,7 +51,7 @@ Stratum's source is **AGPL-3.0-only** — free as in freedom. See
 ### 🧱 Block Outliner
 
 Every paragraph is an addressable block with a UUID. Indent, outdent, drag,
-collapse, and reorder — Logseq-style, powered by BlockNote and a Rust core.
+collapse, and reorder — Logseq-style, on a native outliner backed by a Rust core.
 Blocks support **markers** (`TODO`/`DOING`/`DONE`), **priorities**, task
 properties, and **block references** (`((block-ref))`). A **Prose View (Read
 Mode)** renders any page as clean, read-only prose — no editor chrome — while
@@ -254,17 +254,21 @@ release ships a `sha256sums.txt` with checksums for all artifacts.
 
 | Platform | Format | File |
 |----------|--------|------|
-| Linux | AppImage | `stratum-pkm-linux.AppImage` |
-| Linux | Debian | `stratum-pkm-linux.deb` |
-| Linux | RPM | `stratum-pkm-linux.rpm` |
-| Windows | Portable exe | `stratum-pkm-windows.exe` |
-| macOS | App bundle | `stratum-pkm-macos.zip` |
-| Android | APK / AAB | `stratum-pkm-android.apk` / `stratum-pkm-android.aab` |
+| Linux | AppImage | `stratum-gpui-linux.AppImage` |
+| Linux | Debian | `stratum-gpui-linux.deb` |
+| Linux | RPM | `stratum-gpui-linux.rpm` |
+| Windows | MSI installer | `stratum-gpui-windows.msi` |
+| Windows | NSIS installer | `stratum-gpui-windows-setup.exe` |
+| macOS | App bundle (arm64) | `stratum-gpui-macos-arm64.zip` |
+| macOS | App bundle (x86_64) | `stratum-gpui-macos-x86_64.zip` |
+| Android | APK / AAB | `stratum-gpui-android.apk` / `stratum-gpui-android.aab` |
 
 ### Build from Source
 
-Requires **Rust 1.75+**, **Node.js 22+**, and Tauri v2 system libraries (see the
-[Installation guide](docs/getting-started/installation.md)).
+Requires the Rust toolchain pinned by `rust-toolchain.toml` and the native
+windowing/rendering libraries (see the
+[Installation guide](docs/getting-started/installation.md)). There is no npm,
+Vite or Playwright step — the shell embeds its own assets.
 
 ```bash
 # Nix (recommended — all dependencies included)
@@ -272,8 +276,7 @@ nix develop ./nix
 
 # Or build manually
 cargo build --workspace
-npm install
-npm run tauri:dev
+STRATUM_FIXTURE=1 cargo run -p stratum-ui
 ```
 
 For the full quick-start, see [docs/getting-started/quickstart.md](docs/getting-started/quickstart.md).
@@ -294,7 +297,7 @@ Contributions welcome — bug reports, translations, docs, and code. Before
 your first PR, read the
 [CONTRIBUTING guide](https://short-circuit.github.io/stratum/docs/contributing/):
 fork → branch off `master` with a Conventional Commit `feat(scope): …`,
-verify with `cargo test --workspace` + `npm run test && npm run lint`, follow
+verify with `cargo test --workspace` + `cargo clippy --workspace --all-targets -- -D warnings`, follow
 the documentation rules, and submit a pull request. Good first issues are
 labelled [good first issue](https://github.com/short-circuit/stratum/labels/good%20first%20issue).
 WASM plugins go to the [stratum-plugins](https://github.com/short-circuit/stratum-plugins)

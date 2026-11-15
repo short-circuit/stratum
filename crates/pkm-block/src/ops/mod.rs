@@ -20,6 +20,13 @@ pub fn create_block(
         if !tree.contains(aid) {
             return Err(PkmError::BlockNotFound(aid.to_string()));
         }
+        // `after_id` is a sibling pointer: it must belong to the same parent
+        // group as the new block, otherwise relinking would cross parents.
+        if tree.get(aid).and_then(|block| block.parent_id) != parent_id {
+            return Err(PkmError::Validation(format!(
+                "left block is not a child of the target parent: {aid}"
+            )));
+        }
     }
 
     let id = Uuid::new_v4();
@@ -36,9 +43,10 @@ pub fn create_block(
         modified_at: Utc::now(),
     };
 
-    // Find the block that currently has left_id == after_id (i.e., was after `after_id`)
-    // and update its left_id to point to the new block
-    let next_id = find_block_with_left_id(tree, after_id);
+    // Relink the sibling that currently follows `after_id` inside the *same*
+    // parent group. `left_id == None` is a head pointer local to a group, so the
+    // successor lookup must never scan another parent's siblings.
+    let next_id = successor_in_group(tree, parent_id, after_id, None);
     if let Some(next_block_id) = next_id {
         if let Some(next_block) = tree.get_mut(next_block_id) {
             next_block.left_id = Some(id);
@@ -62,12 +70,14 @@ pub fn delete_block(tree: &mut BlockTree, block_id: BlockId) -> Result<Vec<Block
 
     let block = tree.get(block_id).unwrap();
     let left_id = block.left_id;
+    let parent_id = block.parent_id;
 
     // Collect all descendants to delete
     let subtree_ids: Vec<BlockId> = tree.subtree(block_id).iter().map(|b| b.id).collect();
 
-    // Fix the left_id chain: the block after this one should now point to this one's left
-    let next_id = find_block_with_left_id(tree, Some(block_id));
+    // Fix the left_id chain inside the deleted block's own sibling group: the
+    // block after this one should now point to this one's left.
+    let next_id = successor_in_group(tree, parent_id, Some(block_id), None);
     if let Some(next_block_id) = next_id {
         if let Some(next_block) = tree.get_mut(next_block_id) {
             next_block.left_id = left_id;
@@ -101,6 +111,14 @@ pub fn move_block(
         if !tree.contains(lid) {
             return Err(PkmError::BlockNotFound(lid.to_string()));
         }
+        // The destination predecessor must be a sibling of the moved block in
+        // its new group. Rejecting cross-parent pointers here keeps the
+        // `left_id` chain consistent before any relinking happens.
+        if lid == block_id || tree.get(lid).and_then(|block| block.parent_id) != new_parent_id {
+            return Err(PkmError::Validation(format!(
+                "left block is not a child of the target parent: {lid}"
+            )));
+        }
     }
 
     // Check for cycles: can't move a block under itself
@@ -121,18 +139,22 @@ pub fn move_block(
         }
     }
 
-    // Close gap in old position
+    // Close the gap in the old group. The successor lookup is scoped to the
+    // block's current parent so an unrelated group's head cannot be relinked.
     let old_block = tree.get(block_id).unwrap();
     let old_left = old_block.left_id;
-    let next_old = find_block_with_left_id(tree, Some(block_id));
+    let old_parent = old_block.parent_id;
+    let next_old = successor_in_group(tree, old_parent, Some(block_id), Some(block_id));
     if let Some(next_id) = next_old {
         if let Some(next) = tree.get_mut(next_id) {
             next.left_id = old_left;
         }
     }
 
-    // Close gap in new position: the block after new_left_id should point to block_id
-    let next_new = find_block_with_left_id(tree, new_left_id);
+    // Open the gap in the destination group: the sibling after `new_left_id`
+    // should point to the moved block. Excluding the moved block keeps a
+    // same-parent move from relinking itself.
+    let next_new = successor_in_group(tree, new_parent_id, new_left_id, Some(block_id));
     if let Some(next_id) = next_new {
         if let Some(next) = tree.get_mut(next_id) {
             next.left_id = Some(block_id);
@@ -328,14 +350,35 @@ pub fn remove_property(tree: &mut BlockTree, block_id: BlockId, key: &str) -> Re
     Ok(())
 }
 
-/// Find the block whose left_id matches the given id.
-fn find_block_with_left_id(tree: &BlockTree, left_id: Option<BlockId>) -> Option<BlockId> {
-    for block in tree.all_blocks() {
-        if block.left_id == left_id {
-            return Some(block.id);
-        }
+/// Siblings of `parent_id` in deterministic document order (`children()` for a
+/// block, `roots()` for `None`).
+///
+/// Sibling relinking must stay inside one parent group: `left_id == None` is a
+/// head pointer *within* a group, so scanning every block in the tree lets a
+/// first child of an unrelated parent answer a query about another group's head
+/// and get relinked across parents.
+fn group(tree: &BlockTree, parent_id: Option<BlockId>) -> Vec<&Block> {
+    match parent_id {
+        Some(parent) => tree.children(parent),
+        None => tree.roots(),
     }
-    None
+}
+
+/// The sibling inside `parent_id`'s group that currently follows `left_id`.
+///
+/// `exclude` skips a block that must not be relinked (the block being moved).
+/// The scan is group-scoped so a `left_id == None` query can only resolve to the
+/// head of the requested group.
+fn successor_in_group(
+    tree: &BlockTree,
+    parent_id: Option<BlockId>,
+    left_id: Option<BlockId>,
+    exclude: Option<BlockId>,
+) -> Option<BlockId> {
+    group(tree, parent_id)
+        .into_iter()
+        .find(|block| block.left_id == left_id && Some(block.id) != exclude)
+        .map(|block| block.id)
 }
 
 #[cfg(test)]

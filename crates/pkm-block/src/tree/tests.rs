@@ -217,3 +217,162 @@ fn test_into_sorted_vec() {
     assert_eq!(sorted[0].id, root);
     assert_eq!(sorted[1].id, child);
 }
+
+/// Two roots with no `left_id` must keep insertion order on every fresh tree.
+/// Before the insertion-order fix this depended on `HashMap` iteration order.
+#[test]
+fn roots_without_left_links_follow_insertion_order() {
+    let a = Uuid::from_u128(0xA);
+    let b = Uuid::from_u128(0xB);
+
+    for iteration in 0..50 {
+        let mut tree = BlockTree::new();
+        tree.insert(make_block(a, "A", None, None));
+        tree.insert(make_block(b, "B", None, None));
+
+        let order: Vec<BlockId> = tree.depth_first_order().iter().map(|blk| blk.id).collect();
+        assert_eq!(
+            order,
+            vec![a, b],
+            "depth-first order diverged at {iteration}"
+        );
+        assert_eq!(tree.roots()[0].id, a, "root head diverged at {iteration}");
+
+        let sorted: Vec<BlockId> = tree
+            .clone()
+            .into_sorted_vec()
+            .into_iter()
+            .map(|blk| blk.id)
+            .collect();
+        assert_eq!(sorted, vec![a, b], "sorted order diverged at {iteration}");
+    }
+}
+
+/// Two siblings with no `left_id` under one parent must keep insertion order.
+#[test]
+fn siblings_without_left_links_follow_insertion_order() {
+    let parent = Uuid::from_u128(0x100);
+    let a = Uuid::from_u128(0xA);
+    let b = Uuid::from_u128(0xB);
+
+    for iteration in 0..50 {
+        let mut tree = BlockTree::new();
+        tree.insert(make_block(parent, "Parent", None, None));
+        tree.insert(make_block(a, "A", Some(parent), None));
+        tree.insert(make_block(b, "B", Some(parent), None));
+
+        let children: Vec<BlockId> = tree.children(parent).iter().map(|blk| blk.id).collect();
+        assert_eq!(children, vec![a, b], "child order diverged at {iteration}");
+        let order: Vec<BlockId> = tree.depth_first_order().iter().map(|blk| blk.id).collect();
+        assert_eq!(
+            order,
+            vec![parent, a, b],
+            "depth-first order diverged at {iteration}"
+        );
+    }
+}
+
+/// Payloads serialized before `insertion_order` existed must still deserialize,
+/// and their ordering must stay deterministic (ascending id fallback).
+#[test]
+fn legacy_payload_without_insertion_order_deserializes() {
+    let a = Uuid::from_u128(0xA);
+    let b = Uuid::from_u128(0xB);
+    let mut tree = BlockTree::new();
+    tree.insert(make_block(a, "A", None, None));
+    tree.insert(make_block(b, "B", None, None));
+
+    let mut value = serde_json::to_value(&tree).unwrap();
+    value.as_object_mut().unwrap().remove("insertion_order");
+
+    let restored: BlockTree = serde_json::from_value(value).unwrap();
+    assert_eq!(restored.len(), 2);
+    let order: Vec<BlockId> = restored.roots().iter().map(|blk| blk.id).collect();
+    assert_eq!(order, vec![a, b]);
+}
+
+/// 10 000 roots without `left_id` must come back in insertion order.
+///
+/// This is the fixture shape behind the editor's 10k-page layout test: it also
+/// exercises the linear `depth_first_order()` path (the previous implementation
+/// scanned every block once per root).
+#[test]
+fn ten_thousand_unordered_roots_keep_insertion_order() {
+    const COUNT: u128 = 10_000;
+
+    let mut tree = BlockTree::new();
+    let mut expected: Vec<BlockId> = Vec::with_capacity(COUNT as usize);
+    for index in 0..COUNT {
+        let id = Uuid::from_u128(index + 1);
+        tree.insert(make_block(id, "Root", None, None));
+        expected.push(id);
+    }
+
+    let order: Vec<BlockId> = tree
+        .depth_first_order()
+        .iter()
+        .map(|block| block.id)
+        .collect();
+    assert_eq!(order, expected);
+
+    let sorted: Vec<BlockId> = tree
+        .clone()
+        .into_sorted_vec()
+        .into_iter()
+        .map(|block| block.id)
+        .collect();
+    assert_eq!(sorted, expected);
+}
+
+/// An explicit `left_id` chain must win over insertion order, including when the
+/// blocks were inserted back to front.
+#[test]
+fn left_chain_wins_over_insertion_order() {
+    let a = Uuid::from_u128(0xA);
+    let b = Uuid::from_u128(0xB);
+    let c = Uuid::from_u128(0xC);
+
+    let mut tree = BlockTree::new();
+    // Inserted C, B, A while the chain is A -> B -> C.
+    tree.insert(make_block(c, "C", None, Some(b)));
+    tree.insert(make_block(b, "B", None, Some(a)));
+    tree.insert(make_block(a, "A", None, None));
+
+    let order: Vec<BlockId> = tree
+        .depth_first_order()
+        .iter()
+        .map(|block| block.id)
+        .collect();
+    assert_eq!(order, vec![a, b, c]);
+
+    let roots: Vec<BlockId> = tree.roots().iter().map(|block| block.id).collect();
+    assert_eq!(roots, vec![a, b, c]);
+
+    let sorted: Vec<BlockId> = tree
+        .clone()
+        .into_sorted_vec()
+        .into_iter()
+        .map(|block| block.id)
+        .collect();
+    assert_eq!(sorted, vec![a, b, c]);
+}
+
+/// A broken chain still yields every sibling exactly once, appending the
+/// unreachable ones in the deterministic (insertion) order.
+#[test]
+fn broken_left_chain_appends_remaining_siblings() {
+    let parent = Uuid::from_u128(0x100);
+    let a = Uuid::from_u128(0xA);
+    let b = Uuid::from_u128(0xB);
+    let c = Uuid::from_u128(0xC);
+    let missing = Uuid::from_u128(0xFF);
+
+    let mut tree = BlockTree::new();
+    tree.insert(make_block(parent, "Parent", None, None));
+    tree.insert(make_block(a, "A", Some(parent), None));
+    tree.insert(make_block(c, "C", Some(parent), Some(missing)));
+    tree.insert(make_block(b, "B", Some(parent), Some(a)));
+
+    let children: Vec<BlockId> = tree.children(parent).iter().map(|block| block.id).collect();
+    assert_eq!(children, vec![a, b, c]);
+}

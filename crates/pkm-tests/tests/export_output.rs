@@ -1,7 +1,7 @@
 //! E7.F5 — HTML / JSON export acceptance tests.
 //!
 //! These tests drive the REAL export pipeline (`export_html_core` /
-//! `export_json_core` in the stratum-tauri command layer): a temp vault is
+//! `export_json_core` in the service layer): a temp vault is
 //! seeded with real `.md` files produced through the same serializer the app
 //! uses (`serialize_blocks` + `assemble_blocks_markdown`), then the real
 //! export functions are invoked and the emitted artifacts are verified to be
@@ -129,7 +129,7 @@ fn e7f5_export_html_emits_complete_valid_pages() {
 
     let out_dir = vault.join("dist");
     let pages: Vec<String> = facts.iter().map(|f| f.rel_path.clone()).collect();
-    let res = app_lib::commands::export::export_html_core(&vault, &out_dir, &pages)
+    let res = stratum_app::export::export_html_core(&vault, &out_dir, &pages)
         .expect("html export must succeed");
     assert_eq!(res.pages_exported, 2, "both pages exported");
     assert!(out_dir.join("index.html").is_file(), "index.html written");
@@ -170,7 +170,7 @@ fn e7f5_export_json_round_trips_blocks_and_metadata() {
 
     let out_dir = vault.join("dist-json");
     let pages: Vec<String> = facts.iter().map(|f| f.rel_path.clone()).collect();
-    let res = app_lib::commands::export::export_json_core(&vault, &out_dir, &pages)
+    let res = stratum_app::export::export_json_core(&vault, &out_dir, &pages)
         .expect("json export must succeed");
     assert_eq!(res.pages_exported, 2, "both pages exported");
 
@@ -238,7 +238,7 @@ fn e7f5_export_skips_missing_files_without_error() {
     if let Ok(listed) = store.list_pages() {
         pages = listed;
     }
-    let res = app_lib::commands::export::export_html_core(&vault, &out_dir, &pages)
+    let res = stratum_app::export::export_html_core(&vault, &out_dir, &pages)
         .expect("export with ghost page must succeed");
     assert!(res.pages_exported >= 2, "real pages still exported");
     assert!(

@@ -27,7 +27,7 @@ block parser/serializer unchanged.
    `![[assets/...]]` (image) or `[[assets/...]]` (file) reference into the note.
 
 You can also **paste** an image directly into the editor (Ctrl/Cmd+V), or **drag & drop**
-an image or file onto the editor — BlockNote turns it into an embedded image or attachment
+an image or file onto the editor — the editor turns it into an embedded image or attachment
 card automatically.
 
 ## Deterministic naming & deduplication

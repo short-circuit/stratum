@@ -40,7 +40,7 @@ fn write_config(vault: &Path, plugin_id: &str) {
 
 #[test]
 fn example_plugin_wasm32_wasi_runs_end_to_end() {
-    use app_lib::commands::plugins::{dispatch_on_save, PluginManager};
+    use stratum_app::plugins::{dispatch_on_save, PluginManager};
 
     let wasm = example_plugin_path();
     assert!(
@@ -92,7 +92,7 @@ fn example_plugin_wasm32_wasi_runs_end_to_end() {
 
 #[test]
 fn example_plugin_compiles_and_installs_through_registry() {
-    use app_lib::commands::plugins::PluginManager;
+    use stratum_app::plugins::PluginManager;
 
     let wasm = example_plugin_path();
     let tmp = TempDir::new().unwrap();

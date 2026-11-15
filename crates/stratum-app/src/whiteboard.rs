@@ -162,4 +162,113 @@ impl StratumService {
 
         serde_json::to_string(&merged).map_err(|e| e.to_string())
     }
+
+    /// Write an exported whiteboard image under `<vault>/whiteboards/exports/`.
+    ///
+    /// `name` is the board's file stem; `extension` selects the format and must
+    /// be one of `svg` or `png`. Path separators and empty names are rejected
+    /// so an export can never escape the exports folder. Returns the vault-
+    /// relative path of the written file.
+    ///
+    /// # Errors
+    ///
+    /// Returns a message when the name or extension is invalid or the file
+    /// cannot be written.
+    pub async fn write_whiteboard_export(
+        &self,
+        name: String,
+        extension: String,
+        bytes: Vec<u8>,
+    ) -> Result<String, String> {
+        let state = self.lock()?;
+        let file_name = export_file_name(&name, &extension)?;
+        let dir = state.vault_path.join("whiteboards").join("exports");
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let path = dir.join(&file_name);
+        std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
+        let rel_path = path
+            .strip_prefix(&state.vault_path)
+            .unwrap_or(&path)
+            .to_string_lossy()
+            .to_string();
+        Ok(rel_path)
+    }
+}
+
+/// Validate an export name/extension pair and build the file name.
+///
+/// The name must be non-empty, must not contain a path separator, and must not
+/// be `.`/`..`. The extension is lowercased and limited to `svg`/`png`.
+fn export_file_name(name: &str, extension: &str) -> Result<String, String> {
+    let name = name.trim();
+    if name.is_empty() || name == "." || name == ".." || name.contains(['/', '\\']) {
+        return Err(format!("invalid whiteboard export name: {name:?}"));
+    }
+    let extension = extension.trim().to_ascii_lowercase();
+    if !matches!(extension.as_str(), "svg" | "png") {
+        return Err(format!("unsupported whiteboard export format: {extension}"));
+    }
+    Ok(format!("{name}.{extension}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    fn block_on<F: std::future::Future>(fut: F) -> F::Output {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("runtime")
+            .block_on(fut)
+    }
+
+    fn service_for(vault: &Path) -> StratumService {
+        std::fs::create_dir_all(vault.join(".pkm")).expect("create .pkm");
+        StratumService::new(vault.to_path_buf())
+    }
+
+    #[test]
+    fn export_name_rejects_traversal_and_unknown_formats() {
+        assert_eq!(export_file_name("board", "svg").unwrap(), "board.svg");
+        assert_eq!(export_file_name("board", "PNG").unwrap(), "board.png");
+        assert!(export_file_name("", "svg").is_err());
+        assert!(export_file_name("../board", "svg").is_err());
+        assert!(export_file_name("a/b", "svg").is_err());
+        assert!(export_file_name("board", "webp").is_err());
+    }
+
+    #[test]
+    fn write_export_creates_the_exports_folder() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let service = service_for(dir.path());
+        let rel = block_on(service.write_whiteboard_export(
+            "board".to_string(),
+            "svg".to_string(),
+            b"<svg/>".to_vec(),
+        ))
+        .expect("write export");
+        assert_eq!(rel, "whiteboards/exports/board.svg");
+        let written = std::fs::read(dir.path().join(&rel)).expect("read export");
+        assert_eq!(written, b"<svg/>");
+    }
+
+    #[test]
+    fn write_export_rejects_bad_input() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let service = service_for(dir.path());
+        assert!(block_on(service.write_whiteboard_export(
+            "..".to_string(),
+            "svg".to_string(),
+            Vec::new(),
+        ))
+        .is_err());
+        assert!(block_on(service.write_whiteboard_export(
+            "board".to_string(),
+            "gif".to_string(),
+            Vec::new(),
+        ))
+        .is_err());
+    }
 }

@@ -4,7 +4,7 @@
 //! `docs/advanced/plugins.md` §4:
 //!
 //! * `note_read`: reads the raw vault-relative note with a path-traversal
-//!   guard (mirrors `resolve_safe_path` in `src-tauri/src/commands/page.rs`).
+//!   guard (mirrors `resolve_safe_path` in `crates/stratum-app/src/page/`).
 //! * `note_write`: writes the note to disk, creating parent directories as
 //!   needed and performing the write atomically; failures propagate.
 //! * `http_request`: async HTTP with an enforced timeout, an SSRF guard
@@ -23,7 +23,7 @@ use crate::abi::{HostHttpRequest, HostHttpResponse, HostNote, PluginErrorCode};
 
 /// Unified `HostApi` implementation backed by a real vault directory.
 ///
-/// This is the host seam used by `src-tauri`/CLI and by the runtime's tests.
+/// This is the host seam used by `stratum-app`/CLI and by the runtime's tests.
 /// It holds the canonical vault root and the SSRF allowlist strings from
 /// `Config.network.allowlist`.
 pub struct VaultHost {

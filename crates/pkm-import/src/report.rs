@@ -7,8 +7,8 @@
 //!
 //! All struct fields are serialized verbatim (snake_case, matching the Rust
 //! field names) with no `rename_all`, mirroring the convention used by every
-//! other DTO in the repository so the TypeScript mirror in `src/lib/types.ts`
-//! stays in lockstep.
+//! other DTO in the repository, so the shell DTOs and the MCP models stay in
+//! lockstep.
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;

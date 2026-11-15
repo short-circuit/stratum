@@ -1,0 +1,36 @@
+[
+  {
+    "id": "array-item-1",
+    "status": "published",
+    "created": 0,
+    "elements": [
+      {
+        "id": "array-ellipse",
+        "type": "ellipse",
+        "x": 5,
+        "y": 5,
+        "width": 40,
+        "height": 40,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "#ffec99",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 701,
+        "version": 1,
+        "versionNonce": 702,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 0,
+        "link": null,
+        "locked": false
+      }
+    ]
+  }
+]

@@ -5,11 +5,11 @@
 //! implementation that replaces four near-identical copies in the codebase:
 //!
 //! - `pkm-index/src/rebuild.rs` — `collect_md_files`
-//! - `src-tauri/src/commands/page.rs` — `find_md_files`
+//! - `crates/stratum-app/src/page/` — `find_md_files`
 //! - `crates/pkm-cli/src/main.rs` — `collect_md_files`
 //!
 //! Also provides [`truncate_text`] as a shared replacement for the private
-//! `snippet_from_text` in `src-tauri/src/commands/search.rs`.
+//! `snippet_from_text` in `crates/stratum-app/src/search/`.
 
 use crate::PkmError;
 use crate::PkmResult;
@@ -203,7 +203,7 @@ impl MdCollector {
 /// Truncate text to a maximum length, appending `...` if truncated.
 ///
 /// This is the shared replacement for the private `snippet_from_text` function
-/// found in `src-tauri/src/commands/search.rs`.
+/// found in `crates/stratum-app/src/search/`.
 pub fn truncate_text(text: &str, max_len: usize) -> String {
     if text.len() <= max_len {
         return text.to_string();

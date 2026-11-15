@@ -34,8 +34,14 @@
 
 set -uo pipefail
 
-PKG="app.stratum.debug"
-ACTIVITY="app.stratum.MainActivity"
+# The Gradle module ships applicationId `com.stratum.app` (namespace
+# `com.stratum.app`, no debug suffix) and its launcher activity is the vendored
+# `dev.gpui.mobile.GpuiActivity` NativeActivity from AndroidManifest.xml. Both
+# MUST match crates/stratum-mobile/android/app/build.gradle.kts and the
+# manifest: with a stale name `resolve-activity` fails and the smoke test goes
+# red with no other signal (the job log is admin-only).
+PKG="com.stratum.app"
+ACTIVITY="dev.gpui.mobile.GpuiActivity"
 ACTIVITY_PATH="${PKG}/${ACTIVITY}"
 
 # Artifacts are downloaded by the workflow to APK_DIR; evidence is harvested to
@@ -65,6 +71,12 @@ MAX_LAUNCH_ATTEMPTS=3
 
 log() { printf '[smoke] %s\n' "$*"; }
 
+# GitHub renders `::error::` lines in a step's stdout as check-run annotations.
+# Job logs are only visible to repository admins, so every hard failure emits an
+# annotation carrying the same message (that is the only signal a token-less
+# contributor or agent can read).
+fail() { printf '[smoke] %s\n' "$*"; printf '::error::[smoke] %s\n' "$*"; }
+
 # Name the screenshots so case triage maps a file to the step that produced it.
 snapshot() { # snapshot <step>
     adb exec-out screencap -p > "${CI_HARVEST_DIR}/smoke-${1:-unknown}.png" 2>/dev/null \
@@ -89,7 +101,7 @@ harvest_logcat() {
 # package AND pidof also reports nothing.
 app_process_dead() {
     if adb shell dumpsys activity processes 2>/dev/null \
-        | grep -q "app.stratum.debug"; then
+        | grep -q "${PKG}"; then
         return 1   # process registry still lists it → alive
     fi
     # Registry does not list it. Require pidof to ALSO be empty before
@@ -99,7 +111,7 @@ app_process_dead() {
 
 # Launch the app (bounded so a hung launcher cannot wedge the job) and then
 # poll logcat for the platform's authoritative first-frame signal:
-#   ActivityTaskManager: Displayed app.stratum.debug/app.stratum.MainActivity
+#   ActivityTaskManager: Displayed <pkg>/<activity>
 # The `am start -W` text is NOT reliable on a slow software-emulated device
 # (it returns before the first frame), so we never parse it for the pass
 # decision. Returns:
@@ -141,17 +153,27 @@ mkdir -p "${CI_HARVEST_DIR}"
 # ── 1. Locate the debug APK ──────────────────────────────────────────────
 APK="$(find "${APK_DIR}" -name '*.apk' -type f 2>/dev/null | head -1)"
 if [ -z "${APK}" ]; then
-    log "ERROR: no APK found under ${APK_DIR}"
+    fail "no APK found under ${APK_DIR}"
     exit 1
 fi
 log "APK: ${APK}"
 adb install -r "${APK}"
 snapshot "installed"
 
+# ── 1b. Pin the renderer to GLES ─────────────────────────────────────────
+# The emulator's SwiftShader Vulkan path chokes on wgpu's SPIR-V, so the shell
+# never reaches a first frame with the Vulkan-first default. `android_main`
+# honours the `debug.stratum.gpu` system property (apply_gpu_override in
+# crates/stratum-mobile/src/android/mod.rs) and prefers GLES when it is `gl`.
+GPU_BACKEND="${SMOKE_GPU_BACKEND:-gl}"
+adb shell setprop debug.stratum.gpu "${GPU_BACKEND}" 2>/dev/null \
+    || log "WARN: could not set debug.stratum.gpu=${GPU_BACKEND}"
+log "renderer property: debug.stratum.gpu=${GPU_BACKEND}"
+
 # ── 2. Verify the launchable activity exists in the installed package ────
 if ! adb shell cmd package resolve-activity --brief "${PKG}" \
-        | grep -q "app.stratum.MainActivity"; then
-    log "ERROR: MainActivity not launchable from installed ${PKG}"
+        | grep -q "${ACTIVITY}"; then
+    fail "launcher activity ${ACTIVITY_PATH} not resolvable from installed ${PKG}"
     harvest_logcat
     exit 1
 fi
@@ -205,7 +227,7 @@ while [ "${SECONDS}" -lt "${LOOP_DEADLINE}" ] \
         # Authoritative process-alive check: the app must still be running.
         FINAL_PROC="$(adb shell pidof "${PKG}" 2>/dev/null | tr -d '\r')"
         if [ -z "${FINAL_PROC}" ]; then
-            log "ERROR: ${PKG} process is gone after first frame (post-launch crash?)"
+            fail "${PKG} process is gone after the first frame (post-launch crash)"
             SMOKE_RESULT=1
             FRAME_SEEN=0
             break
@@ -219,7 +241,7 @@ while [ "${SECONDS}" -lt "${LOOP_DEADLINE}" ] \
     # If the app process is gone, that is a hard crash (can't be recovered by
     # relaunching).
     if app_process_dead; then
-        log "ERROR: ${PKG} process is GONE after launch attempt ${ATTEMPT} (crash?)"
+        fail "${PKG} process is GONE after launch attempt ${ATTEMPT} (hard crash)"
         break
     fi
     # Otherwise the system likely ANR'd the healthy app mid-handoff; give the
@@ -251,7 +273,7 @@ if [ "${SMOKE_RESULT}" -eq 0 ]; then
         # only a defensive path (e.g. the local no-device smoke harness).
         log "WARN: safe-area probe skipped (WebView debugger unreachable, exit 2)"
     elif [ "${SAFE_RC}" -ne 0 ]; then
-        log "ERROR: safe-area overlap regression probe FAILED (exit ${SAFE_RC})"
+        fail "safe-area overlap regression probe FAILED (exit ${SAFE_RC})"
         # Keep the base smoke pass evidence; mark the overall result failed.
         SMOKE_RESULT="${SAFE_RC}"
     else
@@ -263,11 +285,17 @@ fi
 
 # ── 5. Failure forensics when we fell through ────────────────────────────
 if [ "${SMOKE_RESULT}" -ne 0 ]; then
-    log "ERROR: smoke test FAILED (crash or timeout after ${ATTEMPT} launch attempt(s)). Dumping diagnostics:"
+    fail "smoke test FAILED (no first frame after ${ATTEMPT} launch attempt(s)); evidence in the android-smoke-evidence artifact"
     adb shell dumpsys activity processes | grep -i -E "stratum|crash" || true
-    # Show whether any AndroidRuntime FATAL / SIGSEGV / SIGABRT was the cause.
-    adb logcat -d -v brief 2>/dev/null | grep -i -E "stratum|FATAL EXCEPTION|AndroidRuntime|SIGSEGV|SIGABRT|crash" \
-        | tail -80 || true
+    # Show whether any AndroidRuntime FATAL / SIGSEGV / SIGABRT was the cause,
+    # and annotate the last matching lines: the job log is admin-only, so an
+    # annotation is the only crash detail a token-less reader can see.
+    CRASH_LINES="$(adb logcat -d -v brief 2>/dev/null \
+        | grep -i -E "stratum|FATAL EXCEPTION|AndroidRuntime|SIGSEGV|SIGABRT|crash" || true)"
+    printf '%s\n' "${CRASH_LINES}" | tail -80 || true
+    printf '%s\n' "${CRASH_LINES}" | tail -3 | while IFS= read -r line; do
+        [ -n "${line}" ] && printf '::error::[smoke] %s\n' "${line}"
+    done
 fi
 
 log "smoke test exit=${SMOKE_RESULT}"

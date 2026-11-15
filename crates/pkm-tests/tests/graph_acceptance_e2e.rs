@@ -1,6 +1,6 @@
 //! E7.F3 graph acceptance coverage at the `pkm-index` graph-abstraction layer.
 //!
-//! Complements `src-tauri/tests/graph_commands.rs` (which drives the real Tauri
+//! Complements `crates/stratum-ui/tests/graph_contract.rs` (which drives the
 //! commands against a real vault). This suite exercises the graph construction
 //! primitives directly at 500+ node scale:
 //!

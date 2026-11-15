@@ -11,7 +11,7 @@ with one command inside the Nix dev shell:
 
 ```bash
 nix develop ./nix
-cargo build --workspace && npm install && npm run tauri:dev
+cargo build --workspace && STRATUM_FIXTURE=1 cargo run -p stratum-ui
 ```
 
 See the [Installation guide](installation.md) for prerequisites and per-platform

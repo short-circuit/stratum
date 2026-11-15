@@ -40,8 +40,12 @@
 
 /// Embedded shell assets, icon catalog and font registration.
 pub mod assets;
+/// Mobile shell layout: safe-area insets, bottom navigation and panel variants.
+pub mod mobile;
 /// Panel stubs hosted by the shell.
 pub mod panels;
+/// OS glue bridge: tray, global shortcut, notifications, single instance, deep links.
+pub mod platform;
 /// Data provider seam between the shell and the headless service layer.
 pub mod provider;
 /// Route, navigation and shortcut tables.
@@ -52,21 +56,28 @@ pub mod shell;
 pub mod theme;
 
 pub use assets::StratumAssets;
+pub use mobile::{MobileServices, NoopServices, MOBILE_I18N_KEYS};
 pub use panels::panel_view;
 pub use provider::{
     derive_recents, provider_from_env, AppProvider, FixtureProvider, RecentPage, ShellData,
     ShellSnapshot, VaultStats,
 };
 pub use router::{
-    keystroke_string, parse_path, path_for, percent_decode, percent_encode, Modifier, NavItem,
-    Panel, Route, Shortcut, ShortcutAction, NAV_ITEMS, ROUTES, SHORTCUTS,
+    keystroke_string, parse_path, parse_target, path_for, percent_decode, percent_encode, Modifier,
+    NavItem, Panel, Route, RouteTarget, Shortcut, ShortcutAction, NAV_ITEMS, ROUTES, SHORTCUTS,
 };
-pub use shell::{Shell, SHELL_COLLAPSED_WIDTH, SHELL_I18N_KEYS, SHELL_WIDTH};
+pub use shell::{
+    Onboarding, OnboardingStep, PanelStarts, Shell, ONBOARDING_I18N_KEYS, SHELL_COLLAPSED_WIDTH,
+    SHELL_I18N_KEYS, SHELL_WIDTH,
+};
 pub use theme::{apply_to_kit, ThemeConfig};
 
 use gpui_kit::*;
 
-actions!(stratum, [ToggleReadMode, DismissOverlay, ToggleSidebar]);
+actions!(
+    stratum,
+    [ToggleReadMode, DismissOverlay, ToggleSidebar, MobileBack]
+);
 
 /// Install the shell theme and font faces.
 ///

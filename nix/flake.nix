@@ -16,18 +16,30 @@
 
         rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ../rust-toolchain.toml;
 
-        # System libraries for Tauri v2 — Nix auto-includes .dev outputs
-        tauriDeps = with pkgs; [
-          webkitgtk_4_1
+        # System libraries for the native gpui shell: X11/Wayland windowing,
+        # keyboard layout, font rasterization, Vulkan/EGL rendering, ALSA for
+        # text-to-speech playback, GTK + libayatana-appindicator for the tray
+        # icon and D-Bus for notifications. The React/WebKitGTK stack was
+        # removed at the E12 cutover.
+        desktopDeps = with pkgs; [
           gtk3
           glib
-          libsoup_3
           openssl
           dbus
           librsvg
           libayatana-appindicator
           libglvnd
+          vulkan-loader
+          vulkan-headers
           wayland
+          wayland-protocols
+          libxkbcommon
+          libx11
+          libxcb
+          libxcb-wm
+          libxcursor
+          libxrandr
+          libxi
         ];
 
         # Build-time tools
@@ -37,12 +49,19 @@
           perl
           curl
           fontconfig
+          freetype
           zlib
           alsa-lib
           at-spi2-atk
           cairo
           pango
-          libxkbcommon
+        ];
+
+        # Headless capture/probe tools used by scripts/capture-gpui-*.sh.
+        captureTools = with pkgs; [
+          xvfb-run
+          xdotool
+          imagemagick
         ];
 
       in
@@ -52,14 +71,13 @@
 
           nativeBuildInputs = with pkgs; [
             rustToolchain
-            cargo-tauri
             cargo-deny
             cargo-outdated
-            nodejs_22
             git
             rustfmt
             clippy
-          ] ++ tauriDeps ++ buildTools;
+            jq
+          ] ++ desktopDeps ++ buildTools ++ captureTools;
 
           buildInputs = with pkgs; [
             xdg-utils
@@ -67,60 +85,50 @@
 
           shellHook = ''
             export RUST_SRC_PATH="${rustToolchain}/lib/rustlib/src/rust/library"
-
-            # Nix stores compiled GSettings schemas under
-            # $out/share/gsettings-schemas/$name/glib-2.0/schemas/.
-            # GSETTINGS_SCHEMAS_PATH is Nix-specific; standard GTK uses
-            # GSETTINGS_SCHEMA_DIR.  Without this, webkit2gtk cannot read
-            # org.gnome.desktop.interface.text-scaling-factor, causing
-            # devicePixelRatio to return −1/96 (WebKit bug #287811).
-            schemas=""
-            for dir in ''${GSETTINGS_SCHEMAS_PATH//:/ }; do
-              schemas="$schemas''${schemas:+:}$dir/glib-2.0/schemas"
-            done
-            export GSETTINGS_SCHEMA_DIR="$schemas"
+            # gpui loads the Vulkan loader at runtime; Nix keeps it out of the
+            # default library path.
+            export LD_LIBRARY_PATH="${pkgs.vulkan-loader}/lib:${pkgs.libglvnd}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+            # The shell renders through software Vulkan on headless machines.
+            export LIBGL_ALWAYS_SOFTWARE=''${LIBGL_ALWAYS_SOFTWARE:-1}
+            export WINIT_UNIX_BACKEND=''${WINIT_UNIX_BACKEND:-x11}
 
             echo "  Stratum dev environment"
             echo "  Rust:  $(rustc --version)"
-            echo "  Node:  $(node --version)"
-            echo "  npm:   $(npm --version)"
             echo "  WAYLAND: ''${WAYLAND_DISPLAY:-not set}"
             echo ""
             echo "  Commands:"
-            echo "    cargo build --workspace     Build all Rust crates"
-            echo "    cargo test --workspace      Run all Rust tests"
-            echo "    cargo tauri dev             Run Tauri dev server"
-            echo "    npm run dev                 Run Vite dev server only"
+            echo "    cargo build --workspace          Build all Rust crates"
+            echo "    cargo test --workspace           Run all Rust tests"
+            echo "    cargo run -p stratum-ui          Run the native shell"
+            echo "    STRATUM_FIXTURE=1 cargo run -p stratum-ui   Run it on the fixture vault"
+            echo "    ./scripts/capture-gpui-shell.sh  Render the shell screenshot"
           '';
         };
 
         packages.default = pkgs.rustPlatform.buildRustPackage {
           pname = "stratum";
-          version = "0.7.0";
+          version = "1.0.0";
           src = ../.;
 
           cargoLock.lockFile = ../Cargo.lock;
 
+          cargoBuildFlags = [ "-p" "stratum-ui" ];
+
           nativeBuildInputs = with pkgs; [
             pkg-config
             cmake
+            makeWrapper
             wrapGAppsHook3
-            cargo-tauri
-            nodejs_22
-          ] ++ tauriDeps ++ buildTools;
+          ] ++ desktopDeps ++ buildTools;
 
           buildInputs = with pkgs; [
             xdg-utils
           ];
 
-          preBuild = ''
-            npm ci --ignore-scripts
-            npm run build
-            export TAURI_SKIP_DEVSERVER_CHECK=true
-          '';
-
-          buildPhase = ''
-            cargo tauri build --bundles deb
+          # gpui resolves the Vulkan loader at runtime.
+          postInstall = ''
+            wrapProgram $out/bin/stratum \
+              --prefix LD_LIBRARY_PATH : "${pkgs.vulkan-loader}/lib:${pkgs.libglvnd}/lib"
           '';
 
           doCheck = false;

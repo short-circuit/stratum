@@ -18,11 +18,11 @@ pkm-sync = { path = "../pkm-sync" }
 pkm-query = { path = "../pkm-query" }
 pkm-ai = { path = "../pkm-ai" }
 pkm-plugin = { path = "../pkm-plugin" }
-# Stratum's Tauri command layer. Its lib target is renamed to `app_lib`, so
-# cargo-machete cannot see the `app_lib::...` usage in tests/ below — it is
-# whitelisted explicitly (src-tauri does the same for tauri-build).
-# See crates/pkm-tests/tests/{export_output,plugin_e2e,plugin_example_e2e}.rs.
-stratum-tauri = { path = "../../src-tauri" }
+# The headless service layer behind the shipped commands (the integration
+# tests drive the export, journal and plugin paths through it directly).
+# See crates/pkm-tests/tests/{export_output,journal_db_drift_regression,
+# plugin_e2e,plugin_example_e2e}.rs.
+stratum-app = { path = "../stratum-app" }
 tempfile.workspace = true
 serde_json.workspace = true
 uuid.workspace = true
@@ -32,9 +32,4 @@ tokio.workspace = true
 [dev-dependencies]
 wiremock = "0.6"
 wat.workspace = true
-
-# cargo-machete cannot see `app_lib::...` usage (lib target is renamed), so the
-# dep above is whitelisted explicitly.
-[package.metadata.cargo-machete]
-ignored = ["stratum-tauri"]
 

@@ -5,8 +5,8 @@
 #   - Dependabot opens bounded update PRs so the baseline shrinks over time
 #     instead of silently accumulating. Weekly cadence keeps PR noise low.
 #
-# The three known production npm 'high' advisories (transitive @blocknote/
-# @excalidraw pins) are prime candidates for these PRs — see the ADR.
+# The frontend toolchain (npm/Vite/Playwright) was deleted at the E12 cutover,
+# so only the Rust workspace and the Actions pins are watched now.
 
 version: 2
 updates:
@@ -21,22 +21,6 @@ updates:
     open-pull-requests-limit: 10
     # Group routine bumps to cut CI load; security/critical updates are
     # still opened individually by severity.
-    groups:
-      non-breaking:
-        applies-to: version-updates
-        update-types:
-          - "patch"
-          - "minor"
-
-  # ── npm (frontend) ─────────────────────────────────────────────
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:30"
-      timezone: "Europe/Zurich"
-    open-pull-requests-limit: 10
     groups:
       non-breaking:
         applies-to: version-updates

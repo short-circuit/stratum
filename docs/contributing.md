@@ -45,13 +45,15 @@ nix develop ./nix          # enter dev shell with all dependencies
 direnv allow               # or auto-activate via direnv
 ```
 
-**Manual setup** requires: Rust 1.75+ (MSRV), Node.js 22+, and Tauri v2
-system libraries:
+**Manual setup** requires: the Rust toolchain pinned by `rust-toolchain.toml`,
+a C toolchain, `pkg-config`, and the native windowing/rendering libraries:
 
-- Linux: `webkitgtk_4_1`, `gtk3`, `glib`, `libsoup_3`, `openssl`, `dbus`,
-  `librsvg`, `libayatana-appindicator`
+- Linux: `libxkbcommon`, `libxkbcommon-x11`, `libxcb`/`libx11`, a Vulkan loader
+  and driver, `alsa-lib`, and GTK 3 with `libayatana-appindicator` for the tray
 - macOS: Xcode Command Line Tools
-- Windows: WebView2 runtime (bundled with Windows 11)
+- Windows: MSVC build tools
+
+No Node.js or npm is required — the shell embeds its own assets and catalogs.
 
 ## Branch naming + commit conventions
 
@@ -112,25 +114,25 @@ chore(repo-hygiene): e2e probe paths portable via import.meta.url
 - Every source file must have a module-level doc comment (`//!`), and every
   public function a doc comment (`///`), per the project standards in
   `AGENTS.md`.
-- Command handlers in `src-tauri/src/commands/` are **thin glue layers** —
-  business logic belongs in the corresponding crate
-  (`pkm-block`, `pkm-index`, `pkm-sync`, `pkm-core`, ...).
+- Service logic lives in `stratum-app` (`crates/stratum-app`), never in the
+  shell. The shell (`crates/stratum-ui`) is a thin renderer over
+  `ShellData`/`PanelData`; a panel must not reach into a domain crate directly.
+- Every user-facing string goes through `stratum-i18n` with `{{var}}`
+  interpolation and must exist in **all eight** catalogs —
+  `crates/stratum-i18n/tests/raw_keys.rs` fails when a shell key is missing.
 
-### TypeScript / React
+### Native shell (Rust, gpui)
 
-- TypeScript strict mode, React 19, function components + hooks.
-- **MUI v6** for UI — use `@mui/material` + `@mui/icons-material`, `sx`
-  prop for styling (no Tailwind).
-- Zustand for state; `src/lib/commands.ts` wrappers for `tauri.invoke()`;
-  DTO types in `src/lib/types.ts` (must match the Rust `Serialize` structs).
-- Component size limits (enforced by convention):
-  - File < 500 lines, component JSX < 50 lines, inline function < 20 lines.
-  - Same logic in 2+ files → extract to `src/lib/` or `src/lib/hooks/`.
-  - Every component defines `interface Props`.
-- **i18n:** all user-facing strings go through `useTranslation()` —
-  never hardcode UI strings (the `i18nGate` test fails otherwise). Add a new
-  key to **all** locale files under `src/i18n/locales/` (not only `en.json`)
-  or the `localeParity` test fails.
+- Rust 2021, `cargo fmt`, `cargo clippy --all-targets -- -D warnings`.
+- Panels live under `crates/stratum-ui/src/panels/<name>/`; mobile wrappers
+  under `crates/stratum-ui/src/mobile/variants/`.
+- Size limits (reviewed, not just convention): file < 500 lines, render body
+  < 400 lines, inline function < 20 lines. Same logic in 2+ places → extract to
+  `stratum-editor`/`stratum-app` or a shared module.
+- A panel that renders text must declare its keys in a `*_I18N_KEYS` gate list;
+  `crates/stratum-ui/tests/*_contract.rs` verifies them in every catalog.
+- Every shipped surface needs a capture state in `scripts/capture-gpui-panels.sh`
+  (or `capture-gpui-mobile.sh`) and a golden under `goldens/gpui/`.
 
 ## Testing
 
@@ -149,35 +151,17 @@ cargo test -p pkm-index -- graph::tests::test_get_backlinks
 cargo test -p pkm-mcp --all-targets
 bash scripts/mcp-coverage-gate.sh
 
-# Frontend
-npm install
-npm run test          # unit + component tests (vitest + jsdom)
-npm run lint          # ESLint (no Prettier — formatting is Rust-only)
-npm run build         # tsc -b && vite build
-
-# E2E harness (requires: app built to target/debug/stratum-tauri,
-# tauri-driver, WebKitWebDriver, Xvfb)
-npm run test:e2e:harness
+# Shell contracts and parity harness
+cargo test -p stratum-ui -p stratum-i18n -p stratum-editor
+./scripts/verify-gpui-goldens.sh      # golden screenshots (Xvfb + ImageMagick)
+./scripts/verify-gpui-perf.sh         # perf budgets
+./scripts/verify-gpui-a11y.sh         # accessibility tree probe
 ```
 
-The `e2e-harness` job in CI (`.github/workflows/ci.yml`) runs on every push
-to `master`, on every PR, and on a weekly schedule — you do not need to run
-the harness locally for normal PRs, but it is **required** (with
-`frontend-test`) for merges to `master`.
-
-### Running the real E2E locally
-
-```bash
-npm run build
-cargo build -p stratum-tauri      # must include the custom-protocol feature
-npm run test:e2e:harness
-```
-
-Prerequisites: `cargo install tauri-driver`, WebKitWebDriver
-(Arch: `webkit2gtk-4.1` → `/usr/lib/webkit2gtk-4.1/WebKitWebDriver`;
-Ubuntu/Debian: `webkit2gtk-driver`), and Xvfb
-(Arch: `xorg-server-xvfb`; Ubuntu: `xvfb`). Set `HARNESS_DRIVER` to the
-WebKitWebDriver absolute path if it's elsewhere.
+The `parity` job in CI (`.github/workflows/ci.yml`) runs the golden, perf and
+accessibility gates on every push to `master` and every PR; the `test` and
+`shell` jobs run the workspace and cross-platform gates. All of them are
+required for merges to `master`.
 
 ## Documentation rules (MANDATORY)
 
@@ -186,15 +170,16 @@ Every code change must update the docs for the affected area — see
 
 | Change | Required action |
 |--------|-----------------|
-| New component | Add to `Frontend Components` table in `AGENTS.md` + `docs/guide/` entry if user-facing |
-| Renamed component | Update `AGENTS.md` table; update all user docs |
-| Component > 400 lines | Split into sub-components |
-| New hook/utility | Add to `Custom Hooks` table in `AGENTS.md`; update `docs/development/frontend-guide.md` |
+| New panel | Add to `Native shell surfaces` table in `AGENTS.md` + `docs/guide/` entry + golden + capture state |
+| Renamed panel | Update `AGENTS.md` table, the guide, the router and the goldens |
+| Panel module > 500 lines | Split into sub-modules |
+| New shell module | Update `docs/development/gpui-ui.md` |
 | Rust API changed | Update doc comments; update `docs/development/rust-guide.md` |
 | New crate/module | Add to Crate Dependency Graph + Workspace Layout in `AGENTS.md`; add module docs |
+| New service method | Keep `stratum-app` authoritative; update `docs/development/service-layer.md` and the inventory gate |
 | New feature | Add `docs/guide/` entry; update `contributing.md` if dev workflow changes |
 | Behavior change | Update relevant `docs/guide/` entry |
-| UI changed | Verify screenshots in docs still match; update if needed |
+| UI changed | Regenerate the golden (`scripts/verify-gpui-goldens.sh --update`) and review the image diff |
 | Mobile change | Update `docs/development/mobile-guide.md` |
 | New dependency | Verify AGPL-3.0 compatibility (see policy below) |
 | `Cargo.toml` changed | Verify the dependency graph in `AGENTS.md` matches |
@@ -210,8 +195,8 @@ mkdocs build -f docs/mkdocs.yml --strict
 
 See `AGENTS.md` → "Repo Hygiene". In short: shipped code and user docs only.
 Plans, QA reports, findings, evidence, screenshots → `.hermes/` (gitignored).
-Never commit an implementation aid to repo root, `docs/` (except
-`docs/development/`), or `verification/` (except `verification/cdp_probe.mjs`).
+Never commit an implementation aid to repo root or `docs/` (except
+`docs/development/`).
 
 ## Plugin submission
 
@@ -230,7 +215,8 @@ To submit a plugin:
 
 Open a PR against `master` from your branch. All PRs need:
 
-1. Clean CI (build + test + clippy Rust; build + lint frontend; E2E harness).
+1. Clean CI (fmt, clippy, workspace tests, shell cross-platform build, parity
+   harness, Android smoke).
 2. At least one reviewer.
 3. Documentation updates if APIs change.
 
@@ -252,7 +238,7 @@ Major features require an RFC. Open an issue with:
 
 ## License & dependency policy
 
-Stratum is **AGPL-3.0-only**. Every new dependency (Rust crate, npm package)
+Stratum is **AGPL-3.0-only**. Every new dependency (Rust crate)
 must be license-compatible with AGPL-3.0 (MIT, Apache-2.0, BSD-2/3, ISC,
 Zlib, Unlicense, CC0, MPL-2.0, ... — see `AGENTS.md` for the full list).
 Flag any non-obvious license for review before adding the dependency.

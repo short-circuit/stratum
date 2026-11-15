@@ -14,10 +14,10 @@ cd "$(dirname "$0")/.." || exit 2
 # Anything tracked that matches a transient pattern. git ls-files yields
 # repo-root-relative paths WITHOUT a leading slash, so patterns that target
 # the repo root use ^ (not ^/). Anchored to avoid matching src files that
-# merely mention these names.
+# merely mention these names. The web frontend's `verification/cdp_probe.mjs`
+# exception went away with the E12 cutover (the directory no longer exists).
 offenders=$(git ls-files | grep -E \
-  '(^|/)\.evidence/|^\.screenshots/|^\.worktrees/|^qa-[^/]+-plan\.md$|^QA-[^/]+-REPORT-[^/]+\.md$|^ERROR_STATE_[^/]+\.md$|^docs/fc-[^/]+\.md$|^docs/audit-[^/]+\.md$|^docs/qa/|^verification/|^docs/acceptance-(defects|verdicts)\.md$' \
-  | grep -v -E '^verification/cdp_probe\.mjs$' || true)
+  '(^|/)\.evidence/|^\.screenshots/|^\.worktrees/|^qa-[^/]+-plan\.md$|^QA-[^/]+-REPORT-[^/]+\.md$|^ERROR_STATE_[^/]+\.md$|^docs/fc-[^/]+\.md$|^docs/audit-[^/]+\.md$|^docs/qa/|^verification/|^docs/acceptance-(defects|verdicts)\.md$' || true)
 
 if [ -n "$offenders" ]; then
   echo "::error::Transient agent artifacts are tracked — move them to .hermes/ or git rm them:"

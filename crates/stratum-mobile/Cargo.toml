@@ -1,0 +1,29 @@
+[package]
+name = "stratum-mobile"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+description = "Android host for the Stratum gpui shell: NativeActivity entry, IME/insets/lifecycle glue and the Gradle project"
+
+[lib]
+name = "stratum_mobile"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+stratum-ui = { path = "../stratum-ui" }
+stratum-i18n = { path = "../stratum-i18n" }
+gpui-kit = { version = "0.9", default-features = false, features = ["component", "assets"] }
+log.workspace = true
+serde_json.workspace = true
+
+# The Android platform layer is vendored under `vendor/gpui-mobile` and is
+# excluded from the workspace. Host builds never compile it: the crate is a
+# stub there, so `cargo build/clippy --workspace` stays green on Linux CI.
+[target.'cfg(target_os = "android")'.dependencies]
+gpui-mobile = { path = "../../vendor/gpui-mobile" }
+android-activity = { version = "0.6", features = ["native-activity"] }
+android_logger = "0.15"
+libc = "0.2"

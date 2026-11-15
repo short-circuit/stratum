@@ -1,0 +1,49 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "id": "image-1",
+      "type": "image",
+      "x": 50,
+      "y": 50,
+      "width": 120,
+      "height": 90,
+      "angle": 0,
+      "strokeColor": "transparent",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 401,
+      "version": 1,
+      "versionNonce": 402,
+      "isDeleted": false,
+      "boundElements": [],
+      "updated": 0,
+      "link": null,
+      "locked": false,
+      "fileId": "image-file-1",
+      "status": "saved",
+      "scale": [1, 1],
+      "crop": null
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {
+    "image-file-1": {
+      "id": "image-file-1",
+      "mimeType": "image/png",
+      "dataURL": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAEklEQVR42mM4oaHxHxkzkC4AAGw4IXGxLAXgAAAAAElFTkSuQmCC",
+      "created": 0
+    }
+  }
+}

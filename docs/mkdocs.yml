@@ -108,6 +108,9 @@ nav:
     - guide/kanban.md
     - guide/plugins.md
     - guide/localization.md
+    - guide/settings.md
+    - guide/platform-integration.md
+    - guide/android.md
     - guide/quick-capture.md
     - guide/mcp-server.md
   - CLI Reference:
@@ -120,11 +123,13 @@ nav:
   - Contributing: contributing.md
   - Announcement: announcement.md
   - Development:
-    - development/frontend-guide.md
     - development/rust-guide.md
     - development/service-layer.md
     - development/mobile-guide.md
     - development/gpui-ui.md
+    - development/gpui-editor.md
+    - development/packaging.md
+    - development/parity.md
     - development/branch-policy.md
     - development/freeze.md
     - ADR-0004 WASM Plugin ABI:

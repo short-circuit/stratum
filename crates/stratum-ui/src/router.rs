@@ -11,6 +11,10 @@ use gpui_kit::component::{Icon, Sizable};
 use gpui_kit::prelude::*;
 use gpui_kit::*;
 
+mod target;
+
+pub use target::{parse_target, RouteTarget};
+
 /// A top-level shell panel.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Panel {
@@ -348,12 +352,28 @@ pub fn keystroke_string(shortcut: &Shortcut) -> String {
 }
 
 /// Parse a URL path into a panel. `"/"` redirects to the journal.
+///
+/// Query parameters are accepted and ignored; use [`parse_target`] when the
+/// panel needs them (for example the whiteboard deep-link focus).
 pub fn parse_path(path: &str) -> Option<Panel> {
+    parse_target(path).map(|target| target.panel)
+}
+
+/// Match the path portion of a link against the shipped routes.
+///
+/// Split from [`parse_path`] so [`target::parse_target`] can reuse the route
+/// matching without recursing through the query parser.
+fn parse_panel_path(path: &str) -> Option<Panel> {
     if path == "/" {
         return Some(Panel::Journal);
     }
     if path == "/page" {
         return Some(Panel::Page);
+    }
+    // The shipped React app registers Ask Notes at `/ask`; the native router
+    // also accepts the `/ask-notes` spelling used by the navigation table.
+    if path == "/ask" {
+        return Some(Panel::AskNotes);
     }
     if let Some(rest) = path.strip_prefix("/page/") {
         let _ = percent_decode(rest);
