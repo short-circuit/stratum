@@ -33,7 +33,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = System.getenv("STRATUM_ANDROID_VERSION_CODE")?.toIntOrNull() ?: 1
-        versionName = System.getenv("STRATUM_ANDROID_VERSION_NAME") ?: "1.0.0"
+        versionName = System.getenv("STRATUM_ANDROID_VERSION_NAME") ?: "2.0.0"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")

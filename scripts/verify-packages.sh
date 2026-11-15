@@ -116,7 +116,9 @@ PROBE
 record() {
     local name="$1" status="$2" detail="$3"
     RESULTS+=("$(printf '%-30s %-6s %s' "$name" "$status" "$detail")")
-    if [[ "$status" != "PASS" ]]; then
+    # SKIP means another platform verifies the artifact, so only a FAIL is a
+    # failure here.
+    if [[ "$status" == "FAIL" ]]; then
         FAILED=1
     fi
 }
@@ -278,7 +280,7 @@ for file in "$DIR"/*.rpm; do verify_rpm "$file"; done
 for file in "$DIR"/*.AppImage; do verify_appimage "$file"; done
 for file in "$DIR"/*.apk "$DIR"/*.aab; do verify_android "$file"; done
 for file in "$DIR"/*.msi "$DIR"/*.exe "$DIR"/*.zip "$DIR"/*.dmg; do
-    record "$(basename "$file")" SKIP "verified by the platform release job"
+    record "$(basename "$file")" SKIP "scripts/verify-windows-installers.ps1 / scripts/verify-macos-app.sh run on the platform release job"
 done
 
 if [[ "${#RESULTS[@]}" -eq 0 ]]; then

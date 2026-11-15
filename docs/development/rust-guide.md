@@ -165,7 +165,7 @@ impl From<rusqlite::Error> for StoreError {
 However, note that `pkm-block/src/store.rs` defines its own `StoreError` type. This is a known area for refactoring. The `StoreError` should ideally be converted to `PkmError` at the crate boundary. The service layer catches these and converts them to `String` anyway:
 
 ```rust
-// src-tauri/src/commands/vault/mod.rs
+// crates/stratum-app/src/vault/mod.rs
 let store = pkm_block::BlockStore::open(&state.db_path).map_err(|e| e.to_string())?;
 ```
 

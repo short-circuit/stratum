@@ -8903,7 +8903,7 @@ checksum = "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
 
 [[package]]
 name = "pkm-ai"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -8923,7 +8923,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-audio"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "chrono",
  "claxon",
@@ -8937,7 +8937,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-block"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -8953,7 +8953,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-cli"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "chrono",
  "clap",
@@ -8969,7 +8969,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-core"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "chrono",
  "dirs 7.0.0",
@@ -8986,7 +8986,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-dictation"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -9009,7 +9009,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-import"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "pkm-block",
  "pkm-core",
@@ -9023,7 +9023,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-index"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "chrono",
  "pkm-block",
@@ -9037,7 +9037,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-markdown"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "chrono",
  "pkm-block",
@@ -9051,7 +9051,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-mcp"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -9087,7 +9087,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-mcp-security"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "base64 0.22.1",
  "constant_time_eq",
@@ -9100,7 +9100,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-plugin"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -9121,7 +9121,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-query"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "chrono",
  "pkm-block",
@@ -9136,7 +9136,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-stt"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "base64 0.22.1",
  "pkm-core",
@@ -9147,7 +9147,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-sync"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "chrono",
  "dav-server",
@@ -9167,7 +9167,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-tests"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "chrono",
  "pkm-ai",
@@ -9189,7 +9189,7 @@ dependencies = [
 
 [[package]]
 name = "pkm-watcher"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "crossbeam-channel",
  "notify 7.0.0",
@@ -11370,7 +11370,7 @@ checksum = "d08889ec5408683408db66ad89e0e1f93dff55c73a4ccc71c427d5b277ee47e6"
 
 [[package]]
 name = "stratum-app"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -11408,7 +11408,7 @@ dependencies = [
 
 [[package]]
 name = "stratum-canvas"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "base64 0.22.1",
  "image",
@@ -11428,7 +11428,7 @@ dependencies = [
 
 [[package]]
 name = "stratum-editor"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "chrono",
  "mermaid-rs-renderer",
@@ -11448,7 +11448,7 @@ dependencies = [
 
 [[package]]
 name = "stratum-graph"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "ab_glyph",
  "bytemuck",
@@ -11463,7 +11463,7 @@ dependencies = [
 
 [[package]]
 name = "stratum-i18n"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "pkm-core",
  "serde_json",
@@ -11472,7 +11472,7 @@ dependencies = [
 
 [[package]]
 name = "stratum-mobile"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "android-activity",
  "android_logger",
@@ -11487,7 +11487,7 @@ dependencies = [
 
 [[package]]
 name = "stratum-platform"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "global-hotkey",
  "image",
@@ -11502,7 +11502,7 @@ dependencies = [
 
 [[package]]
 name = "stratum-ui"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",

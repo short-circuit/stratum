@@ -174,7 +174,7 @@ plus the MCP server for programmatic access.
 
 ## Screenshots
 
-The app, in real shipped state (v1.0.0-beta.3).
+The app, in real shipped state (v2.0.0).
 
 <p align="center">
   <img src="docs/assets/images/readme-editor.png" alt="Stratum block editor" width="640">
@@ -203,7 +203,7 @@ The app, in real shipped state (v1.0.0-beta.3).
 
 <p align="center">
   <img src="docs/assets/images/readme-dictation.png" alt="Stratum dictation" width="640">
-  <br><em>Voice dictation panel.</em>
+  <br><em>Voice capture — dictate straight into today's journal.</em>
 </p>
 
 <p align="center">
@@ -285,7 +285,7 @@ For the full quick-start, see [docs/getting-started/quickstart.md](docs/getting-
 
 ## Roadmap
 
-Stratum is in active development — v1.0.0-beta.3. See the
+Stratum is in active development — v2.0.0. See the
 [documentation home](https://short-circuit.github.io/stratum/docs/) for every
 feature guide (block editor, linking, graph, Datalog, sync, MCP server, and
 more). The docs are also mirrored in this repository under
